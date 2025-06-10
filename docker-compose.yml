@@ -1,0 +1,18 @@
+services:
+  db:
+    container_name: ronin
+    image: postgres:17.4
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ronin
+    ports:
+      - 5433:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/17/data
+
+volumes:
+  pgdata:
+  minio_data:
+  minio_config:
