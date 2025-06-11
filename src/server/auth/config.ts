@@ -1,13 +1,26 @@
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import { type DefaultSession, type NextAuthConfig } from "next-auth";
-import { db } from "@/server/db";
-import type { Adapter } from "next-auth/adapters";
+import { type JWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { Role } from "@prisma/client";
+import { type Role } from "@prisma/client";
 import { env } from "@/env";
+import { db } from "@/server/db";
 
 export const runtime = "nodejs";
+
+type UserData = {
+  id: string;
+  email: string | null;
+  name: string;
+  role: Role;
+  accountId: string;
+  emailVerified: Date | null;
+  deleted: boolean;
+  account: {
+    id: string;
+    name: string;
+  };
+};
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -19,15 +32,34 @@ declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
       id: string;
+      email: string | null;
+      name: string;
       role: Role;
       accountId: string;
+      emailVerified: Date | null;
+      deleted: boolean;
+      account: {
+        id: string;
+        name: string;
+      };
     } & DefaultSession["user"];
   }
+}
 
-  // interface User {
-  //   // ...other properties
-  //   // role: UserRole;
-  // }
+declare module "next-auth/jwt" {
+  interface JWT {
+    id: string;
+    email: string | null;
+    name: string;
+    role: Role;
+    accountId: string;
+    emailVerified: Date | null;
+    deleted: boolean;
+    account: {
+      id: string;
+      name: string;
+    };
+  }
 }
 
 /**
@@ -59,9 +91,12 @@ export const authConfig = {
 
         const user = await db.user.findUnique({
           where: { email: credentials.email },
+          include: {
+            account: true,
+          },
         });
 
-        if (!user?.password || !user.role) {
+        if (!user?.password || !user.role || !user.account) {
           return null;
         }
 
@@ -83,21 +118,12 @@ export const authConfig = {
           emailVerified: user.emailVerified,
           deleted: user.deleted,
           account: {
-            id: user.accountId,
-            name: user.name,
+            id: user.account.id,
+            name: user.account.name,
           },
         };
       },
     }),
-    /**
-     * ...add more providers here.
-     *
-     * Most other providers require a bit more work than the Discord provider. For example, the
-     * GitHub provider requires you to add the `refresh_token_expires_in` field to the Account
-     * model. Refer to the NextAuth.js docs for the provider you want to use. Example:
-     *
-     * @see https://next-auth.js.org/providers/github
-     */
   ],
   secret: env.AUTH_SECRET,
   session: {
@@ -110,17 +136,27 @@ export const authConfig = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        token.id = user.id!;
+        token.email = user.email!;
+        token.name = user.name!;
         token.role = user.role;
         token.accountId = user.accountId;
+        token.emailVerified = user.emailVerified;
+        token.deleted = user.deleted;
+        token.account = user.account;
       }
       return token;
     },
     async session({ session, token }) {
       if (token) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as Role;
-        session.user.accountId = token.accountId as string;
+        session.user.id = token.id;
+        session.user.email = token.email!;
+        session.user.name = token.name;
+        session.user.role = token.role;
+        session.user.accountId = token.accountId;
+        session.user.emailVerified = token.emailVerified;
+        session.user.deleted = token.deleted;
+        session.user.account = token.account;
       }
       return session;
     },

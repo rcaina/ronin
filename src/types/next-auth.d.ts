@@ -8,6 +8,8 @@ declare module "next-auth" {
    */
   interface User extends DefaultUser {
     id: string;
+    email: string | null;
+    name: string;
     role: Role;
     accountId: string;
     emailVerified: Date | null;

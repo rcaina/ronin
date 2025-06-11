@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 export default function HomePage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   const handleSignOut = async () => {
     await signOut({
@@ -28,6 +29,20 @@ export default function HomePage() {
         <h1 className="text-5xl font-extrabold tracking-tight text-white sm:text-[5rem]">
           Create <span className="text-[hsl(280,100%,70%)]">T3</span> App
         </h1>
+        {status === "loading" ? (
+          <div>Loading session...</div>
+        ) : session ? (
+          <div className="rounded-lg bg-white/10 p-4">
+            <h2 className="mb-2 text-xl font-bold">Session Data:</h2>
+            <pre className="text-sm">{JSON.stringify(session, null, 2)}</pre>
+            <h2 className="mt-4 mb-2 text-xl font-bold">User Data:</h2>
+            <pre className="text-sm">
+              {JSON.stringify(session.user, null, 2)}
+            </pre>
+          </div>
+        ) : (
+          <div>Not signed in</div>
+        )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-8">
           <Link
             className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 text-white hover:bg-white/20"
