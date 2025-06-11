@@ -1,8 +1,31 @@
+"use client";
+
 import Link from "next/link";
+import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await signOut({
+      redirect: false,
+      callbackUrl: "/sign-in",
+    });
+    router.refresh();
+    router.push("/sign-in");
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
+      <div className="absolute top-4 right-4">
+        <button
+          onClick={handleSignOut}
+          className="rounded-lg bg-white/10 px-4 py-2 text-white hover:bg-white/20"
+        >
+          Sign Out
+        </button>
+      </div>
       <div className="container flex flex-col items-center justify-center gap-12 px-4 py-16">
         <h1 className="text-5xl font-extrabold tracking-tight text-white sm:text-[5rem]">
           Create <span className="text-[hsl(280,100%,70%)]">T3</span> App
