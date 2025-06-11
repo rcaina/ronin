@@ -1,5 +1,4 @@
 import { type DefaultSession, type NextAuthConfig } from "next-auth";
-import { type JWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { type Role } from "@prisma/client";
@@ -7,20 +6,6 @@ import { env } from "@/env";
 import { db } from "@/server/db";
 
 export const runtime = "nodejs";
-
-type UserData = {
-  id: string;
-  email: string | null;
-  name: string;
-  role: Role;
-  accountId: string;
-  emailVerified: Date | null;
-  deleted: boolean;
-  account: {
-    id: string;
-    name: string;
-  };
-};
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
