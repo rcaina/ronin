@@ -9,11 +9,9 @@ export default function HomePage() {
 
   const handleSignOut = async () => {
     await signOut({
-      redirect: false,
+      redirect: true,
       callbackUrl: "/sign-in",
     });
-    router.refresh();
-    router.push("/sign-in");
   };
 
   return (

@@ -1,9 +1,12 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { type DefaultSession, type NextAuthConfig } from "next-auth";
-
 import { db } from "@/server/db";
 import type { Adapter } from "next-auth/adapters";
 import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+import { Role } from "@prisma/client";
+import { env } from "@/env";
+
 export const runtime = "nodejs";
 
 /**
@@ -16,8 +19,8 @@ declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
       id: string;
-      // ...other properties
-      // role: UserRole;
+      role: Role;
+      accountId: string;
     } & DefaultSession["user"];
   }
 
@@ -34,7 +37,58 @@ declare module "next-auth" {
  */
 export const authConfig = {
   providers: [
-    Credentials,
+    Credentials({
+      credentials: {
+        email: {
+          type: "email",
+          label: "Email",
+          placeholder: "johndoe@gmail.com",
+        },
+        password: {
+          type: "password",
+          label: "Password",
+          placeholder: "*****",
+        },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password || 
+            typeof credentials.email !== "string" || 
+            typeof credentials.password !== "string") {
+          return null;
+        }
+
+        const user = await db.user.findUnique({
+          where: { email: credentials.email },
+        });
+
+        if (!user?.password || !user.role) {
+          return null;
+        }
+
+        const isPasswordValid = await bcrypt.compare(
+          credentials.password,
+          user.password,
+        );
+
+        if (!isPasswordValid) {
+          return null;
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          accountId: user.accountId,
+          emailVerified: user.emailVerified,
+          deleted: user.deleted,
+          account: {
+            id: user.accountId,
+            name: user.name,
+          },
+        };
+      },
+    }),
     /**
      * ...add more providers here.
      *
@@ -45,20 +99,30 @@ export const authConfig = {
      * @see https://next-auth.js.org/providers/github
      */
   ],
-  adapter: PrismaAdapter(db) as Adapter,
+  secret: env.AUTH_SECRET,
   session: {
     strategy: "jwt",
   },
   pages: {
     signIn: "/sign-in",
+    signOut: "/sign-in",
   },
   callbacks: {
-    session: ({ session, user }) => ({
-      ...session,
-      user: {
-        ...session.user,
-        id: user.id,
-      },
-    }),
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+        token.accountId = user.accountId;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as Role;
+        session.user.accountId = token.accountId as string;
+      }
+      return session;
+    },
   },
 } satisfies NextAuthConfig;

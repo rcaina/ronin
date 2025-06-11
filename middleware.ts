@@ -1,26 +1,34 @@
-import { auth } from "@/server/auth";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { getToken } from 'next-auth/jwt'
+import { env } from '@/env'
 
 export async function middleware(request: NextRequest) {
-  const session = await auth();
-  const isAuthPage = request.nextUrl.pathname.startsWith("/sign-in") || 
-                    request.nextUrl.pathname.startsWith("/sign-up");
+  const token = await getToken({ 
+    req: request,
+    secret: env.AUTH_SECRET,
+  })
+  const isAuthPage = request.nextUrl.pathname.startsWith('/sign-in') || 
+                    request.nextUrl.pathname.startsWith('/sign-up')
 
-  if (!session && !isAuthPage) {
-    return NextResponse.redirect(new URL("/sign-in", request.url));
+  if (isAuthPage) {
+    if (token) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+    return NextResponse.next()
   }
 
-  if (session && isAuthPage) {
-    return NextResponse.redirect(new URL("/", request.url));
+  if (!token) {
+    const signInUrl = new URL('/sign-in', request.url)
+    signInUrl.searchParams.set('callbackUrl', request.url)
+    return NextResponse.redirect(signInUrl)
   }
 
-  return NextResponse.next();
+  return NextResponse.next()
 }
 
 export const config = {
   matcher: [
-    "/",
     /*
      * Match all request paths except for the ones starting with:
      * - api (API routes)
@@ -29,6 +37,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|public).*)",
+    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
   ],
-}; 
+} 
