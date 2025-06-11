@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
-import AuthLayout from "@/components/AuthLayout";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -15,23 +14,23 @@ export default function HomePage() {
   };
 
   return (
-    <AuthLayout>
+    <>
       <div className="absolute right-4 top-4">
         <button
           onClick={handleSignOut}
-          className="rounded-lg bg-black/10 px-4 py-2 hover:bg-white/20"
+          className="rounded-lg bg-white/10 px-4 py-2 text-white hover:bg-white/20"
         >
           Sign Out
         </button>
       </div>
       <div className="container flex flex-col items-center justify-center gap-12 px-4 py-16">
-        <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem]">
-          Create <span className="text-secondary">T3</span> App
+        <h1 className="text-5xl font-extrabold tracking-tight text-white sm:text-[5rem]">
+          Create <span className="text-[hsl(280,100%,70%)]">T3</span> App
         </h1>
         {status === "loading" ? (
           <div>Loading session...</div>
         ) : session ? (
-          <div className="rounded-lg bg-black/10 p-4">
+          <div className="rounded-lg bg-white/10 p-4">
             <h2 className="mb-2 text-xl font-bold">Session Data:</h2>
             <pre className="text-sm">{JSON.stringify(session, null, 2)}</pre>
             <h2 className="mb-2 mt-4 text-xl font-bold">User Data:</h2>
@@ -44,7 +43,7 @@ export default function HomePage() {
         )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-8">
           <Link
-            className="flex max-w-xs flex-col gap-4 rounded-xl bg-black/10 p-4 hover:bg-white/20"
+            className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 text-white hover:bg-white/20"
             href="https://create.t3.gg/en/usage/first-steps"
             target="_blank"
           >
@@ -55,7 +54,7 @@ export default function HomePage() {
             </div>
           </Link>
           <Link
-            className="flex max-w-xs flex-col gap-4 rounded-xl bg-black/10 p-4 hover:bg-white/20"
+            className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 text-white hover:bg-white/20"
             href="https://create.t3.gg/en/introduction"
             target="_blank"
           >
@@ -67,6 +66,6 @@ export default function HomePage() {
           </Link>
         </div>
       </div>
-    </AuthLayout>
+    </>
   );
 }
