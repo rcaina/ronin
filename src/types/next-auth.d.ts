@@ -15,7 +15,6 @@ declare module "next-auth" {
     account: {
       id: string;
       name: string;
-      type: string;
     };
   }
 
