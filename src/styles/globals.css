@@ -1,4 +1,15 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --foreground: 0, 0, 0;
+    --background: 214, 219, 220;
+    --color-primary: #000000;
+    --color-secondary: #F1C232;
+  }
+}
 
 @theme {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
