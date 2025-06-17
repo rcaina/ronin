@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface SignInForm {
   email: string;
@@ -134,10 +135,21 @@ export default function SignIn() {
             <button
               type="submit"
               disabled={isPending}
-              className="group relative flex w-full justify-center rounded-md border border-transparent bg-secondary px-4 py-2 text-sm font-medium text-white hover:bg-secondary/80 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="hover:bg-secondary/80 group relative flex w-full justify-center rounded-md border border-transparent bg-secondary px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isPending ? "Signing in..." : "Sign in"}
             </button>
+          </div>
+          <div className="text-center text-sm">
+            <p className="text-gray-600">
+              Don&apos;t have an account?{" "}
+              <a
+                href="/sign-up"
+                className="font-medium text-secondary hover:text-primary"
+              >
+                Sign up
+              </a>
+            </p>
           </div>
         </form>
       </div>

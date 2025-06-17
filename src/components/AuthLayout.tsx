@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import SideNav from "./SideNav";
 
 export default function AuthLayout({
@@ -12,6 +12,7 @@ export default function AuthLayout({
 }) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -33,8 +34,12 @@ export default function AuthLayout({
 
   return (
     <main className="bg-gray/90 flex min-h-screen text-black">
-      <SideNav />
-      <div className="flex-1 pl-64">{children}</div>
+      <SideNav isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+      <div
+        className={`flex-1 transition-all duration-300 ${isCollapsed ? "pl-16" : "pl-64"}`}
+      >
+        {children}
+      </div>
     </main>
   );
 }

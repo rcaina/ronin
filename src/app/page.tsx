@@ -1,29 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { signOut, useSession } from "next-auth/react";
-import AuthLayout from "@/components/AuthLayout";
+import { useSession } from "next-auth/react";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
 
-  const handleSignOut = async () => {
-    await signOut({
-      redirect: true,
-      callbackUrl: "/sign-in",
-    });
-  };
-
   return (
-    <AuthLayout>
-      <div className="absolute right-4 top-4">
-        <button
-          onClick={handleSignOut}
-          className="rounded-lg bg-black/10 px-4 py-2 hover:bg-white/20"
-        >
-          Sign Out
-        </button>
-      </div>
+    <>
+      <div className="absolute right-4 top-4"></div>
       <div className="container flex flex-col items-center justify-center gap-12 px-4 py-16">
         <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem]">
           Create <span className="text-secondary">T3</span> App
@@ -67,6 +52,6 @@ export default function HomePage() {
           </Link>
         </div>
       </div>
-    </AuthLayout>
+    </>
   );
 }

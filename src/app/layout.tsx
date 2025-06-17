@@ -3,6 +3,7 @@ import "@/styles/globals.css";
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
+import ConditionalLayout from "@/components/ConditionalLayout";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -21,7 +22,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={geist.variable}>
       <body>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <ConditionalLayout>{children}</ConditionalLayout>
+        </SessionProvider>
       </body>
     </html>
   );
