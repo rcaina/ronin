@@ -68,12 +68,14 @@ async function main() {
 
   const categories =  [
     {
+      id: "1",
       name: 'Demo Category 1',
       createdAt: new Date(),  
       budgetId: "1",
       spendingLimit: 100,
     },
     {
+      id: "2",
       name: 'Demo Category 2',
       createdAt: new Date(),
       budgetId: "1",
@@ -88,20 +90,16 @@ async function main() {
   ];
 
   const transactions = [{
-    create: {
       name: 'Demo Transaction 1',
       amount: 100,
       createdAt: new Date(),
-      budgetId: "1",
-    },
+      categoryId: "1",
   },
   {
-    create: {
       name: 'Demo Transaction 2',
       amount: 200,
       createdAt: new Date(),
-      budgetId: "1",
-    },
+      categoryId: "2",
   }];
 
   for (const user of users) {
@@ -119,6 +117,12 @@ async function main() {
   for (const category of categories) {
     await prisma.category.create({
       data: category,
+    });
+  }
+
+  for (const transaction of transactions) {
+    await prisma.transaction.create({
+      data: transaction,
     });
   }
   

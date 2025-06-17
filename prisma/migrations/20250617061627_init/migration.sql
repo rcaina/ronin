@@ -104,8 +104,9 @@ CREATE TABLE "Card" (
 -- CreateTable
 CREATE TABLE "transactions" (
     "id" TEXT NOT NULL,
+    "name" TEXT,
+    "description" TEXT,
     "amount" DOUBLE PRECISION NOT NULL,
-    "date" TIMESTAMP(3) NOT NULL,
     "categoryId" TEXT NOT NULL,
     "deleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -184,10 +185,10 @@ CREATE INDEX "Card_id_idx" ON "Card"("id");
 CREATE INDEX "transactions_id_idx" ON "transactions"("id");
 
 -- CreateIndex
-CREATE INDEX "transactions_amount_idx" ON "transactions"("amount");
+CREATE INDEX "transactions_name_idx" ON "transactions"("name");
 
 -- CreateIndex
-CREATE INDEX "transactions_date_idx" ON "transactions"("date");
+CREATE INDEX "transactions_amount_idx" ON "transactions"("amount");
 
 -- CreateIndex
 CREATE INDEX "transactions_deleted_idx" ON "transactions"("deleted");

@@ -130,18 +130,19 @@ model Card {
 }
 
 model Transaction {
-    id         String   @id @default(cuid())
-    amount     Float
-    date       DateTime
-    categoryId String
-    category   Category @relation(fields: [categoryId], references: [id])
-    deleted    Boolean  @default(false)
-    createdAt  DateTime @default(now())
-    updatedAt  DateTime @updatedAt
+    id          String   @id @default(cuid())
+    name        String?
+    description String?
+    amount      Float
+    categoryId  String
+    category    Category @relation(fields: [categoryId], references: [id])
+    deleted     Boolean  @default(false)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
 
     @@index([id])
+    @@index([name])
     @@index([amount])
-    @@index([date])
     @@index([deleted])
     @@map("transactions")
 }
