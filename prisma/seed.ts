@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { BudgetType, PeriodType, PrismaClient, Role } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -6,6 +6,7 @@ async function main() {
   // Create demo accounts
   const demoAccount = await prisma.account.create({
     data: {
+      id: "1",
       name: 'Demo Company',
     },
   });
@@ -53,11 +54,75 @@ async function main() {
     },
   ];
 
+  const budgets = [
+    {
+      id: "1",
+      name: 'Demo Budget',
+      createdAt: new Date(),
+      accountId: "1",
+      type: BudgetType.ZERO_SUM,
+      period: PeriodType.MONTHLY,
+      income: 1000,
+    },
+  ];
+
+  const categories =  [
+    {
+      name: 'Demo Category 1',
+      createdAt: new Date(),  
+      budgetId: "1",
+      spendingLimit: 100,
+    },
+    {
+      name: 'Demo Category 2',
+      createdAt: new Date(),
+      budgetId: "1",
+      spendingLimit: 100,
+    },
+    {
+      name: 'Demo Category 3',
+      createdAt: new Date(),
+      budgetId: "1",
+      spendingLimit: 100,
+    },
+  ];
+
+  const transactions = [{
+    create: {
+      name: 'Demo Transaction 1',
+      amount: 100,
+      createdAt: new Date(),
+      budgetId: "1",
+    },
+  },
+  {
+    create: {
+      name: 'Demo Transaction 2',
+      amount: 200,
+      createdAt: new Date(),
+      budgetId: "1",
+    },
+  }];
+
   for (const user of users) {
     await prisma.user.create({
       data: user,
     });
   }
+
+  for (const budget of budgets) {
+    await prisma.budget.create({ 
+      data: budget,
+    });
+  }
+
+  for (const category of categories) {
+    await prisma.category.create({
+      data: category,
+    });
+  }
+  
+  
 
   console.log('Database has been seeded. 🌱');
 }

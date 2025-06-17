@@ -5,7 +5,6 @@ import { useState, useTransition } from "react";
 import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 interface SignInForm {
   email: string;
