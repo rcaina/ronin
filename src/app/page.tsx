@@ -8,8 +8,7 @@ export default function HomePage() {
 
   return (
     <>
-      <div className="absolute right-4 top-4"></div>
-      <div className="container flex flex-col items-center justify-center gap-12 px-4 py-16">
+      <div className="flex flex-col items-center justify-center gap-12">
         <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem]">
           Create <span className="text-secondary">T3</span> App
         </h1>

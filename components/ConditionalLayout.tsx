@@ -35,16 +35,18 @@ export default function ConditionalLayout({
 
   // For public pages, render without AuthLayout
   if (PUBLIC_PAGES.includes(pathname)) {
-    return <main className="min-h-screen">{children}</main>;
+    return <main className="max-h-screen">{children}</main>;
   }
 
   // For authenticated pages, render with AuthLayout
   if (session) {
     return (
-      <main className="bg-gray/90 flex min-h-screen text-black">
+      <main className="bg-gray/90 flex h-screen text-black">
         <SideNav isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
         <div
-          className={`flex-1 transition-all duration-300 ${isCollapsed ? "pl-16" : "pl-64"}`}
+          className={`flex-1 overflow-auto transition-all duration-300 ${
+            isCollapsed ? "ml-16" : "ml-64"
+          }`}
         >
           {children}
         </div>
