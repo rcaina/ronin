@@ -59,7 +59,7 @@ const BudgetsPage = () => {
                   Limit: ${budget.income.toLocaleString()}
                 </p>
                 <p className="text-sm text-gray-500">
-                  Type: {budget.type.replace("_", " ")}
+                  Type: {budget.strategy.replace("_", " ")}
                 </p>
                 <p className="text-sm text-gray-500">
                   Period: {budget.period.replace("_", " ")}

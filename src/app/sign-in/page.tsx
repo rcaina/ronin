@@ -1,10 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-
-import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
+import { useSignIn } from "@/lib/data-hooks/useSignIn";
 
 interface SignInForm {
   email: string;
@@ -12,9 +9,7 @@ interface SignInForm {
 }
 
 export default function SignIn() {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const { signIn, isLoading, error, resetError } = useSignIn();
   const {
     register,
     handleSubmit,
@@ -27,27 +22,10 @@ export default function SignIn() {
   });
 
   const onSubmit = async (data: SignInForm) => {
-    startTransition(async () => {
-      try {
-        const result = await signIn("credentials", {
-          email: data.email,
-          password: data.password,
-          redirect: false,
-        });
-
-        if (result?.error) {
-          setError("Invalid credentials");
-          return;
-        }
-
-        router.push("/");
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "An error occurred during sign in",
-        );
-      }
+    resetError();
+    await signIn({
+      email: data.email,
+      password: data.password,
     });
   };
 
@@ -133,10 +111,10 @@ export default function SignIn() {
           <div>
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isLoading}
               className="hover:bg-secondary/80 group relative flex w-full justify-center rounded-md border border-transparent bg-secondary px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isPending ? "Signing in..." : "Sign in"}
+              {isLoading ? "Signing in..." : "Sign in"}
             </button>
           </div>
           <div className="text-center text-sm">

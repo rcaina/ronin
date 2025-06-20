@@ -6,16 +6,30 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export const GET = withUser({
     GET: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
-        const budgets = await prisma.budget.findMany({
+        const { id } = await context.params;
+        
+        const budget = await prisma.budget.findFirst({
             where: {
+                id,
                 accountId: user.accountId,
                 deleted: null,
             },
             include: {
-                categories: true,
+                categories: {
+                    where: {
+                        deleted: null,
+                    },
+                    include: {
+                        category: true,
+                    },
+                },
             },
-        })
-  
-        return NextResponse.json(budgets, { status: 200 })
+        });
+
+        if (!budget) {
+            return NextResponse.json({ error: "Budget not found" }, { status: 404 });
+        }
+
+        return NextResponse.json(budget, { status: 200 });
     }),
-})
+}) 

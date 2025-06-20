@@ -1,10 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-
-import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
+import { useSignUp } from "@/lib/data-hooks/useSignUp";
 
 interface SignUpForm {
   firstName: string;
@@ -14,14 +11,8 @@ interface SignUpForm {
   confirmPassword: string;
 }
 
-interface ApiError {
-  message: string;
-}
-
 export default function SignUp() {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const { signUp, isLoading, error, resetError } = useSignUp();
   const {
     register,
     handleSubmit,
@@ -40,48 +31,12 @@ export default function SignUp() {
   const password = watch("password");
 
   const onSubmit = async (data: SignUpForm) => {
-    startTransition(async () => {
-      try {
-        // Here you would typically make an API call to create the user
-        const response = await fetch("/api/signup", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            firstName: data.firstName,
-            lastName: data.lastName,
-            email: data.email,
-            password: data.password,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = (await response.json()) as ApiError;
-          setError(errorData.message ?? "Failed to create account");
-          return;
-        }
-
-        // Sign in the user after successful registration
-        const result = await signIn("credentials", {
-          email: data.email,
-          password: data.password,
-          redirect: false,
-        });
-
-        if (result?.error) {
-          setError("Failed to sign in after registration");
-          return;
-        }
-
-        router.push("/dashboard");
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "An error occurred during sign up",
-        );
-      }
+    resetError();
+    await signUp({
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      password: data.password,
     });
   };
 
@@ -240,10 +195,10 @@ export default function SignUp() {
           <div>
             <button
               type="submit"
-              disabled={isPending}
-              className="group relative flex w-full justify-center rounded-md border border-transparent bg-secondary px-4 py-2 text-sm font-medium text-white hover:bg-secondary/80 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={isLoading}
+              className="hover:bg-secondary/80 group relative flex w-full justify-center rounded-md border border-transparent bg-secondary px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isPending ? "Creating account..." : "Sign up"}
+              {isLoading ? "Creating account..." : "Sign up"}
             </button>
           </div>
 

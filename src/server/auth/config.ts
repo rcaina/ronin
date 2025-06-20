@@ -77,11 +77,15 @@ export const authConfig = {
         const user = await db.user.findUnique({
           where: { email: credentials.email },
           include: {
-            account: true,
+            accountUsers: {
+              include: {
+                account: true,
+              },
+            },
           },
         });
 
-        if (!user?.password || !user.role || !user.account) {
+        if (!user?.password || !user.role || !user.accountUsers.length) {
           return null;
         }
 
@@ -94,17 +98,24 @@ export const authConfig = {
           return null;
         }
 
+        // Use the first account the user belongs to
+        const firstAccountUser = user.accountUsers[0];
+        if (!firstAccountUser) {
+          return null;
+        }
+        const account = firstAccountUser.account;
+
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
-          accountId: user.accountId,
+          accountId: account.id,
           emailVerified: user.emailVerified,
-          deleted: user.deleted,
+          deleted: user.deleted !== null,
           account: {
-            id: user.account.id,
-            name: user.account.name,
+            id: account.id,
+            name: account.name,
           },
         };
       },

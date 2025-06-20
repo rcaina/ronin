@@ -5,12 +5,12 @@ import type { User } from '@prisma/client'
 
 type HandlerWithUser = (
   req: NextRequest,
-  context: { params: Record<string, string> },
-  user: User,
+  context: { params: Promise<Record<string, string>> },
+  user: User & { accountId: string },
 ) => Promise<Response>
 
 export function withUserErrorHandling(handler: HandlerWithUser): HandlerWithUser {
-  return async (req: NextRequest, context: { params: Record<string, string> }, user: User) => {
+  return async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
     try {
       return await handler(req, context, user)
     } catch (error) {

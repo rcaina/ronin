@@ -29,16 +29,38 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
     >
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-4 flex h-6 w-6 items-center justify-center rounded-md bg-black/90 text-white"
+        className="absolute -right-3 top-14 flex h-6 w-6 items-center justify-center rounded-md bg-black/90 text-white"
       >
         {isCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
       </button>
 
       <div className="flex h-full flex-col p-4">
-        <div className="mb-8">
-          {!isCollapsed && (
-            <h2 className="text-xl font-bold text-white">Navigation</h2>
-          )}
+        {/**logo*/}
+        <div
+          className={`mb-8 flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3"}`}
+        >
+          <div className={`${isCollapsed ? "h-10 w-10" : "h-12 w-12"}`}>
+            {/* Fox SVG */}
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-full w-full text-secondary"
+            >
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
+                fill="currentColor"
+              />
+              <path
+                d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"
+                fill="currentColor"
+              />
+            </svg>
+          </div>
+          <div>
+            {!isCollapsed && (
+              <h2 className="text-xl font-bold text-secondary">RONIN</h2>
+            )}
+          </div>
         </div>
 
         <nav className="flex flex-col gap-2">

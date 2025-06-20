@@ -3,13 +3,12 @@ import { type NextRequest, NextResponse } from 'next/server'
   import { auth } from '@/server/auth'
 import prisma from '../prisma'
 import type { User } from '@prisma/client'
-import type { Session } from 'next-auth'
 
 // Type helper for handlers that will receive the Request and user object
 type HandlerWithUser = (
   req: NextRequest,
-  context: { params: Record<string, string> },
-  user: User,
+  context: { params: Promise<Record<string, string>> },
+  user: User & { accountId: string },
 ) => Promise<Response>
 
 // This factory allows you to pass handlers for each HTTP method
@@ -24,9 +23,9 @@ type MethodHandlers = Partial<{
 export function withUser(handlers: MethodHandlers) {
   return async function (
     req: NextRequest,
-    context: { params: Record<string, string> },
+    context: { params: Promise<Record<string, string>> },
   ) {
-    const session = await auth() as Session | null;
+    const session = await auth();
 
     console.log({session})
 
@@ -45,6 +44,12 @@ export function withUser(handlers: MethodHandlers) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
+    // Add accountId from session to user object
+    const userWithAccountId = {
+      ...user,
+      accountId: session.user.accountId,
+    }
+
     const method = req.method as keyof MethodHandlers
     const handler = handlers[method]
 
@@ -52,6 +57,6 @@ export function withUser(handlers: MethodHandlers) {
       return NextResponse.json({ error: 'Method Not Allowed' }, { status: 405 })
     }
 
-    return handler(req, context, user)
+    return handler(req, context, userWithAccountId)
   }
 }
