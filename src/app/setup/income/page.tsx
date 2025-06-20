@@ -64,7 +64,6 @@ export default function IncomeSetupPage() {
   });
 
   const amount = watch("amount");
-  const frequency = watch("frequency");
 
   const onSubmit = async (data: IncomeForm) => {
     setIsLoading(true);

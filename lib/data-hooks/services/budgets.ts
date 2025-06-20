@@ -1,4 +1,3 @@
-import { type Budget } from "@prisma/client";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 
 export const getBudgets = async (): Promise<BudgetWithRelations[]> => fetch("/api/budgets").then((res) => res.json()) as Promise<BudgetWithRelations[]>

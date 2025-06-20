@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useCategories } from "@/lib/data-hooks/categories/useCategories";
 import SetupProgress from "@/components/SetupProgress";
-import type { Category } from "@prisma/client";
 
 interface BudgetData {
   name: string;

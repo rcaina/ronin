@@ -215,7 +215,7 @@ const BudgetsPage = () => {
               </p>
               <button
                 onClick={() => router.push("/setup/budget")}
-                className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+                className="inline-flex items-center rounded-lg bg-secondary px-4 py-2 text-white transition-colors hover:bg-yellow-300"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Create Your First Budget
@@ -249,7 +249,7 @@ const BudgetsPage = () => {
               return (
                 <div
                   key={budget.id}
-                  className={`cursor-pointer rounded-xl border bg-white p-6 shadow-sm transition-all duration-200 hover:shadow-md ${budgetStatus.border}`}
+                  className={`cursor-pointer rounded-xl border bg-white p-6 shadow-sm transition-all duration-200 hover:bg-black/5 hover:shadow-xl ${budgetStatus.border}`}
                   onClick={() => router.push(`/budgets/${budget.id}`)}
                 >
                   <div className="mb-4 flex items-start justify-between">

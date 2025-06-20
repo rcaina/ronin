@@ -2,14 +2,7 @@
 
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useParams } from "next/navigation";
-import {
-  ArrowLeft,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Calendar,
-  Target,
-} from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Target } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 
 const BudgetDetailsPage = () => {
@@ -114,38 +107,19 @@ const BudgetDetailsPage = () => {
 
   return (
     <div className="bg-gray-50">
-      {/* Header */}
-      <div className="border-b bg-white shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => window.history.back()}
-                className="rounded-lg p-2 transition-colors hover:bg-gray-100"
-              >
-                <ArrowLeft className="h-5 w-5 text-gray-600" />
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {budget.name}
-                </h1>
-                <p className="text-sm text-gray-500">
-                  Created{" "}
-                  {new Date(budget.createdAt).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <Calendar className="h-4 w-4" />
-              <span>{budget.period.replace("_", " ")} Budget</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={budget.name}
+        description={`${budget.period.replace("_", " ")} Budget • Created ${new Date(
+          budget.createdAt,
+        ).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })}`}
+        backButton={{
+          onClick: () => window.history.back(),
+        }}
+      />
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Budget Overview Cards */}

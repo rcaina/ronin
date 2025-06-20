@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 
 export default function WelcomePage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const { data: budgets = [], isLoading } = useBudgets();
   const [isChecking, setIsChecking] = useState(true);

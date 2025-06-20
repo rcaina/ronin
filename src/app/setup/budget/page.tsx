@@ -42,7 +42,6 @@ export default function BudgetSetupPage() {
   });
 
   const strategy = watch("strategy");
-  const period = watch("period");
 
   const onSubmit = async (data: BudgetForm) => {
     setIsLoading(true);

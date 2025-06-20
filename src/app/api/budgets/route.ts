@@ -28,7 +28,6 @@ const createBudgetSchema = z.object({
     })
     .pipe(z.string().datetime("Invalid end date format")),
   categoryAllocations: z.record(z.string(), z.coerce.number()).optional(),
-  selectedCategories: z.array(z.string()).optional(),
   income: z.object({
     amount: z.coerce.number().positive("Income amount must be positive"),
     source: z.string().min(1, "Income source is required"),
@@ -68,7 +67,7 @@ export const POST = withUser({
             );
         }
 
-        const { name, strategy, period, startAt, endAt, categoryAllocations, income, selectedCategories } = validationResult.data;
+        const { name, strategy, period, startAt, endAt, categoryAllocations, income } = validationResult.data;
 
         try {
             const result = await prisma.$transaction(async (tx) => {
