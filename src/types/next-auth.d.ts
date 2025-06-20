@@ -14,10 +14,7 @@ declare module "next-auth" {
     accountId: string;
     emailVerified: Date | null;
     deleted: boolean;
-    account: {
-      id: string;
-      name: string;
-    };
+    hasBudget: boolean;
   }
 
   /**
@@ -25,5 +22,18 @@ declare module "next-auth" {
    */
   interface Session extends DefaultSession {
     user: User;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id: string;
+    email: string | null;
+    name: string;
+    role: Role;
+    accountId: string;
+    emailVerified: Date | null;
+    deleted: boolean;
+    hasBudget: boolean;
   }
 }

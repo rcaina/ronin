@@ -20,7 +20,24 @@ export const GET = withUser({
                         deleted: null,
                     },
                     include: {
-                        category: true,
+                        category: {
+                            include: {
+                                transactions: {
+                                    where: {
+                                        budgetId: id,
+                                        deleted: null,
+                                    },
+                                    orderBy: {
+                                        createdAt: 'desc',
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                incomes: {
+                    where: {
+                        deleted: null,
                     },
                 },
             },
@@ -30,6 +47,18 @@ export const GET = withUser({
             return NextResponse.json({ error: "Budget not found" }, { status: 404 });
         }
 
-        return NextResponse.json(budget, { status: 200 });
+        // Transform the data to match the expected structure
+        const transformedBudget = {
+            ...budget,
+            categories: budget.categories.map(budgetCategory => ({
+                id: budgetCategory.category.id,
+                name: budgetCategory.category.name,
+                spendingLimit: budgetCategory.allocatedAmount,
+                group: budgetCategory.category.group,
+                transactions: budgetCategory.category.transactions,
+            })),
+        };
+
+        return NextResponse.json(transformedBudget, { status: 200 });
     }),
 }) 

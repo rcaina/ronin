@@ -8,6 +8,9 @@ import SideNav from "./SideNav";
 // Pages that don't require authentication
 const PUBLIC_PAGES = ["/sign-in", "/sign-up"];
 
+// Pages that don't show the side navigation
+const NO_NAV_PAGES = ["/welcome", "/setup"];
+
 export default function ConditionalLayout({
   children,
 }: {
@@ -40,8 +43,17 @@ export default function ConditionalLayout({
 
   // For authenticated pages, render with AuthLayout
   if (session) {
+    // Check if current page should hide navigation
+    const shouldHideNav = NO_NAV_PAGES.some((page) =>
+      pathname.startsWith(page),
+    );
+
+    if (shouldHideNav) {
+      return <main className="max-h-screen">{children}</main>;
+    }
+
     return (
-      <main className="bg-gray/90 flex h-screen text-black">
+      <main className="bg-gray/90 flex text-black">
         <SideNav isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
         <div
           className={`flex-1 overflow-auto transition-all duration-300 ${

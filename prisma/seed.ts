@@ -95,7 +95,6 @@ async function main() {
       startAt: new Date('2024-01-01'),
       endAt: new Date('2024-12-31'),
       period: PeriodType.MONTHLY,
-      income: 5000,
     },
     {
       id: "2",
@@ -106,7 +105,6 @@ async function main() {
       startAt: new Date('2024-01-01'),
       endAt: new Date('2024-12-31'),
       period: PeriodType.MONTHLY,
-      income: 8000,
     },
   ];
 
@@ -268,6 +266,7 @@ async function main() {
       description: 'Monthly salary',
       receivedAt: new Date(),
       isPlanned: true,
+      frequency: PeriodType.MONTHLY,
     },
     {
       accountId: startupAccount.id,
@@ -278,6 +277,7 @@ async function main() {
       description: 'Monthly business income',
       receivedAt: new Date(),
       isPlanned: true,
+      frequency: PeriodType.MONTHLY,
     },
   ];
 

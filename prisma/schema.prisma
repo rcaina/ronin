@@ -92,7 +92,6 @@ model Budget {
     name         String
     strategy     StrategyType
     period       PeriodType
-    income       Float
     deleted      DateTime?
     startAt      DateTime
     endAt        DateTime
@@ -108,26 +107,26 @@ model Budget {
     @@index([name])
     @@index([strategy])
     @@index([period])
-    @@index([income])
     @@index([deleted])
     @@map("budgets")
 }
 
 model Income {
-    id          String    @id @default(cuid())
-    accountId   String
-    account     Account   @relation(fields: [accountId], references: [id])
-    userId      String
-    user        User      @relation(fields: [userId], references: [id])
-    budgetId    String
-    budget      Budget    @relation(fields: [budgetId], references: [id])
+    id          String     @id @default(cuid())
     amount      Float
     source      String?
     description String?
+    isPlanned   Boolean    @default(false)
+    frequency   PeriodType
+    accountId   String
+    account     Account    @relation(fields: [accountId], references: [id])
+    userId      String
+    user        User       @relation(fields: [userId], references: [id])
+    budgetId    String
+    budget      Budget     @relation(fields: [budgetId], references: [id])
     receivedAt  DateTime?
-    isPlanned   Boolean   @default(false)
-    createdAt   DateTime  @default(now())
-    updatedAt   DateTime  @updatedAt
+    createdAt   DateTime   @default(now())
+    updatedAt   DateTime   @updatedAt
     deleted     DateTime?
 
     @@index([id])

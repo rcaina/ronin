@@ -75,7 +75,6 @@ CREATE TABLE "budgets" (
     "name" TEXT NOT NULL,
     "strategy" "StrategyType" NOT NULL,
     "period" "PeriodType" NOT NULL,
-    "income" DOUBLE PRECISION NOT NULL,
     "deleted" TIMESTAMP(3),
     "startAt" TIMESTAMP(3) NOT NULL,
     "endAt" TIMESTAMP(3) NOT NULL,
@@ -89,14 +88,15 @@ CREATE TABLE "budgets" (
 -- CreateTable
 CREATE TABLE "Income" (
     "id" TEXT NOT NULL,
-    "accountId" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "budgetId" TEXT NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
     "source" TEXT,
     "description" TEXT,
-    "receivedAt" TIMESTAMP(3),
     "isPlanned" BOOLEAN NOT NULL DEFAULT false,
+    "frequency" "PeriodType" NOT NULL,
+    "accountId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "budgetId" TEXT NOT NULL,
+    "receivedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deleted" TIMESTAMP(3),
@@ -209,9 +209,6 @@ CREATE INDEX "budgets_strategy_idx" ON "budgets"("strategy");
 
 -- CreateIndex
 CREATE INDEX "budgets_period_idx" ON "budgets"("period");
-
--- CreateIndex
-CREATE INDEX "budgets_income_idx" ON "budgets"("income");
 
 -- CreateIndex
 CREATE INDEX "budgets_deleted_idx" ON "budgets"("deleted");

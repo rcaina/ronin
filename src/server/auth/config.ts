@@ -23,10 +23,7 @@ declare module "next-auth" {
       accountId: string;
       emailVerified: Date | null;
       deleted: boolean;
-      account: {
-        id: string;
-        name: string;
-      };
+      hasBudget: boolean;
     } & DefaultSession["user"];
   }
 }
@@ -40,10 +37,7 @@ declare module "next-auth/jwt" {
     accountId: string;
     emailVerified: Date | null;
     deleted: boolean;
-    account: {
-      id: string;
-      name: string;
-    };
+    hasBudget: boolean;
   }
 }
 
@@ -105,6 +99,14 @@ export const authConfig = {
         }
         const account = firstAccountUser.account;
 
+        // Check if user has any budgets
+        const budgetCount = await db.budget.count({
+          where: {
+            accountId: account.id,
+            deleted: null,
+          },
+        });
+
         return {
           id: user.id,
           email: user.email,
@@ -113,10 +115,7 @@ export const authConfig = {
           accountId: account.id,
           emailVerified: user.emailVerified,
           deleted: user.deleted !== null,
-          account: {
-            id: account.id,
-            name: account.name,
-          },
+          hasBudget: budgetCount > 0,
         };
       },
     }),
@@ -133,14 +132,26 @@ export const authConfig = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id!;
-        token.email = user.email!;
+        token.email = user.email ?? null;
         token.name = user.name!;
         token.role = user.role;
         token.accountId = user.accountId;
         token.emailVerified = user.emailVerified;
         token.deleted = user.deleted;
-        token.account = user.account;
+        token.hasBudget = user.hasBudget;
       }
+      
+      // Always check the current budget count for the user
+      if (token?.accountId) {
+        const budgetCount = await db.budget.count({
+          where: {
+            accountId: token.accountId,
+            deleted: null,
+          },
+        });
+        token.hasBudget = budgetCount > 0;
+      }
+      
       return token;
     },
     async session({ session, token }) {
@@ -152,7 +163,7 @@ export const authConfig = {
         session.user.accountId = token.accountId;
         session.user.emailVerified = token.emailVerified;
         session.user.deleted = token.deleted;
-        session.user.account = token.account;
+        session.user.hasBudget = token.hasBudget;
       }
       return session;
     },

@@ -35,8 +35,8 @@ export function useSignUp(): UseSignUpReturn {
         return;
       }
 
-      // Redirect to the main page
-      router.push("/");
+      // Redirect to the welcome page to check if user has a budget
+      router.push("/welcome");
     } catch (err) {
       setError(
         err instanceof Error

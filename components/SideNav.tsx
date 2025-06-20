@@ -68,8 +68,8 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
             href="/"
             className={`flex items-center gap-3 rounded-lg px-3 py-2 text-white hover:bg-white/10 ${isCollapsed ? "justify-center" : ""}`}
           >
-            <span>🏠</span>
-            {!isCollapsed && <span>Home</span>}
+            <span>📊</span>
+            {!isCollapsed && <span>Overview</span>}
           </Link>
 
           <Link
@@ -77,7 +77,31 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
             className={`flex items-center gap-3 rounded-lg px-3 py-2 text-white hover:bg-white/10 ${isCollapsed ? "justify-center" : ""}`}
           >
             <span>💰</span>
-            {!isCollapsed && <span>Budgets</span>}
+            {!isCollapsed && <span>Budget</span>}
+          </Link>
+
+          <Link
+            href="/transactions"
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-white hover:bg-white/10 ${isCollapsed ? "justify-center" : ""}`}
+          >
+            <span>🧾</span>
+            {!isCollapsed && <span>Transactions</span>}
+          </Link>
+
+          <Link
+            href="/categories"
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-white hover:bg-white/10 ${isCollapsed ? "justify-center" : ""}`}
+          >
+            <span>📋</span>
+            {!isCollapsed && <span>Categories</span>}
+          </Link>
+
+          <Link
+            href="/cards"
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-white hover:bg-white/10 ${isCollapsed ? "justify-center" : ""}`}
+          >
+            <span>💳</span>
+            {!isCollapsed && <span>Cards</span>}
           </Link>
 
           <Link

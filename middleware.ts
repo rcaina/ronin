@@ -7,8 +7,10 @@ export async function middleware(request: NextRequest) {
     req: request,
     secret: process.env.AUTH_SECRET,
   })
-  const isAuthPage = request.nextUrl.pathname.startsWith('/sign-in') || 
-                    request.nextUrl.pathname.startsWith('/sign-up')
+  const pathname = request.nextUrl.pathname;
+  const isAuthPage = pathname.startsWith('/sign-in') || 
+                    pathname.startsWith('/sign-up');
+  const isSetupPage = pathname.startsWith('/setup') || pathname.startsWith('/welcome');
 
   if (isAuthPage) {
     if (token) {
@@ -21,6 +23,11 @@ export async function middleware(request: NextRequest) {
     const signInUrl = new URL('/sign-in', request.url)
     signInUrl.searchParams.set('callbackUrl', request.url)
     return NextResponse.redirect(signInUrl)
+  }
+
+  // If authenticated and not on setup/welcome/auth pages, check if user has budget
+  if (!isSetupPage && !token.hasBudget) {
+    return NextResponse.redirect(new URL('/welcome', request.url));
   }
 
   return NextResponse.next()
