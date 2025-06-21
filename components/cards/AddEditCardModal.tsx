@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -84,6 +84,27 @@ export default function AddEditCardModal({
     },
   });
 
+  const fetchUsers = useCallback(async () => {
+    setLoadingUsers(true);
+    try {
+      const response = await fetch("/api/users");
+      if (!response.ok) {
+        throw new Error("Failed to fetch users");
+      }
+      const usersData = (await response.json()) as User[];
+      setUsers(usersData);
+
+      // If there's only one user and we're not editing, default to them
+      if (usersData.length === 1 && usersData[0] && !isEditing) {
+        setValue("userId", usersData[0].id);
+      }
+    } catch (err) {
+      console.error("Error fetching users:", err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, [isEditing, setValue]);
+
   // Reset form when modal opens/closes or when editing card changes
   useEffect(() => {
     if (isOpen) {
@@ -104,28 +125,7 @@ export default function AddEditCardModal({
         });
       }
     }
-  }, [isOpen, isEditing, cardToEdit, setValue, reset]);
-
-  const fetchUsers = async () => {
-    setLoadingUsers(true);
-    try {
-      const response = await fetch("/api/users");
-      if (!response.ok) {
-        throw new Error("Failed to fetch users");
-      }
-      const usersData = (await response.json()) as User[];
-      setUsers(usersData);
-
-      // If there's only one user and we're not editing, default to them
-      if (usersData.length === 1 && usersData[0] && !isEditing) {
-        setValue("userId", usersData[0].id);
-      }
-    } catch (err) {
-      console.error("Error fetching users:", err);
-    } finally {
-      setLoadingUsers(false);
-    }
-  };
+  }, [isOpen, isEditing, cardToEdit, setValue, reset, fetchUsers]);
 
   const onSubmit = async (data: CardForm) => {
     setError(null);
