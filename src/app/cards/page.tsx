@@ -18,6 +18,7 @@ import {
   type Card,
 } from "@/lib/data-hooks/cards/useCards";
 import { type Card as ApiCard } from "@/lib/data-hooks/services/cards";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 const CardsPage = () => {
   const { data: apiCards, isLoading, error } = useCards();
@@ -83,11 +84,7 @@ const CardsPage = () => {
   const creditCards = cards.filter((card) => card.type === "credit").length;
 
   if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <span className="text-lg text-gray-500">Loading cards...</span>
-      </div>
-    );
+    return <LoadingSpinner message="Loading cards..." />;
   }
 
   if (error && !isModalOpen) {

@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Copy,
 } from "lucide-react";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 const CategoryTypeIcons = {
   WANTS: ShoppingBag,
@@ -63,39 +64,7 @@ export default function CategoriesPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex h-screen flex-col bg-gray-50">
-        <PageHeader
-          title="Category Templates"
-          description="Manage your reusable category templates"
-          action={{
-            label: "Add Template",
-            onClick: handleAddCategory,
-            icon: <Plus className="h-4 w-4" />,
-          }}
-        />
-        <div className="flex-1 overflow-auto">
-          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }, (_, i) => (
-                <div
-                  key={i}
-                  className="animate-pulse rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
-                >
-                  <div className="mb-4 h-4 w-3/4 rounded bg-gray-200"></div>
-                  <div className="mb-2 h-6 w-1/2 rounded bg-gray-200"></div>
-                  <div className="mb-4 h-4 w-1/4 rounded bg-gray-200"></div>
-                  <div className="flex justify-between">
-                    <div className="h-8 w-20 rounded bg-gray-200"></div>
-                    <div className="h-8 w-8 rounded bg-gray-200"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading categories..." />;
   }
 
   if (error) {

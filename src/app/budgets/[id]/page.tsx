@@ -4,20 +4,14 @@ import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useParams } from "next/navigation";
 import { TrendingUp, TrendingDown, DollarSign, Target } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();
   const { data: budget, isLoading, error } = useBudget(id as string);
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
-          <div className="text-lg text-gray-600">Loading budget...</div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading budget..." />;
   }
 
   if (error) {

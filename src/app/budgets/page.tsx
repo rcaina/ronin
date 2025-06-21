@@ -14,20 +14,14 @@ import {
 } from "lucide-react";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import PageHeader from "@/components/PageHeader";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 const BudgetsPage = () => {
   const router = useRouter();
   const { data: budgets = [], isLoading, error } = useBudgets();
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
-          <div className="text-lg text-gray-600">Loading budgets...</div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading budgets..." />;
   }
 
   if (error) {

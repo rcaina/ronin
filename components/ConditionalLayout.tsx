@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import SideNav from "./SideNav";
+import LoadingSpinner from "./LoadingSpinner";
 
 // Pages that don't require authentication
 const PUBLIC_PAGES = ["/sign-in", "/sign-up"];
@@ -29,11 +30,7 @@ export default function ConditionalLayout({
 
   // Show loading state while checking authentication
   if (status === "loading") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-black/90 text-secondary">
-        Loading...
-      </div>
-    );
+    return <LoadingSpinner message="Loading..." />;
   }
 
   // For public pages, render without AuthLayout

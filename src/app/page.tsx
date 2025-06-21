@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -34,16 +35,7 @@ export default function HomePage() {
     transactionsLoading ||
     categoriesLoading
   ) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-secondary"></div>
-          <div className="text-lg text-gray-600">
-            Loading your financial overview...
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading your financial overview..." />;
   }
 
   // Calculate financial metrics

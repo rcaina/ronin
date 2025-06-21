@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import type { Category } from "@prisma/client";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 const TransactionsPage = () => {
   const { data: transactions = [], isLoading, error } = useTransactions();
@@ -121,14 +122,7 @@ const TransactionsPage = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
-          <div className="text-lg text-gray-600">Loading transactions...</div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading transactions..." />;
   }
 
   if (error) {
