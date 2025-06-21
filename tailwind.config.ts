@@ -6,6 +6,25 @@ const config: Config = {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  safelist: [
+    'bg-gradient-to-br',
+    'from-blue-600',
+    'to-purple-600',
+    'from-green-600',
+    'to-teal-600',
+    'from-purple-600',
+    'to-pink-600',
+    'from-orange-600',
+    'to-red-600',
+    'from-indigo-600',
+    'to-blue-600',
+    'from-emerald-600',
+    'to-green-600',
+    'from-rose-600',
+    'to-pink-600',
+    'from-cyan-600',
+    'to-blue-600',
+  ],
   theme: {
     extend: {
       colors: {
