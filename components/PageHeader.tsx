@@ -21,7 +21,7 @@ const PageHeader = ({
   action,
 }: PageHeaderProps) => {
   return (
-    <div className="border-b bg-white shadow-sm">
+    <div className="sticky top-0 z-10 border-b bg-white shadow-sm">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center">

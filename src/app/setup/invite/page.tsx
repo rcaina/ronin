@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { z } from "zod";
+import { useSession } from "next-auth/react";
 import SetupProgress from "@/components/SetupProgress";
 import type { PeriodType } from "@prisma/client";
 
@@ -45,6 +46,7 @@ const setupSteps = [
 
 export default function InviteSetupPage() {
   const router = useRouter();
+  const { update } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [budgetData, setBudgetData] = useState<BudgetData | null>(null);
   const [invites, setInvites] = useState<InviteData[]>([]);
@@ -190,6 +192,9 @@ export default function InviteSetupPage() {
           "Failed to update session, but budget was created successfully",
         );
       }
+
+      // Force a session refresh to update the hasBudget field
+      await update();
 
       // Store invite data in sessionStorage (for future use)
       sessionStorage.setItem("setupInvites", JSON.stringify(invites));

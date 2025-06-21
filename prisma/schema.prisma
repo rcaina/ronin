@@ -165,16 +165,17 @@ model BudgetCategory {
 }
 
 model Card {
-    id            String    @id @default(cuid())
+    id            String        @id @default(cuid())
     name          String
-    userId        String
-    user          User      @relation(fields: [userId], references: [id])
     cardType      CardType
     amountSpent   Float?
     spendingLimit Float?
+    userId        String
+    user          User          @relation(fields: [userId], references: [id])
+    transactions  Transaction[]
     deleted       DateTime?
-    createdAt     DateTime  @default(now())
-    updatedAt     DateTime  @updatedAt
+    createdAt     DateTime      @default(now())
+    updatedAt     DateTime      @updatedAt
 
     @@index([id])
 }
@@ -187,8 +188,10 @@ model Transaction {
     createdAt   DateTime  @default(now())
     updatedAt   DateTime  @updatedAt
     deleted     DateTime?
-    budgetId    String?
-    Budget      Budget?   @relation(fields: [budgetId], references: [id])
+    cardId      String?
+    card        Card?     @relation(fields: [cardId], references: [id])
+    budgetId    String
+    Budget      Budget    @relation(fields: [budgetId], references: [id])
     categoryId  String
     category    Category  @relation(fields: [categoryId], references: [id])
     accountId   String
@@ -222,6 +225,7 @@ enum PeriodType {
 }
 
 enum CardType {
+    CASH
     DEBIT
     CREDIT
     BUSINESS_DEBIT

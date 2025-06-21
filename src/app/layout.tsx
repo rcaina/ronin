@@ -24,7 +24,7 @@ export default function RootLayout({
   const [queryClient] = useState(() => new QueryClient());
   return (
     <html lang="en" className={geist.variable}>
-      <body className="p-8">
+      <body className="">
         <QueryClientProvider client={queryClient}>
           <SessionProvider>
             <ConditionalLayout>{children}</ConditionalLayout>

@@ -10,6 +10,21 @@ interface SideNavProps {
   setIsCollapsed: (collapsed: boolean) => void;
 }
 
+interface NavItem {
+  href: string;
+  icon: string;
+  label: string;
+}
+
+const navItems: NavItem[] = [
+  { href: "/", icon: "📊", label: "Overview" },
+  { href: "/budgets", icon: "💰", label: "Budget" },
+  { href: "/transactions", icon: "🧾", label: "Transactions" },
+  { href: "/categories", icon: "📋", label: "Categories" },
+  { href: "/cards", icon: "💳", label: "Cards" },
+  { href: "/settings", icon: "⚙️", label: "Settings" },
+];
+
 export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const { data: session } = useSession();
@@ -23,23 +38,31 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
 
   return (
     <div
-      className={`fixed left-0 top-0 h-screen bg-black/90 transition-all duration-300 ${
+      className={`fixed left-0 top-0 z-40 h-screen bg-black/90 transition-all duration-300 ease-in-out ${
         isCollapsed ? "w-16" : "w-64"
       }`}
     >
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-14 flex h-6 w-6 items-center justify-center rounded-md bg-black/90 text-white"
+        className={`fixed top-24 z-50 flex h-6 w-6 items-center justify-center rounded-md bg-black/90 text-white transition-all duration-300 ease-in-out hover:bg-black/80 ${
+          isCollapsed ? "left-12" : "left-60"
+        }`}
       >
-        {isCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+        {isCollapsed ? (
+          <PanelLeftOpen size={14} />
+        ) : (
+          <PanelLeftClose size={14} />
+        )}
       </button>
 
       <div className="flex h-full flex-col p-4">
         {/**logo*/}
         <div
-          className={`mb-8 flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3"}`}
+          className={`mb-8 flex items-center overflow-hidden ${isCollapsed ? "justify-center" : "gap-3 px-3"}`}
         >
-          <div className={`${isCollapsed ? "h-10 w-10" : "h-12 w-12"}`}>
+          <div
+            className={`flex-shrink-0 ${isCollapsed ? "h-10 w-10" : "h-12 w-12"}`}
+          >
             {/* Fox SVG */}
             <svg
               viewBox="0 0 24 24"
@@ -56,61 +79,30 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
               />
             </svg>
           </div>
-          <div>
-            {!isCollapsed && (
-              <h2 className="text-xl font-bold text-secondary">RONIN</h2>
-            )}
+          <div
+            className={`transition-all duration-300 ease-in-out ${isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}
+          >
+            <h2 className="whitespace-nowrap text-xl font-bold text-secondary">
+              RONIN
+            </h2>
           </div>
         </div>
 
         <nav className="flex flex-col gap-2">
-          <Link
-            href="/"
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-white hover:bg-white/10 ${isCollapsed ? "justify-center" : ""}`}
-          >
-            <span>📊</span>
-            {!isCollapsed && <span>Overview</span>}
-          </Link>
-
-          <Link
-            href="/budgets"
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-white hover:bg-white/10 ${isCollapsed ? "justify-center" : ""}`}
-          >
-            <span>💰</span>
-            {!isCollapsed && <span>Budget</span>}
-          </Link>
-
-          <Link
-            href="/transactions"
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-white hover:bg-white/10 ${isCollapsed ? "justify-center" : ""}`}
-          >
-            <span>🧾</span>
-            {!isCollapsed && <span>Transactions</span>}
-          </Link>
-
-          <Link
-            href="/categories"
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-white hover:bg-white/10 ${isCollapsed ? "justify-center" : ""}`}
-          >
-            <span>📋</span>
-            {!isCollapsed && <span>Categories</span>}
-          </Link>
-
-          <Link
-            href="/cards"
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-white hover:bg-white/10 ${isCollapsed ? "justify-center" : ""}`}
-          >
-            <span>💳</span>
-            {!isCollapsed && <span>Cards</span>}
-          </Link>
-
-          <Link
-            href="/settings"
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-white hover:bg-white/10 ${isCollapsed ? "justify-center" : ""}`}
-          >
-            <span>⚙️</span>
-            {!isCollapsed && <span>Settings</span>}
-          </Link>
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center rounded-lg px-3 py-2 text-white transition-colors hover:bg-white/10 ${isCollapsed ? "justify-center" : "gap-3"}`}
+            >
+              <span className="flex-shrink-0">{item.icon}</span>
+              <span
+                className={`transition-all duration-300 ease-in-out ${isCollapsed ? "w-0 overflow-hidden opacity-0" : "w-auto opacity-100"}`}
+              >
+                {item.label}
+              </span>
+            </Link>
+          ))}
         </nav>
 
         {/* Profile section at the bottom */}
@@ -118,16 +110,18 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
           <div className="relative">
             <button
               onClick={() => setShowProfilePopup(!showProfilePopup)}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-white hover:bg-white/10"
+              className={`flex w-full items-center rounded-lg px-3 py-2 text-white transition-colors hover:bg-white/10 ${isCollapsed ? "justify-center" : "gap-3"}`}
             >
-              <User className="h-5 w-5" />
-              {!isCollapsed && (
+              <User className="h-5 w-5 flex-shrink-0" />
+              <div
+                className={`transition-all duration-300 ease-in-out ${isCollapsed ? "w-0 overflow-hidden opacity-0" : "w-auto opacity-100"}`}
+              >
                 <div className="flex flex-1 items-center justify-between">
-                  <span className="truncate">
+                  <span className="truncate whitespace-nowrap">
                     {session?.user?.name ?? "Profile"}
                   </span>
                 </div>
-              )}
+              </div>
             </button>
 
             {/* Profile popup */}
