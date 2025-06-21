@@ -1,79 +1,79 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import {
   Plus,
   CreditCard,
   DollarSign,
   Shield,
-  MoreVertical,
-  Edit,
-  Copy,
+  AlertTriangle,
 } from "lucide-react";
 import { useState } from "react";
 import PageHeader from "@/components/PageHeader";
-
-interface Card {
-  id: string;
-  name: string;
-  type: "credit" | "debit";
-  amountSpent: number;
-  spendingLimit?: number;
-  user: string;
-  isActive: boolean;
-  bank: string;
-  color: string;
-}
-
-// Mock data - replace with actual data fetching
-const mockCards: Card[] = [
-  {
-    id: "1",
-    name: "Chase Sapphire Preferred",
-    type: "credit",
-    amountSpent: 2450.75,
-    spendingLimit: 10000,
-    user: "John Doe",
-    isActive: true,
-    bank: "Chase",
-    color: "bg-gradient-to-br from-blue-600 to-purple-600",
-  },
-  {
-    id: "2",
-    name: "Bank of America Debit",
-    type: "debit",
-    amountSpent: 3247.89,
-    user: "John Doe",
-    isActive: true,
-    bank: "Bank of America",
-    color: "bg-gradient-to-br from-green-600 to-teal-600",
-  },
-  {
-    id: "3",
-    name: "American Express Gold",
-    type: "credit",
-    amountSpent: 1890.5,
-    spendingLimit: 15000,
-    user: "John Doe",
-    isActive: true,
-    bank: "American Express",
-    color: "bg-gradient-to-br from-yellow-500 to-orange-500",
-  },
-  {
-    id: "4",
-    name: "Wells Fargo Debit",
-    type: "debit",
-    amountSpent: 567.23,
-    user: "John Doe",
-    isActive: false,
-    bank: "Wells Fargo",
-    color: "bg-gradient-to-br from-red-600 to-pink-600",
-  },
-];
+import AddEditCardModal from "@/components/cards/AddEditCardModal";
+import CardComponent, { type CardType } from "@/components/cards/Card";
+import {
+  useCards,
+  useDeleteCard,
+  mapApiCardToCard,
+  type Card,
+} from "@/lib/data-hooks/cards/useCards";
+import { type Card as ApiCard } from "@/lib/data-hooks/services/cards";
 
 const CardsPage = () => {
-  const router = useRouter();
-  const [cards] = useState<Card[]>(mockCards);
+  const { data: apiCards, isLoading, error } = useCards();
+  const deleteCardMutation = useDeleteCard();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [cardToEdit, setCardToEdit] = useState<ApiCard | null>(null);
+  const [cardToDelete, setCardToDelete] = useState<CardType | null>(null);
+
+  // Map API cards to component cards
+  const cards: Card[] = apiCards ? apiCards.map(mapApiCardToCard) : [];
+
+  const handleOpenModal = () => {
+    setCardToEdit(null);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setCardToEdit(null);
+  };
+
+  const handleEditCard = (card: CardType) => {
+    const originalApiCard = apiCards?.find((c) => c.id === card.id);
+    if (!originalApiCard) {
+      console.error("Failed to load card data for editing");
+      return;
+    }
+
+    setCardToEdit(originalApiCard);
+    setIsModalOpen(true);
+  };
+
+  const handleCopyCard = (card: CardType) => {
+    // TODO: Implement copy functionality
+    console.log("Copy card:", card);
+  };
+
+  const handleDeleteCard = (card: CardType) => {
+    setCardToDelete(card);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!cardToDelete) return;
+
+    try {
+      await deleteCardMutation.mutateAsync(cardToDelete.id);
+      setCardToDelete(null);
+    } catch (err) {
+      // Error is handled by the mutation
+      console.error("Failed to delete card:", err);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setCardToDelete(null);
+  };
 
   const totalSpent = cards.reduce((sum, card) => sum + card.amountSpent, 0);
   const totalLimit = cards
@@ -82,27 +82,23 @@ const CardsPage = () => {
   const activeCards = cards.filter((card) => card.isActive).length;
   const creditCards = cards.filter((card) => card.type === "credit").length;
 
-  const getCardTypeIcon = (type: string) => {
-    return type === "credit" ? (
-      <CreditCard className="h-4 w-4" />
-    ) : (
-      <DollarSign className="h-4 w-4" />
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <span className="text-lg text-gray-500">Loading cards...</span>
+      </div>
     );
-  };
+  }
 
-  const getUtilizationPercentage = (
-    amountSpent: number,
-    spendingLimit?: number,
-  ) => {
-    if (!spendingLimit) return 0;
-    return (amountSpent / spendingLimit) * 100;
-  };
-
-  const getUtilizationColor = (percentage: number) => {
-    if (percentage > 80) return "text-red-600";
-    if (percentage > 60) return "text-yellow-600";
-    return "text-green-600";
-  };
+  if (error && !isModalOpen) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <span className="text-lg text-red-500">
+          {error instanceof Error ? error.message : "Failed to load cards"}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen flex-col bg-gray-50">
@@ -111,7 +107,7 @@ const CardsPage = () => {
         description="Manage your credit and debit cards"
         action={{
           label: "Add Card",
-          onClick: () => router.push("/cards/add"),
+          onClick: handleOpenModal,
           icon: <Plus className="h-4 w-4" />,
         }}
       />
@@ -192,155 +188,13 @@ const CardsPage = () => {
                 {cards
                   .filter((card) => card.type === "credit")
                   .map((card) => (
-                    <div
+                    <CardComponent
                       key={card.id}
-                      className={`relative overflow-hidden rounded-xl border bg-white shadow-sm transition-all hover:shadow-md ${
-                        !card.isActive ? "opacity-60" : ""
-                      }`}
-                    >
-                      {/* Card Header */}
-                      <div className={`${card.color} p-6 text-white`}>
-                        <div className="mb-4 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {getCardTypeIcon(card.type)}
-                            <span className="text-sm font-medium uppercase">
-                              {card.type}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button className="rounded-full p-1 hover:bg-white/20">
-                              <MoreVertical className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Card Name */}
-                        <div className="mb-4">
-                          <div className="text-sm text-white/80">Card Name</div>
-                          <div className="text-lg font-semibold">
-                            {card.name}
-                          </div>
-                        </div>
-
-                        {/* Card Details */}
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-sm text-white/80">User</div>
-                            <div className="font-semibold">{card.user}</div>
-                          </div>
-                          <div>
-                            <div className="text-sm text-white/80">Bank</div>
-                            <div className="font-semibold">{card.bank}</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Card Info */}
-                      <div className="p-6">
-                        <div className="mb-4">
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {card.name}
-                          </h3>
-                          <p className="text-sm text-gray-500">{card.bank}</p>
-                        </div>
-
-                        {/* Balance and Limit */}
-                        <div className="space-y-3">
-                          <div>
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-500">Spent</span>
-                              <span className="font-semibold text-gray-900">
-                                ${card.amountSpent.toLocaleString()}
-                              </span>
-                            </div>
-                            {card.spendingLimit && (
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-500">Limit</span>
-                                <span className="font-semibold text-gray-900">
-                                  ${card.spendingLimit.toLocaleString()}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Utilization Bar */}
-                          {card.spendingLimit && (
-                            <div>
-                              <div className="mb-1 flex items-center justify-between text-xs">
-                                <span className="text-gray-500">
-                                  Utilization
-                                </span>
-                                <span
-                                  className={`font-medium ${getUtilizationColor(
-                                    getUtilizationPercentage(
-                                      card.amountSpent,
-                                      card.spendingLimit,
-                                    ),
-                                  )}`}
-                                >
-                                  {getUtilizationPercentage(
-                                    card.amountSpent,
-                                    card.spendingLimit,
-                                  ).toFixed(1)}
-                                  %
-                                </span>
-                              </div>
-                              <div className="h-2 overflow-hidden rounded-full bg-gray-200">
-                                <div
-                                  className={`h-full rounded-full transition-all ${
-                                    getUtilizationPercentage(
-                                      card.amountSpent,
-                                      card.spendingLimit,
-                                    ) > 80
-                                      ? "bg-red-500"
-                                      : getUtilizationPercentage(
-                                            card.amountSpent,
-                                            card.spendingLimit,
-                                          ) > 60
-                                        ? "bg-yellow-500"
-                                        : "bg-green-500"
-                                  }`}
-                                  style={{
-                                    width: `${Math.min(
-                                      getUtilizationPercentage(
-                                        card.amountSpent,
-                                        card.spendingLimit,
-                                      ),
-                                      100,
-                                    )}%`,
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Status Badge */}
-                          <div className="flex items-center justify-between">
-                            <span
-                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                card.isActive
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-gray-100 text-gray-800"
-                              }`}
-                            >
-                              {card.isActive ? "Active" : "Inactive"}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="mt-4 flex items-center gap-2">
-                          <button className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            <Edit className="h-4 w-4" />
-                            Edit
-                          </button>
-                          <button className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            <Copy className="h-4 w-4" />
-                            Copy
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                      card={card}
+                      onEdit={handleEditCard}
+                      onCopy={handleCopyCard}
+                      onDelete={handleDeleteCard}
+                    />
                   ))}
               </div>
             </div>
@@ -356,155 +210,13 @@ const CardsPage = () => {
                 {cards
                   .filter((card) => card.type === "debit")
                   .map((card) => (
-                    <div
+                    <CardComponent
                       key={card.id}
-                      className={`relative overflow-hidden rounded-xl border bg-white shadow-sm transition-all hover:shadow-md ${
-                        !card.isActive ? "opacity-60" : ""
-                      }`}
-                    >
-                      {/* Card Header */}
-                      <div className={`${card.color} p-6 text-white`}>
-                        <div className="mb-4 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {getCardTypeIcon(card.type)}
-                            <span className="text-sm font-medium uppercase">
-                              {card.type}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button className="rounded-full p-1 hover:bg-white/20">
-                              <MoreVertical className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Card Name */}
-                        <div className="mb-4">
-                          <div className="text-sm text-white/80">Card Name</div>
-                          <div className="text-lg font-semibold">
-                            {card.name}
-                          </div>
-                        </div>
-
-                        {/* Card Details */}
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-sm text-white/80">User</div>
-                            <div className="font-semibold">{card.user}</div>
-                          </div>
-                          <div>
-                            <div className="text-sm text-white/80">Bank</div>
-                            <div className="font-semibold">{card.bank}</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Card Info */}
-                      <div className="p-6">
-                        <div className="mb-4">
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {card.name}
-                          </h3>
-                          <p className="text-sm text-gray-500">{card.bank}</p>
-                        </div>
-
-                        {/* Balance and Limit */}
-                        <div className="space-y-3">
-                          <div>
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-500">Spent</span>
-                              <span className="font-semibold text-gray-900">
-                                ${card.amountSpent.toLocaleString()}
-                              </span>
-                            </div>
-                            {card.spendingLimit && (
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-500">Limit</span>
-                                <span className="font-semibold text-gray-900">
-                                  ${card.spendingLimit.toLocaleString()}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Utilization Bar */}
-                          {card.spendingLimit && (
-                            <div>
-                              <div className="mb-1 flex items-center justify-between text-xs">
-                                <span className="text-gray-500">
-                                  Utilization
-                                </span>
-                                <span
-                                  className={`font-medium ${getUtilizationColor(
-                                    getUtilizationPercentage(
-                                      card.amountSpent,
-                                      card.spendingLimit,
-                                    ),
-                                  )}`}
-                                >
-                                  {getUtilizationPercentage(
-                                    card.amountSpent,
-                                    card.spendingLimit,
-                                  ).toFixed(1)}
-                                  %
-                                </span>
-                              </div>
-                              <div className="h-2 overflow-hidden rounded-full bg-gray-200">
-                                <div
-                                  className={`h-full rounded-full transition-all ${
-                                    getUtilizationPercentage(
-                                      card.amountSpent,
-                                      card.spendingLimit,
-                                    ) > 80
-                                      ? "bg-red-500"
-                                      : getUtilizationPercentage(
-                                            card.amountSpent,
-                                            card.spendingLimit,
-                                          ) > 60
-                                        ? "bg-yellow-500"
-                                        : "bg-green-500"
-                                  }`}
-                                  style={{
-                                    width: `${Math.min(
-                                      getUtilizationPercentage(
-                                        card.amountSpent,
-                                        card.spendingLimit,
-                                      ),
-                                      100,
-                                    )}%`,
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Status Badge */}
-                          <div className="flex items-center justify-between">
-                            <span
-                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                card.isActive
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-gray-100 text-gray-800"
-                              }`}
-                            >
-                              {card.isActive ? "Active" : "Inactive"}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="mt-4 flex items-center gap-2">
-                          <button className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            <Edit className="h-4 w-4" />
-                            Edit
-                          </button>
-                          <button className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            <Copy className="h-4 w-4" />
-                            Copy
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                      card={card}
+                      onEdit={handleEditCard}
+                      onCopy={handleCopyCard}
+                      onDelete={handleDeleteCard}
+                    />
                   ))}
               </div>
             </div>
@@ -521,8 +233,8 @@ const CardsPage = () => {
                 Add your first credit or debit card to get started
               </p>
               <button
-                onClick={() => router.push("/cards/add")}
-                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                onClick={handleOpenModal}
+                className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 hover:bg-yellow-300"
               >
                 <Plus className="h-4 w-4" />
                 Add Card
@@ -531,6 +243,47 @@ const CardsPage = () => {
           )}
         </div>
       </div>
+
+      {/* Add Card Modal */}
+      <AddEditCardModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onCardCreated={handleCloseModal}
+        onCardUpdated={handleCloseModal}
+        cardToEdit={cardToEdit}
+      />
+
+      {/* Delete Confirmation Modal */}
+      {cardToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="mx-4 max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center">
+              <AlertTriangle className="mr-3 h-6 w-6 text-red-500" />
+              <h3 className="text-lg font-medium text-gray-900">Delete Card</h3>
+            </div>
+            <p className="mb-6 text-sm text-gray-500">
+              Are you sure you want to delete &ldquo;{cardToDelete.name}&rdquo;?
+              This action cannot be undone.
+            </p>
+            <div className="flex space-x-3">
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleteCardMutation.isPending}
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {deleteCardMutation.isPending ? "Deleting..." : "Delete Card"}
+              </button>
+              <button
+                onClick={handleCancelDelete}
+                disabled={deleteCardMutation.isPending}
+                className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

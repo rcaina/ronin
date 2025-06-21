@@ -43,7 +43,7 @@ const PageHeader = ({
           {action && (
             <button
               onClick={action.onClick}
-              className="inline-flex items-center rounded-lg bg-secondary px-4 py-2 text-black/90 shadow-sm transition-colors hover:bg-yellow-300"
+              className="inline-flex items-center rounded-lg bg-secondary px-4 py-2 font-medium text-black/90 shadow-sm transition-colors hover:bg-yellow-300"
             >
               {action.icon && <span className="mr-2">{action.icon}</span>}
               {action.label}
