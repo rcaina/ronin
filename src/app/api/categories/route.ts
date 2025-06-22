@@ -1,13 +1,46 @@
 import { withUser } from "@/lib/middleware/withUser"
 import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling"
 import prisma from "@/lib/prisma"
-import { getCategories } from "@/lib/api-services/categories"
+import { getCategories, createCategory } from "@/lib/api-services/categories"
 import type { User } from "@prisma/client"
 import { type NextRequest, NextResponse } from "next/server"
+import { z } from "zod"
+
+const createCategorySchema = z.object({
+  name: z.string().min(2).max(100),
+  spendingLimit: z.number().min(0),
+  group: z.enum(["WANTS", "NEEDS", "INVESTMENT"]),
+});
 
 export const GET = withUser({
     GET: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
         const categories = await getCategories(prisma)
         return NextResponse.json(categories, { status: 200 })
     }),
+})
+
+export const POST = withUser({
+  POST: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
+    const body = await req.json() as unknown;
+    
+    // Validate request body
+    const validationResult = createCategorySchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { message: "Invalid request data", errors: validationResult.error.errors },
+        { status: 400 }
+      );
+    }
+
+    const { name, spendingLimit, group } = validationResult.data;
+    
+    return await prisma.$transaction(async (tx) => {
+      const category = await createCategory(tx, {
+        name,
+        spendingLimit,
+        group,
+      });
+      return NextResponse.json(category, { status: 201 });
+    });
+  }),
 }) 

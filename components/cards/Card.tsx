@@ -187,4 +187,4 @@ const Card = ({ card, onEdit, onCopy, onDelete }: CardProps) => {
 };
 
 export default Card;
-export type { Card as CardType };
+export type { Card as CardData };

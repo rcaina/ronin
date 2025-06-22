@@ -1,16 +1,13 @@
 "use client";
 
-import {
-  Plus,
-  CreditCard,
-  DollarSign,
-  Shield,
-  AlertTriangle,
-} from "lucide-react";
+import { Plus, CreditCard, DollarSign, Shield } from "lucide-react";
 import { useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import AddEditCardModal from "@/components/cards/AddEditCardModal";
-import CardComponent, { type CardType } from "@/components/cards/Card";
+import CardComponent, { type CardData } from "@/components/cards/Card";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import AddCardForm from "@/components/cards/AddCardForm";
+import AddItemButton from "@/components/AddItemButton";
 import {
   useCards,
   useDeleteCard,
@@ -19,13 +16,28 @@ import {
 } from "@/lib/data-hooks/cards/useCards";
 import { type Card as ApiCard } from "@/lib/data-hooks/services/cards";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { CardType } from "@prisma/client";
+
+interface CardFormData {
+  name: string;
+  cardType: CardType;
+  spendingLimit: string;
+  userId: string;
+}
 
 const CardsPage = () => {
   const { data: apiCards, isLoading, error } = useCards();
   const deleteCardMutation = useDeleteCard();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [cardToEdit, setCardToEdit] = useState<ApiCard | null>(null);
-  const [cardToDelete, setCardToDelete] = useState<CardType | null>(null);
+  const [cardToDelete, setCardToDelete] = useState<CardData | null>(null);
+  const [isAddingCard, setIsAddingCard] = useState(false);
+  const [formData, setFormData] = useState<CardFormData>({
+    name: "",
+    cardType: CardType.CREDIT,
+    spendingLimit: "",
+    userId: "",
+  });
 
   // Map API cards to component cards
   const cards: Card[] = apiCards ? apiCards.map(mapApiCardToCard) : [];
@@ -40,7 +52,42 @@ const CardsPage = () => {
     setCardToEdit(null);
   };
 
-  const handleEditCard = (card: CardType) => {
+  const handleAddCard = () => {
+    setIsAddingCard(true);
+    setFormData({
+      name: "",
+      cardType: CardType.CREDIT,
+      spendingLimit: "",
+      userId: "",
+    });
+  };
+
+  const handleCancelAdd = () => {
+    setIsAddingCard(false);
+    setFormData({
+      name: "",
+      cardType: CardType.CREDIT,
+      spendingLimit: "",
+      userId: "",
+    });
+  };
+
+  const handleFormChange = (field: keyof CardFormData, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleSubmitCard = async () => {
+    // TODO: Implement create card functionality
+    console.log("Creating card:", formData);
+
+    // For now, just close the form
+    handleCancelAdd();
+  };
+
+  const handleEditCard = (card: CardData) => {
     const originalApiCard = apiCards?.find((c) => c.id === card.id);
     if (!originalApiCard) {
       console.error("Failed to load card data for editing");
@@ -51,12 +98,12 @@ const CardsPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleCopyCard = (card: CardType) => {
+  const handleCopyCard = (card: CardData) => {
     // TODO: Implement copy functionality
     console.log("Copy card:", card);
   };
 
-  const handleDeleteCard = (card: CardType) => {
+  const handleDeleteCard = (card: CardData) => {
     setCardToDelete(card);
   };
 
@@ -102,11 +149,6 @@ const CardsPage = () => {
       <PageHeader
         title="Cards"
         description="Manage your credit and debit cards"
-        action={{
-          label: "Add Card",
-          onClick: handleOpenModal,
-          icon: <Plus className="h-4 w-4" />,
-        }}
       />
 
       <div className="flex-1 overflow-auto">
@@ -175,69 +217,77 @@ const CardsPage = () => {
             <h2 className="text-xl font-semibold text-gray-900">Your Cards</h2>
           </div>
 
-          {/* Credit Cards Section */}
-          {cards.filter((card) => card.type === "credit").length > 0 && (
-            <div className="mb-8">
-              <h3 className="mb-4 text-lg font-medium text-gray-900">
-                Credit Cards
-              </h3>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {cards
-                  .filter((card) => card.type === "credit")
-                  .map((card) => (
-                    <CardComponent
-                      key={card.id}
-                      card={card}
-                      onEdit={handleEditCard}
-                      onCopy={handleCopyCard}
-                      onDelete={handleDeleteCard}
-                    />
-                  ))}
-              </div>
-            </div>
-          )}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {/* Inline Add Form */}
+            {isAddingCard && (
+              <AddCardForm
+                formData={formData}
+                onFormChange={handleFormChange}
+                onSubmit={handleSubmitCard}
+                onCancel={handleCancelAdd}
+                isLoading={false} // TODO: Add loading state when implementing create
+              />
+            )}
 
-          {/* Debit Cards Section */}
-          {cards.filter((card) => card.type === "debit").length > 0 && (
-            <div className="mb-8">
-              <h3 className="mb-4 text-lg font-medium text-gray-900">
-                Debit Cards
-              </h3>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {cards
-                  .filter((card) => card.type === "debit")
-                  .map((card) => (
-                    <CardComponent
-                      key={card.id}
-                      card={card}
-                      onEdit={handleEditCard}
-                      onCopy={handleCopyCard}
-                      onDelete={handleDeleteCard}
-                    />
-                  ))}
-              </div>
-            </div>
-          )}
+            {/* Add New Card (when not adding) */}
+            {!isAddingCard && (
+              <AddItemButton
+                onClick={handleAddCard}
+                title="Add Card"
+                description="Add a new credit or debit card"
+              />
+            )}
 
-          {/* Empty State */}
-          {cards.length === 0 && (
-            <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-white py-12">
-              <CreditCard className="mb-4 h-12 w-12 text-gray-400" />
-              <h3 className="mb-2 text-lg font-medium text-gray-900">
-                No cards yet
-              </h3>
-              <p className="mb-6 text-sm text-gray-500">
-                Add your first credit or debit card to get started
-              </p>
-              <button
-                onClick={handleOpenModal}
-                className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 hover:bg-yellow-300"
-              >
-                <Plus className="h-4 w-4" />
-                Add Card
-              </button>
-            </div>
-          )}
+            {/* Credit Cards Section */}
+            {cards.filter((card) => card.type === "credit").length > 0 &&
+              cards
+                .filter((card) => card.type === "credit")
+                .map((card) => (
+                  <CardComponent
+                    key={card.id}
+                    card={card}
+                    onEdit={handleEditCard}
+                    onCopy={handleCopyCard}
+                    onDelete={handleDeleteCard}
+                  />
+                ))}
+
+            {/* Debit Cards Section */}
+            {cards.filter((card) => card.type === "debit").length > 0 &&
+              cards
+                .filter((card) => card.type === "debit")
+                .map((card) => (
+                  <CardComponent
+                    key={card.id}
+                    card={card}
+                    onEdit={handleEditCard}
+                    onCopy={handleCopyCard}
+                    onDelete={handleDeleteCard}
+                  />
+                ))}
+
+            {/* Empty State - only show if no cards and not adding */}
+            {cards.length === 0 && !isAddingCard && (
+              <div className="col-span-full text-center">
+                <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-white py-12">
+                  <CreditCard className="mb-4 h-12 w-12 text-gray-400" />
+                  <h3 className="mb-2 text-lg font-medium text-gray-900">
+                    No cards yet
+                  </h3>
+                  <p className="mb-6 text-sm text-gray-500">
+                    Add your first credit or debit card to get started
+                  </p>
+                  <button
+                    onClick={handleAddCard}
+                    className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 hover:bg-yellow-300"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Card
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -251,36 +301,16 @@ const CardsPage = () => {
       />
 
       {/* Delete Confirmation Modal */}
-      {cardToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="mx-4 max-w-md rounded-lg bg-white p-6 shadow-xl">
-            <div className="mb-4 flex items-center">
-              <AlertTriangle className="mr-3 h-6 w-6 text-red-500" />
-              <h3 className="text-lg font-medium text-gray-900">Delete Card</h3>
-            </div>
-            <p className="mb-6 text-sm text-gray-500">
-              Are you sure you want to delete &ldquo;{cardToDelete.name}&rdquo;?
-              This action cannot be undone.
-            </p>
-            <div className="flex space-x-3">
-              <button
-                onClick={handleConfirmDelete}
-                disabled={deleteCardMutation.isPending}
-                className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {deleteCardMutation.isPending ? "Deleting..." : "Delete Card"}
-              </button>
-              <button
-                onClick={handleCancelDelete}
-                disabled={deleteCardMutation.isPending}
-                className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmationModal
+        isOpen={!!cardToDelete}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Delete Card"
+        message={`Are you sure you want to delete "${cardToDelete?.name ?? ""}"? This action cannot be undone.`}
+        itemName={cardToDelete?.name ?? ""}
+        isLoading={deleteCardMutation.isPending}
+        confirmText="Delete Card"
+      />
     </div>
   );
 };
