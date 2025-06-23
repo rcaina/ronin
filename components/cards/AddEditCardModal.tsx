@@ -313,8 +313,8 @@ export default function AddEditCardModal({
                   ? "Updating..."
                   : "Creating..."
                 : isEditing
-                  ? "Update Card"
-                  : "Create Card"}
+                  ? "Update"
+                  : "Create"}
             </button>
           </div>
         </form>

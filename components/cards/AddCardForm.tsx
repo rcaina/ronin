@@ -184,8 +184,8 @@ export default function AddCardForm({
                 ? "Updating..."
                 : "Creating..."
               : isEditing
-                ? "Update Card"
-                : "Create Card"}
+                ? "Update"
+                : "Create"}
           </button>
           <button
             type="button"

@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react";
 import { useTransactions } from "@/lib/data-hooks/transactions/useTransactions";
 import {
-  Plus,
   TrendingUp,
   TrendingDown,
   DollarSign,
@@ -12,8 +11,10 @@ import {
   AlertCircle,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import AddItemButton from "@/components/AddItemButton";
 import type { Category } from "@prisma/client";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import TransactionForm from "@/components/transactions/TransactionForm";
 
 const TransactionsPage = () => {
   const { data: transactions = [], isLoading, error } = useTransactions();
@@ -21,6 +22,7 @@ const TransactionsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"date" | "amount" | "name">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [showTransactionForm, setShowTransactionForm] = useState(false);
 
   // Calculate transaction statistics
   const stats = useMemo(() => {
@@ -146,14 +148,6 @@ const TransactionsPage = () => {
       <PageHeader
         title="Transactions"
         description="Track and manage your financial transactions"
-        action={{
-          label: "Add Transaction",
-          onClick: () => {
-            // TODO: Implement add transaction functionality
-            console.log("Add transaction clicked");
-          },
-          icon: <Plus className="h-4 w-4" />,
-        }}
       />
 
       <div className="flex-1 overflow-auto">
@@ -266,6 +260,28 @@ const TransactionsPage = () => {
               </div>
             </div>
           </div>
+
+          {/* Add Transaction Button or Form */}
+          {!showTransactionForm ? (
+            <div className="mb-6">
+              <AddItemButton
+                onClick={() => setShowTransactionForm(true)}
+                title="Add Transaction"
+                description="Add a new transaction to your records"
+                variant="compact"
+              />
+            </div>
+          ) : (
+            <div className="mb-6">
+              <TransactionForm
+                onClose={() => setShowTransactionForm(false)}
+                onSuccess={() => {
+                  // Form will stay open for adding multiple transactions
+                  // User can manually close it when done
+                }}
+              />
+            </div>
+          )}
 
           {/* Transactions List */}
           <div className="rounded-xl border bg-white shadow-sm">
