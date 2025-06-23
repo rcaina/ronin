@@ -4,7 +4,6 @@ import Button from "@/components/Button";
 
 interface CategoryFormData {
   name: string;
-  spendingLimit: string;
   group: CategoryType;
 }
 
@@ -67,68 +66,8 @@ export default function AddCategoryForm({
           />
         </div>
 
-        {/* Spending Limit */}
-        <div>
-          <label
-            htmlFor="spendingLimit"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Default Spending Limit
-          </label>
-          <div className="relative">
-            <span className="absolute left-3 top-2 text-sm text-gray-500">
-              $
-            </span>
-            <input
-              type="number"
-              id="spendingLimit"
-              value={formData.spendingLimit}
-              onChange={(e) => onFormChange("spendingLimit", e.target.value)}
-              placeholder="0.00"
-              min="0"
-              step="0.01"
-              className="w-full rounded-md border border-gray-300 py-2 pl-8 pr-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              required
-              disabled={isLoading}
-            />
-          </div>
-        </div>
-
-        {/* Category Group */}
-        <div>
-          <label
-            htmlFor="categoryGroup"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Category Type
-          </label>
-          <select
-            id="categoryGroup"
-            value={formData.group}
-            onChange={(e) =>
-              onFormChange("group", e.target.value as CategoryType)
-            }
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            disabled={isLoading}
-          >
-            <option value={CategoryType.WANTS}>Wants</option>
-            <option value={CategoryType.NEEDS}>Needs</option>
-            <option value={CategoryType.INVESTMENT}>Investment</option>
-          </select>
-        </div>
-
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            isLoading={isLoading}
-            className="flex-1"
-          >
-            <Check className="h-4 w-4" />
-            {isEditing ? "Update Template" : "Create Template"}
-          </Button>
           <Button
             type="button"
             variant="ghost"
@@ -138,6 +77,16 @@ export default function AddCategoryForm({
             className="flex-1"
           >
             Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            isLoading={isLoading}
+            className="flex-1"
+          >
+            <Check className="h-4 w-4" />
+            {isEditing ? "Update" : "Create"}
           </Button>
         </div>
       </form>

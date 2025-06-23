@@ -8,7 +8,6 @@ import { z } from "zod";
 
 const updateCategorySchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
-  spendingLimit: z.number().min(0, "Spending limit must be positive"),
   group: z.enum(["WANTS", "NEEDS", "INVESTMENT"]),
 });
 
@@ -35,7 +34,7 @@ export const PUT = withUser({
       return NextResponse.json({ message: "Category ID is required" }, { status: 400 });
     }
 
-    const body = await req.json() as { name: string; spendingLimit: number; group: string };
+    const body = await req.json() as { name: string; group: string };
     const validatedData = updateCategorySchema.parse(body);
     
     return await prisma.$transaction(async (tx) => {

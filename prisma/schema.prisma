@@ -135,7 +135,6 @@ model Income {
 model Category {
     id               String           @id @default(cuid())
     name             String
-    spendingLimit    Float
     group            CategoryType
     deleted          DateTime?
     createdAt        DateTime         @default(now())

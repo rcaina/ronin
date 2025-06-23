@@ -1,9 +1,9 @@
 "use client";
 
 import { Plus, CreditCard, DollarSign, Shield } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import PageHeader from "@/components/PageHeader";
-import AddEditCardModal from "@/components/cards/AddEditCardModal";
 import CardComponent, { type CardData } from "@/components/cards/Card";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import AddCardForm from "@/components/cards/AddCardForm";
@@ -11,6 +11,8 @@ import AddItemButton from "@/components/AddItemButton";
 import {
   useCards,
   useDeleteCard,
+  useCreateCard,
+  useUpdateCard,
   mapApiCardToCard,
   type Card,
 } from "@/lib/data-hooks/cards/useCards";
@@ -25,13 +27,26 @@ interface CardFormData {
   userId: string;
 }
 
+interface User {
+  id: string;
+  name: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  role: string;
+}
+
 const CardsPage = () => {
+  const { data: session } = useSession();
   const { data: apiCards, isLoading, error } = useCards();
   const deleteCardMutation = useDeleteCard();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [cardToEdit, setCardToEdit] = useState<ApiCard | null>(null);
+  const createCardMutation = useCreateCard();
+  const updateCardMutation = useUpdateCard();
   const [cardToDelete, setCardToDelete] = useState<CardData | null>(null);
   const [isAddingCard, setIsAddingCard] = useState(false);
+  const [cardToEdit, setCardToEdit] = useState<ApiCard | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [formData, setFormData] = useState<CardFormData>({
     name: "",
     cardType: CardType.CREDIT,
@@ -42,28 +57,52 @@ const CardsPage = () => {
   // Map API cards to component cards
   const cards: Card[] = apiCards ? apiCards.map(mapApiCardToCard) : [];
 
-  const handleOpenModal = () => {
-    setCardToEdit(null);
-    setIsModalOpen(true);
+  // Fetch users for the account
+  const fetchUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const response = await fetch("/api/users");
+      if (!response.ok) {
+        throw new Error("Failed to fetch users");
+      }
+      const usersData = (await response.json()) as User[];
+      setUsers(usersData);
+
+      // If there's only one user and we're not editing, default to them
+      if (usersData.length === 1 && usersData[0] && !cardToEdit) {
+        setFormData((prev) => ({
+          ...prev,
+          userId: usersData[0]?.id ?? "",
+        }));
+      }
+    } catch (err) {
+      console.error("Error fetching users:", err);
+    } finally {
+      setLoadingUsers(false);
+    }
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setCardToEdit(null);
-  };
+  // Fetch users when component mounts or when editing starts
+  useEffect(() => {
+    if (session) {
+      void fetchUsers();
+    }
+  }, [session, cardToEdit]);
 
   const handleAddCard = () => {
     setIsAddingCard(true);
+    setCardToEdit(null);
     setFormData({
       name: "",
       cardType: CardType.CREDIT,
       spendingLimit: "",
-      userId: "",
+      userId: session?.user?.id ?? "",
     });
   };
 
   const handleCancelAdd = () => {
     setIsAddingCard(false);
+    setCardToEdit(null);
     setFormData({
       name: "",
       cardType: CardType.CREDIT,
@@ -80,11 +119,29 @@ const CardsPage = () => {
   };
 
   const handleSubmitCard = async () => {
-    // TODO: Implement create card functionality
-    console.log("Creating card:", formData);
+    try {
+      const cardData = {
+        ...formData,
+        spendingLimit:
+          formData.spendingLimit === ""
+            ? undefined
+            : Number(formData.spendingLimit),
+        cardType: formData.cardType,
+      };
 
-    // For now, just close the form
-    handleCancelAdd();
+      if (cardToEdit) {
+        await updateCardMutation.mutateAsync({
+          id: cardToEdit.id,
+          data: cardData,
+        });
+      } else {
+        await createCardMutation.mutateAsync(cardData);
+      }
+
+      handleCancelAdd();
+    } catch (err) {
+      console.error("Failed to save card:", err);
+    }
   };
 
   const handleEditCard = (card: CardData) => {
@@ -95,7 +152,12 @@ const CardsPage = () => {
     }
 
     setCardToEdit(originalApiCard);
-    setIsModalOpen(true);
+    setFormData({
+      name: originalApiCard.name,
+      cardType: originalApiCard.cardType,
+      spendingLimit: originalApiCard.spendingLimit?.toString() ?? "",
+      userId: originalApiCard.userId,
+    });
   };
 
   const handleCopyCard = (card: CardData) => {
@@ -134,7 +196,7 @@ const CardsPage = () => {
     return <LoadingSpinner message="Loading cards..." />;
   }
 
-  if (error && !isModalOpen) {
+  if (error) {
     return (
       <div className="flex h-screen items-center justify-center">
         <span className="text-lg text-red-500">
@@ -218,18 +280,20 @@ const CardsPage = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Inline Add Form */}
+            {/* Add New Card Form */}
             {isAddingCard && (
               <AddCardForm
                 formData={formData}
                 onFormChange={handleFormChange}
                 onSubmit={handleSubmitCard}
                 onCancel={handleCancelAdd}
-                isLoading={false} // TODO: Add loading state when implementing create
+                isLoading={createCardMutation.isPending}
+                users={users}
+                loadingUsers={loadingUsers}
               />
             )}
 
-            {/* Add New Card (when not adding) */}
+            {/* Add New Card Button (always visible) */}
             {!isAddingCard && (
               <AddItemButton
                 onClick={handleAddCard}
@@ -242,29 +306,67 @@ const CardsPage = () => {
             {cards.filter((card) => card.type === "credit").length > 0 &&
               cards
                 .filter((card) => card.type === "credit")
-                .map((card) => (
-                  <CardComponent
-                    key={card.id}
-                    card={card}
-                    onEdit={handleEditCard}
-                    onCopy={handleCopyCard}
-                    onDelete={handleDeleteCard}
-                  />
-                ))}
+                .map((card) => {
+                  // If this card is being edited, show the edit form instead
+                  if (cardToEdit && cardToEdit.id === card.id) {
+                    return (
+                      <AddCardForm
+                        key={`edit-${card.id}`}
+                        formData={formData}
+                        onFormChange={handleFormChange}
+                        onSubmit={handleSubmitCard}
+                        onCancel={handleCancelAdd}
+                        isLoading={updateCardMutation.isPending}
+                        cardToEdit={cardToEdit}
+                        users={users}
+                        loadingUsers={loadingUsers}
+                      />
+                    );
+                  }
+
+                  return (
+                    <CardComponent
+                      key={card.id}
+                      card={card}
+                      onEdit={handleEditCard}
+                      onCopy={handleCopyCard}
+                      onDelete={handleDeleteCard}
+                    />
+                  );
+                })}
 
             {/* Debit Cards Section */}
             {cards.filter((card) => card.type === "debit").length > 0 &&
               cards
                 .filter((card) => card.type === "debit")
-                .map((card) => (
-                  <CardComponent
-                    key={card.id}
-                    card={card}
-                    onEdit={handleEditCard}
-                    onCopy={handleCopyCard}
-                    onDelete={handleDeleteCard}
-                  />
-                ))}
+                .map((card) => {
+                  // If this card is being edited, show the edit form instead
+                  if (cardToEdit && cardToEdit.id === card.id) {
+                    return (
+                      <AddCardForm
+                        key={`edit-${card.id}`}
+                        formData={formData}
+                        onFormChange={handleFormChange}
+                        onSubmit={handleSubmitCard}
+                        onCancel={handleCancelAdd}
+                        isLoading={updateCardMutation.isPending}
+                        cardToEdit={cardToEdit}
+                        users={users}
+                        loadingUsers={loadingUsers}
+                      />
+                    );
+                  }
+
+                  return (
+                    <CardComponent
+                      key={card.id}
+                      card={card}
+                      onEdit={handleEditCard}
+                      onCopy={handleCopyCard}
+                      onDelete={handleDeleteCard}
+                    />
+                  );
+                })}
 
             {/* Empty State - only show if no cards and not adding */}
             {cards.length === 0 && !isAddingCard && (
@@ -290,15 +392,6 @@ const CardsPage = () => {
           </div>
         </div>
       </div>
-
-      {/* Add Card Modal */}
-      <AddEditCardModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onCardCreated={handleCloseModal}
-        onCardUpdated={handleCloseModal}
-        cardToEdit={cardToEdit}
-      />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal

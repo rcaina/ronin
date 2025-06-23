@@ -2,13 +2,11 @@ import { type PrismaClient, type CategoryType } from "@prisma/client"
 
 export interface CreateCategoryData {
   name: string;
-  spendingLimit: number;
   group: CategoryType;
 }
 
 export interface UpdateCategoryData {
   name: string;
-  spendingLimit: number;
   group: CategoryType;
 }
 
@@ -16,7 +14,6 @@ export interface GroupedCategories {
   wants: Array<{
     id: string;
     name: string;
-    spendingLimit: number;
     group: CategoryType;
     createdAt: string;
     updatedAt: string;
@@ -24,7 +21,6 @@ export interface GroupedCategories {
   needs: Array<{
     id: string;
     name: string;
-    spendingLimit: number;
     group: CategoryType;
     createdAt: string;
     updatedAt: string;
@@ -32,7 +28,6 @@ export interface GroupedCategories {
   investment: Array<{
     id: string;
     name: string;
-    spendingLimit: number;
     group: CategoryType;
     createdAt: string;
     updatedAt: string;
@@ -62,7 +57,6 @@ export async function getCategories(
     const categoryData = {
       id: category.id,
       name: category.name,
-      spendingLimit: category.spendingLimit,
       group: category.group,
       createdAt: category.createdAt.toISOString(),
       updatedAt: category.updatedAt.toISOString(),
@@ -91,7 +85,6 @@ export async function createCategory(
   return await tx.category.create({
     data: {
       name: data.name,
-      spendingLimit: data.spendingLimit,
       group: data.group,
     },
   });
@@ -124,7 +117,6 @@ export async function updateCategory(
     },
     data: {
       name: data.name,
-      spendingLimit: data.spendingLimit,
       group: data.group,
     },
   });

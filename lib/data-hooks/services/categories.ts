@@ -4,7 +4,6 @@ export interface GroupedCategories {
   wants: Array<{
     id: string;
     name: string;
-    spendingLimit: number;
     group: CategoryType;
     createdAt: string;
     updatedAt: string;
@@ -12,7 +11,6 @@ export interface GroupedCategories {
   needs: Array<{
     id: string;
     name: string;
-    spendingLimit: number;
     group: CategoryType;
     createdAt: string;
     updatedAt: string;
@@ -20,7 +18,6 @@ export interface GroupedCategories {
   investment: Array<{
     id: string;
     name: string;
-    spendingLimit: number;
     group: CategoryType;
     createdAt: string;
     updatedAt: string;
@@ -29,13 +26,11 @@ export interface GroupedCategories {
 
 export interface CreateCategoryRequest {
   name: string;
-  spendingLimit: number;
   group: CategoryType;
 }
 
 export interface UpdateCategoryRequest {
   name: string;
-  spendingLimit: number;
   group: CategoryType;
 }
 

@@ -4,11 +4,12 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useCategories } from "@/lib/data-hooks/categories/useCategories";
 import SetupProgress from "@/components/SetupProgress";
+import type { Category, PeriodType, StrategyType } from "@prisma/client";
 
 interface BudgetData {
   name: string;
-  strategy: "ZERO_SUM" | "PERCENTAGE";
-  period: "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY" | "ONE_TIME";
+  strategy: StrategyType;
+  period: PeriodType;
   startAt: string;
   endAt: string;
 }
@@ -18,7 +19,7 @@ interface IncomeData {
   source: string;
   description: string;
   isPlanned: boolean;
-  frequency: "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY" | "ONE_TIME";
+  frequency: PeriodType;
 }
 
 type AllocationData = Record<string, number>;
@@ -37,7 +38,7 @@ export default function AllocationSetupPage() {
   const [budgetData, setBudgetData] = useState<BudgetData | null>(null);
   const [incomeData, setIncomeData] = useState<IncomeData | null>(null);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
-  const { data: categories = [], isLoading } = useCategories();
+  const { data: categories, isLoading } = useCategories();
 
   useEffect(() => {
     const storedBudget = sessionStorage.getItem("setupBudget");
@@ -115,8 +116,10 @@ export default function AllocationSetupPage() {
     }));
   };
 
-  const getCategoryById = (categoryId: string) => {
-    return categories.find((cat) => cat.id === categoryId);
+  const getCategoryById = (categoryId: string): Category | undefined => {
+    if (!categories) return undefined;
+    const allCategories = Object.values(categories).flat() as Category[];
+    return allCategories.find((cat: Category) => cat.id === categoryId);
   };
 
   const totalAllocated = Object.values(allocationData).reduce(
@@ -159,11 +162,12 @@ export default function AllocationSetupPage() {
     }
   };
 
-  if (!budgetData || !incomeData || isLoading) {
+  if (!budgetData || !incomeData || isLoading || !categories) {
     console.log("Debug - loading condition:", {
       budgetData: !!budgetData,
       incomeData: !!incomeData,
       isLoading,
+      categories: !!categories,
     });
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -252,9 +256,6 @@ export default function AllocationSetupPage() {
                     <h3 className="font-medium text-gray-900">
                       {category.name}
                     </h3>
-                    <p className="text-sm text-gray-500">
-                      Default: ${Number(category.spendingLimit).toFixed(2)}
-                    </p>
                   </div>
                   <span
                     className={`rounded-full border px-2 py-1 text-xs font-medium ${getCategoryGroupColor(

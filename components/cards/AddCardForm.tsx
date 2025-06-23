@@ -8,12 +8,32 @@ interface CardFormData {
   userId: string;
 }
 
+interface CardToEdit {
+  id: string;
+  name: string;
+  cardType: CardType;
+  spendingLimit?: number;
+  userId: string;
+}
+
+interface User {
+  id: string;
+  name: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  role: string;
+}
+
 interface AddCardFormProps {
   formData: CardFormData;
   onFormChange: (field: keyof CardFormData, value: string) => void;
   onSubmit: () => void;
   onCancel: () => void;
   isLoading?: boolean;
+  cardToEdit?: CardToEdit | null;
+  users?: User[];
+  loadingUsers?: boolean;
 }
 
 export default function AddCardForm({
@@ -22,11 +42,18 @@ export default function AddCardForm({
   onSubmit,
   onCancel,
   isLoading = false,
+  cardToEdit,
+  users = [],
+  loadingUsers = false,
 }: AddCardFormProps) {
+  const isEditing = !!cardToEdit;
+
   return (
     <div className="group relative overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-500">New Card</span>
+        <span className="text-sm font-medium text-gray-500">
+          {isEditing ? "Edit Card" : "New Card"}
+        </span>
         <button
           onClick={onCancel}
           className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
@@ -62,6 +89,33 @@ export default function AddCardForm({
             disabled={isLoading}
           />
         </div>
+
+        {/* User Selection - only show if multiple users */}
+        {users.length > 1 && (
+          <div>
+            <label
+              htmlFor="userId"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              User
+            </label>
+            <select
+              id="userId"
+              value={formData.userId}
+              onChange={(e) => onFormChange("userId", e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              disabled={isLoading || loadingUsers}
+              required
+            >
+              <option value="">Select a user</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.name} ({user.role})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Card Type */}
         <div>
@@ -125,7 +179,13 @@ export default function AddCardForm({
             className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Check className="h-4 w-4" />
-            {isLoading ? "Creating..." : "Create Card"}
+            {isLoading
+              ? isEditing
+                ? "Updating..."
+                : "Creating..."
+              : isEditing
+                ? "Update Card"
+                : "Create Card"}
           </button>
           <button
             type="button"

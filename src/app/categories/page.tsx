@@ -45,7 +45,6 @@ const CategoryTypeLabels = {
 
 interface CategoryFormData {
   name: string;
-  spendingLimit: string;
   group: CategoryType;
 }
 
@@ -65,12 +64,10 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<{
     id: string;
     name: string;
-    spendingLimit: number;
     group: CategoryType;
   } | null>(null);
   const [formData, setFormData] = useState<CategoryFormData>({
     name: "",
-    spendingLimit: "",
     group: CategoryType.WANTS,
   });
 
@@ -79,7 +76,6 @@ export default function CategoriesPage() {
     setActiveColumn(column);
     setFormData({
       name: "",
-      spendingLimit: "",
       group:
         column === "wants"
           ? CategoryType.WANTS
@@ -94,7 +90,6 @@ export default function CategoriesPage() {
     setActiveColumn(null);
     setFormData({
       name: "",
-      spendingLimit: "",
       group: CategoryType.WANTS,
     });
   };
@@ -108,14 +103,8 @@ export default function CategoriesPage() {
 
   const handleSubmitCategory = async () => {
     try {
-      const spendingLimit = parseFloat(formData.spendingLimit);
-      if (isNaN(spendingLimit) || spendingLimit < 0) {
-        throw new Error("Please enter a valid spending limit");
-      }
-
       await createCategoryMutation.mutateAsync({
         name: formData.name.trim(),
-        spendingLimit,
         group: formData.group,
       });
 
@@ -129,13 +118,11 @@ export default function CategoriesPage() {
   const handleEditCategory = (category: {
     id: string;
     name: string;
-    spendingLimit: number;
     group: CategoryType;
   }) => {
     setEditingCategory(category);
     setFormData({
       name: category.name,
-      spendingLimit: category.spendingLimit.toString(),
       group: category.group,
     });
   };
@@ -144,7 +131,6 @@ export default function CategoriesPage() {
     setEditingCategory(null);
     setFormData({
       name: "",
-      spendingLimit: "",
       group: CategoryType.WANTS,
     });
   };
@@ -153,16 +139,10 @@ export default function CategoriesPage() {
     if (!editingCategory) return;
 
     try {
-      const spendingLimit = parseFloat(formData.spendingLimit);
-      if (isNaN(spendingLimit) || spendingLimit < 0) {
-        throw new Error("Please enter a valid spending limit");
-      }
-
       await updateCategoryMutation.mutateAsync({
         id: editingCategory.id,
         data: {
           name: formData.name.trim(),
-          spendingLimit,
           group: formData.group,
         },
       });
@@ -258,62 +238,22 @@ export default function CategoriesPage() {
             </div>
           </div>
 
-          {/* Category Type Summary */}
-          {categories &&
-            (categories.wants.length > 0 ||
-              categories.needs.length > 0 ||
-              categories.investment.length > 0) && (
-              <div className="mb-8">
-                <h2 className="mb-6 text-xl font-semibold text-gray-900">
-                  Template Summary
-                </h2>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  {Object.entries(CategoryTypeLabels).map(([type, label]) => {
-                    const IconComponent =
-                      CategoryTypeIcons[type as keyof typeof CategoryTypeIcons];
-                    const categoryArray =
-                      categories[type.toLowerCase() as keyof typeof categories];
-                    const count = categoryArray.length;
-                    const avgLimit =
-                      count > 0
-                        ? categoryArray.reduce(
-                            (sum, cat) => sum + cat.spendingLimit,
-                            0,
-                          ) / count
-                        : 0;
-
-                    return (
-                      <div
-                        key={type}
-                        className={`rounded-lg border p-4 ${CategoryTypeColors[type as keyof typeof CategoryTypeColors].replace("bg-", "bg-").replace("border-", "border-")}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <IconComponent className="mr-2 h-5 w-5" />
-                            <span className="font-medium">{label}</span>
-                          </div>
-                          <span className="text-sm font-semibold">{count}</span>
-                        </div>
-                        <p className="mt-2 text-sm font-bold">
-                          {formatCurrency(avgLimit)} avg
-                        </p>
-                        <p className="text-xs text-gray-600">
-                          Average default limit
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Column 1: Wants */}
             <div className="space-y-6">
-              <h3 className="flex items-center text-lg font-medium text-gray-900">
-                <ShoppingBag className="mr-2 h-5 w-5 text-blue-500" />
-                Wants
-              </h3>
+              <div
+                className={`rounded-lg border p-4 ${CategoryTypeColors[CategoryType.WANTS]}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <ShoppingBag className="mr-2 h-5 w-5" />
+                    <span className="font-medium">Wants</span>
+                  </div>
+                  <span className="text-sm font-semibold">
+                    {categories?.wants.length ?? 0}
+                  </span>
+                </div>
+              </div>
 
               {/* Add Template Button for Wants */}
               {!isAddingCategory && (
@@ -401,19 +341,6 @@ export default function CategoriesPage() {
                       {category.name}
                     </h3>
 
-                    {/* Default Spending Limit */}
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-500">
-                        Default Spending Limit
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {formatCurrency(category.spendingLimit)}
-                      </p>
-                      <p className="mt-1 text-xs text-gray-400">
-                        Suggested amount for new budgets
-                      </p>
-                    </div>
-
                     {/* Template Stats */}
                     <div className="flex items-center justify-between text-sm text-gray-500">
                       <span>
@@ -431,10 +358,19 @@ export default function CategoriesPage() {
 
             {/* Column 2: Needs */}
             <div className="space-y-6">
-              <h3 className="flex items-center text-lg font-medium text-gray-900">
-                <DollarSign className="mr-2 h-5 w-5 text-red-500" />
-                Needs
-              </h3>
+              <div
+                className={`rounded-lg border p-4 ${CategoryTypeColors[CategoryType.NEEDS]}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <DollarSign className="mr-2 h-5 w-5" />
+                    <span className="font-medium">Needs</span>
+                  </div>
+                  <span className="text-sm font-semibold">
+                    {categories?.needs.length ?? 0}
+                  </span>
+                </div>
+              </div>
 
               {/* Add Template Button for Needs */}
               {!isAddingCategory && (
@@ -522,19 +458,6 @@ export default function CategoriesPage() {
                       {category.name}
                     </h3>
 
-                    {/* Default Spending Limit */}
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-500">
-                        Default Spending Limit
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {formatCurrency(category.spendingLimit)}
-                      </p>
-                      <p className="mt-1 text-xs text-gray-400">
-                        Suggested amount for new budgets
-                      </p>
-                    </div>
-
                     {/* Template Stats */}
                     <div className="flex items-center justify-between text-sm text-gray-500">
                       <span>
@@ -552,10 +475,19 @@ export default function CategoriesPage() {
 
             {/* Column 3: Investment */}
             <div className="space-y-6">
-              <h3 className="flex items-center text-lg font-medium text-gray-900">
-                <TrendingUp className="mr-2 h-5 w-5 text-green-500" />
-                Investment
-              </h3>
+              <div
+                className={`rounded-lg border p-4 ${CategoryTypeColors[CategoryType.INVESTMENT]}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <TrendingUp className="mr-2 h-5 w-5" />
+                    <span className="font-medium">Investment</span>
+                  </div>
+                  <span className="text-sm font-semibold">
+                    {categories?.investment.length ?? 0}
+                  </span>
+                </div>
+              </div>
 
               {/* Add Template Button for Investment */}
               {!isAddingCategory && (
@@ -642,19 +574,6 @@ export default function CategoriesPage() {
                     <h3 className="mb-2 text-lg font-semibold text-gray-900">
                       {category.name}
                     </h3>
-
-                    {/* Default Spending Limit */}
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-500">
-                        Default Spending Limit
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {formatCurrency(category.spendingLimit)}
-                      </p>
-                      <p className="mt-1 text-xs text-gray-400">
-                        Suggested amount for new budgets
-                      </p>
-                    </div>
 
                     {/* Template Stats */}
                     <div className="flex items-center justify-between text-sm text-gray-500">

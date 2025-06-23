@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useCategories } from "@/lib/data-hooks/categories/useCategories";
 import SetupProgress from "@/components/SetupProgress";
-import type { Category } from "@prisma/client";
+import type { CategoryType } from "@prisma/client";
+import type { GroupedCategories } from "@/lib/data-hooks/services/categories";
 
 interface BudgetData {
   name: string;
@@ -22,6 +23,15 @@ interface IncomeData {
   frequency: "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY" | "ONE_TIME";
 }
 
+// Type for the category objects returned by the API
+type CategoryItem = {
+  id: string;
+  name: string;
+  group: CategoryType;
+  createdAt: string;
+  updatedAt: string;
+};
+
 const setupSteps = [
   { id: "budget", title: "Budget", description: "Basic details" },
   { id: "income", title: "Income", description: "Set your income" },
@@ -35,7 +45,7 @@ export default function CategoriesSetupPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [budgetData, setBudgetData] = useState<BudgetData | null>(null);
   const [incomeData, setIncomeData] = useState<IncomeData | null>(null);
-  const { data: categories = [], isLoading } = useCategories();
+  const { data: categories, isLoading } = useCategories();
 
   useEffect(() => {
     const storedBudget = sessionStorage.getItem("setupBudget");
@@ -56,8 +66,13 @@ export default function CategoriesSetupPage() {
 
   // Set all categories as selected by default when categories load
   useEffect(() => {
-    if (categories.length > 0 && selectedCategories.length === 0) {
-      setSelectedCategories(categories.map((category) => category.id));
+    if (
+      categories &&
+      Object.values(categories).flat().length > 0 &&
+      selectedCategories.length === 0
+    ) {
+      const allCategories = Object.values(categories).flat() as CategoryItem[];
+      setSelectedCategories(allCategories.map((category) => category.id));
     }
   }, [categories, selectedCategories.length]);
 
@@ -124,7 +139,7 @@ export default function CategoriesSetupPage() {
     }
   };
 
-  if (!budgetData || !incomeData || isLoading) {
+  if (!budgetData || !incomeData || isLoading || !categories) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -134,15 +149,8 @@ export default function CategoriesSetupPage() {
     );
   }
 
-  const groupedCategories = categories.reduce(
-    (acc, category) => {
-      const group = category.group;
-      acc[group] ??= [];
-      acc[group].push(category);
-      return acc;
-    },
-    {} as Record<string, Category[]>,
-  );
+  const allCategories = Object.values(categories).flat() as CategoryItem[];
+  const totalCategories = allCategories.length;
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -203,19 +211,18 @@ export default function CategoriesSetupPage() {
 
         <div className="mb-6">
           <p className="mb-4 text-sm text-gray-600">
-            Selected {selectedCategories.length} of {categories.length}{" "}
-            categories
+            Selected {selectedCategories.length} of {totalCategories} categories
           </p>
         </div>
 
         <div className="space-y-6">
-          {Object.entries(groupedCategories).map(([group, groupCategories]) => (
+          {Object.entries(categories).map(([group, groupCategories]) => (
             <div key={group}>
               <h3 className="mb-3 text-lg font-semibold capitalize text-gray-900">
                 {group.toLowerCase()}
               </h3>
               <div className="grid gap-3">
-                {groupCategories.map((category) => (
+                {(groupCategories as CategoryItem[]).map((category) => (
                   <div
                     key={category.id}
                     className={`flex cursor-pointer items-center justify-between rounded-lg border-2 p-4 transition-colors ${
@@ -235,16 +242,6 @@ export default function CategoriesSetupPage() {
                       <div>
                         <div className="font-medium text-gray-900">
                           {category.name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Default limit: $
-                          {Number(category.spendingLimit).toLocaleString(
-                            "en-US",
-                            {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            },
-                          )}
                         </div>
                       </div>
                     </div>

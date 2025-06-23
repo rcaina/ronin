@@ -26,8 +26,7 @@ export default function HomePage() {
   const { data: budgets = [], isLoading: budgetsLoading } = useBudgets();
   const { data: transactions = [], isLoading: transactionsLoading } =
     useTransactions();
-  const { data: categories = [], isLoading: categoriesLoading } =
-    useCategories();
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
 
   if (
     status === "loading" ||
@@ -100,16 +99,6 @@ export default function HomePage() {
   };
 
   const budgetStatus = getBudgetStatus();
-
-  // Get category breakdown
-  const categoryBreakdown = categories.reduce(
-    (acc, category) => {
-      const group = category.group.toLowerCase();
-      acc[group] = (acc[group] ?? 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
 
   return (
     <div className="flex h-screen flex-col bg-gray-50">
@@ -374,31 +363,35 @@ export default function HomePage() {
                   Category Breakdown
                 </h2>
                 <div className="space-y-3">
-                  {Object.entries(categoryBreakdown).map(([group, count]) => (
-                    <div
-                      key={group}
-                      className="flex items-center justify-between"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <div
-                          className={`h-3 w-3 rounded-full ${
-                            group === "needs"
-                              ? "bg-blue-500"
-                              : group === "wants"
-                                ? "bg-purple-500"
-                                : "bg-green-500"
-                          }`}
-                        ></div>
-                        <span className="text-sm font-medium capitalize text-gray-900">
-                          {group}
+                  {categories && "wants" in categories && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">Wants</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {categories.wants?.length ?? 0} categories
                         </span>
                       </div>
-                      <span className="text-sm text-gray-500">
-                        {count} categories
-                      </span>
-                    </div>
-                  ))}
-                  {Object.keys(categoryBreakdown).length === 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">Needs</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {categories.needs?.length ?? 0} categories
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">
+                          Investment
+                        </span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {categories.investment?.length ?? 0} categories
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  {(!categories ||
+                    !("wants" in categories) ||
+                    (categories.wants?.length === 0 &&
+                      categories.needs?.length === 0 &&
+                      categories.investment?.length === 0)) && (
                     <p className="text-sm text-gray-500">No categories yet</p>
                   )}
                 </div>

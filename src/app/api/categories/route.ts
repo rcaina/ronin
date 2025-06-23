@@ -8,7 +8,6 @@ import { z } from "zod"
 
 const createCategorySchema = z.object({
   name: z.string().min(2).max(100),
-  spendingLimit: z.number().min(0),
   group: z.enum(["WANTS", "NEEDS", "INVESTMENT"]),
 });
 
@@ -32,12 +31,11 @@ export const POST = withUser({
       );
     }
 
-    const { name, spendingLimit, group } = validationResult.data;
+    const { name, group } = validationResult.data;
     
     return await prisma.$transaction(async (tx) => {
       const category = await createCategory(tx, {
         name,
-        spendingLimit,
         group,
       });
       return NextResponse.json(category, { status: 201 });
