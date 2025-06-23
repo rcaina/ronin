@@ -9,12 +9,16 @@ import {
   Calendar,
   Search,
   AlertCircle,
+  Copy,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import AddItemButton from "@/components/AddItemButton";
 import type { Category } from "@prisma/client";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import TransactionForm from "@/components/transactions/TransactionForm";
+import type { TransactionWithRelations } from "@/lib/data-hooks/services/transactions";
 
 const TransactionsPage = () => {
   const { data: transactions = [], isLoading, error } = useTransactions();
@@ -121,6 +125,18 @@ const TransactionsPage = () => {
       style: "currency",
       currency: "USD",
     }).format(amount);
+  };
+
+  const handleCopyTransaction = (transaction: TransactionWithRelations) => {
+    console.log("Copy transaction:", transaction);
+  };
+
+  const handleEditTransaction = (transaction: TransactionWithRelations) => {
+    console.log("Edit transaction:", transaction);
+  };
+
+  const handleDeleteTransaction = (transaction: TransactionWithRelations) => {
+    console.log("Delete transaction:", transaction);
   };
 
   if (isLoading) {
@@ -296,7 +312,7 @@ const TransactionsPage = () => {
                 filteredAndSortedTransactions.map((transaction) => (
                   <div
                     key={transaction.id}
-                    className="flex items-center justify-between px-6 py-4 hover:bg-gray-50"
+                    className="group flex items-center justify-between px-6 py-4 hover:bg-gray-50"
                   >
                     <div className="flex items-center space-x-4">
                       <div
@@ -326,12 +342,39 @@ const TransactionsPage = () => {
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <div className="font-medium text-gray-900">
-                        {formatCurrency(transaction.amount)}
+                    <div className="flex items-center space-x-4">
+                      {/* Action Icons - Only visible on hover */}
+                      <div className="flex items-center space-x-2 opacity-0 transition-opacity group-hover:opacity-100">
+                        <button
+                          onClick={() => handleCopyTransaction(transaction)}
+                          className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                          title="Copy transaction"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditTransaction(transaction)}
+                          className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                          title="Edit transaction"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTransaction(transaction)}
+                          className="rounded p-1 text-red-300 transition-colors hover:bg-gray-100 hover:text-red-600"
+                          title="Delete transaction"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {new Date(transaction.createdAt).toLocaleDateString()}
+
+                      <div className="text-right">
+                        <div className="font-medium text-gray-900">
+                          {formatCurrency(transaction.amount)}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {new Date(transaction.createdAt).toLocaleDateString()}
+                        </div>
                       </div>
                     </div>
                   </div>
