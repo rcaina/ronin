@@ -179,13 +179,6 @@ export default function CategoriesPage() {
     console.log("Duplicate category template:", categoryId);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
-
   if (isLoading) {
     return <LoadingSpinner message="Loading categories..." />;
   }

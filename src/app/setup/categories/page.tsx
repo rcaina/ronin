@@ -4,8 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useCategories } from "@/lib/data-hooks/categories/useCategories";
 import SetupProgress from "@/components/SetupProgress";
-import type { CategoryType } from "@prisma/client";
-import type { GroupedCategories } from "@/lib/data-hooks/services/categories";
+import type { Category } from "@prisma/client";
 
 interface BudgetData {
   name: string;
@@ -22,15 +21,6 @@ interface IncomeData {
   isPlanned: boolean;
   frequency: "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY" | "ONE_TIME";
 }
-
-// Type for the category objects returned by the API
-type CategoryItem = {
-  id: string;
-  name: string;
-  group: CategoryType;
-  createdAt: string;
-  updatedAt: string;
-};
 
 const setupSteps = [
   { id: "budget", title: "Budget", description: "Basic details" },
@@ -71,7 +61,7 @@ export default function CategoriesSetupPage() {
       Object.values(categories).flat().length > 0 &&
       selectedCategories.length === 0
     ) {
-      const allCategories = Object.values(categories).flat() as CategoryItem[];
+      const allCategories = Object.values(categories).flat() as Category[];
       setSelectedCategories(allCategories.map((category) => category.id));
     }
   }, [categories, selectedCategories.length]);
@@ -149,7 +139,7 @@ export default function CategoriesSetupPage() {
     );
   }
 
-  const allCategories = Object.values(categories).flat() as CategoryItem[];
+  const allCategories = Object.values(categories).flat() as Category[];
   const totalCategories = allCategories.length;
 
   return (
@@ -222,7 +212,7 @@ export default function CategoriesSetupPage() {
                 {group.toLowerCase()}
               </h3>
               <div className="grid gap-3">
-                {(groupCategories as CategoryItem[]).map((category) => (
+                {(groupCategories as Category[]).map((category) => (
                   <div
                     key={category.id}
                     className={`flex cursor-pointer items-center justify-between rounded-lg border-2 p-4 transition-colors ${

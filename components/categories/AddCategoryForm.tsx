@@ -1,4 +1,4 @@
-import { CategoryType } from "@prisma/client";
+import type { CategoryType } from "@prisma/client";
 import { X, Check } from "lucide-react";
 import Button from "@/components/Button";
 
