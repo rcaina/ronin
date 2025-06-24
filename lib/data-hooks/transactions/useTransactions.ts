@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { getTransactions, createTransaction, type CreateTransactionRequest } from "../services/transactions";
+import { getTransactions, createTransaction, updateTransaction, deleteTransaction, type CreateTransactionRequest, type UpdateTransactionRequest } from "../services/transactions";
 import type { TransactionWithRelations } from "../services/transactions";
 
 export const useTransactions = () => {
@@ -22,6 +22,30 @@ export const useCreateTransaction = () => {
 
   return useMutation({
     mutationFn: (data: CreateTransactionRequest) => createTransaction(data),
+    onSuccess: () => {
+      // Invalidate and refetch transactions
+      void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+};
+
+export const useUpdateTransaction = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateTransactionRequest }) => updateTransaction(id, data),
+    onSuccess: () => {
+      // Invalidate and refetch transactions
+      void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+};
+
+export const useDeleteTransaction = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteTransaction(id),
     onSuccess: () => {
       // Invalidate and refetch transactions
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });

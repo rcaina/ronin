@@ -18,14 +18,8 @@ import {
 } from "@/lib/data-hooks/cards/useCards";
 import { type Card as ApiCard } from "@/lib/data-hooks/services/cards";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { CardType } from "@prisma/client";
-
-interface CardFormData {
-  name: string;
-  cardType: CardType;
-  spendingLimit: string;
-  userId: string;
-}
+import type { CardType } from "@prisma/client";
+import Button from "@/components/Button";
 
 interface User {
   id: string;
@@ -47,12 +41,6 @@ const CardsPage = () => {
   const [cardToEdit, setCardToEdit] = useState<ApiCard | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
-  const [formData, setFormData] = useState<CardFormData>({
-    name: "",
-    cardType: CardType.CREDIT,
-    spendingLimit: "",
-    userId: "",
-  });
 
   // Map API cards to component cards
   const cards: Card[] = apiCards ? apiCards.map(mapApiCardToCard) : [];
@@ -67,14 +55,6 @@ const CardsPage = () => {
       }
       const usersData = (await response.json()) as User[];
       setUsers(usersData);
-
-      // If there's only one user and we're not editing, default to them
-      if (usersData.length === 1 && usersData[0] && !cardToEdit) {
-        setFormData((prev) => ({
-          ...prev,
-          userId: usersData[0]?.id ?? "",
-        }));
-      }
     } catch (err) {
       console.error("Error fetching users:", err);
     } finally {
@@ -92,41 +72,27 @@ const CardsPage = () => {
   const handleAddCard = () => {
     setIsAddingCard(true);
     setCardToEdit(null);
-    setFormData({
-      name: "",
-      cardType: CardType.CREDIT,
-      spendingLimit: "",
-      userId: session?.user?.id ?? "",
-    });
   };
 
   const handleCancelAdd = () => {
     setIsAddingCard(false);
     setCardToEdit(null);
-    setFormData({
-      name: "",
-      cardType: CardType.CREDIT,
-      spendingLimit: "",
-      userId: "",
-    });
   };
 
-  const handleFormChange = (field: keyof CardFormData, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleSubmitCard = async () => {
+  const handleSubmitCard = async (data: {
+    name: string;
+    cardType: CardType;
+    spendingLimit?: string;
+    userId: string;
+  }) => {
     try {
       const cardData = {
-        ...formData,
+        ...data,
         spendingLimit:
-          formData.spendingLimit === ""
+          data.spendingLimit === "" || data.spendingLimit === undefined
             ? undefined
-            : Number(formData.spendingLimit),
-        cardType: formData.cardType,
+            : Number(data.spendingLimit),
+        cardType: data.cardType,
       };
 
       if (cardToEdit) {
@@ -152,12 +118,7 @@ const CardsPage = () => {
     }
 
     setCardToEdit(originalApiCard);
-    setFormData({
-      name: originalApiCard.name,
-      cardType: originalApiCard.cardType,
-      spendingLimit: originalApiCard.spendingLimit?.toString() ?? "",
-      userId: originalApiCard.userId,
-    });
+    setIsAddingCard(true);
   };
 
   const handleCopyCard = (card: CardData) => {
@@ -283,18 +244,22 @@ const CardsPage = () => {
             {/* Add New Card Form */}
             {isAddingCard && (
               <AddCardForm
-                formData={formData}
-                onFormChange={handleFormChange}
                 onSubmit={handleSubmitCard}
                 onCancel={handleCancelAdd}
                 isLoading={createCardMutation.isPending}
                 users={users}
                 loadingUsers={loadingUsers}
+                defaultValues={{
+                  userId:
+                    users.length === 1
+                      ? (users[0]?.id ?? "")
+                      : (session?.user?.id ?? ""),
+                }}
               />
             )}
 
             {/* Add New Card Button (always visible) */}
-            {!isAddingCard && (
+            {!isAddingCard && cards.length !== 0 && (
               <AddItemButton
                 onClick={handleAddCard}
                 title="Add Card"
@@ -307,19 +272,25 @@ const CardsPage = () => {
               cards
                 .filter((card) => card.type === "credit")
                 .map((card) => {
-                  // If this card is being edited, show the edit form instead
-                  if (cardToEdit && cardToEdit.id === card.id) {
+                  const isEditing = cardToEdit?.id === card.id;
+
+                  if (isEditing) {
                     return (
                       <AddCardForm
                         key={`edit-${card.id}`}
-                        formData={formData}
-                        onFormChange={handleFormChange}
                         onSubmit={handleSubmitCard}
                         onCancel={handleCancelAdd}
                         isLoading={updateCardMutation.isPending}
                         cardToEdit={cardToEdit}
                         users={users}
                         loadingUsers={loadingUsers}
+                        defaultValues={{
+                          name: cardToEdit.name,
+                          cardType: cardToEdit.cardType,
+                          spendingLimit:
+                            cardToEdit.spendingLimit?.toString() ?? "",
+                          userId: cardToEdit.userId,
+                        }}
                       />
                     );
                   }
@@ -340,19 +311,25 @@ const CardsPage = () => {
               cards
                 .filter((card) => card.type === "debit")
                 .map((card) => {
-                  // If this card is being edited, show the edit form instead
-                  if (cardToEdit && cardToEdit.id === card.id) {
+                  const isEditing = cardToEdit?.id === card.id;
+
+                  if (isEditing) {
                     return (
                       <AddCardForm
                         key={`edit-${card.id}`}
-                        formData={formData}
-                        onFormChange={handleFormChange}
                         onSubmit={handleSubmitCard}
                         onCancel={handleCancelAdd}
                         isLoading={updateCardMutation.isPending}
                         cardToEdit={cardToEdit}
                         users={users}
                         loadingUsers={loadingUsers}
+                        defaultValues={{
+                          name: cardToEdit.name,
+                          cardType: cardToEdit.cardType,
+                          spendingLimit:
+                            cardToEdit.spendingLimit?.toString() ?? "",
+                          userId: cardToEdit.userId,
+                        }}
                       />
                     );
                   }
@@ -379,13 +356,10 @@ const CardsPage = () => {
                   <p className="mb-6 text-sm text-gray-500">
                     Add your first credit or debit card to get started
                   </p>
-                  <button
-                    onClick={handleAddCard}
-                    className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 hover:bg-yellow-300"
-                  >
+                  <Button onClick={handleAddCard} variant="primary">
                     <Plus className="h-4 w-4" />
                     Add Card
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}

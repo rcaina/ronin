@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useTransactions } from "@/lib/data-hooks/transactions/useTransactions";
+import {
+  useTransactions,
+  useDeleteTransaction,
+} from "@/lib/data-hooks/transactions/useTransactions";
 import {
   TrendingUp,
   TrendingDown,
@@ -12,21 +15,30 @@ import {
   Copy,
   Edit,
   Trash2,
+  Plus,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import AddItemButton from "@/components/AddItemButton";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import type { Category } from "@prisma/client";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import TransactionForm from "@/components/transactions/TransactionForm";
 import type { TransactionWithRelations } from "@/lib/data-hooks/services/transactions";
+import Button from "@/components/Button";
 
 const TransactionsPage = () => {
   const { data: transactions = [], isLoading, error } = useTransactions();
+  const deleteTransactionMutation = useDeleteTransaction();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"date" | "amount" | "name">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [transactionToEdit, setTransactionToEdit] = useState<
+    TransactionWithRelations | undefined
+  >(undefined);
+  const [transactionToDelete, setTransactionToDelete] =
+    useState<TransactionWithRelations | null>(null);
 
   // Calculate transaction statistics
   const stats = useMemo(() => {
@@ -132,11 +144,38 @@ const TransactionsPage = () => {
   };
 
   const handleEditTransaction = (transaction: TransactionWithRelations) => {
-    console.log("Edit transaction:", transaction);
+    setTransactionToEdit(transaction);
+    setShowTransactionForm(true);
   };
 
   const handleDeleteTransaction = (transaction: TransactionWithRelations) => {
-    console.log("Delete transaction:", transaction);
+    setTransactionToDelete(transaction);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!transactionToDelete) return;
+
+    try {
+      await deleteTransactionMutation.mutateAsync(transactionToDelete.id);
+      setTransactionToDelete(null);
+    } catch (err) {
+      console.error("Failed to delete transaction:", err);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setTransactionToDelete(null);
+  };
+
+  const handleCloseTransactionForm = () => {
+    setShowTransactionForm(false);
+    setTransactionToEdit(undefined);
+  };
+
+  const handleTransactionSuccess = () => {
+    // Form will stay open for adding multiple transactions
+    // User can manually close it when done
+    setTransactionToEdit(undefined);
   };
 
   if (isLoading) {
@@ -279,22 +318,22 @@ const TransactionsPage = () => {
 
           {/* Add Transaction Button or Form */}
           {!showTransactionForm ? (
-            <div className="mb-6">
-              <AddItemButton
-                onClick={() => setShowTransactionForm(true)}
-                title="Add Transaction"
-                description="Add a new transaction to your records"
-                variant="compact"
-              />
-            </div>
+            filteredAndSortedTransactions.length > 0 && (
+              <div className="mb-6">
+                <AddItemButton
+                  onClick={() => setShowTransactionForm(true)}
+                  title="Add Transaction"
+                  description="Add a new transaction to your records"
+                  variant="compact"
+                />
+              </div>
+            )
           ) : (
             <div className="mb-6">
               <TransactionForm
-                onClose={() => setShowTransactionForm(false)}
-                onSuccess={() => {
-                  // Form will stay open for adding multiple transactions
-                  // User can manually close it when done
-                }}
+                onClose={handleCloseTransactionForm}
+                onSuccess={handleTransactionSuccess}
+                transaction={transactionToEdit}
               />
             </div>
           )}
@@ -392,12 +431,35 @@ const TransactionsPage = () => {
                       ? "Try adjusting your search or filter criteria"
                       : "Start adding transactions to see them here"}
                   </p>
+                  <Button
+                    onClick={() => setShowTransactionForm(true)}
+                    variant="primary"
+                    size="md"
+                    className="mt-4"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Transaction
+                  </Button>
                 </div>
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={!!transactionToDelete}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Delete Transaction"
+        message="Are you sure you want to delete the transaction '{itemName}'? This action cannot be undone."
+        itemName={transactionToDelete?.name ?? "Unnamed transaction"}
+        isLoading={deleteTransactionMutation.isPending}
+        loadingText="Deleting..."
+        confirmText="Delete Transaction"
+        cancelText="Cancel"
+      />
     </div>
   );
 };

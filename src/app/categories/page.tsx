@@ -66,46 +66,25 @@ export default function CategoriesPage() {
     name: string;
     group: CategoryType;
   } | null>(null);
-  const [formData, setFormData] = useState<CategoryFormData>({
-    name: "",
-    group: CategoryType.WANTS,
-  });
 
   const handleAddCategory = (column: "wants" | "needs" | "investment") => {
     setIsAddingCategory(true);
     setActiveColumn(column);
-    setFormData({
-      name: "",
-      group:
-        column === "wants"
-          ? CategoryType.WANTS
-          : column === "needs"
-            ? CategoryType.NEEDS
-            : CategoryType.INVESTMENT,
-    });
   };
 
   const handleCancelAdd = () => {
     setIsAddingCategory(false);
     setActiveColumn(null);
-    setFormData({
-      name: "",
-      group: CategoryType.WANTS,
-    });
   };
 
-  const handleFormChange = (field: keyof CategoryFormData, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleSubmitCategory = async () => {
+  const handleSubmitCategory = async (data: {
+    name: string;
+    group: CategoryType;
+  }) => {
     try {
       await createCategoryMutation.mutateAsync({
-        name: formData.name.trim(),
-        group: formData.group,
+        name: data.name.trim(),
+        group: data.group,
       });
 
       handleCancelAdd();
@@ -121,29 +100,24 @@ export default function CategoriesPage() {
     group: CategoryType;
   }) => {
     setEditingCategory(category);
-    setFormData({
-      name: category.name,
-      group: category.group,
-    });
   };
 
   const handleCancelEdit = () => {
     setEditingCategory(null);
-    setFormData({
-      name: "",
-      group: CategoryType.WANTS,
-    });
   };
 
-  const handleSubmitEdit = async () => {
+  const handleSubmitEdit = async (data: {
+    name: string;
+    group: CategoryType;
+  }) => {
     if (!editingCategory) return;
 
     try {
       await updateCategoryMutation.mutateAsync({
         id: editingCategory.id,
         data: {
-          name: formData.name.trim(),
-          group: formData.group,
+          name: data.name.trim(),
+          group: data.group,
         },
       });
 
@@ -260,11 +234,10 @@ export default function CategoriesPage() {
               {/* Inline Add Form for Wants */}
               {isAddingCategory && activeColumn === "wants" && (
                 <AddCategoryForm
-                  formData={formData}
-                  onFormChange={handleFormChange}
                   onSubmit={handleSubmitCategory}
                   onCancel={handleCancelAdd}
                   isLoading={createCategoryMutation.isPending}
+                  defaultValues={{ group: CategoryType.WANTS }}
                 />
               )}
 
@@ -277,12 +250,14 @@ export default function CategoriesPage() {
                   return (
                     <AddCategoryForm
                       key={category.id}
-                      formData={formData}
-                      onFormChange={handleFormChange}
                       onSubmit={handleSubmitEdit}
                       onCancel={handleCancelEdit}
                       isLoading={updateCategoryMutation.isPending}
                       isEditing={true}
+                      defaultValues={{
+                        name: editingCategory.name,
+                        group: editingCategory.group,
+                      }}
                     />
                   );
                 }
@@ -377,11 +352,10 @@ export default function CategoriesPage() {
               {/* Inline Add Form for Needs */}
               {isAddingCategory && activeColumn === "needs" && (
                 <AddCategoryForm
-                  formData={formData}
-                  onFormChange={handleFormChange}
                   onSubmit={handleSubmitCategory}
                   onCancel={handleCancelAdd}
                   isLoading={createCategoryMutation.isPending}
+                  defaultValues={{ group: CategoryType.NEEDS }}
                 />
               )}
 
@@ -394,12 +368,14 @@ export default function CategoriesPage() {
                   return (
                     <AddCategoryForm
                       key={category.id}
-                      formData={formData}
-                      onFormChange={handleFormChange}
                       onSubmit={handleSubmitEdit}
                       onCancel={handleCancelEdit}
                       isLoading={updateCategoryMutation.isPending}
                       isEditing={true}
+                      defaultValues={{
+                        name: editingCategory.name,
+                        group: editingCategory.group,
+                      }}
                     />
                   );
                 }
@@ -494,11 +470,10 @@ export default function CategoriesPage() {
               {/* Inline Add Form for Investment */}
               {isAddingCategory && activeColumn === "investment" && (
                 <AddCategoryForm
-                  formData={formData}
-                  onFormChange={handleFormChange}
                   onSubmit={handleSubmitCategory}
                   onCancel={handleCancelAdd}
                   isLoading={createCategoryMutation.isPending}
+                  defaultValues={{ group: CategoryType.INVESTMENT }}
                 />
               )}
 
@@ -511,12 +486,14 @@ export default function CategoriesPage() {
                   return (
                     <AddCategoryForm
                       key={category.id}
-                      formData={formData}
-                      onFormChange={handleFormChange}
                       onSubmit={handleSubmitEdit}
                       onCancel={handleCancelEdit}
                       isLoading={updateCategoryMutation.isPending}
                       isEditing={true}
+                      defaultValues={{
+                        name: editingCategory.name,
+                        group: editingCategory.group,
+                      }}
                     />
                   );
                 }
@@ -590,7 +567,7 @@ export default function CategoriesPage() {
               categories.needs.length === 0 &&
               categories.investment.length === 0)) &&
             !isAddingCategory && (
-              <div className="col-span-full text-center">
+              <div className="col-span-full mt-10 text-center">
                 <div className="mx-auto max-w-md">
                   <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
                     <ShoppingBag className="h-6 w-6 text-gray-400" />
@@ -603,14 +580,6 @@ export default function CategoriesPage() {
                     multiple budgets. Templates help you maintain consistency in
                     your financial planning.
                   </p>
-                  <Button
-                    onClick={() => handleAddCategory("wants")}
-                    variant="secondary"
-                    size="md"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create your first template
-                  </Button>
                 </div>
               </div>
             )}

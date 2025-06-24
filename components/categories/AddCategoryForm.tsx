@@ -1,29 +1,48 @@
-import type { CategoryType } from "@prisma/client";
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { CategoryType } from "@prisma/client";
 import { X, Check } from "lucide-react";
 import Button from "@/components/Button";
 
-interface CategoryFormData {
-  name: string;
-  group: CategoryType;
-}
+// Validation schema
+const categorySchema = z.object({
+  name: z.string().min(1, "Category name is required"),
+  group: z.nativeEnum(CategoryType),
+});
+
+type CategoryFormData = z.infer<typeof categorySchema>;
 
 interface AddCategoryFormProps {
-  formData: CategoryFormData;
-  onFormChange: (field: keyof CategoryFormData, value: string) => void;
-  onSubmit: () => void;
+  onSubmit: (data: CategoryFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
   isEditing?: boolean;
+  defaultValues?: Partial<CategoryFormData>;
 }
 
 export default function AddCategoryForm({
-  formData,
-  onFormChange,
   onSubmit,
   onCancel,
   isLoading = false,
   isEditing = false,
+  defaultValues,
 }: AddCategoryFormProps) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CategoryFormData>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
+      name: "",
+      group: CategoryType.WANTS,
+      ...defaultValues,
+    },
+  });
+
   return (
     <div className="group relative overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
@@ -39,13 +58,7 @@ export default function AddCategoryForm({
         </button>
       </div>
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSubmit();
-        }}
-        className="space-y-4"
-      >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Category Name */}
         <div>
           <label
@@ -57,19 +70,23 @@ export default function AddCategoryForm({
           <input
             type="text"
             id="categoryName"
-            value={formData.name}
-            onChange={(e) => onFormChange("name", e.target.value)}
+            {...register("name")}
             placeholder="e.g., Groceries, Entertainment"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            required
+            className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
+              errors.name
+                ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            }`}
             disabled={isLoading}
           />
+          {errors.name && (
+            <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+          )}
         </div>
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
           <Button
-            type="button"
             variant="ghost"
             size="md"
             onClick={onCancel}
