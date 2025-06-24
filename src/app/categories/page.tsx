@@ -11,9 +11,7 @@ import PageHeader from "@/components/PageHeader";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import AddCategoryForm from "@/components/categories/AddCategoryForm";
 import AddItemButton from "@/components/AddItemButton";
-import Button from "@/components/Button";
 import {
-  Plus,
   Edit,
   Trash2,
   DollarSign,

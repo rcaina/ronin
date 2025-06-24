@@ -17,6 +17,7 @@ import {
   Edit,
   Trash2,
   Plus,
+  Check,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import AddItemButton from "@/components/AddItemButton";
@@ -41,6 +42,10 @@ const TransactionsPage = () => {
   >(undefined);
   const [transactionToDelete, setTransactionToDelete] =
     useState<TransactionWithRelations | null>(null);
+  const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(
+    new Set(),
+  );
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
 
   // Calculate transaction statistics
   const stats = useMemo(() => {
@@ -195,6 +200,48 @@ const TransactionsPage = () => {
     // Form will stay open for adding multiple transactions
     // User can manually close it when done
     setTransactionToEdit(undefined);
+  };
+
+  // Bulk selection handlers
+  const handleSelectAll = () => {
+    if (selectedTransactions.size === filteredAndSortedTransactions.length) {
+      setSelectedTransactions(new Set());
+    } else {
+      setSelectedTransactions(
+        new Set(filteredAndSortedTransactions.map((t) => t.id)),
+      );
+    }
+  };
+
+  const handleSelectTransaction = (transactionId: string) => {
+    const newSelected = new Set(selectedTransactions);
+    if (newSelected.has(transactionId)) {
+      newSelected.delete(transactionId);
+    } else {
+      newSelected.add(transactionId);
+    }
+    setSelectedTransactions(newSelected);
+  };
+
+  const handleBulkDelete = () => {
+    setShowBulkDeleteModal(true);
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    try {
+      const deletePromises = Array.from(selectedTransactions).map((id) =>
+        deleteTransactionMutation.mutateAsync(id),
+      );
+      await Promise.all(deletePromises);
+      setSelectedTransactions(new Set());
+      setShowBulkDeleteModal(false);
+    } catch (err) {
+      console.error("Failed to delete transactions:", err);
+    }
+  };
+
+  const handleCancelBulkDelete = () => {
+    setShowBulkDeleteModal(false);
   };
 
   if (isLoading) {
@@ -357,12 +404,62 @@ const TransactionsPage = () => {
             </div>
           )}
 
+          {/* Bulk Actions Bar */}
+          {selectedTransactions.size > 0 && (
+            <div className="mb-6 rounded-xl border bg-blue-50 p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm font-medium text-blue-900">
+                    {selectedTransactions.size} transaction
+                    {selectedTransactions.size !== 1 ? "s" : ""} selected
+                  </span>
+                  <button
+                    onClick={() => setSelectedTransactions(new Set())}
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    Clear selection
+                  </button>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    onClick={handleBulkDelete}
+                    variant="danger"
+                    size="sm"
+                    disabled={deleteTransactionMutation.isPending}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Selected
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Transactions List */}
           <div className="rounded-xl border bg-white shadow-sm">
             <div className="border-b px-6 py-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Transactions ({filteredAndSortedTransactions.length})
-              </h3>
+              <div className="flex items-center justify-between">
+                {filteredAndSortedTransactions.length > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <label className="flex items-center space-x-2 text-sm text-gray-600">
+                      <input
+                        type="checkbox"
+                        checked={
+                          selectedTransactions.size ===
+                            filteredAndSortedTransactions.length &&
+                          filteredAndSortedTransactions.length > 0
+                        }
+                        onChange={handleSelectAll}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>Select All</span>
+                    </label>
+                  </div>
+                )}
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Transactions ({filteredAndSortedTransactions.length})
+                </h3>
+              </div>
             </div>
 
             <div className="divide-y divide-gray-200">
@@ -373,6 +470,12 @@ const TransactionsPage = () => {
                     className="group flex items-center justify-between px-6 py-4 hover:bg-gray-50"
                   >
                     <div className="flex items-center space-x-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedTransactions.has(transaction.id)}
+                        onChange={() => handleSelectTransaction(transaction.id)}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
                       <div
                         className={`h-3 w-3 rounded-full ${getGroupColor(transaction.category.group)}`}
                       />
@@ -477,6 +580,20 @@ const TransactionsPage = () => {
         isLoading={deleteTransactionMutation.isPending}
         loadingText="Deleting..."
         confirmText="Delete Transaction"
+        cancelText="Cancel"
+      />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={showBulkDeleteModal}
+        onClose={handleCancelBulkDelete}
+        onConfirm={handleConfirmBulkDelete}
+        title="Delete Multiple Transactions"
+        message="Are you sure you want to delete {itemName}? This action cannot be undone."
+        itemName={`${selectedTransactions.size} selected transaction${selectedTransactions.size !== 1 ? "s" : ""}`}
+        isLoading={deleteTransactionMutation.isPending}
+        loadingText="Deleting..."
+        confirmText="Delete Transactions"
         cancelText="Cancel"
       />
     </div>
