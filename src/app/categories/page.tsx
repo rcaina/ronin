@@ -41,11 +41,6 @@ const CategoryTypeLabels = {
   [CategoryType.INVESTMENT]: "Investment",
 };
 
-interface CategoryFormData {
-  name: string;
-  group: CategoryType;
-}
-
 export default function CategoriesPage() {
   const { data: categories, isLoading, error } = useCategories();
   const deleteCategoryMutation = useDeleteCategory();

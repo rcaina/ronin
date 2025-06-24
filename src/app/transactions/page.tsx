@@ -17,7 +17,6 @@ import {
   Edit,
   Trash2,
   Plus,
-  Check,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import AddItemButton from "@/components/AddItemButton";

@@ -76,6 +76,9 @@ const CardsPage = () => {
 
   const handleCancelAdd = () => {
     setIsAddingCard(false);
+  };
+
+  const handleCancelEdit = () => {
     setCardToEdit(null);
   };
 
@@ -100,11 +103,11 @@ const CardsPage = () => {
           id: cardToEdit.id,
           data: cardData,
         });
+        setCardToEdit(null);
       } else {
         await createCardMutation.mutateAsync(cardData);
+        setIsAddingCard(false);
       }
-
-      handleCancelAdd();
     } catch (err) {
       console.error("Failed to save card:", err);
     }
@@ -118,7 +121,6 @@ const CardsPage = () => {
     }
 
     setCardToEdit(originalApiCard);
-    setIsAddingCard(true);
   };
 
   const handleCopyCard = async (card: CardData) => {
@@ -259,7 +261,7 @@ const CardsPage = () => {
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {/* Add New Card Form */}
-            {isAddingCard && (
+            {isAddingCard && !cardToEdit && (
               <AddCardForm
                 onSubmit={handleSubmitCard}
                 onCancel={handleCancelAdd}
@@ -296,7 +298,7 @@ const CardsPage = () => {
                       <AddCardForm
                         key={`edit-${card.id}`}
                         onSubmit={handleSubmitCard}
-                        onCancel={handleCancelAdd}
+                        onCancel={handleCancelEdit}
                         isLoading={updateCardMutation.isPending}
                         cardToEdit={cardToEdit}
                         users={users}
@@ -335,7 +337,7 @@ const CardsPage = () => {
                       <AddCardForm
                         key={`edit-${card.id}`}
                         onSubmit={handleSubmitCard}
-                        onCancel={handleCancelAdd}
+                        onCancel={handleCancelEdit}
                         isLoading={updateCardMutation.isPending}
                         cardToEdit={cardToEdit}
                         users={users}
