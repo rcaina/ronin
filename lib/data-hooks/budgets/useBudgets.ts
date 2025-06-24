@@ -1,6 +1,7 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { getBudgets } from "../services/budgets";
+import { getBudgets, updateBudget, deleteBudget } from "../services/budgets";
+import type { UpdateBudgetData } from "@/lib/api-services/budgets";
 
 export const useBudgets = () => {
   const { data: session } = useSession();
@@ -14,6 +15,28 @@ export const useBudgets = () => {
   });
 
   return query;
+};
+
+export const useUpdateBudget = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateBudgetData }) => updateBudget(id, data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["budgets"] });
+    },
+  });
+};
+
+export const useDeleteBudget = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteBudget(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["budgets"] });
+    },
+  });
 };
 
 
