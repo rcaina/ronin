@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import {
   useTransactions,
   useDeleteTransaction,
+  useCreateTransaction,
 } from "@/lib/data-hooks/transactions/useTransactions";
 import {
   TrendingUp,
@@ -29,6 +30,7 @@ import Button from "@/components/Button";
 const TransactionsPage = () => {
   const { data: transactions = [], isLoading, error } = useTransactions();
   const deleteTransactionMutation = useDeleteTransaction();
+  const createTransactionMutation = useCreateTransaction();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"date" | "amount" | "name">("date");
@@ -139,8 +141,25 @@ const TransactionsPage = () => {
     }).format(amount);
   };
 
-  const handleCopyTransaction = (transaction: TransactionWithRelations) => {
-    console.log("Copy transaction:", transaction);
+  const handleCopyTransaction = async (
+    transaction: TransactionWithRelations,
+  ) => {
+    try {
+      // Create a copy with "Copy" appended to the name
+      const copyData = {
+        name: transaction.name ? `${transaction.name} Copy` : undefined,
+        description: transaction.description ?? undefined,
+        amount: transaction.amount,
+        budgetId: transaction.budgetId ?? "",
+        categoryId: transaction.categoryId,
+        cardId: transaction.cardId ?? undefined,
+        createdAt: new Date().toISOString(),
+      };
+
+      await createTransactionMutation.mutateAsync(copyData);
+    } catch (err) {
+      console.error("Failed to copy transaction:", err);
+    }
   };
 
   const handleEditTransaction = (transaction: TransactionWithRelations) => {

@@ -121,9 +121,26 @@ const CardsPage = () => {
     setIsAddingCard(true);
   };
 
-  const handleCopyCard = (card: CardData) => {
-    // TODO: Implement copy functionality
-    console.log("Copy card:", card);
+  const handleCopyCard = async (card: CardData) => {
+    try {
+      const originalApiCard = apiCards?.find((c) => c.id === card.id);
+      if (!originalApiCard) {
+        console.error("Failed to load card data for copying");
+        return;
+      }
+
+      // Create a copy with "Copy" appended to the name
+      const copyData = {
+        name: `${originalApiCard.name} Copy`,
+        cardType: originalApiCard.cardType,
+        spendingLimit: originalApiCard.spendingLimit,
+        userId: originalApiCard.userId,
+      };
+
+      await createCardMutation.mutateAsync(copyData);
+    } catch (err) {
+      console.error("Failed to copy card:", err);
+    }
   };
 
   const handleDeleteCard = (card: CardData) => {

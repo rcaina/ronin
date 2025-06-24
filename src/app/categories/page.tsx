@@ -148,9 +148,30 @@ export default function CategoriesPage() {
     setCategoryToDelete(null);
   };
 
-  const handleDuplicateCategory = (categoryId: string) => {
-    // TODO: Implement duplicate category template functionality
-    console.log("Duplicate category template:", categoryId);
+  const handleDuplicateCategory = async (categoryId: string) => {
+    try {
+      // Find the category to duplicate
+      const categoryToDuplicate = [
+        ...(categories?.wants ?? []),
+        ...(categories?.needs ?? []),
+        ...(categories?.investment ?? []),
+      ].find((cat) => cat.id === categoryId);
+
+      if (!categoryToDuplicate) {
+        console.error("Failed to find category to duplicate");
+        return;
+      }
+
+      // Create a copy with "Copy" appended to the name
+      const copyData = {
+        name: `${categoryToDuplicate.name} Copy`,
+        group: categoryToDuplicate.group,
+      };
+
+      await createCategoryMutation.mutateAsync(copyData);
+    } catch (err) {
+      console.error("Failed to duplicate category:", err);
+    }
   };
 
   if (isLoading) {
