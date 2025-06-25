@@ -8,13 +8,10 @@ import {
   X,
   Plus,
   DollarSign,
-  Calendar,
   Target,
   TrendingUp,
   ShoppingBag,
   Check,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { useCategories } from "@/lib/data-hooks/categories/useCategories";
 import { useCreateBudget } from "@/lib/data-hooks/budgets/useBudgets";
@@ -95,7 +92,7 @@ export default function CreateBudgetModal({
     register,
     handleSubmit,
     watch,
-    formState: { errors, isValid },
+    formState: { errors },
     reset,
   } = useForm<CreateBudgetFormData>({
     resolver: zodResolver(createBudgetSchema),
