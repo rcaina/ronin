@@ -7,13 +7,13 @@ export interface CreateBudgetData {
   startAt: string
   endAt: string
   categoryAllocations?: Record<string, number>
-  income: {
+  incomes: Array<{
     amount: number
     source: string
     description?: string
     isPlanned: boolean
     frequency: PeriodType
-  }
+  }>
 }
 
 export interface UpdateBudgetData {
@@ -49,20 +49,22 @@ export async function createBudget(
     },
   })
 
-  // Create the income record
-  await tx.income.create({
-    data: {
-      accountId: user.accountId,
-      userId: user.id,
-      budgetId: budget.id,
-      amount: data.income.amount,
-      source: data.income.source,
-      description: data.income.description,
-      isPlanned: data.income.isPlanned,
-      frequency: data.income.frequency,
-      receivedAt: new Date(),
-    },
-  })
+  // Create the income records
+  for (const income of data.incomes) {
+    await tx.income.create({
+      data: {
+        accountId: user.accountId,
+        userId: user.id,
+        budgetId: budget.id,
+        amount: income.amount,
+        source: income.source,
+        description: income.description,
+        isPlanned: income.isPlanned,
+        frequency: income.frequency,
+        receivedAt: new Date(),
+      },
+    })
+  }
 
   // Create budget category allocations
   if (data.categoryAllocations) {
@@ -203,6 +205,9 @@ export async function getBudgets(
     include: {
       categories: true,
       incomes: true,
+    },
+    orderBy: {
+      createdAt: "desc",
     },
   })
 } 

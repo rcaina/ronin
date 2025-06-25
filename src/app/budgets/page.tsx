@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import {
   useBudgets,
-  useUpdateBudget,
   useDeleteBudget,
 } from "@/lib/data-hooks/budgets/useBudgets";
 import { useTransactions } from "@/lib/data-hooks/transactions/useTransactions";
@@ -27,6 +26,7 @@ import type { BudgetWithRelations } from "@/lib/types/budget";
 import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import CreateBudgetModal from "@/components/budgets/CreateBudgetModal";
 import { useMemo, useState } from "react";
 
 const BudgetsPage = () => {
@@ -37,6 +37,7 @@ const BudgetsPage = () => {
 
   const [budgetToDelete, setBudgetToDelete] =
     useState<BudgetWithRelations | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Enhanced budget statistics with more sophisticated calculations
   const budgetStats = useMemo(() => {
@@ -290,7 +291,7 @@ const BudgetsPage = () => {
         description="Manage your financial plans and track spending"
         action={{
           label: "Add Budget",
-          onClick: () => router.push("/setup/budget"),
+          onClick: () => setIsCreateModalOpen(true),
           icon: <Plus className="h-4 w-4" />,
         }}
       />
@@ -484,7 +485,7 @@ const BudgetsPage = () => {
                   managing your finances effectively.
                 </p>
                 <button
-                  onClick={() => router.push("/setup/budget")}
+                  onClick={() => setIsCreateModalOpen(true)}
                   className="inline-flex items-center rounded-lg bg-secondary px-4 py-2 text-white transition-colors hover:bg-yellow-300"
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -710,6 +711,12 @@ const BudgetsPage = () => {
         confirmText="Delete Budget"
         cancelText="Cancel"
         isLoading={deleteBudgetMutation.isPending}
+      />
+
+      {/* Create Budget Modal */}
+      <CreateBudgetModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
       />
     </div>
   );

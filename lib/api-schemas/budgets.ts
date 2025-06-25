@@ -24,13 +24,13 @@ export const createBudgetSchema = z.object({
     })
     .pipe(z.string().datetime("Invalid end date format")),
   categoryAllocations: z.record(z.string(), z.coerce.number()).optional(),
-  income: z.object({
+  incomes: z.array(z.object({
     amount: z.coerce.number().positive("Income amount must be positive"),
     source: z.string().min(1, "Income source is required"),
     description: z.string().optional(),
     isPlanned: z.boolean(),
     frequency: z.enum([PeriodType.WEEKLY, PeriodType.MONTHLY, PeriodType.QUARTERLY, PeriodType.YEARLY, PeriodType.ONE_TIME]),
-  }),
+  })).min(1, "At least one income is required"),
 })
 
 export type CreateBudgetSchema = z.infer<typeof createBudgetSchema> 
