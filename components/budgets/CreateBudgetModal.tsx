@@ -4,19 +4,24 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  X,
-  Plus,
-  DollarSign,
-  Target,
-  TrendingUp,
-  ShoppingBag,
-  Check,
-} from "lucide-react";
+import { X } from "lucide-react";
 import { useCategories } from "@/lib/data-hooks/categories/useCategories";
 import { useCreateBudget } from "@/lib/data-hooks/budgets/useBudgets";
-import { CategoryType, PeriodType, StrategyType } from "@prisma/client";
+import { StrategyType, PeriodType } from "@prisma/client";
 import type { Category } from "@prisma/client";
+
+// Import components
+import BudgetStepsSidebar from "./BudgetStepsSidebar";
+import BasicBudgetStep from "./BasicBudgetStep";
+import IncomeStep from "./IncomeStep";
+import CategoriesStep from "./CategoriesStep";
+import AllocationStep from "./AllocationStep";
+import type {
+  CreateBudgetFormData,
+  CategoryAllocation,
+  IncomeEntry,
+  StepType,
+} from "./types";
 
 // Validation schema
 const createBudgetSchema = z
@@ -26,42 +31,150 @@ const createBudgetSchema = z
     period: z.nativeEnum(PeriodType),
     startAt: z.string().min(1, "Start date is required"),
     endAt: z.string().min(1, "End date is required"),
+    isRecurring: z.boolean(),
   })
   .refine(
     (data) => {
-      const startDate = new Date(data.startAt);
-      const endDate = new Date(data.endAt);
+      // Parse dates explicitly to avoid timezone issues
+      const startParts = data.startAt.split("-").map(Number);
+      const endParts = data.endAt.split("-").map(Number);
+
+      if (startParts.length !== 3 || endParts.length !== 3) {
+        return false;
+      }
+
+      const [startYear, startMonth, startDay] = startParts;
+      const [endYear, endMonth, endDay] = endParts;
+
+      if (
+        !startYear ||
+        !startMonth ||
+        !startDay ||
+        !endYear ||
+        !endMonth ||
+        !endDay
+      ) {
+        return false;
+      }
+
+      const startDate = new Date(startYear, startMonth - 1, startDay);
+      const endDate = new Date(endYear, endMonth - 1, endDay);
       return endDate > startDate;
     },
     {
       message: "End date must be after start date",
       path: ["endAt"],
     },
+  )
+  .refine(
+    (data) => {
+      // For One Time budgets, allow manual end date
+      if (data.period === PeriodType.ONE_TIME) {
+        return true;
+      }
+
+      // For recurring periods, validate that end date matches the calculated end date
+      const startParts = data.startAt.split("-").map(Number);
+      const endParts = data.endAt.split("-").map(Number);
+
+      if (startParts.length !== 3 || endParts.length !== 3) {
+        return false;
+      }
+
+      const [startYear, startMonth, startDay] = startParts;
+      const [endYear, endMonth, endDay] = endParts;
+
+      if (
+        !startYear ||
+        !startMonth ||
+        !startDay ||
+        !endYear ||
+        !endMonth ||
+        !endDay
+      ) {
+        return false;
+      }
+
+      const startDate = new Date(startYear, startMonth - 1, startDay);
+      const calculatedEndDate = calculateEndDate(startDate, data.period);
+      const userEndDate = new Date(endYear, endMonth - 1, endDay);
+
+      // Allow some tolerance for timezone differences (1 day)
+      const diffTime = Math.abs(
+        calculatedEndDate.getTime() - userEndDate.getTime(),
+      );
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      return diffDays <= 1;
+    },
+    {
+      message: "End date should match the selected period",
+      path: ["endAt"],
+    },
   );
 
-type CreateBudgetFormData = z.infer<typeof createBudgetSchema>;
+// Utility functions for smart date calculation
+const calculateEndDate = (startDate: Date, period: PeriodType): Date => {
+  const date = new Date(startDate);
+
+  switch (period) {
+    case PeriodType.WEEKLY:
+      // Find the end of the week (Sunday)
+      const dayOfWeek = date.getDay();
+      const daysToAdd = 6 - dayOfWeek;
+      date.setDate(date.getDate() + daysToAdd);
+      return date;
+
+    case PeriodType.MONTHLY:
+      // Find the last day of the current month
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      // Create a date for the first day of the next month, then subtract 1 day
+      const firstDayNextMonth = new Date(year, month + 1, 1);
+      const lastDay = new Date(firstDayNextMonth);
+      lastDay.setDate(lastDay.getDate() - 1);
+      return lastDay;
+
+    case PeriodType.QUARTERLY:
+      // Find the last day of the current quarter
+      const quarter = Math.floor(date.getMonth() / 3);
+      const quarterEndMonth = quarter * 3 + 2; // Last month of the quarter (0-indexed)
+      // Create a date for the first day of the month after quarter end, then subtract 1 day
+      const firstDayAfterQuarter = new Date(
+        date.getFullYear(),
+        quarterEndMonth + 1,
+        1,
+      );
+      const quarterEndDate = new Date(firstDayAfterQuarter);
+      quarterEndDate.setDate(quarterEndDate.getDate() - 1);
+      return quarterEndDate;
+
+    case PeriodType.YEARLY:
+      // Find the last day of the current year
+      date.setMonth(11, 31); // December 31st
+      return date;
+
+    case PeriodType.ONE_TIME:
+      // For one-time, return the same date (user will manually set end date)
+      return date;
+
+    default:
+      return date;
+  }
+};
+
+const formatDateForInput = (date: Date): string => {
+  // Handle timezone issues by using local date methods
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 interface CreateBudgetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-}
-
-interface CategoryAllocation {
-  categoryId: string;
-  name: string;
-  group: CategoryType;
-  allocatedAmount: number;
-  isSelected: boolean;
-}
-
-interface IncomeEntry {
-  id: string;
-  amount: number;
-  source: string;
-  description: string;
-  isPlanned: boolean;
-  frequency: PeriodType;
 }
 
 export default function CreateBudgetModal({
@@ -74,9 +187,7 @@ export default function CreateBudgetModal({
   const [selectedCategories, setSelectedCategories] = useState<
     CategoryAllocation[]
   >([]);
-  const [currentStep, setCurrentStep] = useState<
-    "basic" | "income" | "categories" | "allocation"
-  >("basic");
+  const [currentStep, setCurrentStep] = useState<StepType>("basic");
   const [incomeEntries, setIncomeEntries] = useState<IncomeEntry[]>([
     {
       id: "1",
@@ -92,6 +203,7 @@ export default function CreateBudgetModal({
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
     reset,
   } = useForm<CreateBudgetFormData>({
@@ -100,16 +212,77 @@ export default function CreateBudgetModal({
       name: "",
       strategy: StrategyType.ZERO_SUM,
       period: PeriodType.MONTHLY,
-      startAt: new Date().toISOString().split("T")[0],
-      endAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0],
+      startAt: formatDateForInput(new Date()),
+      endAt: formatDateForInput(
+        calculateEndDate(new Date(), PeriodType.MONTHLY),
+      ),
+      isRecurring: true,
     },
   });
 
   const watchedName = watch("name");
   const watchedStartAt = watch("startAt");
   const watchedEndAt = watch("endAt");
+  const watchedPeriod = watch("period");
+
+  // Auto-calculate end date when period or start date changes
+  useEffect(() => {
+    if (watchedStartAt && watchedPeriod) {
+      // Parse the date string more explicitly to avoid timezone issues
+      const parts = watchedStartAt.split("-").map(Number);
+      if (parts.length === 3) {
+        const year = parts[0]!;
+        const month = parts[1]!;
+        const day = parts[2]!;
+        const startDate = new Date(year, month - 1, day); // month is 0-indexed
+        const endDate = calculateEndDate(startDate, watchedPeriod);
+        setValue("endAt", formatDateForInput(endDate));
+      }
+    }
+  }, [watchedStartAt, watchedPeriod, setValue]);
+
+  // Handle period change
+  const handlePeriodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newPeriod = e.target.value as PeriodType;
+    setValue("period", newPeriod);
+
+    // If One Time is selected, disable recurring
+    if (newPeriod === PeriodType.ONE_TIME) {
+      setValue("isRecurring", false);
+    }
+
+    // Recalculate end date
+    if (watchedStartAt) {
+      const parts = watchedStartAt.split("-").map(Number);
+      if (parts.length === 3) {
+        const year = parts[0]!;
+        const month = parts[1]!;
+        const day = parts[2]!;
+        const startDate = new Date(year, month - 1, day);
+        const endDate = calculateEndDate(startDate, newPeriod);
+        setValue("endAt", formatDateForInput(endDate));
+      }
+    }
+  };
+
+  // Handle start date change
+  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newStartDate = e.target.value;
+    setValue("startAt", newStartDate);
+
+    // Recalculate end date
+    if (newStartDate && watchedPeriod) {
+      const parts = newStartDate.split("-").map(Number);
+      if (parts.length === 3) {
+        const year = parts[0]!;
+        const month = parts[1]!;
+        const day = parts[2]!;
+        const startDate = new Date(year, month - 1, day);
+        const endDate = calculateEndDate(startDate, watchedPeriod);
+        setValue("endAt", formatDateForInput(endDate));
+      }
+    }
+  };
 
   // Initialize categories when data loads
   useEffect(() => {
@@ -165,6 +338,42 @@ export default function CreateBudgetModal({
     else if (currentStep === "allocation") setCurrentStep("categories");
   };
 
+  const resetModal = () => {
+    reset();
+    // Reset categories to all selected by default
+    if (categories && Object.values(categories).flat().length > 0) {
+      const allCategories = Object.values(categories).flat() as Category[];
+      const categoryAllocations: CategoryAllocation[] = allCategories.map(
+        (category) => ({
+          categoryId: category.id,
+          name: category.name,
+          group: category.group,
+          allocatedAmount: 0,
+          isSelected: true, // Default to selected
+        }),
+      );
+      setSelectedCategories(categoryAllocations);
+    } else {
+      setSelectedCategories([]);
+    }
+    setIncomeEntries([
+      {
+        id: "1",
+        amount: 0,
+        source: "",
+        description: "",
+        isPlanned: true,
+        frequency: PeriodType.MONTHLY,
+      },
+    ]);
+    setCurrentStep("basic");
+  };
+
+  const handleClose = () => {
+    resetModal();
+    onClose();
+  };
+
   const addIncomeEntry = () => {
     const newId = (incomeEntries.length + 1).toString();
     setIncomeEntries([
@@ -203,12 +412,6 @@ export default function CreateBudgetModal({
     0,
   );
 
-  // Helper function to get step index
-  const getStepIndex = (step: string) => {
-    const steps = ["basic", "income", "categories", "allocation"];
-    return steps.indexOf(step);
-  };
-
   const onSubmit = async (data: CreateBudgetFormData) => {
     try {
       const categoryAllocations: Record<string, number> = {};
@@ -233,57 +436,13 @@ export default function CreateBudgetModal({
         incomes,
       });
 
-      reset();
-      setSelectedCategories([]);
-      setIncomeEntries([
-        {
-          id: "1",
-          amount: 0,
-          source: "",
-          description: "",
-          isPlanned: true,
-          frequency: PeriodType.MONTHLY,
-        },
-      ]);
-      setCurrentStep("basic");
+      resetModal();
       onSuccess?.();
       onClose();
     } catch (error) {
       console.error("Failed to create budget:", error);
     }
   };
-
-  const getCategoryGroupColor = (group: CategoryType) => {
-    switch (group) {
-      case CategoryType.NEEDS:
-        return "bg-red-100 text-red-800 border-red-200";
-      case CategoryType.WANTS:
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case CategoryType.INVESTMENT:
-        return "bg-green-100 text-green-800 border-green-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
-  const getCategoryGroupIcon = (group: CategoryType) => {
-    switch (group) {
-      case CategoryType.NEEDS:
-        return <DollarSign className="h-4 w-4" />;
-      case CategoryType.WANTS:
-        return <ShoppingBag className="h-4 w-4" />;
-      case CategoryType.INVESTMENT:
-        return <TrendingUp className="h-4 w-4" />;
-      default:
-        return <Target className="h-4 w-4" />;
-    }
-  };
-
-  const totalAllocated = selectedCategories
-    .filter((cat) => cat.isSelected)
-    .reduce((sum, cat) => sum + cat.allocatedAmount, 0);
-
-  const allocationRemaining = totalIncome - totalAllocated;
 
   const isBasicStepValid = () => {
     return (
@@ -300,7 +459,10 @@ export default function CreateBudgetModal({
   };
 
   const isAllocationStepValid = () => {
-    return allocationRemaining >= 0;
+    const totalAllocated = selectedCategories
+      .filter((cat) => cat.isSelected)
+      .reduce((sum, cat) => sum + cat.allocatedAmount, 0);
+    return totalIncome - totalAllocated >= 0;
   };
 
   const isIncomeStepValid = () => {
@@ -309,7 +471,7 @@ export default function CreateBudgetModal({
       incomeEntries.every(
         (entry) => entry.amount > 0 && entry.source.trim() !== "",
       ) &&
-      allocationRemaining >= 0
+      isAllocationStepValid()
     );
   };
 
@@ -318,7 +480,7 @@ export default function CreateBudgetModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="mx-4 flex h-[70vh] w-full max-w-4xl flex-col rounded-lg bg-white shadow-xl">
-        {/* Header */}
+        {/* Header - Full Width */}
         <div className="flex flex-shrink-0 items-center justify-between border-b p-6">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">
@@ -332,542 +494,132 @@ export default function CreateBudgetModal({
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Progress Steps */}
-        <div className="flex-shrink-0 border-b bg-gray-50 px-6 py-6">
-          <div className="relative">
-            {/* Progress Line Background */}
-            <div className="absolute left-0 right-0 top-5 h-1 rounded-full bg-gray-200" />
+        {/* Main Content Area with Sidebar */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar */}
+          <BudgetStepsSidebar
+            currentStep={currentStep}
+            onStepClick={(step) => {
+              // Only allow navigation to completed steps or current step
+              const stepOrder = ["basic", "income", "categories", "allocation"];
+              const currentIndex = stepOrder.indexOf(currentStep);
+              const targetIndex = stepOrder.indexOf(step);
+              if (targetIndex <= currentIndex) {
+                setCurrentStep(step);
+              }
+            }}
+          />
 
-            {/* Steps Container */}
-            <div className="relative flex justify-between">
-              {[
-                { step: "basic", label: "Basic" },
-                { step: "income", label: "Income" },
-                { step: "categories", label: "Categories" },
-                { step: "allocation", label: "Allocation" },
-              ].map(({ step, label }, index) => (
-                <div key={step} className="flex flex-col items-center">
-                  {/* Step Circle */}
-                  <div
-                    className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold ${
-                      currentStep === step
-                        ? "bg-secondary text-gray-900"
-                        : index < getStepIndex(currentStep)
-                          ? "bg-black/90 text-white"
-                          : "bg-gray-200 text-gray-500"
-                    }`}
-                  >
-                    {index < getStepIndex(currentStep) ? (
-                      <Check className="h-5 w-5 text-secondary" />
-                    ) : (
-                      index + 1
-                    )}
-                  </div>
+          {/* Main Content */}
+          <div className="flex flex-1 flex-col">
+            <form
+              onSubmit={handleSubmit(onSubmit)}
+              className="flex flex-1 flex-col overflow-hidden"
+            >
+              <div className="flex-1 overflow-y-auto p-6">
+                {/* Step Content */}
+                {currentStep === "basic" && (
+                  <BasicBudgetStep
+                    register={register}
+                    watch={watch}
+                    setValue={setValue}
+                    errors={errors}
+                    onPeriodChange={handlePeriodChange}
+                    onStartDateChange={handleStartDateChange}
+                  />
+                )}
 
-                  {/* Step Label */}
-                  <span className="mt-2 text-xs font-medium text-gray-600">
-                    {label}
-                  </span>
-                </div>
-              ))}
-            </div>
+                {currentStep === "income" && (
+                  <IncomeStep
+                    incomeEntries={incomeEntries}
+                    onAddIncomeEntry={addIncomeEntry}
+                    onRemoveIncomeEntry={removeIncomeEntry}
+                    onUpdateIncomeEntry={updateIncomeEntry}
+                  />
+                )}
 
-            {/* Progress Line Overlay */}
-            <div
-              className="absolute left-0 top-5 h-1 rounded-full bg-black/90 transition-all duration-300"
-              style={{
-                width: `${Math.max(0, getStepIndex(currentStep)) * 33.33}%`,
-              }}
-            />
+                {currentStep === "categories" && (
+                  <CategoriesStep
+                    categories={categories}
+                    categoriesLoading={categoriesLoading}
+                    selectedCategories={selectedCategories}
+                    onCategoryToggle={handleCategoryToggle}
+                  />
+                )}
+
+                {currentStep === "allocation" && (
+                  <AllocationStep
+                    selectedCategories={selectedCategories}
+                    totalIncome={totalIncome}
+                    onAllocationChange={handleAllocationChange}
+                  />
+                )}
+              </div>
+            </form>
           </div>
         </div>
 
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="flex flex-1 flex-col overflow-hidden"
-        >
-          <div className="flex-1 overflow-y-auto p-6">
-            {/* Step 1: Basic Budget Info */}
-            {currentStep === "basic" && (
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Budget Name
-                  </label>
-                  <input
-                    type="text"
-                    {...register("name")}
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
-                    placeholder="e.g., Monthly Budget 2024"
-                  />
-                  {errors.name && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {errors.name.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Budget Strategy
-                    </label>
-                    <select
-                      {...register("strategy")}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
-                    >
-                      <option value={StrategyType.ZERO_SUM}>
-                        Zero Sum Budget
-                      </option>
-                      <option value={StrategyType.PERCENTAGE}>
-                        Percentage Based
-                      </option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Budget Period
-                    </label>
-                    <select
-                      {...register("period")}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
-                    >
-                      <option value={PeriodType.WEEKLY}>Weekly</option>
-                      <option value={PeriodType.MONTHLY}>Monthly</option>
-                      <option value={PeriodType.QUARTERLY}>Quarterly</option>
-                      <option value={PeriodType.YEARLY}>Yearly</option>
-                      <option value={PeriodType.ONE_TIME}>One Time</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Start Date
-                    </label>
-                    <input
-                      type="date"
-                      {...register("startAt")}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
-                    />
-                    {errors.startAt && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {errors.startAt.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      End Date
-                    </label>
-                    <input
-                      type="date"
-                      {...register("endAt")}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
-                    />
-                    {errors.endAt && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {errors.endAt.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 2: Income Setup */}
-            {currentStep === "income" && (
-              <div className="space-y-6">
-                <div className="rounded-lg bg-green-50 p-4">
-                  <p className="text-sm text-green-700">
-                    Set up your income sources for this budget period. You can
-                    add multiple income sources.
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <button
-                    type="button"
-                    onClick={addIncomeEntry}
-                    className="w-full rounded-lg border-2 border-dashed border-gray-300 p-4 text-center text-sm font-medium text-gray-600 transition-colors hover:border-gray-400 hover:text-gray-700"
-                  >
-                    <div className="flex items-center justify-center space-x-2">
-                      <Plus className="h-5 w-5" />
-                      <span>Add Another Income Source</span>
-                    </div>
-                  </button>
-
-                  {incomeEntries.map((entry, index) => (
-                    <div key={entry.id} className="rounded-lg border p-4">
-                      <div className="mb-4 flex items-center justify-between">
-                        <h3 className="text-lg font-medium text-gray-900">
-                          Income Source {index + 1}
-                        </h3>
-                        {incomeEntries.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeIncomeEntry(entry.id)}
-                            className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Income Amount
-                          </label>
-                          <div className="relative mt-1">
-                            <span className="absolute left-3 top-2 text-gray-500">
-                              $
-                            </span>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={entry.amount}
-                              onChange={(e) =>
-                                updateIncomeEntry(
-                                  entry.id,
-                                  "amount",
-                                  parseFloat(e.target.value) || 0,
-                                )
-                              }
-                              className="block w-full rounded-md border border-gray-300 py-2 pl-8 pr-3 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
-                              placeholder="0.00"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Income Source
-                          </label>
-                          <input
-                            type="text"
-                            value={entry.source}
-                            onChange={(e) =>
-                              updateIncomeEntry(
-                                entry.id,
-                                "source",
-                                e.target.value,
-                              )
-                            }
-                            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
-                            placeholder="e.g., Salary, Freelance"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Description (Optional)
-                        </label>
-                        <textarea
-                          value={entry.description}
-                          onChange={(e) =>
-                            updateIncomeEntry(
-                              entry.id,
-                              "description",
-                              e.target.value,
-                            )
-                          }
-                          rows={2}
-                          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
-                          placeholder="Additional details about this income..."
-                        />
-                      </div>
-
-                      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Income Frequency
-                          </label>
-                          <select
-                            value={entry.frequency}
-                            onChange={(e) =>
-                              updateIncomeEntry(
-                                entry.id,
-                                "frequency",
-                                e.target.value as PeriodType,
-                              )
-                            }
-                            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
-                          >
-                            <option value={PeriodType.WEEKLY}>Weekly</option>
-                            <option value={PeriodType.MONTHLY}>Monthly</option>
-                            <option value={PeriodType.QUARTERLY}>
-                              Quarterly
-                            </option>
-                            <option value={PeriodType.YEARLY}>Yearly</option>
-                            <option value={PeriodType.ONE_TIME}>
-                              One Time
-                            </option>
-                          </select>
-                        </div>
-
-                        <div className="flex items-center space-x-3">
-                          <input
-                            type="checkbox"
-                            checked={entry.isPlanned}
-                            onChange={(e) =>
-                              updateIncomeEntry(
-                                entry.id,
-                                "isPlanned",
-                                e.target.checked,
-                              )
-                            }
-                            className="h-4 w-4 rounded border-gray-300 text-secondary focus:ring-secondary"
-                          />
-                          <label className="text-sm font-medium text-gray-700">
-                            This is planned income
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {totalIncome > 0 && (
-                  <div className="rounded-lg bg-blue-50 p-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-blue-700">
-                        Total Income:
-                      </span>
-                      <span className="font-semibold text-blue-900">
-                        ${totalIncome.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between text-sm">
-                      <span className="text-blue-600">Income Sources:</span>
-                      <span className="font-semibold text-blue-800">
-                        {incomeEntries.length}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Step 3: Category Selection */}
-            {currentStep === "categories" && (
-              <div className="space-y-6">
-                <div className="rounded-lg bg-blue-50 p-4">
-                  <p className="text-sm text-blue-700">
-                    Select the spending categories you want to track in this
-                    budget. You can adjust allocations in the next step.
-                  </p>
-                </div>
-
-                {categoriesLoading ? (
-                  <div className="py-8 text-center">
-                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-secondary"></div>
-                    <p className="mt-2 text-sm text-gray-500">
-                      Loading categories...
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {Object.entries(categories ?? {}).map(
-                      ([group, groupCategories]) => (
-                        <div key={group}>
-                          <h3 className="mb-3 text-lg font-semibold capitalize text-gray-900">
-                            {group.toLowerCase()}
-                          </h3>
-                          <div className="grid gap-3">
-                            {(groupCategories as Category[]).map((category) => (
-                              <div
-                                key={category.id}
-                                className="flex cursor-pointer items-center justify-between rounded-lg border-2 p-4 transition-colors hover:bg-gray-50"
-                                onClick={() =>
-                                  handleCategoryToggle(category.id)
-                                }
-                              >
-                                <div className="flex items-center space-x-3">
-                                  <input
-                                    type="checkbox"
-                                    checked={
-                                      selectedCategories.find(
-                                        (c) => c.categoryId === category.id,
-                                      )?.isSelected ?? false
-                                    }
-                                    onChange={() =>
-                                      handleCategoryToggle(category.id)
-                                    }
-                                    className="h-4 w-4 rounded border-gray-300 text-secondary focus:ring-secondary"
-                                  />
-                                  <div className="flex items-center space-x-2">
-                                    {getCategoryGroupIcon(category.group)}
-                                    <span className="font-medium text-gray-900">
-                                      {category.name}
-                                    </span>
-                                  </div>
-                                </div>
-                                <span
-                                  className={`rounded-full border px-2 py-1 text-xs font-medium ${getCategoryGroupColor(
-                                    category.group,
-                                  )}`}
-                                >
-                                  {category.group}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                )}
-
-                <div className="text-sm text-gray-500">
-                  Selected{" "}
-                  {selectedCategories.filter((c) => c.isSelected).length} of{" "}
-                  {selectedCategories.length} categories
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Category Allocation */}
-            {currentStep === "allocation" && (
-              <div className="space-y-6">
-                <div className="rounded-lg bg-yellow-50 p-4">
-                  <p className="text-sm text-yellow-700">
-                    Set spending limits for each selected category. The total
-                    should match your income of ${totalIncome.toLocaleString()}.
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  {selectedCategories
-                    .filter((cat) => cat.isSelected)
-                    .map((category) => (
-                      <div
-                        key={category.categoryId}
-                        className="flex items-center justify-between rounded-lg border p-4"
-                      >
-                        <div className="flex items-center space-x-3">
-                          {getCategoryGroupIcon(category.group)}
-                          <div>
-                            <div className="font-medium text-gray-900">
-                              {category.name}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {category.group}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-500">$</span>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={category.allocatedAmount}
-                            onChange={(e) =>
-                              handleAllocationChange(
-                                category.categoryId,
-                                parseFloat(e.target.value) ?? 0,
-                              )
-                            }
-                            className="w-24 rounded-md border border-gray-300 px-2 py-1 text-right text-sm focus:border-secondary focus:outline-none focus:ring-secondary"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                </div>
-
-                <div className="rounded-lg bg-gray-50 p-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-gray-700">
-                      Total Allocated:
-                    </span>
-                    <span className="font-semibold text-gray-900">
-                      ${totalAllocated.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Remaining:</span>
-                    <span
-                      className={`font-semibold ${
-                        allocationRemaining >= 0
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      ${allocationRemaining.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Navigation Buttons */}
-          <div className="flex-shrink-0 border-t bg-gray-50 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                {currentStep !== "basic" && (
-                  <button
-                    type="button"
-                    onClick={handleBack}
-                    className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-                  >
-                    Back
-                  </button>
-                )}
-              </div>
-
-              <div className="flex space-x-3">
+        {/* Navigation Buttons - Full Width */}
+        <div className="flex-shrink-0 border-t bg-gray-50 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              {currentStep !== "basic" && (
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleBack}
                   className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
                 >
-                  Cancel
+                  Back
                 </button>
+              )}
+            </div>
 
-                {currentStep === "allocation" ? (
-                  <button
-                    type="submit"
-                    disabled={
-                      createBudgetMutation.isPending || !isAllocationStepValid()
-                    }
-                    className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {createBudgetMutation.isPending
-                      ? "Creating..."
-                      : "Create Budget"}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleNextClick}
-                    disabled={
-                      (currentStep === "basic" && !isBasicStepValid()) ||
-                      (currentStep === "income" && !isIncomeStepValid()) ||
-                      (currentStep === "categories" && !isCategoriesStepValid())
-                    }
-                    className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                )}
-              </div>
+            <div className="flex space-x-3">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+
+              {currentStep === "allocation" ? (
+                <button
+                  type="submit"
+                  disabled={
+                    createBudgetMutation.isPending || !isAllocationStepValid()
+                  }
+                  className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={handleSubmit(onSubmit)}
+                >
+                  {createBudgetMutation.isPending
+                    ? "Creating..."
+                    : "Create Budget"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleNextClick}
+                  disabled={
+                    (currentStep === "basic" && !isBasicStepValid()) ||
+                    (currentStep === "income" && !isIncomeStepValid()) ||
+                    (currentStep === "categories" && !isCategoriesStepValid())
+                  }
+                  className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Next
+                </button>
+              )}
             </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

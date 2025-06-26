@@ -568,13 +568,6 @@ const BudgetsPage = () => {
                               <Copy className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() => handleEditBudget(budget)}
-                              className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-green-600"
-                              title="Edit Budget"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
                               onClick={() => handleDeleteBudget(budget)}
                               className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-red-600"
                               title="Delete Budget"

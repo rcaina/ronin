@@ -6,6 +6,7 @@ export interface CreateBudgetData {
   period: PeriodType
   startAt: string
   endAt: string
+  isRecurring: boolean
   categoryAllocations?: Record<string, number>
   incomes: Array<{
     amount: number
@@ -22,6 +23,7 @@ export interface UpdateBudgetData {
   period?: PeriodType
   startAt?: string
   endAt?: string
+  isRecurring?: boolean
   categoryAllocations?: Record<string, number>
   income?: {
     amount: number
@@ -45,6 +47,7 @@ export async function createBudget(
       period: data.period,
       startAt: new Date(data.startAt),
       endAt: new Date(data.endAt),
+      isRecurring: data.isRecurring,
       accountId: user.accountId,
     },
   })
@@ -101,6 +104,7 @@ export async function updateBudget(
       period: data.period,
       startAt: data.startAt ? new Date(data.startAt) : undefined,
       endAt: data.endAt ? new Date(data.endAt) : undefined,
+      isRecurring: data.isRecurring,
     },
   })
 
