@@ -64,10 +64,13 @@ const BudgetDetailsPage = () => {
 
   // Group categories by type
   const categoriesByGroup = (budget.categories ?? []).reduce(
-    (acc, category) => {
-      const group = category.group.toLowerCase();
+    (acc, budgetCategory) => {
+      // Skip if category relation is not loaded
+      if (!budgetCategory.category) return acc;
+
+      const group = budgetCategory.category.group.toLowerCase();
       acc[group] ??= [];
-      acc[group].push(category);
+      acc[group].push(budgetCategory);
       return acc;
     },
     {} as Record<string, typeof budget.categories>,
@@ -240,24 +243,26 @@ const BudgetDetailsPage = () => {
                 </h2>
               </div>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {categories?.map((category) => {
-                  const categorySpent = (category.transactions ?? []).reduce(
-                    (acc, transaction) => acc + transaction.amount,
-                    0,
-                  );
+                {categories?.map((budgetCategory) => {
+                  // Skip if category relation is not loaded
+                  if (!budgetCategory.category) return null;
+
+                  const categorySpent = (
+                    budgetCategory.transactions ?? []
+                  ).reduce((acc, transaction) => acc + transaction.amount, 0);
                   const categoryRemaining =
-                    category.spendingLimit - categorySpent;
+                    budgetCategory.allocatedAmount - categorySpent;
                   const categoryPercentage =
-                    (categorySpent / category.spendingLimit) * 100;
+                    (categorySpent / budgetCategory.allocatedAmount) * 100;
 
                   return (
                     <div
-                      key={category.id}
+                      key={budgetCategory.id}
                       className="rounded-xl border bg-white p-6 shadow-sm"
                     >
                       <div className="mb-4 flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-gray-900">
-                          {category.name}
+                          {budgetCategory.category.name}
                         </h3>
                         <span
                           className={`rounded-full px-2 py-1 text-xs font-medium ${
@@ -275,10 +280,10 @@ const BudgetDetailsPage = () => {
                       <div className="space-y-3">
                         <div>
                           <div className="mb-1 flex justify-between text-sm">
-                            <span className="text-gray-500">Limit</span>
+                            <span className="text-gray-500">Allocated</span>
                             <span className="font-medium">
                               $
-                              {category.spendingLimit
+                              {budgetCategory.allocatedAmount
                                 .toFixed(2)
                                 .toLocaleString()}
                             </span>
@@ -316,14 +321,14 @@ const BudgetDetailsPage = () => {
                       </div>
 
                       {/* Recent Transactions */}
-                      {category.transactions &&
-                        category.transactions.length > 0 && (
+                      {budgetCategory.transactions &&
+                        budgetCategory.transactions.length > 0 && (
                           <div className="mt-4 border-t pt-4">
                             <h4 className="mb-2 text-sm font-medium text-gray-700">
                               Recent Transactions
                             </h4>
                             <div className="space-y-2">
-                              {category.transactions
+                              {budgetCategory.transactions
                                 .slice(0, 3)
                                 .map((transaction) => (
                                   <div
@@ -349,9 +354,9 @@ const BudgetDetailsPage = () => {
                                     </span>
                                   </div>
                                 ))}
-                              {category.transactions.length > 3 && (
+                              {budgetCategory.transactions.length > 3 && (
                                 <p className="text-center text-xs text-gray-500">
-                                  +{category.transactions.length - 3} more
+                                  +{budgetCategory.transactions.length - 3} more
                                   transactions
                                 </p>
                               )}
@@ -372,11 +377,12 @@ const BudgetDetailsPage = () => {
             </h3>
             <div className="space-y-4">
               {(budget.categories ?? [])
-                .flatMap((category) =>
-                  (category.transactions ?? []).map((transaction) => ({
+                .filter((budgetCategory) => budgetCategory.category)
+                .flatMap((budgetCategory) =>
+                  (budgetCategory.transactions ?? []).map((transaction) => ({
                     ...transaction,
-                    categoryName: category.name,
-                    categoryGroup: category.group,
+                    categoryName: budgetCategory.category.name,
+                    categoryGroup: budgetCategory.category.group,
                   })),
                 )
                 .sort(
@@ -414,9 +420,9 @@ const BudgetDetailsPage = () => {
                     </div>
                   </div>
                 ))}
-              {(budget.categories ?? []).flatMap(
-                (cat) => cat.transactions ?? [],
-              ).length === 0 && (
+              {(budget.categories ?? [])
+                .filter((cat) => cat.category)
+                .flatMap((cat) => cat.transactions ?? []).length === 0 && (
                 <div className="py-8 text-center text-gray-500">
                   <DollarSign className="mx-auto mb-4 h-12 w-12 text-gray-300" />
                   <p>No transactions yet</p>

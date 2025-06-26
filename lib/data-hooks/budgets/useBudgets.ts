@@ -63,5 +63,29 @@ export const useDeleteBudget = () => {
   });
 };
 
+export const useDuplicateBudget = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (budgetId: string) => {
+      return fetch("/api/budgets/duplicate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ budgetId }),
+      }).then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to duplicate budget: ${res.statusText}`);
+        }
+        return res.json();
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["budgets"] });
+    },
+  });
+};
+
 
 

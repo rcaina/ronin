@@ -105,11 +105,6 @@ export default function HomePage() {
       <PageHeader
         title={`Welcome back, ${session?.user?.name?.split(" ")[0] ?? "User"}! 👋`}
         description={`Here's your financial overview for ${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}`}
-        action={{
-          label: "New Budget",
-          onClick: () => router.push("/setup/budget"),
-          icon: <Plus className="h-4 w-4" />,
-        }}
       />
 
       <div className="flex-1 overflow-auto">
@@ -307,7 +302,7 @@ export default function HomePage() {
                 </h2>
                 <div className="space-y-3">
                   <button
-                    onClick={() => router.push("/setup/budget")}
+                    onClick={() => router.push("/budgets")}
                     className="flex w-full items-center space-x-3 rounded-lg border p-3 text-left transition-colors hover:bg-gray-50"
                   >
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">

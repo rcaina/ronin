@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   useBudgets,
   useDeleteBudget,
+  useDuplicateBudget,
 } from "@/lib/data-hooks/budgets/useBudgets";
 import { useTransactions } from "@/lib/data-hooks/transactions/useTransactions";
 import {
@@ -19,7 +20,6 @@ import {
   Zap,
   Eye,
   Copy,
-  Edit,
   Trash2,
 } from "lucide-react";
 import type { BudgetWithRelations } from "@/lib/types/budget";
@@ -34,6 +34,7 @@ const BudgetsPage = () => {
   const { data: budgets = [], isLoading, error } = useBudgets();
   const { data: allTransactions = [] } = useTransactions();
   const deleteBudgetMutation = useDeleteBudget();
+  const duplicateBudgetMutation = useDuplicateBudget();
 
   const [budgetToDelete, setBudgetToDelete] =
     useState<BudgetWithRelations | null>(null);
@@ -73,9 +74,15 @@ const BudgetsPage = () => {
     // Calculate spending by category groups across all budgets
     const spendingByGroup = budgets.reduce(
       (acc, budget) => {
-        (budget.categories ?? []).forEach((category) => {
-          const group = category.group?.toLowerCase();
-          const categorySpent = (category.transactions ?? []).reduce(
+        (budget.categories ?? []).forEach((budgetCategory) => {
+          // Skip if category relation is not loaded
+          if (!budgetCategory.category) return;
+
+          const group = budgetCategory.category.group?.toLowerCase();
+          // Skip categories without a group
+          if (!group) return;
+
+          const categorySpent = (budgetCategory.transactions ?? []).reduce(
             (sum, transaction) => sum + transaction.amount,
             0,
           );
@@ -219,10 +226,14 @@ const BudgetsPage = () => {
 
   const getCategorySummary = (budget: BudgetWithRelations) => {
     const categories = budget.categories ?? [];
-    const needs = categories.filter((cat) => cat.group === "NEEDS").length;
-    const wants = categories.filter((cat) => cat.group === "WANTS").length;
+    const needs = categories.filter(
+      (cat) => cat.category?.group === "NEEDS",
+    ).length;
+    const wants = categories.filter(
+      (cat) => cat.category?.group === "WANTS",
+    ).length;
     const investments = categories.filter(
-      (cat) => cat.group === "INVESTMENT",
+      (cat) => cat.category?.group === "INVESTMENT",
     ).length;
 
     return { needs, wants, investments };
@@ -252,17 +263,14 @@ const BudgetsPage = () => {
 
   const handleDuplicateBudget = async (budget: BudgetWithRelations) => {
     try {
-      // Navigate to the budget setup page with the budget data pre-filled
-      // We'll use the existing setup flow but with the budget data
-      router.push(`/setup/budget?duplicate=${budget.id}`);
+      await duplicateBudgetMutation.mutateAsync(budget.id);
+      alert("Budget duplicated successfully!");
+      // Optionally, redirect to the new budget page:
+      // if (result?.budget?.id) router.push(`/budgets/${result.budget.id}`);
     } catch (err) {
+      alert("Failed to duplicate budget");
       console.error("Failed to duplicate budget:", err);
     }
-  };
-
-  const handleEditBudget = (budget: BudgetWithRelations) => {
-    // Navigate to the budget setup page for editing
-    router.push(`/setup/budget?edit=${budget.id}`);
   };
 
   const handleDeleteBudget = (budget: BudgetWithRelations) => {
@@ -441,31 +449,42 @@ const BudgetsPage = () => {
                   <PieChart className="h-5 w-5 text-purple-500" />
                 </div>
                 <div className="space-y-2">
-                  {Object.entries(budgetStats.spendingByGroup).map(
-                    ([group, amount]) => (
-                      <div
-                        key={group}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <div
-                            className={`h-3 w-3 rounded-full ${
-                              group === "needs"
-                                ? "bg-blue-500"
-                                : group === "wants"
-                                  ? "bg-purple-500"
-                                  : "bg-green-500"
-                            }`}
-                          />
-                          <span className="text-sm font-medium capitalize text-gray-700">
-                            {group}
+                  {Object.entries(budgetStats.spendingByGroup).length > 0 ? (
+                    Object.entries(budgetStats.spendingByGroup).map(
+                      ([group, amount]) => (
+                        <div
+                          key={group}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <div
+                              className={`h-3 w-3 rounded-full ${
+                                group === "needs"
+                                  ? "bg-blue-500"
+                                  : group === "wants"
+                                    ? "bg-purple-500"
+                                    : "bg-green-500"
+                              }`}
+                            />
+                            <span className="text-sm font-medium capitalize text-gray-700">
+                              {group}
+                            </span>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-900">
+                            ${amount.toLocaleString()}
                           </span>
                         </div>
-                        <span className="text-sm font-semibold text-gray-900">
-                          ${amount.toLocaleString()}
-                        </span>
-                      </div>
-                    ),
+                      ),
+                    )
+                  ) : (
+                    <div className="py-4 text-center">
+                      <p className="text-sm text-gray-500">
+                        No spending data available
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        Add transactions to see spending by group
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>

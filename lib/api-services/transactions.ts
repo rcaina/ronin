@@ -30,7 +30,11 @@ export async function getTransactions(
       deleted: null,
     },
     include: {
-      category: true,
+      category: {
+        include: {
+          category: true,
+        },
+      },
       Budget: true,
     },
     orderBy: {
@@ -57,7 +61,11 @@ export async function createTransaction(
       createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
     },
     include: {
-      category: true,
+      category: {
+        include: {
+          category: true,
+        },
+      },
       Budget: true,
     },
   })
@@ -85,7 +93,11 @@ export async function updateTransaction(
       createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
     },
     include: {
-      category: true,
+      category: {
+        include: {
+          category: true,
+        },
+      },
       Budget: true,
     },
   })

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,7 +9,10 @@ import {
   useCreateTransaction,
   useUpdateTransaction,
 } from "@/lib/data-hooks/transactions/useTransactions";
-import { useCategories } from "@/lib/data-hooks/categories/useCategories";
+import {
+  useBudgetCategories,
+  type BudgetCategoryWithCategory,
+} from "@/lib/data-hooks/budgets/useBudgetCategories";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import type {
@@ -50,9 +53,11 @@ export default function TransactionForm({
     useCreateTransaction();
   const { mutate: updateTransaction, isPending: isUpdating } =
     useUpdateTransaction();
-  const { data: categories } = useCategories();
   const { data: budgets = [] } = useBudgets();
   const { data: cards = [] } = useCards();
+
+  const [selectedBudgetId, setSelectedBudgetId] = useState<string>("");
+  const { data: budgetCategories = [] } = useBudgetCategories(selectedBudgetId);
 
   const isEditing = !!transaction;
   const isPending = isCreating || isUpdating;
@@ -63,6 +68,7 @@ export default function TransactionForm({
     reset,
     formState: { errors },
     setValue,
+    watch,
   } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
@@ -75,6 +81,13 @@ export default function TransactionForm({
     },
   });
 
+  const watchedBudgetId = watch("budgetId");
+
+  // Update selected budget when form budget changes
+  useEffect(() => {
+    setSelectedBudgetId(watchedBudgetId);
+  }, [watchedBudgetId]);
+
   // Initialize form data when editing
   useEffect(() => {
     if (transaction) {
@@ -84,13 +97,9 @@ export default function TransactionForm({
       setValue("budgetId", transaction.budgetId);
       setValue("categoryId", transaction.categoryId);
       setValue("cardId", transaction.cardId ?? "");
+      setSelectedBudgetId(transaction.budgetId);
     }
   }, [transaction, setValue]);
-
-  // Flatten categories from grouped structure
-  const flattenedCategories = categories
-    ? [...categories.wants, ...categories.needs, ...categories.investment]
-    : [];
 
   const onSubmit = (data: TransactionFormData) => {
     if (isEditing && transaction) {
@@ -263,11 +272,13 @@ export default function TransactionForm({
                 disabled={isPending}
               >
                 <option value="">Select a category</option>
-                {flattenedCategories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
+                {budgetCategories.map(
+                  (budgetCategory: BudgetCategoryWithCategory) => (
+                    <option key={budgetCategory.id} value={budgetCategory.id}>
+                      {budgetCategory.category.name}
+                    </option>
+                  ),
+                )}
               </select>
               {errors.categoryId && (
                 <p className="mt-1 text-sm text-red-600">

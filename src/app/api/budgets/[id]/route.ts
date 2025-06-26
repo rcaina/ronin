@@ -22,17 +22,13 @@ export const GET = withUser({
                         deleted: null,
                     },
                     include: {
-                        category: {
-                            include: {
-                                transactions: {
-                                    where: {
-                                        budgetId: id,
-                                        deleted: null,
-                                    },
-                                    orderBy: {
-                                        createdAt: 'desc',
-                                    },
-                                },
+                        category: true,
+                        transactions: {
+                            where: {
+                                deleted: null,
+                            },
+                            orderBy: {
+                                createdAt: 'desc',
                             },
                         },
                     },
@@ -52,13 +48,15 @@ export const GET = withUser({
         // Transform the data to match the expected structure
         const transformedBudget = {
             ...budget,
-            categories: budget.categories.map(budgetCategory => ({
-                id: budgetCategory.category.id,
-                name: budgetCategory.category.name,
-                spendingLimit: budgetCategory.allocatedAmount,
-                group: budgetCategory.category.group,
-                transactions: budgetCategory.category.transactions,
-            })),
+            categories: budget.categories?.map(budgetCategory => ({
+                ...budgetCategory,
+                category: {
+                    id: budgetCategory.category.id,
+                    name: budgetCategory.category.name,
+                    group: budgetCategory.category.group,
+                },
+                transactions: budgetCategory.transactions || [],
+            })) || [],
         };
 
         return NextResponse.json(transformedBudget, { status: 200 });

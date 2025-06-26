@@ -80,7 +80,7 @@ const TransactionsPage = () => {
         transaction.description
           ?.toLowerCase()
           .includes(searchTerm.toLowerCase()) ??
-        transaction.category.name
+        transaction.category.category.name
           .toLowerCase()
           .includes(searchTerm.toLowerCase());
 
@@ -116,10 +116,17 @@ const TransactionsPage = () => {
 
   // Get unique categories for filter
   const categories = useMemo(() => {
-    const uniqueCategories = new Map<string, Category>();
+    const uniqueCategories = new Map<
+      string,
+      { id: string; name: string; group: string }
+    >();
     transactions.forEach((t) => {
       if (!uniqueCategories.has(t.category.id)) {
-        uniqueCategories.set(t.category.id, t.category);
+        uniqueCategories.set(t.category.id, {
+          id: t.category.id,
+          name: t.category.category.name,
+          group: t.category.category.group,
+        });
       }
     });
     return Array.from(uniqueCategories.values());
@@ -476,14 +483,14 @@ const TransactionsPage = () => {
                         className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <div
-                        className={`h-3 w-3 rounded-full ${getGroupColor(transaction.category.group)}`}
+                        className={`h-3 w-3 rounded-full ${getGroupColor(transaction.category.category.group)}`}
                       />
                       <div>
                         <h4 className="font-medium text-gray-900">
                           {transaction.name ?? "Unnamed transaction"}
                         </h4>
                         <div className="flex items-center space-x-2 text-sm text-gray-500">
-                          <span>{transaction.category.name}</span>
+                          <span>{transaction.category.category.name}</span>
                           {transaction.budget && (
                             <>
                               <span>•</span>

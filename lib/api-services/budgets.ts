@@ -207,11 +207,94 @@ export async function getBudgets(
       deleted: null,
     },
     include: {
-      categories: true,
-      incomes: true,
+      categories: {
+        where: { deleted: null },
+        include: {
+          category: true,
+          transactions: {
+            where: { deleted: null }
+          }
+        }
+      },
+      incomes: {
+        where: { deleted: null }
+      },
     },
     orderBy: {
       createdAt: "desc",
     },
   })
+}
+
+export async function duplicateBudget(
+  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  budgetId: string,
+  user: User & { accountId: string }
+) {
+  // Get the original budget with all relations
+  const originalBudget = await tx.budget.findFirst({
+    where: {
+      id: budgetId,
+      accountId: user.accountId,
+      deleted: null,
+    },
+    include: {
+      incomes: {
+        where: { deleted: null }
+      },
+      categories: {
+        where: { deleted: null },
+        include: {
+          category: true
+        }
+      }
+    }
+  });
+
+  if (!originalBudget) {
+    throw new Error("Budget not found");
+  }
+
+  // Create new budget with copied data
+  const newBudget = await tx.budget.create({
+    data: {
+      name: `${originalBudget.name} (Copy)`,
+      strategy: originalBudget.strategy,
+      period: originalBudget.period,
+      startAt: new Date(),
+      endAt: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+      isRecurring: originalBudget.isRecurring,
+      accountId: user.accountId,
+    },
+  });
+
+  // Copy income records
+  for (const income of originalBudget.incomes) {
+    await tx.income.create({
+      data: {
+        accountId: user.accountId,
+        userId: user.id,
+        budgetId: newBudget.id,
+        amount: income.amount,
+        source: income.source,
+        description: income.description,
+        isPlanned: income.isPlanned,
+        frequency: income.frequency,
+        receivedAt: new Date(),
+      },
+    });
+  }
+
+  // Copy budget category allocations
+  for (const budgetCategory of originalBudget.categories) {
+    await tx.budgetCategory.create({
+      data: {
+        budgetId: newBudget.id,
+        categoryId: budgetCategory.categoryId,
+        allocatedAmount: budgetCategory.allocatedAmount,
+      },
+    });
+  }
+
+  return newBudget;
 } 

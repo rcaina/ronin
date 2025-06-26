@@ -140,7 +140,6 @@ model Category {
     deleted          DateTime?
     createdAt        DateTime         @default(now())
     updatedAt        DateTime         @updatedAt
-    transactions     Transaction[]
     budgetCategories BudgetCategory[]
 
     @@index([id])
@@ -150,14 +149,15 @@ model Category {
 }
 
 model BudgetCategory {
-    id              String    @id @default(cuid())
+    id              String        @id @default(cuid())
     budgetId        String
-    budget          Budget    @relation(fields: [budgetId], references: [id])
+    budget          Budget        @relation(fields: [budgetId], references: [id])
     categoryId      String
-    category        Category  @relation(fields: [categoryId], references: [id])
+    category        Category      @relation(fields: [categoryId], references: [id])
     allocatedAmount Float
-    createdAt       DateTime  @default(now())
-    updatedAt       DateTime  @updatedAt
+    transactions    Transaction[]
+    createdAt       DateTime      @default(now())
+    updatedAt       DateTime      @updatedAt
     deleted         DateTime?
 
     @@index([id])
@@ -181,23 +181,23 @@ model Card {
 }
 
 model Transaction {
-    id          String    @id @default(cuid())
+    id          String         @id @default(cuid())
     name        String?
     description String?
     amount      Float
-    createdAt   DateTime  @default(now())
-    updatedAt   DateTime  @updatedAt
+    createdAt   DateTime       @default(now())
+    updatedAt   DateTime       @updatedAt
     deleted     DateTime?
     cardId      String?
-    card        Card?     @relation(fields: [cardId], references: [id])
+    card        Card?          @relation(fields: [cardId], references: [id])
     budgetId    String
-    Budget      Budget    @relation(fields: [budgetId], references: [id])
+    Budget      Budget         @relation(fields: [budgetId], references: [id])
     categoryId  String
-    category    Category  @relation(fields: [categoryId], references: [id])
+    category    BudgetCategory @relation(fields: [categoryId], references: [id])
     accountId   String
-    account     Account   @relation(fields: [accountId], references: [id])
+    account     Account        @relation(fields: [accountId], references: [id])
     userId      String
-    user        User      @relation(fields: [userId], references: [id])
+    user        User           @relation(fields: [userId], references: [id])
 
     @@index([id])
     @@index([name])

@@ -1,7 +1,13 @@
-import type { Transaction, Category, Budget } from "@prisma/client";
+import type { Transaction, BudgetCategory, Budget } from "@prisma/client";
 
 export type TransactionWithRelations = Transaction & {
-  category: Category;
+  category: BudgetCategory & {
+    category: {
+      id: string;
+      name: string;
+      group: string;
+    };
+  };
   budget?: Budget;
 };
 

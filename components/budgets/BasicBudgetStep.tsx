@@ -6,112 +6,8 @@ import type {
   UseFormSetValue,
   FieldErrors,
 } from "react-hook-form";
-import { Target, TrendingUp } from "lucide-react";
 import { StrategyType, PeriodType } from "@prisma/client";
 import type { CreateBudgetFormData } from "./types";
-
-// Utility functions for smart date calculation
-const calculateEndDate = (startDate: Date, period: PeriodType): Date => {
-  const date = new Date(startDate);
-
-  switch (period) {
-    case PeriodType.WEEKLY:
-      // Find the end of the week (Sunday)
-      const dayOfWeek = date.getDay();
-      const daysToAdd = 6 - dayOfWeek;
-      date.setDate(date.getDate() + daysToAdd);
-      return date;
-
-    case PeriodType.MONTHLY:
-      // Find the last day of the current month
-      const year = date.getFullYear();
-      const month = date.getMonth();
-      // Create a date for the first day of the next month, then subtract 1 day
-      const firstDayNextMonth = new Date(year, month + 1, 1);
-      const lastDay = new Date(firstDayNextMonth);
-      lastDay.setDate(lastDay.getDate() - 1);
-      return lastDay;
-
-    case PeriodType.QUARTERLY:
-      // Find the last day of the current quarter
-      const quarter = Math.floor(date.getMonth() / 3);
-      const quarterEndMonth = quarter * 3 + 2; // Last month of the quarter (0-indexed)
-      // Create a date for the first day of the month after quarter end, then subtract 1 day
-      const firstDayAfterQuarter = new Date(
-        date.getFullYear(),
-        quarterEndMonth + 1,
-        1,
-      );
-      const quarterEndDate = new Date(firstDayAfterQuarter);
-      quarterEndDate.setDate(quarterEndDate.getDate() - 1);
-      return quarterEndDate;
-
-    case PeriodType.YEARLY:
-      // Find the last day of the current year
-      date.setMonth(11, 31); // December 31st
-      return date;
-
-    case PeriodType.ONE_TIME:
-      // For one-time, return the same date (user will manually set end date)
-      return date;
-
-    default:
-      return date;
-  }
-};
-
-const formatDateForInput = (date: Date): string => {
-  // Handle timezone issues by using local date methods
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
-const getPeriodDescription = (startDate: Date, period: PeriodType): string => {
-  const endDate = calculateEndDate(startDate, period);
-
-  switch (period) {
-    case PeriodType.WEEKLY:
-      return `Week of ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
-    case PeriodType.MONTHLY:
-      return `${startDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}`;
-    case PeriodType.QUARTERLY:
-      const quarter = Math.floor(startDate.getMonth() / 3) + 1;
-      return `Q${quarter} ${startDate.getFullYear()} (${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()})`;
-    case PeriodType.YEARLY:
-      return `${startDate.getFullYear()} (${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()})`;
-    case PeriodType.ONE_TIME:
-      return `Custom period: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
-    default:
-      return "";
-  }
-};
-
-const getNextPeriodDescription = (
-  startDate: Date,
-  period: PeriodType,
-): string => {
-  const endDate = calculateEndDate(startDate, period);
-  const nextStartDate = new Date(endDate);
-  nextStartDate.setDate(nextStartDate.getDate() + 1);
-  const nextEndDate = calculateEndDate(nextStartDate, period);
-
-  switch (period) {
-    case PeriodType.WEEKLY:
-      return `Next: Week of ${nextStartDate.toLocaleDateString()} to ${nextEndDate.toLocaleDateString()}`;
-    case PeriodType.MONTHLY:
-      return `Next: ${nextStartDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}`;
-    case PeriodType.QUARTERLY:
-      const quarter = Math.floor(nextStartDate.getMonth() / 3) + 1;
-      return `Next: Q${quarter} ${nextStartDate.getFullYear()}`;
-    case PeriodType.YEARLY:
-      return `Next: ${nextStartDate.getFullYear()}`;
-    default:
-      return "";
-  }
-};
-
 interface BasicBudgetStepProps {
   register: UseFormRegister<CreateBudgetFormData>;
   watch: UseFormWatch<CreateBudgetFormData>;
@@ -124,14 +20,10 @@ interface BasicBudgetStepProps {
 export default function BasicBudgetStep({
   register,
   watch,
-  setValue,
   errors,
   onPeriodChange,
   onStartDateChange,
 }: BasicBudgetStepProps) {
-  const watchedName = watch("name");
-  const watchedStartAt = watch("startAt");
-  const watchedEndAt = watch("endAt");
   const watchedPeriod = watch("period");
   const watchedIsRecurring = watch("isRecurring");
 
