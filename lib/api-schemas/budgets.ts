@@ -4,6 +4,7 @@ import { z } from "zod"
 export const createBudgetSchema = z.object({
   name: z.string().min(1, "Budget name is required"),
   strategy: z.enum([StrategyType.ZERO_SUM, StrategyType.PERCENTAGE]),
+  isRecurring: z.boolean(),
   period: z.enum([PeriodType.WEEKLY, PeriodType.MONTHLY, PeriodType.QUARTERLY, PeriodType.YEARLY, PeriodType.ONE_TIME]),
   startAt: z.string()
     .transform((val) => {
