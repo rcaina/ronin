@@ -266,7 +266,7 @@ export default function HomePage() {
                               {transaction.name ?? "Unnamed transaction"}
                             </p>
                             <p className="text-sm text-gray-500">
-                              {transaction.category.name} •{" "}
+                              {transaction.category.category.name} •{" "}
                               {new Date(
                                 transaction.createdAt,
                               ).toLocaleDateString()}
