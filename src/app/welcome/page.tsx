@@ -12,16 +12,25 @@ export default function WelcomePage() {
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
+    console.log("Welcome page effect:", {
+      status,
+      isLoading,
+      budgetsLength: budgets.length,
+      isChecking,
+    });
+
     if (status === "loading" || isLoading) return;
 
     // If user has budgets, redirect to overview
     if (budgets.length > 0) {
+      console.log("Welcome page: User has budgets, redirecting to home");
       router.push("/");
       return;
     }
 
     // If user has no budgets, redirect to setup
     if (budgets.length === 0) {
+      console.log("Welcome page: User has no budgets, redirecting to setup");
       router.push("/setup/budget");
       return;
     }

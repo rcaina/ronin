@@ -39,11 +39,19 @@ export async function middleware(request: NextRequest) {
                     pathname.startsWith('/sign-up');
   const isSetupPage = pathname.startsWith('/setup') || pathname.startsWith('/welcome');
 
+  console.log('Middleware Path Analysis:', {
+    pathname,
+    isAuthPage,
+    isSetupPage,
+    hasBudget: token?.hasBudget,
+  });
+
   if (isAuthPage) {
     if (token) {
       console.log('Redirecting authenticated user from auth page to home');
       return NextResponse.redirect(new URL('/', request.url))
     }
+    console.log('Allowing unauthenticated user to access auth page');
     return NextResponse.next()
   }
 
@@ -54,8 +62,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(signInUrl)
   }
 
+  // If user is authenticated and on setup/welcome pages, allow access
+  if (isSetupPage) {
+    console.log('Allowing authenticated user to access setup page');
+    return NextResponse.next()
+  }
+
   // If authenticated and not on setup/welcome/auth pages, check if user has budget
-  if (!isSetupPage && !token.hasBudget) {
+  if (!token.hasBudget) {
     console.log('User has no budget, redirecting to welcome page');
     return NextResponse.redirect(new URL('/welcome', request.url));
   }
