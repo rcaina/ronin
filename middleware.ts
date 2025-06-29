@@ -4,6 +4,17 @@ import { getToken } from 'next-auth/jwt'
 import { env } from '@/env'
 
 export async function middleware(request: NextRequest) {
+  // Debug logging for production issues
+  console.log('Middleware Request Debug:', {
+    url: request.url,
+    pathname: request.nextUrl.pathname,
+    host: request.nextUrl.host,
+    protocol: request.nextUrl.protocol,
+    hasCookie: !!request.headers.get('cookie'),
+    cookieLength: request.headers.get('cookie')?.length ?? 0,
+    userAgent: request.headers.get('user-agent')?.substring(0, 50) + '...',
+  });
+
   const token = await getToken({ 
     req: request,
     secret: env.AUTH_SECRET,
@@ -16,7 +27,11 @@ export async function middleware(request: NextRequest) {
     tokenId: token?.id,
     tokenEmail: token?.email,
     hasBudget: token?.hasBudget,
-    accountId: token?.accountId
+    accountId: token?.accountId,
+    env: {
+      NODE_ENV: env.NODE_ENV,
+      hasAuthSecret: !!env.AUTH_SECRET,
+    }
   });
   
   const pathname = request.nextUrl.pathname;
