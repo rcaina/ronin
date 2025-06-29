@@ -1,29 +1,107 @@
-# Create T3 App
+# Ronin - Personal Finance Management App
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+A modern personal finance management application built with the T3 Stack, featuring budget tracking, transaction management, and financial insights.
 
-## What's next? How do I make an app with this?
+## Features
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+- **Budget Management**: Create and track budgets with customizable categories
+- **Transaction Tracking**: Log and categorize your income and expenses
+- **Card Management**: Keep track of your credit and debit cards
+- **User Authentication**: Secure sign-in and sign-up with email restrictions
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+## Tech Stack
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+This project is built with the [T3 Stack](https://create.t3.gg/):
 
-## Learn More
+- [Next.js](https://nextjs.org) - React framework
+- [NextAuth.js](https://next-auth.js.org) - Authentication
+- [Prisma](https://prisma.io) - Database ORM
+- [Tailwind CSS](https://tailwindcss.com) - Styling
+- [TypeScript](https://www.typescriptlang.org/) - Type safety
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+## Getting Started
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+### Prerequisites
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+- Node.js 18+
+- pnpm (recommended) or npm
+- PostgreSQL database
 
-## How do I deploy this?
+### Installation
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+1. Clone the repository
+2. Install dependencies:
+
+   ```bash
+   pnpm install
+   ```
+
+3. Set up your environment variables (see Environment Variables section below)
+
+4. Set up the database:
+
+   ```bash
+   pnpm db:push
+   ```
+
+5. Start the development server:
+   ```bash
+   pnpm dev
+   ```
+
+## Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+### Required
+
+- `DATABASE_URL`: PostgreSQL connection string
+- `AUTH_SECRET`: Secret key for NextAuth.js (generate a secure random string)
+
+### Optional
+
+- `AUTH_ALLOWED_EMAILS`: Comma-separated list of email addresses allowed to sign up and sign in
+  - If not set, all emails are allowed
+  - Example: `user1@example.com,user2@example.com`
+
+### Security Notes
+
+- Never commit your `.env` file to version control
+- Use strong, unique values for `AUTH_SECRET`
+- Consider using a secrets manager in production
+- The `AUTH_ALLOWED_EMAILS` feature is useful for private betas or restricted access
+
+## Development
+
+### Database
+
+- **Push schema changes**: `pnpm db:push`
+- **Generate Prisma client**: `pnpm db:generate`
+- **Reset database**: `pnpm db:reset`
+
+### Code Quality
+
+- **Lint**: `pnpm lint`
+- **Type check**: `pnpm type-check`
+- **Format**: `pnpm format`
+
+## Deployment
+
+This app is deployed to:
+
+- **Vercel**: Recommended for Next.js apps
+
+Follow the [T3 Stack deployment guides](https://create.t3.gg/en/deployment) for detailed instructions.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.

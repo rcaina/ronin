@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { type Role } from "@prisma/client";
 import { env } from "@/env";
 import { db } from "@/server/db";
+import { isEmailAllowed } from "@/lib/utils/auth";
 
 export const runtime = "nodejs";
 
@@ -65,6 +66,11 @@ export const authConfig = {
         if (!credentials?.email || !credentials?.password || 
             typeof credentials.email !== "string" || 
             typeof credentials.password !== "string") {
+          return null;
+        }
+
+        // Check if email is allowed
+        if (!isEmailAllowed(credentials.email)) {
           return null;
         }
 

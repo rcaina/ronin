@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { createUserWithAccount, findUserByEmail } from "@/lib/api-services/auth";
 import { signUpSchema } from "@/lib/api-schemas/auth";
+import { isEmailAllowed } from "@/lib/utils/auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +21,14 @@ export async function POST(request: NextRequest) {
     }
 
     const { email } = validationResult.data;
+
+    // Check if email is allowed
+    if (!isEmailAllowed(email)) {
+      return NextResponse.json(
+        { message: "Email not allowed for registration" },
+        { status: 403 }
+      );
+    }
 
     // Check if user already exists
     const existingUser = await findUserByEmail(db, email);
