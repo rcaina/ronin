@@ -129,6 +129,18 @@ export const authConfig = {
   secret: env.AUTH_SECRET,
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: env.NODE_ENV === "production",
+      },
+    },
   },
   pages: {
     signIn: "/sign-in",
@@ -149,13 +161,19 @@ export const authConfig = {
       
       // Always check the current budget count for the user
       if (token?.accountId) {
-        const budgetCount = await db.budget.count({
-          where: {
-            accountId: token.accountId,
-            deleted: null,
-          },
-        });
-        token.hasBudget = budgetCount > 0;
+        try {
+          const budgetCount = await db.budget.count({
+            where: {
+              accountId: token.accountId,
+              deleted: null,
+            },
+          });
+          token.hasBudget = budgetCount > 0;
+          console.log('JWT Callback - Budget count updated:', { accountId: token.accountId, budgetCount, hasBudget: token.hasBudget });
+        } catch (error) {
+          console.error('Error checking budget count in JWT callback:', error);
+          // Fallback to existing hasBudget value if database query fails
+        }
       }
       
       return token;
@@ -170,6 +188,12 @@ export const authConfig = {
         session.user.emailVerified = token.emailVerified;
         session.user.deleted = token.deleted;
         session.user.hasBudget = token.hasBudget;
+        
+        console.log('Session Callback - Session created:', { 
+          userId: session.user.id, 
+          email: session.user.email,
+          hasBudget: session.user.hasBudget 
+        });
       }
       return session;
     },

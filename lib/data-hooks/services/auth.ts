@@ -72,15 +72,32 @@ export const signUp = async (data: SignUpRequest): Promise<SignUpResponse> => {
 export const signIn = async (data: SignInRequest): Promise<void> => {
   // Note: This is a wrapper around NextAuth's signIn for consistency
   // The actual authentication is handled by NextAuth
-  const { signIn: nextAuthSignIn } = await import("next-auth/react");
-  
-  const result = await nextAuthSignIn("credentials", {
-    email: data.email,
-    password: data.password,
-    redirect: false,
-  });
+  try {
+    const { signIn: nextAuthSignIn } = await import("next-auth/react");
+    
+    console.log('Attempting sign-in for:', data.email);
+    
+    const result = await nextAuthSignIn("credentials", {
+      email: data.email,
+      password: data.password,
+      redirect: false,
+    });
 
-  if (result?.error) {
-    throw new Error("Invalid credentials");
+    console.log('Sign-in result:', result);
+
+    if (result?.error) {
+      console.error('Sign-in error:', result.error);
+      throw new Error("Invalid credentials");
+    }
+    
+    if (!result?.ok) {
+      console.error('Sign-in failed - not ok:', result);
+      throw new Error("Authentication failed");
+    }
+    
+    console.log('Sign-in successful');
+  } catch (error) {
+    console.error('Sign-in exception:', error);
+    throw error;
   }
 }; 
