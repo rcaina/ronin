@@ -86,8 +86,6 @@ export default function CategoriesSetupPage() {
   };
 
   const handleSkip = () => {
-    console.log("Debug - Skip button clicked");
-
     // Store empty array to indicate no categories selected
     sessionStorage.setItem("setupCategories", JSON.stringify([]));
     // Store empty allocation object for skipped categories
@@ -95,19 +93,11 @@ export default function CategoriesSetupPage() {
     // Store a flag indicating categories and allocation were skipped
     sessionStorage.setItem("setupSkippedCategories", "true");
 
-    console.log("Debug - SessionStorage updated:", {
-      categories: sessionStorage.getItem("setupCategories"),
-      allocation: sessionStorage.getItem("setupAllocation"),
-      skipped: sessionStorage.getItem("setupSkippedCategories"),
-    });
-
     // Skip to invite step (skip allocation as well)
-    console.log("Debug - Redirecting to invite page");
     router.push("/setup/invite");
 
     // Fallback navigation in case router fails
     setTimeout(() => {
-      console.log("Debug - Fallback navigation");
       window.location.replace("/setup/invite");
     }, 100);
   };

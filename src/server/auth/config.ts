@@ -169,7 +169,6 @@ export const authConfig = {
             },
           });
           token.hasBudget = budgetCount > 0;
-          console.log('JWT Callback - Budget count updated:', { accountId: token.accountId, budgetCount, hasBudget: token.hasBudget });
         } catch (error) {
           console.error('Error checking budget count in JWT callback:', error);
           // Fallback to existing hasBudget value if database query fails
@@ -179,11 +178,6 @@ export const authConfig = {
       return token;
     },
     async session({ session, token }) {
-      console.log('Session Callback - Input:', { 
-        hasToken: !!token,
-        tokenHasBudget: token?.hasBudget,
-        tokenAccountId: token?.accountId
-      });
       
       if (token) {
         session.user.id = token.id;
@@ -194,16 +188,8 @@ export const authConfig = {
         session.user.emailVerified = token.emailVerified;
         session.user.deleted = token.deleted;
         session.user.hasBudget = token.hasBudget;
-        
-        console.log('Session Callback - Session created:', { 
-          userId: session.user.id, 
-          email: session.user.email,
-          hasBudget: session.user.hasBudget,
-          accountId: session.user.accountId
-        });
-      } else {
-        console.log('Session Callback - No token provided');
       }
+      
       return session;
     },
   },

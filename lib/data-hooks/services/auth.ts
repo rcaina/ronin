@@ -74,16 +74,12 @@ export const signIn = async (data: SignInRequest): Promise<void> => {
   // The actual authentication is handled by NextAuth
   try {
     const { signIn: nextAuthSignIn } = await import("next-auth/react");
-    
-    console.log('Attempting sign-in for:', data.email);
-    
+        
     const result = await nextAuthSignIn("credentials", {
       email: data.email,
       password: data.password,
       redirect: false,
     });
-
-    console.log('Sign-in result:', result);
 
     if (result?.error) {
       console.error('Sign-in error:', result.error);
@@ -95,7 +91,6 @@ export const signIn = async (data: SignInRequest): Promise<void> => {
       throw new Error("Authentication failed");
     }
     
-    console.log('Sign-in successful');
   } catch (error) {
     console.error('Sign-in exception:', error);
     throw error;
