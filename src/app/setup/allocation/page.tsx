@@ -46,22 +46,13 @@ export default function AllocationSetupPage() {
     const storedCategories = sessionStorage.getItem("setupCategories");
     const skippedCategories = sessionStorage.getItem("setupSkippedCategories");
 
-    console.log("Debug - stored data:", {
-      storedBudget,
-      storedIncome,
-      storedCategories,
-      skippedCategories,
-    });
-
     if (!storedBudget || !storedIncome || !storedCategories) {
-      console.log("Debug - missing required data, redirecting to budget");
       router.push("/setup/budget");
       return;
     }
 
     // If categories were skipped, go directly to invite
     if (skippedCategories === "true") {
-      console.log("Debug - categories skipped, redirecting to invite");
       router.push("/setup/invite");
       return;
     }
@@ -70,12 +61,6 @@ export default function AllocationSetupPage() {
       const parsedBudget = JSON.parse(storedBudget) as BudgetData;
       const parsedIncome = JSON.parse(storedIncome) as IncomeData;
       const parsedCategories = JSON.parse(storedCategories) as string[];
-
-      console.log("Debug - parsed data:", {
-        parsedBudget,
-        parsedIncome,
-        parsedCategories,
-      });
 
       // Ensure amount is a number
       parsedIncome.amount = Number(parsedIncome.amount);
@@ -89,7 +74,6 @@ export default function AllocationSetupPage() {
       setIncomeData(parsedIncome);
       setSelectedCategoryIds(parsedCategories);
     } catch (error) {
-      console.log("Debug - error parsing data:", error);
       router.push("/setup/budget");
     }
   }, [router]);
@@ -163,12 +147,6 @@ export default function AllocationSetupPage() {
   };
 
   if (!budgetData || !incomeData || isLoading || !categories) {
-    console.log("Debug - loading condition:", {
-      budgetData: !!budgetData,
-      incomeData: !!incomeData,
-      isLoading,
-      categories: !!categories,
-    });
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
