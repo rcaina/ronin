@@ -179,6 +179,12 @@ export const authConfig = {
       return token;
     },
     async session({ session, token }) {
+      console.log('Session Callback - Input:', { 
+        hasToken: !!token,
+        tokenHasBudget: token?.hasBudget,
+        tokenAccountId: token?.accountId
+      });
+      
       if (token) {
         session.user.id = token.id;
         session.user.email = token.email!;
@@ -192,8 +198,11 @@ export const authConfig = {
         console.log('Session Callback - Session created:', { 
           userId: session.user.id, 
           email: session.user.email,
-          hasBudget: session.user.hasBudget 
+          hasBudget: session.user.hasBudget,
+          accountId: session.user.accountId
         });
+      } else {
+        console.log('Session Callback - No token provided');
       }
       return session;
     },
