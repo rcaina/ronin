@@ -27,8 +27,6 @@ export function withUser(handlers: MethodHandlers) {
   ) {
     const session = await auth();
 
-    console.log({session})
-
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
