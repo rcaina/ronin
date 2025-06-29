@@ -1,45 +1,20 @@
 import { withUser } from "@/lib/middleware/withUser";
 import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling";
 import prisma from "@/lib/prisma";
+import { createUser, getAccountUsers, findUserByEmail } from "@/lib/api-services/users";
+import { createUserSchema } from "@/lib/api-schemas/users";
 import { type User, Role } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import { z } from "zod";
-
-const createUserSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  role: z.enum(Object.values(Role) as [string, ...string[]]).default("MEMBER"),
-});
 
 export const GET = withUser({
-  GET: withUserErrorHandling(async (_req: NextRequest, _context, user: User & { accountId: string }) => {
-    const accountUsers = await prisma.accountUser.findMany({
-      where: {
-        accountId: user.accountId,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            role: true,
-          },
-        },
-      },
-    });
-
-    const users = accountUsers.map(au => au.user);
+  GET: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
+    const users = await getAccountUsers(prisma, user.accountId);
     return NextResponse.json(users, { status: 200 });
   }),
 });
 
 export const POST = withUser({
-  POST: withUserErrorHandling(async (req: NextRequest, _context, user: User & { accountId: string }) => {
+  POST: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
     // Check if user is admin
     if (user.role !== Role.ADMIN) {
       return NextResponse.json(
@@ -62,12 +37,10 @@ export const POST = withUser({
       );
     }
 
-    const { firstName, lastName, email, role } = validationResult.data;
+    const { firstName, lastName, email, password, role } = validationResult.data;
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    const existingUser = await findUserByEmail(prisma, email);
 
     if (existingUser) {
       return NextResponse.json(
@@ -76,41 +49,28 @@ export const POST = withUser({
       );
     }
 
-    // Generate a default password (you can customize this)
-    const defaultPassword = "Welcome123!";
-    const hashedPassword = await bcrypt.hash(defaultPassword, 12);
+    try {
+      const newUser = await prisma.$transaction(async (tx) => 
+        await createUser(tx, { firstName, lastName, email, password, role: role as Role }, user.accountId)
+      );
 
-    // Create the user
-    const newUser = await prisma.user.create({
-      data: {
-        firstName,
-        lastName,
-        name: `${firstName} ${lastName}`,
-        email,
-        password: hashedPassword,
-        role: role as Role,
-      },
-    });
-
-    // Link user to the current account
-    await prisma.accountUser.create({
-      data: {
-        userId: newUser.id,
-        accountId: user.accountId,
-      },
-    });
-
-    // Return success response with the default password
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...userWithoutPassword } = newUser;
-    
-    return NextResponse.json(
-      { 
-        message: "User created successfully",
-        user: userWithoutPassword,
-        defaultPassword,
-      },
-      { status: 201 }
-    );
+      // Return success response without password
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password: _, ...userWithoutPassword } = newUser;
+      
+      return NextResponse.json(
+        { 
+          message: "User created successfully",
+          user: userWithoutPassword,
+        },
+        { status: 201 }
+      );
+    } catch (error) {
+      console.error("Error creating user:", error);
+      return NextResponse.json(
+        { message: "Failed to create user" },
+        { status: 500 }
+      );
+    }
   }),
 }); 

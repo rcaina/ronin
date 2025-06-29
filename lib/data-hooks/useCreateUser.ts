@@ -3,7 +3,7 @@ import { createUser, type CreateUserRequest } from "./services/auth";
 import type { User } from "@prisma/client";
 
 interface UseCreateUserReturn {
-  createUser: (data: CreateUserRequest) => Promise<{ user: User & { name: string }; defaultPassword: string }>;
+  createUser: (data: CreateUserRequest) => Promise<{ user: User & { name: string } }>;
   isLoading: boolean;
   error: string | null;
   resetError: () => void;
@@ -19,7 +19,7 @@ export function useCreateUser(): UseCreateUserReturn {
 
     try {
       const result = await createUser(data);
-      return { user: result.user, defaultPassword: result.defaultPassword };
+      return { user: result.user };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An error occurred while creating user";
       setError(errorMessage);

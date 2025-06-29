@@ -16,6 +16,7 @@ export interface CreateUserRequest {
   firstName: string;
   lastName: string;
   email: string;
+  password: string;
   role?: Role;
 }
 
@@ -37,7 +38,6 @@ export interface CreateUserResponse {
   user: User & {
     name: string;
   };
-  defaultPassword: string;
 }
 
 export const signUp = async (data: SignUpRequest): Promise<SignUpResponse> => {
