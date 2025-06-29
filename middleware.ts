@@ -1,12 +1,24 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import { env } from '@/env'
 
 export async function middleware(request: NextRequest) {
   const token = await getToken({ 
     req: request,
-    secret: process.env.AUTH_SECRET,
+    secret: env.AUTH_SECRET,
   })
+  
+  // Debug logging for production issues
+  console.log('Middleware Debug:', {
+    pathname: request.nextUrl.pathname,
+    hasToken: !!token,
+    tokenId: token?.id,
+    tokenEmail: token?.email,
+    hasBudget: token?.hasBudget,
+    accountId: token?.accountId
+  });
+  
   const pathname = request.nextUrl.pathname;
   const isAuthPage = pathname.startsWith('/sign-in') || 
                     pathname.startsWith('/sign-up');
@@ -14,12 +26,14 @@ export async function middleware(request: NextRequest) {
 
   if (isAuthPage) {
     if (token) {
+      console.log('Redirecting authenticated user from auth page to home');
       return NextResponse.redirect(new URL('/', request.url))
     }
     return NextResponse.next()
   }
 
   if (!token) {
+    console.log('No token found, redirecting to sign-in');
     const signInUrl = new URL('/sign-in', request.url)
     signInUrl.searchParams.set('callbackUrl', request.url)
     return NextResponse.redirect(signInUrl)
@@ -27,9 +41,11 @@ export async function middleware(request: NextRequest) {
 
   // If authenticated and not on setup/welcome/auth pages, check if user has budget
   if (!isSetupPage && !token.hasBudget) {
+    console.log('User has no budget, redirecting to welcome page');
     return NextResponse.redirect(new URL('/welcome', request.url));
   }
 
+  console.log('Middleware allowing request to proceed');
   return NextResponse.next()
 }
 
