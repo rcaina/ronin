@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Return success response (don't include password)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...userWithoutPassword } = result.user;
     
     return NextResponse.json(
