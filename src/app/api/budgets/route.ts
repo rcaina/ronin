@@ -8,18 +8,8 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export const GET = withUser({
     GET: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
-        console.log('Budgets API called:', {
-            userId: user.id,
-            accountId: user.accountId,
-            email: user.email
-        });
         
         const budgets = await getBudgets(prisma, user.accountId)
-        
-        console.log('Budgets API response:', {
-            budgetCount: budgets.length,
-            budgetIds: budgets.map(b => b.id)
-        });
         
         return NextResponse.json(budgets, { status: 200 })
     }),

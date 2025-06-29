@@ -6,7 +6,6 @@ export const POST = withUser({
     POST: withUserErrorHandling(async (req, context, user) => {
         // This endpoint is called when a user creates their first budget
         // The session will be updated automatically on the next request
-        console.log("Session update requested")
         return NextResponse.json({ 
             message: "Session will be updated on next request",
             hasBudget: true 

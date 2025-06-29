@@ -63,35 +63,20 @@ export default function InviteSetupPage() {
     const storedAllocation = sessionStorage.getItem("setupAllocation");
     const skippedCategories = sessionStorage.getItem("setupSkippedCategories");
 
-    console.log("Debug - Invite page validation:", {
-      storedBudget: !!storedBudget,
-      storedIncome: !!storedIncome,
-      storedCategories: !!storedCategories,
-      storedAllocation: !!storedAllocation,
-      skippedCategories: !!skippedCategories,
-      categoriesValue: storedCategories,
-      allocationValue: storedAllocation,
-      skippedValue: skippedCategories,
-    });
-
     if (
       !storedBudget ||
       !storedIncome ||
       !storedCategories ||
       (!storedAllocation && !skippedCategories)
     ) {
-      console.log(
-        "Debug - Invite page validation failed, redirecting to budget",
-      );
       router.push("/setup/budget");
       return;
     }
 
     try {
       setBudgetData(JSON.parse(storedBudget) as BudgetData);
-      console.log("Debug - Invite page loaded successfully");
     } catch (error) {
-      console.log("Debug - Invite page error parsing budget:", error);
+      console.error("Error parsing budget data:", error);
       router.push("/setup/budget");
     }
   }, [router]);
