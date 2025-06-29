@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import PageHeader from "@/components/PageHeader";
+import CreateUserModal from "@/components/CreateUserModal";
 import {
-  User,
+  User as UserIcon,
   Bell,
   Shield,
   Palette,
@@ -16,6 +17,8 @@ import {
   Eye,
   EyeOff,
   AlertTriangle,
+  Users,
+  Plus,
 } from "lucide-react";
 
 const SettingsPage = () => {
@@ -24,6 +27,7 @@ const SettingsPage = () => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
 
   // Form states
   const [profileForm, setProfileForm] = useState({
@@ -50,12 +54,17 @@ const SettingsPage = () => {
   });
 
   const tabs = [
-    { id: "profile", label: "Profile", icon: User },
+    { id: "profile", label: "Profile", icon: UserIcon },
     { id: "security", label: "Security", icon: Shield },
     { id: "preferences", label: "Preferences", icon: Palette },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "billing", label: "Billing", icon: CreditCard },
   ];
+
+  // Add Users tab for admin users
+  if (session?.user?.role === "ADMIN") {
+    tabs.push({ id: "users", label: "Users", icon: Users });
+  }
 
   const handleProfileSave = () => {
     // TODO: Implement profile update logic
@@ -513,11 +522,54 @@ const SettingsPage = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Users Tab */}
+                {activeTab === "users" && (
+                  <div className="p-6">
+                    <div className="mb-6 flex items-center justify-between">
+                      <h2 className="text-xl font-semibold text-gray-900">
+                        User Management
+                      </h2>
+                      <button
+                        onClick={() => setShowCreateUserModal(true)}
+                        className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add User
+                      </button>
+                    </div>
+
+                    <div className="rounded-lg border border-gray-200 p-4">
+                      <h3 className="mb-4 text-lg font-medium text-gray-900">
+                        Account Users
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Manage users in your account. Only administrators can
+                        create new users.
+                      </p>
+                      <div className="mt-4 rounded-md bg-blue-50 p-3">
+                        <p className="text-sm text-blue-700">
+                          <strong>Note:</strong> New users are created with a
+                          default password that you&apos;ll need to share with
+                          them manually.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Create User Modal */}
+      {showCreateUserModal && (
+        <CreateUserModal
+          isOpen={showCreateUserModal}
+          onClose={() => setShowCreateUserModal(false)}
+        />
+      )}
 
       {/* Delete Account Confirmation Modal */}
       {isDeletingAccount && (

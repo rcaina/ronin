@@ -1,51 +1,44 @@
-import { z } from "zod";
+import type { Role, User } from "@prisma/client";
 
-// Validation schema for sign-up request
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const signUpSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
+export interface SignUpRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+}
 
-// Validation schema for sign-in request
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const signInSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
-});
+export interface SignInRequest {
+  email: string;
+  password: string;
+}
 
-// Error response schema
-const errorResponseSchema = z.object({
-  message: z.string().optional(),
-  errors: z.array(z.any()).optional(),
-});
+export interface CreateUserRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  role?: Role;
+}
 
-// Response schema for sign-up
-const signUpResponseSchema = z.object({
-  message: z.string(),
-  user: z.object({
-    id: z.string(),
-    firstName: z.string(),
-    lastName: z.string(),
-    name: z.string(),
-    email: z.string(),
-    role: z.string(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  }),
-  account: z.object({
-    id: z.string(),
-    name: z.string(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  }),
-});
+export interface SignUpResponse {
+  message: string;
+  user: User & {
+    name: string;
+  };
+  account: {
+    id: string;
+    name: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+}
 
-export type SignUpRequest = z.infer<typeof signUpSchema>;
-export type SignInRequest = z.infer<typeof signInSchema>;
-export type SignUpResponse = z.infer<typeof signUpResponseSchema>;
+export interface CreateUserResponse {
+  message: string;
+  user: User & {
+    name: string;
+  };
+}
 
 export const signUp = async (data: SignUpRequest): Promise<SignUpResponse> => {
   const response = await fetch("/api/sign-up", {
@@ -57,21 +50,13 @@ export const signUp = async (data: SignUpRequest): Promise<SignUpResponse> => {
   });
 
   if (!response.ok) {
-    const errorData = await response.json() as unknown;
-    const parsedError = errorResponseSchema.safeParse(errorData);
-    const errorMessage = parsedError.success 
-      ? parsedError.data.message ?? "Failed to create account"
-      : "Failed to create account";
-    throw new Error(errorMessage);
+    throw new Error(`Failed to create account: ${response.statusText}`);
   }
 
-  const result = await response.json() as unknown;
-  return signUpResponseSchema.parse(result);
+  return response.json() as Promise<SignUpResponse>;
 };
 
 export const signIn = async (data: SignInRequest): Promise<void> => {
-  // Note: This is a wrapper around NextAuth's signIn for consistency
-  // The actual authentication is handled by NextAuth
   try {
     const { signIn: nextAuthSignIn } = await import("next-auth/react");
         
@@ -82,17 +67,30 @@ export const signIn = async (data: SignInRequest): Promise<void> => {
     });
 
     if (result?.error) {
-      console.error('Sign-in error:', result.error);
       throw new Error("Invalid credentials");
     }
     
     if (!result?.ok) {
-      console.error('Sign-in failed - not ok:', result);
       throw new Error("Authentication failed");
     }
     
   } catch (error) {
-    console.error('Sign-in exception:', error);
     throw error;
   }
+};
+
+export const createUser = async (data: CreateUserRequest): Promise<CreateUserResponse> => {
+  const response = await fetch("/api/users", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to create user: ${response.statusText}`);
+  }
+
+  return response.json() as Promise<CreateUserResponse>;
 }; 

@@ -74,6 +74,7 @@ export default function AllocationSetupPage() {
       setIncomeData(parsedIncome);
       setSelectedCategoryIds(parsedCategories);
     } catch (error) {
+      console.error("Error parsing budget data:", error);
       router.push("/setup/budget");
     }
   }, [router]);
