@@ -213,10 +213,11 @@ enum Role {
 
 enum StrategyType {
     ZERO_SUM
-    PERCENTAGE
+    FIFTY_THIRTY_TWENTY
 }
 
 enum PeriodType {
+    DAILY
     WEEKLY
     MONTHLY
     QUARTERLY

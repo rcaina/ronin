@@ -21,7 +21,6 @@ import {
 import PageHeader from "@/components/PageHeader";
 import AddItemButton from "@/components/AddItemButton";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
-import type { Category } from "@prisma/client";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import TransactionForm from "@/components/transactions/TransactionForm";
 import type { TransactionWithRelations } from "@/lib/data-hooks/services/transactions";
@@ -49,7 +48,8 @@ const TransactionsPage = () => {
   // Calculate transaction statistics
   const stats = useMemo(() => {
     const totalTransactions = transactions.length;
-    const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+    const totalAmount =
+      transactions?.reduce((sum, t) => sum + t.amount, 0) ?? 0;
     const averageAmount =
       totalTransactions > 0 ? totalAmount / totalTransactions : 0;
     const thisMonth = new Date().getMonth();
@@ -58,7 +58,7 @@ const TransactionsPage = () => {
       const date = new Date(t.createdAt);
       return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
     });
-    const thisMonthAmount = thisMonthTransactions.reduce(
+    const thisMonthAmount = thisMonthTransactions?.reduce(
       (sum, t) => sum + t.amount,
       0,
     );

@@ -1,18 +1,30 @@
 "use client";
 
 import { DollarSign, ShoppingBag, TrendingUp, Target } from "lucide-react";
-import { CategoryType } from "@prisma/client";
+import { CategoryType, PeriodType } from "@prisma/client";
 import type { CategoryAllocation } from "./types";
+import { calculateAdjustedIncome } from "@/lib/utils";
+
+interface IncomeEntry {
+  id: string;
+  amount: number;
+  source: string;
+  description: string;
+  isPlanned: boolean;
+  frequency: PeriodType;
+}
 
 interface AllocationStepProps {
   selectedCategories: CategoryAllocation[];
-  totalIncome: number;
+  incomeEntries: IncomeEntry[];
+  budgetPeriod: PeriodType;
   onAllocationChange: (categoryId: string, amount: number) => void;
 }
 
 export default function AllocationStep({
   selectedCategories,
-  totalIncome,
+  incomeEntries,
+  budgetPeriod,
   onAllocationChange,
 }: AllocationStepProps) {
   const getCategoryGroupIcon = (group: CategoryType) => {
@@ -27,6 +39,16 @@ export default function AllocationStep({
         return <Target className="h-4 w-4" />;
     }
   };
+
+  // Calculate total adjusted income based on frequency and budget period
+  const totalIncome = incomeEntries.reduce((sum, entry) => {
+    const adjustedAmount = calculateAdjustedIncome(
+      entry.amount,
+      entry.frequency,
+      budgetPeriod,
+    );
+    return sum + adjustedAmount;
+  }, 0);
 
   const totalAllocated = selectedCategories
     .filter((cat) => cat.isSelected)
@@ -88,6 +110,14 @@ export default function AllocationStep({
           <span className="font-medium text-gray-700">Total Allocated:</span>
           <span className="font-semibold text-gray-900">
             ${totalAllocated.toLocaleString()}
+          </span>
+        </div>
+        <div className="mt-2 flex items-center justify-between text-sm">
+          <span className="font-medium text-gray-700">
+            Total Income ({budgetPeriod.toLowerCase()}):
+          </span>
+          <span className="font-semibold text-gray-900">
+            ${totalIncome.toLocaleString()}
           </span>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { X, Check } from "lucide-react";
+import { X, Check, Info } from "lucide-react";
 import {
   useCreateTransaction,
   useUpdateTransaction,
@@ -42,12 +42,14 @@ interface TransactionFormProps {
   onClose: () => void;
   onSuccess?: () => void;
   transaction?: TransactionWithRelations; // For editing
+  budgetId?: string; // For pre-selecting a budget
 }
 
 export default function TransactionForm({
   onClose,
   onSuccess,
   transaction,
+  budgetId,
 }: TransactionFormProps) {
   const { mutate: createTransaction, isPending: isCreating } =
     useCreateTransaction();
@@ -75,7 +77,7 @@ export default function TransactionForm({
       name: "",
       description: "",
       amount: "",
-      budgetId: "",
+      budgetId: budgetId ?? "",
       categoryId: "",
       cardId: "",
     },
@@ -88,7 +90,7 @@ export default function TransactionForm({
     setSelectedBudgetId(watchedBudgetId);
   }, [watchedBudgetId]);
 
-  // Initialize form data when editing
+  // Initialize form data when editing or when budgetId is provided
   useEffect(() => {
     if (transaction) {
       setValue("name", transaction.name ?? "");
@@ -98,8 +100,11 @@ export default function TransactionForm({
       setValue("categoryId", transaction.categoryId);
       setValue("cardId", transaction.cardId ?? "");
       setSelectedBudgetId(transaction.budgetId);
+    } else if (budgetId) {
+      setValue("budgetId", budgetId);
+      setSelectedBudgetId(budgetId);
     }
-  }, [transaction, setValue]);
+  }, [transaction, budgetId, setValue]);
 
   const onSubmit = (data: TransactionFormData) => {
     if (isEditing && transaction) {
@@ -162,64 +167,63 @@ export default function TransactionForm({
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {/* Left Column */}
-          <div className="space-y-4">
-            {/* Transaction Name */}
-            <div>
-              <label
-                htmlFor="transactionName"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Transaction Name (Optional)
-              </label>
+        {/* Grid Layout */}
+        <div className="grid grid-cols-2 gap-6">
+          {/* Transaction Name */}
+          <div className="col-span-1">
+            <label
+              htmlFor="transactionName"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Transaction Label (Optional)
+            </label>
+            <input
+              type="text"
+              id="transactionName"
+              {...register("name")}
+              placeholder="e.g., Grocery shopping, Gas station"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              disabled={isPending}
+            />
+          </div>
+
+          {/* Amount */}
+          <div className="col-span-1">
+            <label
+              htmlFor="amount"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Amount <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-2 text-sm text-gray-500">
+                $
+              </span>
               <input
-                type="text"
-                id="transactionName"
-                {...register("name")}
-                placeholder="e.g., Grocery shopping, Gas station"
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                type="number"
+                id="amount"
+                {...register("amount")}
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                className={`w-full rounded-md border py-2 pl-8 pr-3 text-sm focus:outline-none focus:ring-1 ${
+                  errors.amount
+                    ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                    : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                }`}
                 disabled={isPending}
               />
             </div>
+            {errors.amount && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.amount.message}
+              </p>
+            )}
+          </div>
 
-            {/* Amount */}
-            <div>
-              <label
-                htmlFor="amount"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Amount <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-2 text-sm text-gray-500">
-                  $
-                </span>
-                <input
-                  type="number"
-                  id="amount"
-                  {...register("amount")}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  className={`w-full rounded-md border py-2 pl-8 pr-3 text-sm focus:outline-none focus:ring-1 ${
-                    errors.amount
-                      ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                      : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                  }`}
-                  disabled={isPending}
-                />
-              </div>
-              {errors.amount && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.amount.message}
-                </p>
-              )}
-            </div>
-
-            {/* Budget Selection */}
-            <div>
+          {/* Budget Selection */}
+          {!budgetId && (
+            <div className="col-span-1">
               <label
                 htmlFor="budgetId"
                 className="mb-1 block text-sm font-medium text-gray-700"
@@ -249,29 +253,46 @@ export default function TransactionForm({
                 </p>
               )}
             </div>
-          </div>
+          )}
 
-          {/* Right Column */}
-          <div className="space-y-4">
-            {/* Category Selection */}
-            <div>
-              <label
-                htmlFor="categoryId"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
+          {/* Category Selection */}
+          <div className="col-span-1">
+            <label
+              htmlFor="categoryId"
+              className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700"
+            >
+              <span>
                 Category <span className="text-red-500">*</span>
-              </label>
+              </span>
+              {!selectedBudgetId && (
+                <div className="group relative">
+                  <Info className="h-4 w-4 text-blue-500" />
+                  <div className="absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg bg-gray-900 p-2 text-xs text-white group-hover:block">
+                    Select a budget to see available categories.
+                  </div>
+                </div>
+              )}
+            </label>
+            <div className="relative">
               <select
                 id="categoryId"
                 {...register("categoryId")}
                 className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
                   errors.categoryId
                     ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                    : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    : !selectedBudgetId
+                      ? "cursor-not-allowed border-gray-300 bg-gray-100 text-gray-500"
+                      : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 }`}
-                disabled={isPending}
+                disabled={isPending || !selectedBudgetId}
               >
-                <option value="">Select a category</option>
+                <option value="">
+                  {!selectedBudgetId
+                    ? "Please select a budget first"
+                    : budgetCategories.length === 0
+                      ? "No categories found for this budget"
+                      : "Select a category"}
+                </option>
                 {budgetCategories.map(
                   (budgetCategory: BudgetCategoryWithCategory) => (
                     <option key={budgetCategory.id} value={budgetCategory.id}>
@@ -280,52 +301,65 @@ export default function TransactionForm({
                   ),
                 )}
               </select>
-              {errors.categoryId && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.categoryId.message}
-                </p>
+              {selectedBudgetId && budgetCategories.length === 0 && (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  <div className="group relative">
+                    <Info className="h-4 w-4 text-gray-400" />
+                    <div className="absolute bottom-full right-0 mb-2 hidden w-64 rounded-lg bg-gray-900 p-2 text-xs text-white group-hover:block">
+                      No categories found for this budget. Please add categories
+                      to your budget first.
+                      <div className="absolute right-2 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
+            {errors.categoryId && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.categoryId.message}
+              </p>
+            )}
+          </div>
 
-            {/* Card Selection */}
-            <div>
-              <label
-                htmlFor="cardId"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Payment Method (Optional)
-              </label>
-              <select
-                id="cardId"
-                {...register("cardId")}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                disabled={isPending}
-              >
-                <option value="">Select a payment method</option>
-                {cards.map((card: Card) => (
-                  <option key={card.id} value={card.id}>
-                    {card.name} ({card.cardType})
-                  </option>
-                ))}
-              </select>
-            </div>
-            {/* Description */}
-            <div>
-              <label
-                htmlFor="description"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Description (Optional)
-              </label>
-              <textarea
-                id="description"
-                {...register("description")}
-                placeholder="Additional details about this transaction"
-                rows={2}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                disabled={isPending}
-              />
-            </div>
+          {/* Card Selection */}
+          <div className="col-span-1">
+            <label
+              htmlFor="cardId"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Payment Method (Optional)
+            </label>
+            <select
+              id="cardId"
+              {...register("cardId")}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              disabled={isPending}
+            >
+              <option value="">Select a payment method</option>
+              {cards.map((card: Card) => (
+                <option key={card.id} value={card.id}>
+                  {card.name} ({card.cardType})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Description - spans full width */}
+          <div className="col-span-2">
+            <label
+              htmlFor="description"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Description (Optional)
+            </label>
+            <textarea
+              id="description"
+              {...register("description")}
+              placeholder="Additional details about this transaction"
+              rows={2}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              disabled={isPending}
+            />
           </div>
         </div>
 

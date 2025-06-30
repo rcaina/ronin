@@ -54,7 +54,7 @@ export default function BasicBudgetStep({
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
           >
             <option value={StrategyType.ZERO_SUM}>Zero Sum Budget</option>
-            <option value={StrategyType.PERCENTAGE}>Percentage Based</option>
+            <option value={StrategyType.FIFTY_THIRTY_TWENTY}>50/30/20</option>
           </select>
         </div>
 
@@ -106,16 +106,12 @@ export default function BasicBudgetStep({
           <input
             type="date"
             {...register("endAt")}
-            className={`mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary ${
-              watchedPeriod !== PeriodType.ONE_TIME
-                ? "border-gray-300 bg-gray-50 text-gray-600"
-                : "border-gray-300"
-            }`}
-            disabled={watchedPeriod !== PeriodType.ONE_TIME}
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
           />
           {watchedPeriod !== PeriodType.ONE_TIME && (
             <p className="mt-1 text-xs text-gray-500">
-              End date is automatically set to the end of the selected period
+              End date is automatically set to the end of the selected period,
+              but you can customize it if needed
             </p>
           )}
           {errors.endAt && (

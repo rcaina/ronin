@@ -3,9 +3,12 @@
 import { Plus, X } from "lucide-react";
 import { PeriodType } from "@prisma/client";
 import type { IncomeEntry } from "./types";
+import { useState, useEffect } from "react";
+import { calculateAdjustedIncome } from "@/lib/utils";
 
 interface IncomeStepProps {
   incomeEntries: IncomeEntry[];
+  budgetPeriod: PeriodType;
   onAddIncomeEntry: () => void;
   onRemoveIncomeEntry: (id: string) => void;
   onUpdateIncomeEntry: (
@@ -17,14 +20,54 @@ interface IncomeStepProps {
 
 export default function IncomeStep({
   incomeEntries,
+  budgetPeriod,
   onAddIncomeEntry,
   onRemoveIncomeEntry,
   onUpdateIncomeEntry,
 }: IncomeStepProps) {
+  const [displayValues, setDisplayValues] = useState<Record<string, string>>(
+    {},
+  );
+
+  // Initialize display values when entries change
+  useEffect(() => {
+    const newDisplayValues: Record<string, string> = {};
+    incomeEntries.forEach((entry) => {
+      if (!(entry.id in displayValues)) {
+        newDisplayValues[entry.id] =
+          entry.amount === 0 ? "" : entry.amount.toString();
+      }
+    });
+    if (Object.keys(newDisplayValues).length > 0) {
+      setDisplayValues((prev) => ({ ...prev, ...newDisplayValues }));
+    }
+  }, [incomeEntries]);
+
   const totalIncome = incomeEntries.reduce(
     (sum, entry) => sum + entry.amount,
     0,
   );
+
+  // Calculate adjusted total income based on frequency and budget period
+  const adjustedTotalIncome = incomeEntries.reduce((sum, entry) => {
+    const adjustedAmount = calculateAdjustedIncome(
+      entry.amount,
+      entry.frequency,
+      budgetPeriod,
+    );
+    return sum + adjustedAmount;
+  }, 0);
+
+  const handleAmountChange = (entryId: string, value: string) => {
+    // Allow empty, numbers, decimals, and leading zeros
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+      setDisplayValues((prev) => ({ ...prev, [entryId]: value }));
+
+      // Update the actual amount value for calculations
+      const numValue = value === "" ? 0 : parseFloat(value);
+      onUpdateIncomeEntry(entryId, "amount", isNaN(numValue) ? 0 : numValue);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -65,16 +108,11 @@ export default function IncomeStep({
                 <div className="relative mt-1">
                   <span className="absolute left-3 top-2 text-gray-500">$</span>
                   <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={entry.amount}
+                    type="text"
+                    inputMode="decimal"
+                    value={displayValues[entry.id] ?? ""}
                     onChange={(e) =>
-                      onUpdateIncomeEntry(
-                        entry.id,
-                        "amount",
-                        parseFloat(e.target.value) || 0,
-                      )
+                      handleAmountChange(entry.id, e.target.value)
                     }
                     className="block w-full rounded-md border border-gray-300 py-2 pl-8 pr-3 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
                     placeholder="0.00"
@@ -157,11 +195,25 @@ export default function IncomeStep({
 
       {totalIncome > 0 && (
         <div className="rounded-lg bg-blue-50 p-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-medium text-blue-700">Total Income:</span>
-            <span className="font-semibold text-blue-900">
-              ${totalIncome.toLocaleString()}
-            </span>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium text-blue-700">
+                Raw Total Income:
+              </span>
+              <span className="font-semibold text-blue-900">
+                ${totalIncome.toLocaleString()}
+              </span>
+            </div>
+            {adjustedTotalIncome !== totalIncome && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium text-blue-700">
+                  Adjusted for {budgetPeriod.toLowerCase()} budget:
+                </span>
+                <span className="font-semibold text-blue-900">
+                  ${adjustedTotalIncome.toLocaleString()}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
