@@ -2,13 +2,22 @@
 
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useParams } from "next/navigation";
-import { TrendingUp, TrendingDown, DollarSign, Target } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Target,
+  Plus,
+} from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import AddTransactionModal from "@/components/transactions/AddTransactionModal";
+import { useState } from "react";
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();
-  const { data: budget, isLoading, error } = useBudget(id as string);
+  const [isOpen, setIsOpen] = useState(false);
+  const { data: budget, isLoading, error, refetch } = useBudget(id as string);
 
   if (isLoading) {
     return <LoadingSpinner message="Loading budget..." />;
@@ -102,6 +111,10 @@ const BudgetDetailsPage = () => {
     }
   };
 
+  const handleTransactionSuccess = () => {
+    void refetch();
+  };
+
   return (
     <div className="flex h-screen flex-col bg-gray-50">
       <PageHeader
@@ -115,6 +128,13 @@ const BudgetDetailsPage = () => {
         })}`}
         backButton={{
           onClick: () => window.history.back(),
+        }}
+        action={{
+          icon: <Plus className="h-4 w-4" />,
+          label: "Add Transaction",
+          onClick: () => {
+            setIsOpen(true);
+          },
         }}
       />
 
@@ -435,6 +455,12 @@ const BudgetDetailsPage = () => {
           </div>
         </div>
       </div>
+      <AddTransactionModal
+        isOpen={isOpen}
+        budgetId={id as string}
+        onClose={() => setIsOpen(false)}
+        onSuccess={handleTransactionSuccess}
+      />
     </div>
   );
 };
