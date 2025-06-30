@@ -101,7 +101,7 @@ async function main() {
       name: 'Startup Budget',
       createdAt: new Date(),
       accountId: startupAccount.id,
-      strategy: StrategyType.PERCENTAGE,
+      strategy: StrategyType.FIFTY_THIRTY_TWENTY,
       startAt: new Date('2024-01-01'),
       endAt: new Date('2024-12-31'),
       period: PeriodType.MONTHLY,

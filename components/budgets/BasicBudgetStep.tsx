@@ -54,7 +54,7 @@ export default function BasicBudgetStep({
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
           >
             <option value={StrategyType.ZERO_SUM}>Zero Sum Budget</option>
-            <option value={StrategyType.PERCENTAGE}>Percentage Based</option>
+            <option value={StrategyType.FIFTY_THIRTY_TWENTY}>50/30/20</option>
           </select>
         </div>
 

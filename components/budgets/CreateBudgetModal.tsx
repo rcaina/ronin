@@ -559,7 +559,7 @@ export default function CreateBudgetModal({
                 )}
 
                 {currentStep === "allocation" &&
-                  (watchedStrategy === StrategyType.PERCENTAGE ? (
+                  (watchedStrategy === StrategyType.FIFTY_THIRTY_TWENTY ? (
                     <PercentageAllocationStep
                       selectedCategories={selectedCategories}
                       incomeEntries={incomeEntries}
