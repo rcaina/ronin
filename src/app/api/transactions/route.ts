@@ -3,18 +3,8 @@ import { withUser } from "@/lib/middleware/withUser";
 import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling";
 import prisma from "@/lib/prisma";
 import { getTransactions, createTransaction } from "@/lib/api-services/transactions";
+import { createTransactionSchema } from "@/lib/api-schemas/transactions";
 import type { User } from "@prisma/client";
-import { z } from "zod";
-
-const createTransactionSchema = z.object({
-  name: z.string().optional(),
-  description: z.string().optional(),
-  amount: z.number().positive("Amount must be positive"),
-  budgetId: z.string().min(1, "Budget is required"),
-  categoryId: z.string().min(1, "Category is required"),
-  cardId: z.string().optional(),
-  createdAt: z.string().optional(),
-});
 
 export const GET = withUser({
   GET: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {

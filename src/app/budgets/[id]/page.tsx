@@ -12,12 +12,59 @@ import {
 import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
-import { useState } from "react";
+import BudgetCategoryCard from "@/components/budgets/BudgetCategoryCard";
+import BudgetTransactionsList from "@/components/budgets/BudgetTransactionsList";
+import AddBudgetCategoryForm from "@/components/budgets/AddBudgetCategoryForm";
+import {
+  useCreateBudgetCategory,
+  useUpdateBudgetCategory,
+} from "@/lib/data-hooks/budgets/useBudgetCategories";
+import { useCategories } from "@/lib/data-hooks/categories/useCategories";
+import { useState, useRef, useEffect } from "react";
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [scrollShadows, setScrollShadows] = useState<Record<string, boolean>>(
+    {},
+  );
   const { data: budget, isLoading, error, refetch } = useBudget(id as string);
+  const { data: categories } = useCategories();
+  const createBudgetCategoryMutation = useCreateBudgetCategory();
+  const updateBudgetCategoryMutation = useUpdateBudgetCategory();
+  const scrollContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Check if content is scrollable and show/hide shadow accordingly
+  useEffect(() => {
+    const checkScrollable = () => {
+      const newScrollShadows: Record<string, boolean> = {};
+
+      Object.entries(scrollContainerRefs.current).forEach(
+        ([group, element]) => {
+          if (element) {
+            const isScrollable = element.scrollHeight > element.clientHeight;
+            newScrollShadows[group] = isScrollable;
+          }
+        },
+      );
+
+      setScrollShadows(newScrollShadows);
+    };
+
+    checkScrollable();
+
+    // Re-check when budget categories change
+    const resizeObserver = new ResizeObserver(checkScrollable);
+    Object.values(scrollContainerRefs.current).forEach((element) => {
+      if (element) {
+        resizeObserver.observe(element);
+      }
+    });
+
+    return () => resizeObserver.disconnect();
+  }, [budget?.categories]);
 
   if (isLoading) {
     return <LoadingSpinner message="Loading budget..." />;
@@ -115,6 +162,107 @@ const BudgetDetailsPage = () => {
     void refetch();
   };
 
+  const handleStartAddCategory = (group: string) => {
+    setIsAddingCategory(true);
+    setActiveGroup(group);
+  };
+
+  const handleCancelAddCategory = () => {
+    setIsAddingCategory(false);
+    setActiveGroup(null);
+  };
+
+  const handleSubmitAddCategory = async (data: {
+    categoryName: string;
+    allocatedAmount: number;
+  }) => {
+    try {
+      await createBudgetCategoryMutation.mutateAsync({
+        budgetId: id as string,
+        data: {
+          categoryName: data.categoryName,
+          group: activeGroup as "needs" | "wants" | "investment",
+          allocatedAmount: data.allocatedAmount,
+        },
+      });
+
+      handleCancelAddCategory();
+    } catch (error) {
+      console.error("Failed to add budget category:", error);
+    }
+  };
+
+  // Drag and drop handlers for budget categories
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.add(
+      "bg-gray-50",
+      "border-2",
+      "border-dashed",
+      "border-gray-300",
+    );
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove(
+      "bg-gray-50",
+      "border-2",
+      "border-dashed",
+      "border-gray-300",
+    );
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetGroup: string) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove(
+      "bg-gray-50",
+      "border-2",
+      "border-dashed",
+      "border-gray-300",
+    );
+
+    const budgetCategoryId = e.dataTransfer.getData("text/plain");
+    if (!budgetCategoryId || !categories) return;
+
+    // Find the budget category being dragged
+    const draggedBudgetCategory = (budget.categories ?? []).find(
+      (bc) => bc.id === budgetCategoryId,
+    );
+    if (!draggedBudgetCategory?.category) return;
+
+    // Don't allow dropping in the same group
+    if (draggedBudgetCategory.category.group.toLowerCase() === targetGroup) {
+      return;
+    }
+
+    // Find a category template in the target group with the same name
+    const targetGroupKey = targetGroup as keyof typeof categories;
+    const targetCategories = categories[targetGroupKey] || [];
+
+    const matchingCategory = targetCategories.find(
+      (cat) => cat.name === draggedBudgetCategory.category.name,
+    );
+
+    if (!matchingCategory) {
+      console.error("No matching category found in target group");
+      return;
+    }
+
+    try {
+      // Update the budget category to use the new category template
+      await updateBudgetCategoryMutation.mutateAsync({
+        budgetId: id as string,
+        categoryId: budgetCategoryId,
+        data: {
+          categoryId: matchingCategory.id,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to move budget category:", error);
+    }
+  };
+
   return (
     <div className="flex h-screen flex-col bg-gray-50">
       <PageHeader
@@ -133,7 +281,7 @@ const BudgetDetailsPage = () => {
           icon: <Plus className="h-4 w-4" />,
           label: "Add Transaction",
           onClick: () => {
-            setIsOpen(true);
+            setIsAddTransactionOpen(true);
           },
         }}
       />
@@ -252,213 +400,108 @@ const BudgetDetailsPage = () => {
           </div>
 
           {/* Categories by Group */}
-          {Object.entries(categoriesByGroup).map(([group, categories]) => (
-            <div key={group} className="mb-8">
-              <div className="mb-4 flex items-center">
-                <div
-                  className={`h-3 w-3 rounded-full ${getGroupColor(group)} mr-3`}
-                ></div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  {getGroupLabel(group)}
-                </h2>
-              </div>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {categories?.map((budgetCategory) => {
-                  // Skip if category relation is not loaded
-                  if (!budgetCategory.category) return null;
-
-                  const categorySpent = (
-                    budgetCategory.transactions ?? []
-                  ).reduce((acc, transaction) => acc + transaction.amount, 0);
-                  const categoryRemaining =
-                    budgetCategory.allocatedAmount - categorySpent;
-                  const categoryPercentage =
-                    (categorySpent / budgetCategory.allocatedAmount) * 100;
-
-                  return (
-                    <div
-                      key={budgetCategory.id}
-                      className="rounded-xl border bg-white p-6 shadow-sm"
-                    >
-                      <div className="mb-4 flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {budgetCategory.category.name}
-                        </h3>
-                        <span
-                          className={`rounded-full px-2 py-1 text-xs font-medium ${
-                            categoryPercentage > 90
-                              ? "bg-red-100 text-red-800"
-                              : categoryPercentage > 75
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          {categoryPercentage.toFixed(0)}%
-                        </span>
-                      </div>
-
-                      <div className="space-y-3">
-                        <div>
-                          <div className="mb-1 flex justify-between text-sm">
-                            <span className="text-gray-500">Allocated</span>
-                            <span className="font-medium">
-                              $
-                              {budgetCategory.allocatedAmount
-                                .toFixed(2)
-                                .toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="mb-1 flex justify-between text-sm">
-                            <span className="text-gray-500">Spent</span>
-                            <span className="font-medium">
-                              ${categorySpent.toFixed(2).toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Remaining</span>
-                            <span
-                              className={`font-medium ${categoryRemaining >= 0 ? "text-gray-900" : "text-red-600"}`}
-                            >
-                              ${categoryRemaining.toFixed(2).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="h-2 w-full rounded-full bg-gray-200">
-                          <div
-                            className={`h-2 rounded-full transition-all duration-300 ${
-                              categoryPercentage > 90
-                                ? "bg-red-500"
-                                : categoryPercentage > 75
-                                  ? "bg-yellow-500"
-                                  : "bg-green-500"
-                            }`}
-                            style={{
-                              width: `${Math.min(categoryPercentage, 100)}%`,
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {/* Recent Transactions */}
-                      {budgetCategory.transactions &&
-                        budgetCategory.transactions.length > 0 && (
-                          <div className="mt-4 border-t pt-4">
-                            <h4 className="mb-2 text-sm font-medium text-gray-700">
-                              Recent Transactions
-                            </h4>
-                            <div className="space-y-2">
-                              {budgetCategory.transactions
-                                .slice(0, 3)
-                                .map((transaction) => (
-                                  <div
-                                    key={transaction.id}
-                                    className="flex items-center justify-between text-sm"
-                                  >
-                                    <div className="min-w-0 flex-1">
-                                      <p className="truncate text-gray-900">
-                                        {transaction.name ??
-                                          "Unnamed transaction"}
-                                      </p>
-                                      <p className="text-xs text-gray-500">
-                                        {new Date(
-                                          transaction.createdAt,
-                                        ).toLocaleDateString()}
-                                      </p>
-                                    </div>
-                                    <span className="font-medium text-gray-900">
-                                      $
-                                      {transaction.amount
-                                        .toFixed(2)
-                                        .toLocaleString()}
-                                    </span>
-                                  </div>
-                                ))}
-                              {budgetCategory.transactions.length > 3 && (
-                                <p className="text-center text-xs text-gray-500">
-                                  +{budgetCategory.transactions.length - 3} more
-                                  transactions
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                    </div>
-                  );
-                })}
-              </div>
+          <div className="mb-8">
+            <div className="mb-4 flex items-center">
+              <h2 className="text-xl font-bold text-gray-900">
+                Budget Categories
+              </h2>
             </div>
-          ))}
-
-          {/* All Transactions */}
-          <div className="rounded-xl border bg-white p-6 shadow-sm">
-            <h3 className="mb-4 text-lg font-semibold text-gray-900">
-              All Transactions
-            </h3>
-            <div className="space-y-4">
-              {(budget.categories ?? [])
-                .filter((budgetCategory) => budgetCategory.category)
-                .flatMap((budgetCategory) =>
-                  (budgetCategory.transactions ?? []).map((transaction) => ({
-                    ...transaction,
-                    categoryName: budgetCategory.category.name,
-                    categoryGroup: budgetCategory.category.group,
-                  })),
-                )
-                .sort(
-                  (a, b) =>
-                    new Date(b.createdAt).getTime() -
-                    new Date(a.createdAt).getTime(),
-                )
-                .map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center justify-between rounded-lg bg-gray-50 p-4"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center space-x-3">
-                        <div
-                          className={`h-3 w-3 rounded-full ${getGroupColor(transaction.categoryGroup.toLowerCase())}`}
-                        ></div>
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {transaction.name ?? "Unnamed transaction"}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {transaction.categoryName}
-                          </p>
-                        </div>
-                      </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {Object.entries(categoriesByGroup).map(([group, categories]) => (
+                <div
+                  key={group}
+                  className="flex h-[600px] flex-col"
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, group)}
+                >
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className="mb-4 flex items-center">
+                      <div
+                        className={`h-3 w-3 rounded-full ${getGroupColor(group)} mr-3`}
+                      ></div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {getGroupLabel(group)}
+                      </h3>
+                      <span className="ml-2 text-sm text-gray-500">
+                        ({categories?.length})
+                      </span>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium text-gray-900">
-                        ${transaction.amount.toLocaleString()}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(transaction.createdAt).toLocaleDateString()}
-                      </p>
+                    <div className="flex items-center">
+                      <button
+                        onClick={() => handleStartAddCategory(group)}
+                        className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                        title="Add category"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
-                ))}
-              {(budget.categories ?? [])
-                .filter((cat) => cat.category)
-                .flatMap((cat) => cat.transactions ?? []).length === 0 && (
-                <div className="py-8 text-center text-gray-500">
-                  <DollarSign className="mx-auto mb-4 h-12 w-12 text-gray-300" />
-                  <p>No transactions yet</p>
-                  <p className="text-sm">
-                    Start adding transactions to see them here
-                  </p>
+                  <div className="relative min-h-0 flex-1">
+                    <div
+                      ref={(el) => {
+                        scrollContainerRefs.current[group] = el;
+                      }}
+                      className="scrollbar-hide absolute inset-0 space-y-4 overflow-y-auto pb-6"
+                    >
+                      {/* Add Category Form - inline within column */}
+                      {isAddingCategory && activeGroup === group && (
+                        <AddBudgetCategoryForm
+                          onSubmit={handleSubmitAddCategory}
+                          onCancel={handleCancelAddCategory}
+                          isLoading={createBudgetCategoryMutation.isPending}
+                        />
+                      )}
+
+                      {categories?.map((budgetCategory) => {
+                        // Skip if category relation is not loaded
+                        if (!budgetCategory.category) return null;
+
+                        return (
+                          <BudgetCategoryCard
+                            key={budgetCategory.id}
+                            budgetCategory={budgetCategory}
+                            budgetId={id as string}
+                            getGroupColor={getGroupColor}
+                          />
+                        );
+                      })}
+                    </div>
+
+                    {/* Scroll Shadow Indicator */}
+                    {scrollShadows[group] && (
+                      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white/80 to-transparent" />
+                    )}
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
           </div>
+
+          {/* All Transactions */}
+          <BudgetTransactionsList
+            transactions={(budget.categories ?? [])
+              .filter((budgetCategory) => budgetCategory.category)
+              .flatMap((budgetCategory) =>
+                (budgetCategory.transactions ?? []).map((transaction) => ({
+                  ...transaction,
+                  categoryName: budgetCategory.category.name,
+                  categoryGroup: budgetCategory.category.group,
+                })),
+              )
+              .sort(
+                (a, b) =>
+                  new Date(b.createdAt).getTime() -
+                  new Date(a.createdAt).getTime(),
+              )}
+            getGroupColor={getGroupColor}
+          />
         </div>
       </div>
       <AddTransactionModal
-        isOpen={isOpen}
+        isOpen={isAddTransactionOpen}
         budgetId={id as string}
-        onClose={() => setIsOpen(false)}
+        onClose={() => setIsAddTransactionOpen(false)}
         onSuccess={handleTransactionSuccess}
       />
     </div>

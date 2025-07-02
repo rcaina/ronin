@@ -23,7 +23,7 @@ import AddItemButton from "@/components/AddItemButton";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import TransactionForm from "@/components/transactions/TransactionForm";
-import type { TransactionWithRelations } from "@/lib/data-hooks/services/transactions";
+import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
 
 const TransactionsPage = () => {
