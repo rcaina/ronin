@@ -450,7 +450,6 @@ const BudgetDetailsPage = () => {
                           onSubmit={handleSubmitAddCategory}
                           onCancel={handleCancelAddCategory}
                           isLoading={createBudgetCategoryMutation.isPending}
-                          group={group}
                         />
                       )}
 
