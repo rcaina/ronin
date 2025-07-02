@@ -192,7 +192,7 @@ model Transaction {
     cardId      String?
     card        Card?          @relation(fields: [cardId], references: [id])
     budgetId    String
-    budget      Budget         @relation(fields: [budgetId], references: [id])
+    Budget      Budget         @relation(fields: [budgetId], references: [id])
     categoryId  String
     category    BudgetCategory @relation(fields: [categoryId], references: [id])
     accountId   String

@@ -18,14 +18,12 @@ interface AddBudgetCategoryFormProps {
   onSubmit: (data: BudgetCategoryFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
-  group?: string;
 }
 
 export default function AddBudgetCategoryForm({
   onSubmit,
   onCancel,
   isLoading = false,
-  group,
 }: AddBudgetCategoryFormProps) {
   const {
     register,

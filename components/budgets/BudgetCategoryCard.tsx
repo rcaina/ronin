@@ -32,7 +32,6 @@ interface BudgetCategoryCardProps {
 export default function BudgetCategoryCard({
   budgetCategory,
   budgetId,
-  getGroupColor,
 }: BudgetCategoryCardProps) {
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
     null,

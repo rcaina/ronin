@@ -12,7 +12,7 @@ const createBudgetCategorySchema = z.object({
 });
 
 export const GET = withUser({
-  GET: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
+  GET: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, _user: User & { accountId: string }) => {
     const { id } = await context.params;
     
     if (!id) {

@@ -1,6 +1,5 @@
 "use client";
 
-import { Plus } from "lucide-react";
 import TransactionForm from "./TransactionForm";
 
 interface AddTransactionModalProps {
