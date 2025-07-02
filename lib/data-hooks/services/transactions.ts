@@ -1,35 +1,8 @@
-import type { Transaction, BudgetCategory, Budget } from "@prisma/client";
-
-export type TransactionWithRelations = Transaction & {
-  category: BudgetCategory & {
-    category: {
-      id: string;
-      name: string;
-      group: string;
-    };
-  };
-  budget?: Budget;
-};
-
-export interface CreateTransactionRequest {
-  name?: string;
-  description?: string;
-  amount: number;
-  budgetId: string;
-  categoryId: string;
-  cardId?: string;
-  createdAt?: string;
-}
-
-export interface UpdateTransactionRequest {
-  name?: string;
-  description?: string;
-  amount?: number;
-  budgetId?: string;
-  categoryId?: string;
-  cardId?: string;
-  createdAt?: string;
-}
+import type { 
+  CreateTransactionRequest, 
+  UpdateTransactionRequest, 
+  TransactionWithRelations 
+} from "@/lib/types/transaction";
 
 interface ApiResponse<T> {
   message: string;
@@ -41,6 +14,12 @@ export const getTransactions = async (): Promise<TransactionWithRelations[]> =>
   fetch("/api/transactions").then((res) => res.json()) as Promise<TransactionWithRelations[]>;
 
 export const createTransaction = async (data: CreateTransactionRequest): Promise<TransactionWithRelations> => {
+  // // Convert Date objects to ISO strings for API
+  // const apiData = {
+  //   ...data,
+  //   occurredAt: data.occurredAt ? data.occurredAt.toISOString() : undefined,
+  // };
+
   const response = await fetch("/api/transactions", {
     method: "POST",
     headers: {
@@ -63,6 +42,12 @@ export const createTransaction = async (data: CreateTransactionRequest): Promise
 };
 
 export const updateTransaction = async (id: string, data: UpdateTransactionRequest): Promise<TransactionWithRelations> => {
+  // Convert Date objects to ISO strings for API
+  // const apiData = {
+  //   ...data,
+  //   occurredAt: data.occurredAt ? data.occurredAt.toISOString() : undefined,
+  // };
+
   const response = await fetch(`/api/transactions/${id}`, {
     method: "PUT",
     headers: {

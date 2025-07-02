@@ -19,7 +19,7 @@ import type {
   CreateTransactionRequest,
   UpdateTransactionRequest,
   TransactionWithRelations,
-} from "@/lib/data-hooks/services/transactions";
+} from "@/lib/types/transaction";
 import type { Card } from "@/lib/data-hooks/services/cards";
 import Button from "../Button";
 
@@ -33,6 +33,7 @@ const transactionSchema = z.object({
   }, "Amount is required and must be greater than 0"),
   budgetId: z.string().min(1, "Budget is required"),
   categoryId: z.string().min(1, "Category is required"),
+  occurredAt: z.string().optional(),
   cardId: z.string().optional(),
 });
 
@@ -60,10 +61,10 @@ export default function TransactionForm({
 
   const [selectedBudgetId, setSelectedBudgetId] = useState<string>("");
   const { data: budgetCategories = [] } = useBudgetCategories(selectedBudgetId);
-
+  console.log({ budgetCategories });
   const isEditing = !!transaction;
   const isPending = isCreating || isUpdating;
-
+  console.log({ transaction });
   const {
     register,
     handleSubmit,
@@ -80,6 +81,7 @@ export default function TransactionForm({
       budgetId: budgetId ?? "",
       categoryId: "",
       cardId: "",
+      occurredAt: undefined,
     },
   });
 
@@ -99,6 +101,14 @@ export default function TransactionForm({
       setValue("budgetId", transaction.budgetId);
       setValue("categoryId", transaction.categoryId);
       setValue("cardId", transaction.cardId ?? "");
+      setValue(
+        "occurredAt",
+        transaction.occurredAt
+          ? transaction.occurredAt instanceof Date
+            ? transaction.occurredAt.toISOString().split("T")[0]
+            : new Date(transaction.occurredAt).toISOString().split("T")[0]
+          : undefined,
+      );
       setSelectedBudgetId(transaction.budgetId);
     } else if (budgetId) {
       setValue("budgetId", budgetId);
@@ -115,6 +125,7 @@ export default function TransactionForm({
         budgetId: data.budgetId,
         categoryId: data.categoryId,
         cardId: data.cardId ?? undefined,
+        occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
       };
 
       updateTransaction(
@@ -137,6 +148,7 @@ export default function TransactionForm({
         budgetId: data.budgetId,
         categoryId: data.categoryId,
         cardId: data.cardId ?? undefined,
+        occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
       };
 
       createTransaction(transactionData, {
@@ -291,7 +303,9 @@ export default function TransactionForm({
                     ? "Please select a budget first"
                     : budgetCategories.length === 0
                       ? "No categories found for this budget"
-                      : "Select a category"}
+                      : isEditing && transaction?.category
+                        ? `${transaction.category.category.name}`
+                        : "Select a category"}
                 </option>
                 {budgetCategories.map(
                   (budgetCategory: BudgetCategoryWithCategory) => (
@@ -300,6 +314,17 @@ export default function TransactionForm({
                     </option>
                   ),
                 )}
+                {/* Show current category if editing and it's not in the current budget categories */}
+                {isEditing &&
+                  transaction &&
+                  transaction.category &&
+                  !budgetCategories.some(
+                    (bc) => bc.id === transaction.categoryId,
+                  ) && (
+                    <option value={transaction.categoryId}>
+                      {transaction.category.category.name} (current)
+                    </option>
+                  )}
               </select>
               {selectedBudgetId && budgetCategories.length === 0 && (
                 <div className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -319,6 +344,23 @@ export default function TransactionForm({
                 {errors.categoryId.message}
               </p>
             )}
+          </div>
+
+          {/* Occurred At */}
+          <div className="col-span-1">
+            <label
+              htmlFor="occurredAt"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Occurred At (Optional)
+            </label>
+            <input
+              type="date"
+              id="occurredAt"
+              {...register("occurredAt")}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              disabled={isPending}
+            />
           </div>
 
           {/* Card Selection */}

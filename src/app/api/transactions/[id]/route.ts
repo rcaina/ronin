@@ -2,19 +2,9 @@ import { withUser } from "@/lib/middleware/withUser";
 import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling";
 import prisma from "@/lib/prisma";
 import { deleteTransaction, updateTransaction } from "@/lib/api-services/transactions";
+import { updateTransactionSchema } from "@/lib/api-schemas/transactions";
 import { type User } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-
-const updateTransactionSchema = z.object({
-  name: z.string().optional(),
-  description: z.string().optional(),
-  amount: z.number().positive("Amount must be positive").optional(),
-  budgetId: z.string().min(1, "Budget is required").optional(),
-  categoryId: z.string().min(1, "Category is required").optional(),
-  cardId: z.string().optional(),
-  createdAt: z.string().optional(),
-});
 
 export const PUT = withUser({
   PUT: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
