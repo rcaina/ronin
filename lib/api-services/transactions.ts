@@ -1,24 +1,5 @@
 import { type PrismaClient, type User } from "@prisma/client"
-
-export interface CreateTransactionData {
-  name?: string
-  description?: string
-  amount: number
-  budgetId: string
-  categoryId: string
-  cardId?: string
-  createdAt?: string
-}
-
-export interface UpdateTransactionData {
-  name?: string
-  description?: string
-  amount?: number
-  budgetId?: string
-  categoryId?: string
-  cardId?: string
-  createdAt?: string
-}
+import type { CreateTransactionSchema, UpdateTransactionSchema } from "@/lib/api-schemas/transactions"
 
 export async function getTransactions(
   tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
@@ -45,7 +26,7 @@ export async function getTransactions(
 
 export async function createTransaction(
   tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
-  data: CreateTransactionData,
+  data: CreateTransactionSchema,
   user: User & { accountId: string }
 ) {
   return await tx.transaction.create({
@@ -59,6 +40,7 @@ export async function createTransaction(
       accountId: user.accountId,
       userId: user.id,
       createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+      occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
     },
     include: {
       category: {
@@ -74,7 +56,7 @@ export async function createTransaction(
 export async function updateTransaction(
   tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
   id: string,
-  data: UpdateTransactionData,
+  data: UpdateTransactionSchema,
   user: User & { accountId: string }
 ) {
   return await tx.transaction.update({
@@ -91,6 +73,7 @@ export async function updateTransaction(
       categoryId: data.categoryId,
       cardId: data.cardId && data.cardId.trim() !== "" ? data.cardId : null,
       createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
+      occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
     },
     include: {
       category: {

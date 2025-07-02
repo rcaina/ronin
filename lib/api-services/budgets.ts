@@ -1,4 +1,4 @@
-import { type PrismaClient, type User, type PeriodType, type StrategyType } from "@prisma/client"
+import { type PrismaClient, type User, type PeriodType, type StrategyType, type BudgetCategory, type Category } from "@prisma/client"
 
 export interface CreateBudgetData {
   name: string
@@ -297,4 +297,29 @@ export async function duplicateBudget(
   }
 
   return newBudget;
-} 
+}
+
+export const createBudgetCategory = async (
+  budgetId: string,
+  data: {
+    categoryName: string;
+    group: "needs" | "wants" | "investment";
+    allocatedAmount: number;
+  }
+): Promise<BudgetCategory & { category: Category }> => {
+  const response = await fetch(`/api/budgets/${budgetId}/categories`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json() as { message?: string };
+    throw new Error(error.message ?? "Failed to create budget category");
+  }
+
+  const result = await response.json() as { budgetCategory: BudgetCategory & { category: Category } };
+  return result.budgetCategory;
+}; 

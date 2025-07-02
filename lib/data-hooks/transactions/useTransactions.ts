@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { getTransactions, createTransaction, updateTransaction, deleteTransaction, type CreateTransactionRequest, type UpdateTransactionRequest } from "../services/transactions";
-import type { TransactionWithRelations } from "../services/transactions";
+import { getTransactions, createTransaction, updateTransaction, deleteTransaction } from "../services/transactions";
+import type { CreateTransactionRequest, UpdateTransactionRequest, TransactionWithRelations } from "@/lib/types/transaction";
 
 export const useTransactions = () => {
   const { data: session } = useSession();
