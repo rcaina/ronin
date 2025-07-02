@@ -9,6 +9,7 @@ import { useCategories } from "@/lib/data-hooks/categories/useCategories";
 import { useCreateBudget } from "@/lib/data-hooks/budgets/useBudgets";
 import { StrategyType, PeriodType } from "@prisma/client";
 import type { Category } from "@prisma/client";
+import { calculateAdjustedIncome } from "@/lib/utils";
 
 // Import components
 import BudgetStepsSidebar from "./BudgetStepsSidebar";
@@ -16,6 +17,7 @@ import BasicBudgetStep from "./BasicBudgetStep";
 import IncomeStep from "./IncomeStep";
 import CategoriesStep from "./CategoriesStep";
 import AllocationStep from "./AllocationStep";
+import PercentageAllocationStep from "./PercentageAllocationStep";
 import type {
   CreateBudgetFormData,
   CategoryAllocation,
@@ -59,10 +61,10 @@ const createBudgetSchema = z
 
       const startDate = new Date(startYear, startMonth - 1, startDay);
       const endDate = new Date(endYear, endMonth - 1, endDay);
-      return endDate > startDate;
+      return endDate >= startDate;
     },
     {
-      message: "End date must be after start date",
+      message: "End date must be on or after start date",
       path: ["endAt"],
     },
   )
@@ -136,18 +138,12 @@ const calculateEndDate = (startDate: Date, period: PeriodType): Date => {
       return lastDay;
 
     case PeriodType.QUARTERLY:
-      // Find the last day of the current quarter
-      const quarter = Math.floor(date.getMonth() / 3);
-      const quarterEndMonth = quarter * 3 + 2; // Last month of the quarter (0-indexed)
-      // Create a date for the first day of the month after quarter end, then subtract 1 day
-      const firstDayAfterQuarter = new Date(
-        date.getFullYear(),
-        quarterEndMonth + 1,
-        1,
-      );
-      const quarterEndDate = new Date(firstDayAfterQuarter);
-      quarterEndDate.setDate(quarterEndDate.getDate() - 1);
-      return quarterEndDate;
+      // Calculate 3 months after the start date
+      const quarterlyEndDate = new Date(startDate);
+      quarterlyEndDate.setMonth(quarterlyEndDate.getMonth() + 3);
+      // Subtract 1 day to get the day before the 3-month mark
+      quarterlyEndDate.setDate(quarterlyEndDate.getDate());
+      return quarterlyEndDate;
 
     case PeriodType.YEARLY:
       // Find the last day of the current year
@@ -224,6 +220,7 @@ export default function CreateBudgetModal({
   const watchedStartAt = watch("startAt");
   const watchedEndAt = watch("endAt");
   const watchedPeriod = watch("period");
+  const watchedStrategy = watch("strategy");
 
   // Auto-calculate end date when period or start date changes
   useEffect(() => {
@@ -407,11 +404,6 @@ export default function CreateBudgetModal({
     );
   };
 
-  const totalIncome = incomeEntries.reduce(
-    (sum, entry) => sum + entry.amount,
-    0,
-  );
-
   const onSubmit = async (data: CreateBudgetFormData) => {
     try {
       const categoryAllocations: Record<string, number> = {};
@@ -450,7 +442,7 @@ export default function CreateBudgetModal({
       watchedName.trim() !== "" &&
       watchedStartAt &&
       watchedEndAt &&
-      new Date(watchedEndAt) > new Date(watchedStartAt)
+      new Date(watchedEndAt) >= new Date(watchedStartAt)
     );
   };
 
@@ -462,7 +454,18 @@ export default function CreateBudgetModal({
     const totalAllocated = selectedCategories
       .filter((cat) => cat.isSelected)
       .reduce((sum, cat) => sum + cat.allocatedAmount, 0);
-    return totalIncome - totalAllocated >= 0;
+
+    // Calculate adjusted total income
+    const adjustedTotalIncome = incomeEntries.reduce((sum, entry) => {
+      const adjustedAmount = calculateAdjustedIncome(
+        entry.amount,
+        entry.frequency,
+        watch("period"),
+      );
+      return sum + adjustedAmount;
+    }, 0);
+
+    return adjustedTotalIncome - totalAllocated >= 0;
   };
 
   const isIncomeStepValid = () => {
@@ -539,6 +542,7 @@ export default function CreateBudgetModal({
                 {currentStep === "income" && (
                   <IncomeStep
                     incomeEntries={incomeEntries}
+                    budgetPeriod={watch("period")}
                     onAddIncomeEntry={addIncomeEntry}
                     onRemoveIncomeEntry={removeIncomeEntry}
                     onUpdateIncomeEntry={updateIncomeEntry}
@@ -554,13 +558,22 @@ export default function CreateBudgetModal({
                   />
                 )}
 
-                {currentStep === "allocation" && (
-                  <AllocationStep
-                    selectedCategories={selectedCategories}
-                    totalIncome={totalIncome}
-                    onAllocationChange={handleAllocationChange}
-                  />
-                )}
+                {currentStep === "allocation" &&
+                  (watchedStrategy === StrategyType.FIFTY_THIRTY_TWENTY ? (
+                    <PercentageAllocationStep
+                      selectedCategories={selectedCategories}
+                      incomeEntries={incomeEntries}
+                      budgetPeriod={watch("period")}
+                      onAllocationChange={handleAllocationChange}
+                    />
+                  ) : (
+                    <AllocationStep
+                      selectedCategories={selectedCategories}
+                      incomeEntries={incomeEntries}
+                      budgetPeriod={watch("period")}
+                      onAllocationChange={handleAllocationChange}
+                    />
+                  ))}
               </div>
             </form>
           </div>
