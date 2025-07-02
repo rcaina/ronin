@@ -85,7 +85,16 @@ export default function AddCardForm({
         </button>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-4"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            void handleSubmit(onSubmit)();
+          }
+        }}
+      >
         {/* Card Name */}
         <div>
           <label

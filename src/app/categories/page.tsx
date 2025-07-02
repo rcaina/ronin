@@ -9,29 +9,14 @@ import {
 } from "@/lib/data-hooks/categories/useCategories";
 import PageHeader from "@/components/PageHeader";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
-import AddCategoryForm from "@/components/categories/AddCategoryForm";
-import AddItemButton from "@/components/AddItemButton";
-import {
-  Edit,
-  Trash2,
-  DollarSign,
-  ShoppingBag,
-  TrendingUp,
-  Copy,
-  Info,
-} from "lucide-react";
+import CategoryColumn from "@/components/categories/CategoryColumn";
+import { DollarSign, ShoppingBag, TrendingUp, Info } from "lucide-react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { CategoryType } from "@prisma/client";
 
-const CategoryTypeIcons = {
-  [CategoryType.WANTS]: ShoppingBag,
-  [CategoryType.NEEDS]: DollarSign,
-  [CategoryType.INVESTMENT]: TrendingUp,
-};
-
 const CategoryTypeColors = {
-  [CategoryType.WANTS]: "bg-blue-100 text-blue-800 border-blue-200",
-  [CategoryType.NEEDS]: "bg-red-100 text-red-800 border-red-200",
+  [CategoryType.WANTS]: "bg-purple-100 text-purple-800 border-purple-200",
+  [CategoryType.NEEDS]: "bg-blue-100 text-blue-800 border-blue-200",
   [CategoryType.INVESTMENT]: "bg-green-100 text-green-800 border-green-200",
 };
 
@@ -167,6 +152,41 @@ export default function CategoriesPage() {
     }
   };
 
+  const handleMoveCategory = async (
+    categoryId: string,
+    newGroup: CategoryType,
+  ) => {
+    try {
+      // Find the category to move
+      const categoryToMove = [
+        ...(categories?.wants ?? []),
+        ...(categories?.needs ?? []),
+        ...(categories?.investment ?? []),
+      ].find((cat) => cat.id === categoryId);
+
+      if (!categoryToMove) {
+        console.error("Failed to find category to move");
+        return;
+      }
+
+      // Don't update if it's already in the same group
+      if (categoryToMove.group === newGroup) {
+        return;
+      }
+
+      // Update the category with the new group
+      await updateCategoryMutation.mutateAsync({
+        id: categoryId,
+        data: {
+          name: categoryToMove.name,
+          group: newGroup,
+        },
+      });
+    } catch (err) {
+      console.error("Failed to move category:", err);
+    }
+  };
+
   if (isLoading) {
     return <LoadingSpinner message="Loading categories..." />;
   }
@@ -220,359 +240,74 @@ export default function CategoriesPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {/* Column 1: Wants */}
-            <div className="space-y-6">
-              <div
-                className={`rounded-lg border p-4 ${CategoryTypeColors[CategoryType.WANTS]}`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <ShoppingBag className="mr-2 h-5 w-5" />
-                    <span className="font-medium">Wants</span>
-                  </div>
-                  <span className="text-sm font-semibold">
-                    {categories?.wants.length ?? 0}
-                  </span>
-                </div>
-              </div>
+            {/* Wants Column */}
+            <CategoryColumn
+              type={CategoryType.WANTS}
+              categories={categories?.wants ?? []}
+              icon={ShoppingBag}
+              colorClass={CategoryTypeColors[CategoryType.WANTS]}
+              label={CategoryTypeLabels[CategoryType.WANTS]}
+              onAddCategory={handleSubmitCategory}
+              onEditCategory={handleSubmitEdit}
+              onDeleteCategory={handleDeleteCategory}
+              onDuplicateCategory={handleDuplicateCategory}
+              onMoveCategory={handleMoveCategory}
+              isAddingCategory={isAddingCategory}
+              activeColumn={activeColumn}
+              onStartAdd={handleAddCategory}
+              onCancelAdd={handleCancelAdd}
+              editingCategory={editingCategory}
+              onStartEdit={handleEditCategory}
+              onCancelEdit={handleCancelEdit}
+              isCreateLoading={createCategoryMutation.isPending}
+              isUpdateLoading={updateCategoryMutation.isPending}
+            />
 
-              {/* Add Template Button for Wants */}
-              {!isAddingCategory && (
-                <AddItemButton
-                  onClick={() => handleAddCategory("wants")}
-                  title="Add Template"
-                  variant="compact"
-                />
-              )}
+            {/* Needs Column */}
+            <CategoryColumn
+              type={CategoryType.NEEDS}
+              categories={categories?.needs ?? []}
+              icon={DollarSign}
+              colorClass={CategoryTypeColors[CategoryType.NEEDS]}
+              label={CategoryTypeLabels[CategoryType.NEEDS]}
+              onAddCategory={handleSubmitCategory}
+              onEditCategory={handleSubmitEdit}
+              onDeleteCategory={handleDeleteCategory}
+              onDuplicateCategory={handleDuplicateCategory}
+              onMoveCategory={handleMoveCategory}
+              isAddingCategory={isAddingCategory}
+              activeColumn={activeColumn}
+              onStartAdd={handleAddCategory}
+              onCancelAdd={handleCancelAdd}
+              editingCategory={editingCategory}
+              onStartEdit={handleEditCategory}
+              onCancelEdit={handleCancelEdit}
+              isCreateLoading={createCategoryMutation.isPending}
+              isUpdateLoading={updateCategoryMutation.isPending}
+            />
 
-              {/* Inline Add Form for Wants */}
-              {isAddingCategory && activeColumn === "wants" && (
-                <AddCategoryForm
-                  onSubmit={handleSubmitCategory}
-                  onCancel={handleCancelAdd}
-                  isLoading={createCategoryMutation.isPending}
-                  defaultValues={{ group: CategoryType.WANTS }}
-                />
-              )}
-
-              {/* Wants Categories */}
-              {categories?.wants.map((category) => {
-                const IconComponent = CategoryTypeIcons[category.group];
-                const isEditing = editingCategory?.id === category.id;
-
-                if (isEditing) {
-                  return (
-                    <AddCategoryForm
-                      key={category.id}
-                      onSubmit={handleSubmitEdit}
-                      onCancel={handleCancelEdit}
-                      isLoading={updateCategoryMutation.isPending}
-                      isEditing={true}
-                      defaultValues={{
-                        name: editingCategory.name,
-                        group: editingCategory.group,
-                      }}
-                    />
-                  );
-                }
-
-                return (
-                  <div
-                    key={category.id}
-                    className="group relative overflow-hidden rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md"
-                  >
-                    {/* Category Type Badge */}
-                    <div className="mb-4 flex items-center justify-between">
-                      <span
-                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${CategoryTypeColors[category.group]}`}
-                      >
-                        <IconComponent className="mr-1 h-3 w-3" />
-                        {CategoryTypeLabels[category.group]}
-                      </span>
-
-                      {/* Action Menu */}
-                      <div className="flex items-center space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
-                        <button
-                          onClick={() => handleDuplicateCategory(category.id)}
-                          className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                          title="Duplicate template"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEditCategory(category)}
-                          className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                          title="Edit template"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleDeleteCategory(category.id, category.name)
-                          }
-                          className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
-                          title="Delete template"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Category Name */}
-                    <h3 className="mb-2 text-lg font-semibold text-gray-900">
-                      {category.name}
-                    </h3>
-
-                    {/* Template Stats */}
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                      <span>
-                        Created{" "}
-                        {new Date(category.createdAt).toLocaleDateString()}
-                      </span>
-                      <span className="rounded-full bg-gray-100 px-2 py-1 text-xs">
-                        Template
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Column 2: Needs */}
-            <div className="space-y-6">
-              <div
-                className={`rounded-lg border p-4 ${CategoryTypeColors[CategoryType.NEEDS]}`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <DollarSign className="mr-2 h-5 w-5" />
-                    <span className="font-medium">Needs</span>
-                  </div>
-                  <span className="text-sm font-semibold">
-                    {categories?.needs.length ?? 0}
-                  </span>
-                </div>
-              </div>
-
-              {/* Add Template Button for Needs */}
-              {!isAddingCategory && (
-                <AddItemButton
-                  onClick={() => handleAddCategory("needs")}
-                  title="Add Template"
-                  variant="compact"
-                />
-              )}
-
-              {/* Inline Add Form for Needs */}
-              {isAddingCategory && activeColumn === "needs" && (
-                <AddCategoryForm
-                  onSubmit={handleSubmitCategory}
-                  onCancel={handleCancelAdd}
-                  isLoading={createCategoryMutation.isPending}
-                  defaultValues={{ group: CategoryType.NEEDS }}
-                />
-              )}
-
-              {/* Needs Categories */}
-              {categories?.needs.map((category) => {
-                const IconComponent = CategoryTypeIcons[category.group];
-                const isEditing = editingCategory?.id === category.id;
-
-                if (isEditing) {
-                  return (
-                    <AddCategoryForm
-                      key={category.id}
-                      onSubmit={handleSubmitEdit}
-                      onCancel={handleCancelEdit}
-                      isLoading={updateCategoryMutation.isPending}
-                      isEditing={true}
-                      defaultValues={{
-                        name: editingCategory.name,
-                        group: editingCategory.group,
-                      }}
-                    />
-                  );
-                }
-
-                return (
-                  <div
-                    key={category.id}
-                    className="group relative overflow-hidden rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md"
-                  >
-                    {/* Category Type Badge */}
-                    <div className="mb-4 flex items-center justify-between">
-                      <span
-                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${CategoryTypeColors[category.group]}`}
-                      >
-                        <IconComponent className="mr-1 h-3 w-3" />
-                        {CategoryTypeLabels[category.group]}
-                      </span>
-
-                      {/* Action Menu */}
-                      <div className="flex items-center space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
-                        <button
-                          onClick={() => handleDuplicateCategory(category.id)}
-                          className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                          title="Duplicate template"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEditCategory(category)}
-                          className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                          title="Edit template"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleDeleteCategory(category.id, category.name)
-                          }
-                          className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
-                          title="Delete template"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Category Name */}
-                    <h3 className="mb-2 text-lg font-semibold text-gray-900">
-                      {category.name}
-                    </h3>
-
-                    {/* Template Stats */}
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                      <span>
-                        Created{" "}
-                        {new Date(category.createdAt).toLocaleDateString()}
-                      </span>
-                      <span className="rounded-full bg-gray-100 px-2 py-1 text-xs">
-                        Template
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Column 3: Investment */}
-            <div className="space-y-6">
-              <div
-                className={`rounded-lg border p-4 ${CategoryTypeColors[CategoryType.INVESTMENT]}`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <TrendingUp className="mr-2 h-5 w-5" />
-                    <span className="font-medium">Investment</span>
-                  </div>
-                  <span className="text-sm font-semibold">
-                    {categories?.investment.length ?? 0}
-                  </span>
-                </div>
-              </div>
-
-              {/* Add Template Button for Investment */}
-              {!isAddingCategory && (
-                <AddItemButton
-                  onClick={() => handleAddCategory("investment")}
-                  title="Add Template"
-                  variant="compact"
-                />
-              )}
-
-              {/* Inline Add Form for Investment */}
-              {isAddingCategory && activeColumn === "investment" && (
-                <AddCategoryForm
-                  onSubmit={handleSubmitCategory}
-                  onCancel={handleCancelAdd}
-                  isLoading={createCategoryMutation.isPending}
-                  defaultValues={{ group: CategoryType.INVESTMENT }}
-                />
-              )}
-
-              {/* Investment Categories */}
-              {categories?.investment.map((category) => {
-                const IconComponent = CategoryTypeIcons[category.group];
-                const isEditing = editingCategory?.id === category.id;
-
-                if (isEditing) {
-                  return (
-                    <AddCategoryForm
-                      key={category.id}
-                      onSubmit={handleSubmitEdit}
-                      onCancel={handleCancelEdit}
-                      isLoading={updateCategoryMutation.isPending}
-                      isEditing={true}
-                      defaultValues={{
-                        name: editingCategory.name,
-                        group: editingCategory.group,
-                      }}
-                    />
-                  );
-                }
-
-                return (
-                  <div
-                    key={category.id}
-                    className="group relative overflow-hidden rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md"
-                  >
-                    {/* Category Type Badge */}
-                    <div className="mb-4 flex items-center justify-between">
-                      <span
-                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${CategoryTypeColors[category.group]}`}
-                      >
-                        <IconComponent className="mr-1 h-3 w-3" />
-                        {CategoryTypeLabels[category.group]}
-                      </span>
-
-                      {/* Action Menu */}
-                      <div className="flex items-center space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
-                        <button
-                          onClick={() => handleDuplicateCategory(category.id)}
-                          className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                          title="Duplicate template"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEditCategory(category)}
-                          className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                          title="Edit template"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleDeleteCategory(category.id, category.name)
-                          }
-                          className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
-                          title="Delete template"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Category Name */}
-                    <h3 className="mb-2 text-lg font-semibold text-gray-900">
-                      {category.name}
-                    </h3>
-
-                    {/* Template Stats */}
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                      <span>
-                        Created{" "}
-                        {new Date(category.createdAt).toLocaleDateString()}
-                      </span>
-                      <span className="rounded-full bg-gray-100 px-2 py-1 text-xs">
-                        Template
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            {/* Investment Column */}
+            <CategoryColumn
+              type={CategoryType.INVESTMENT}
+              categories={categories?.investment ?? []}
+              icon={TrendingUp}
+              colorClass={CategoryTypeColors[CategoryType.INVESTMENT]}
+              label={CategoryTypeLabels[CategoryType.INVESTMENT]}
+              onAddCategory={handleSubmitCategory}
+              onEditCategory={handleSubmitEdit}
+              onDeleteCategory={handleDeleteCategory}
+              onDuplicateCategory={handleDuplicateCategory}
+              onMoveCategory={handleMoveCategory}
+              isAddingCategory={isAddingCategory}
+              activeColumn={activeColumn}
+              onStartAdd={handleAddCategory}
+              onCancelAdd={handleCancelAdd}
+              editingCategory={editingCategory}
+              onStartEdit={handleEditCategory}
+              onCancelEdit={handleCancelEdit}
+              isCreateLoading={createCategoryMutation.isPending}
+              isUpdateLoading={updateCategoryMutation.isPending}
+            />
           </div>
 
           {/* Empty State - only show if no categories and not adding */}
