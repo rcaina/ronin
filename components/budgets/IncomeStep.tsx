@@ -42,7 +42,7 @@ export default function IncomeStep({
     if (Object.keys(newDisplayValues).length > 0) {
       setDisplayValues((prev) => ({ ...prev, ...newDisplayValues }));
     }
-  }, [incomeEntries]);
+  }, [incomeEntries, displayValues]);
 
   const totalIncome = incomeEntries.reduce(
     (sum, entry) => sum + entry.amount,
