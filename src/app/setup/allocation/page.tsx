@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useCategories } from "@/lib/data-hooks/categories/useCategories";
 import SetupProgress from "@/components/SetupProgress";
 import type { Category, PeriodType, StrategyType } from "@prisma/client";
+import Button from "@/components/Button";
 
 interface BudgetData {
   name: string;
@@ -278,21 +279,16 @@ export default function AllocationSetupPage() {
         )}
 
         <div className="flex justify-between pt-6">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="rounded-md border border-gray-300 bg-white px-6 py-2 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2"
-          >
+          <Button variant="ghost" onClick={handleBack}>
             Back
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={handleContinue}
             disabled={!isZeroSumValid}
-            className="hover:bg-secondary/80 rounded-md bg-secondary px-6 py-2 text-white focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Continue
-          </button>
+          </Button>
         </div>
       </div>
     </div>

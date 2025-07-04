@@ -5,6 +5,7 @@ import { PeriodType } from "@prisma/client";
 import type { IncomeEntry } from "./types";
 import { useState, useEffect } from "react";
 import { calculateAdjustedIncome } from "@/lib/utils";
+import Button from "../Button";
 
 interface IncomeStepProps {
   incomeEntries: IncomeEntry[];
@@ -72,16 +73,10 @@ export default function IncomeStep({
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <button
-          type="button"
-          onClick={onAddIncomeEntry}
-          className="w-full rounded-lg border-2 border-dashed border-gray-300 p-4 text-center text-sm font-medium text-gray-600 transition-colors hover:border-gray-400 hover:text-gray-700"
-        >
-          <div className="flex items-center justify-center space-x-2">
-            <Plus className="h-5 w-5" />
-            <span>Add Another Income Source</span>
-          </div>
-        </button>
+        <Button onClick={onAddIncomeEntry} variant="outline">
+          <Plus className="h-5 w-5" />
+          <span>Add Another Income Source</span>
+        </Button>
 
         {incomeEntries.map((entry, index) => (
           <div key={entry.id} className="rounded-lg border p-4">

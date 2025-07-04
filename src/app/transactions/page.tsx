@@ -419,12 +419,13 @@ const TransactionsPage = () => {
                     {selectedTransactions.size} transaction
                     {selectedTransactions.size !== 1 ? "s" : ""} selected
                   </span>
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={() => setSelectedTransactions(new Set())}
                     className="text-sm text-blue-600 hover:text-blue-800"
                   >
                     Clear selection
-                  </button>
+                  </Button>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Button
@@ -536,7 +537,9 @@ const TransactionsPage = () => {
                       </div>
 
                       <div className="text-right">
-                        <div className="font-medium text-gray-900">
+                        <div
+                          className={`font-medium ${transaction.amount < 0 ? "text-green-600" : "text-gray-900"}`}
+                        >
                           {formatCurrency(transaction.amount)}
                         </div>
                         <div className="text-sm text-gray-500">

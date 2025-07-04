@@ -303,7 +303,7 @@ export default function HomePage() {
                 <div className="space-y-3">
                   <button
                     onClick={() => router.push("/budgets")}
-                    className="flex w-full items-center space-x-3 rounded-lg border p-3 text-left transition-colors hover:bg-gray-50"
+                    className="flex w-full items-center space-x-3 rounded-lg border p-3 text-left transition-colors hover:bg-yellow-500/70"
                   >
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
                       <Plus className="h-5 w-5 text-blue-600" />
@@ -318,7 +318,7 @@ export default function HomePage() {
 
                   <button
                     onClick={() => router.push("/transactions")}
-                    className="flex w-full items-center space-x-3 rounded-lg border p-3 text-left transition-colors hover:bg-gray-50"
+                    className="flex w-full items-center space-x-3 rounded-lg border p-3 text-left transition-colors hover:bg-yellow-500/70"
                   >
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
                       <Receipt className="h-5 w-5 text-green-600" />
@@ -335,7 +335,7 @@ export default function HomePage() {
 
                   <button
                     onClick={() => router.push("/categories")}
-                    className="flex w-full items-center space-x-3 rounded-lg border p-3 text-left transition-colors hover:bg-gray-50"
+                    className="flex w-full items-center space-x-3 rounded-lg border p-3 text-left transition-colors hover:bg-yellow-500/70"
                   >
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100">
                       <BarChart3 className="h-5 w-5 text-purple-600" />

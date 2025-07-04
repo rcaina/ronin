@@ -262,8 +262,11 @@ export default function BudgetCategoryCard({
                         {new Date(transaction.createdAt).toLocaleDateString()}
                       </p>
                     </div>
-                    <span className="font-medium text-gray-900">
-                      ${transaction.amount.toFixed(2).toLocaleString()}
+                    <span
+                      className={`font-medium ${transaction.amount < 0 ? "text-green-600" : "text-gray-900"}`}
+                    >
+                      {transaction.amount < 0 ? "-" : ""}$
+                      {Math.abs(transaction.amount).toFixed(2).toLocaleString()}
                     </span>
                   </div>
                 ))}

@@ -8,6 +8,7 @@ import {
   DollarSign,
   Target,
   Plus,
+  EditIcon,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -15,17 +16,21 @@ import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import BudgetCategoryCard from "@/components/budgets/BudgetCategoryCard";
 import BudgetTransactionsList from "@/components/budgets/BudgetTransactionsList";
 import AddBudgetCategoryForm from "@/components/budgets/AddBudgetCategoryForm";
+import IncomeModal from "@/components/budgets/IncomeModal";
 import {
   useCreateBudgetCategory,
   useUpdateBudgetCategory,
 } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import { useCategories } from "@/lib/data-hooks/categories/useCategories";
 import { useState, useRef, useEffect } from "react";
+import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
+  const [isEditBudgetOpen, setIsEditBudgetOpen] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [scrollShadows, setScrollShadows] = useState<Record<string, boolean>>(
     {},
@@ -118,7 +123,7 @@ const BudgetDetailsPage = () => {
   const spendingPercentage =
     totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
 
-  // Group categories by type
+  // Group categories by type and sort by usage percentage
   const categoriesByGroup = (budget.categories ?? []).reduce(
     (acc, budgetCategory) => {
       // Skip if category relation is not loaded
@@ -131,6 +136,31 @@ const BudgetDetailsPage = () => {
     },
     {} as Record<string, typeof budget.categories>,
   );
+
+  // Sort categories within each group by usage percentage (100% used at bottom)
+  Object.keys(categoriesByGroup).forEach((group) => {
+    const categories = categoriesByGroup[group];
+    if (categories) {
+      categories.sort((a, b) => {
+        const aSpent = (a.transactions ?? []).reduce(
+          (sum, transaction) => sum + transaction.amount,
+          0,
+        );
+        const bSpent = (b.transactions ?? []).reduce(
+          (sum, transaction) => sum + transaction.amount,
+          0,
+        );
+
+        const aPercentage =
+          a.allocatedAmount > 0 ? (aSpent / a.allocatedAmount) * 100 : 0;
+        const bPercentage =
+          b.allocatedAmount > 0 ? (bSpent / b.allocatedAmount) * 100 : 0;
+
+        // Sort by percentage ascending (100% used categories at bottom)
+        return aPercentage - bPercentage;
+      });
+    }
+  });
 
   const getGroupColor = (group: string) => {
     switch (group) {
@@ -159,6 +189,14 @@ const BudgetDetailsPage = () => {
   };
 
   const handleTransactionSuccess = () => {
+    void refetch();
+  };
+
+  const handleIncomeSuccess = () => {
+    void refetch();
+  };
+
+  const handleEditBudgetSuccess = () => {
     void refetch();
   };
 
@@ -290,18 +328,29 @@ const BudgetDetailsPage = () => {
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           {/* Budget Overview Cards */}
           <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
+            <div className="group relative rounded-xl border bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-sm font-medium text-gray-500">
                   Total Income
                 </h3>
-                <DollarSign className="h-5 w-5 text-green-500" />
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setIsIncomeModalOpen(true)}
+                    className="rounded p-1 text-gray-400 opacity-0 transition-opacity hover:bg-gray-100 hover:text-gray-600 group-hover:opacity-100"
+                    title="Edit income sources"
+                  >
+                    <EditIcon className="h-4 w-4" />
+                  </button>
+                  <DollarSign className="h-5 w-5 text-green-500" />
+                </div>
               </div>
               <div className="text-2xl font-bold text-gray-900">
                 ${totalIncome.toLocaleString()}
               </div>
               <div className="mt-1 text-sm text-gray-500">
-                {budget.incomes?.[0]?.source ?? "Primary income"}
+                {budget.incomes?.length === 1
+                  ? (budget.incomes[0]?.source ?? "Primary income")
+                  : `${budget.incomes?.length ?? 0} income sources`}
               </div>
             </div>
 
@@ -362,9 +411,18 @@ const BudgetDetailsPage = () => {
 
           {/* Budget Details */}
           <div className="mb-8 rounded-xl border bg-white p-6 shadow-sm">
-            <h3 className="mb-4 text-lg font-semibold text-gray-900">
-              Budget Details
-            </h3>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Budget Details
+              </h3>
+              <button
+                onClick={() => setIsEditBudgetOpen(true)}
+                className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                title="Edit budget details"
+              >
+                <EditIcon className="h-4 w-4" />
+              </button>
+            </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <span className="text-sm text-gray-500">Strategy:</span>
@@ -503,6 +561,19 @@ const BudgetDetailsPage = () => {
         budgetId={id as string}
         onClose={() => setIsAddTransactionOpen(false)}
         onSuccess={handleTransactionSuccess}
+      />
+      <IncomeModal
+        isOpen={isIncomeModalOpen}
+        budgetId={id as string}
+        incomes={budget.incomes ?? []}
+        onClose={() => setIsIncomeModalOpen(false)}
+        onSuccess={handleIncomeSuccess}
+      />
+      <EditBudgetModal
+        isOpen={isEditBudgetOpen}
+        budget={budget}
+        onClose={() => setIsEditBudgetOpen(false)}
+        onSuccess={handleEditBudgetSuccess}
       />
     </div>
   );

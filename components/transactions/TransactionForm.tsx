@@ -29,12 +29,13 @@ const transactionSchema = z.object({
   description: z.string().optional(),
   amount: z.string().refine((val) => {
     const num = parseFloat(val);
-    return !isNaN(num) && num > 0;
-  }, "Amount is required and must be greater than 0"),
+    return !isNaN(num) && num >= 0;
+  }, "Amount is required and must be 0 or greater"),
   budgetId: z.string().min(1, "Budget is required"),
   categoryId: z.string().min(1, "Category is required"),
   occurredAt: z.string().optional(),
   cardId: z.string().optional(),
+  isReturn: z.boolean(),
 });
 
 type TransactionFormData = z.infer<typeof transactionSchema>;
@@ -82,6 +83,7 @@ export default function TransactionForm({
       categoryId: "",
       cardId: "",
       occurredAt: undefined,
+      isReturn: false,
     },
   });
 
@@ -97,10 +99,11 @@ export default function TransactionForm({
     if (transaction) {
       setValue("name", transaction.name ?? "");
       setValue("description", transaction.description ?? "");
-      setValue("amount", transaction.amount.toString());
+      setValue("amount", Math.abs(transaction.amount).toString());
       setValue("budgetId", transaction.budgetId);
       setValue("categoryId", transaction.categoryId);
       setValue("cardId", transaction.cardId ?? "");
+      setValue("isReturn", transaction.amount < 0);
       setValue(
         "occurredAt",
         transaction.occurredAt
@@ -117,11 +120,16 @@ export default function TransactionForm({
   }, [transaction, budgetId, setValue]);
 
   const onSubmit = (data: TransactionFormData) => {
+    // Convert amount to negative if it's a return/refund
+    const amount = data.isReturn
+      ? -Math.abs(parseFloat(data.amount))
+      : Math.abs(parseFloat(data.amount));
+
     if (isEditing && transaction) {
       const updateData: UpdateTransactionRequest = {
         name: data.name ?? undefined,
         description: data.description ?? undefined,
-        amount: parseFloat(data.amount),
+        amount: amount,
         budgetId: data.budgetId,
         categoryId: data.categoryId,
         cardId: data.cardId ?? undefined,
@@ -144,7 +152,7 @@ export default function TransactionForm({
       const transactionData: CreateTransactionRequest = {
         name: data.name ?? undefined,
         description: data.description ?? undefined,
-        amount: parseFloat(data.amount),
+        amount: amount,
         budgetId: data.budgetId,
         categoryId: data.categoryId,
         cardId: data.cardId ?? undefined,
@@ -216,7 +224,6 @@ export default function TransactionForm({
                 id="amount"
                 {...register("amount")}
                 placeholder="0.00"
-                min="0"
                 step="0.01"
                 className={`w-full rounded-md border py-2 pl-8 pr-3 text-sm focus:outline-none focus:ring-1 ${
                   errors.amount
@@ -231,6 +238,21 @@ export default function TransactionForm({
                 {errors.amount.message}
               </p>
             )}
+
+            {/* Return/Refund Toggle */}
+            <div className="mt-3">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  {...register("isReturn")}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  disabled={isPending}
+                />
+                <span className="text-sm text-gray-700">
+                  This is a return or refund (money back to account)
+                </span>
+              </label>
+            </div>
           </div>
 
           {/* Budget Selection */}

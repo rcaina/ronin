@@ -64,8 +64,11 @@ export default function BudgetTransactionsList({
               </div>
             </div>
             <div className="text-right">
-              <p className="font-medium text-gray-900">
-                ${transaction.amount.toLocaleString()}
+              <p
+                className={`font-medium ${transaction.amount < 0 ? "text-green-600" : "text-gray-900"}`}
+              >
+                {transaction.amount < 0 ? "-" : ""}$
+                {Math.abs(transaction.amount).toLocaleString()}
               </p>
               <p className="text-sm text-gray-500">
                 {new Date(transaction.createdAt).toLocaleDateString()}

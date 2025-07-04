@@ -1,4 +1,5 @@
 import { AlertTriangle } from "lucide-react";
+import Button from "./Button";
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -38,20 +39,21 @@ export default function DeleteConfirmationModal({
           {message.replace("{itemName}", itemName)}
         </p>
         <div className="flex space-x-3">
-          <button
-            onClick={onConfirm}
-            disabled={isLoading}
-            className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isLoading ? loadingText : confirmText}
-          </button>
-          <button
+          <Button
             onClick={onClose}
             disabled={isLoading}
             className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {cancelText}
-          </button>
+          </Button>
+          <Button
+            variant="danger"
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isLoading ? loadingText : confirmText}
+          </Button>
         </div>
       </div>
     </div>
