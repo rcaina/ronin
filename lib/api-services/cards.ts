@@ -46,15 +46,32 @@ export async function getCards(
   tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
   userId: string
 ) {
-  return await tx.card.findMany({
+  const cards = await tx.card.findMany({
     where: {
       userId,
       deleted: null,
+    },
+    include: {
+      transactions: {
+        where: {
+          deleted: null,
+        },
+        select: {
+          amount: true,
+        },
+      },
     },
     orderBy: {
       createdAt: 'desc',
     },
   });
+
+  // Calculate amountSpent for each card by summing related transactions
+  return cards.map(card => ({
+    ...card,
+    amountSpent: card.transactions.reduce((sum, transaction) => sum + transaction.amount, 0),
+    transactions: undefined, // Remove transactions from response
+  }));
 }
 
 export async function getCard(
@@ -62,13 +79,32 @@ export async function getCard(
   id: string,
   userId: string
 ) {
-  return await tx.card.findFirst({
+  const card = await tx.card.findFirst({
     where: {
       id,
       userId,
       deleted: null,
     },
+    include: {
+      transactions: {
+        where: {
+          deleted: null,
+        },
+        select: {
+          amount: true,
+        },
+      },
+    },
   });
+
+  if (!card) return null;
+
+  // Calculate amountSpent by summing related transactions
+  return {
+    ...card,
+    amountSpent: card.transactions.reduce((sum, transaction) => sum + transaction.amount, 0),
+    transactions: undefined, // Remove transactions from response
+  };
 }
 
 export async function createCard(

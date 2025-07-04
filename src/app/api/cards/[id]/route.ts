@@ -37,6 +37,14 @@ export const GET = withUser({
             lastName: true,
           },
         },
+        transactions: {
+          where: {
+            deleted: null,
+          },
+          select: {
+            amount: true,
+          },
+        },
       },
     });
 
@@ -44,7 +52,14 @@ export const GET = withUser({
       return NextResponse.json({ message: "Card not found" }, { status: 404 });
     }
 
-    return NextResponse.json(card, { status: 200 });
+    // Calculate amountSpent by summing related transactions
+    const cardWithAmountSpent = {
+      ...card,
+      amountSpent: card.transactions.reduce((sum, transaction) => sum + transaction.amount, 0),
+      transactions: undefined, // Remove transactions from response
+    };
+
+    return NextResponse.json(cardWithAmountSpent, { status: 200 });
   }),
 });
 
