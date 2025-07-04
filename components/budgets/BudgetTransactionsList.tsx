@@ -38,44 +38,46 @@ export default function BudgetTransactionsList({
   return (
     <div className="rounded-xl border bg-white p-6 shadow-sm">
       <h3 className="mb-4 text-lg font-semibold text-gray-900">
-        All Transactions
+        All Transactions ({transactions.length})
       </h3>
-      <div className="space-y-4">
-        {transactions.map((transaction) => (
-          <div
-            key={transaction.id}
-            className="flex items-center justify-between rounded-lg bg-gray-50 p-4"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center space-x-3">
-                <div
-                  className={`h-3 w-3 rounded-full ${getGroupColor(
-                    transaction.categoryGroup.toLowerCase(),
-                  )}`}
-                ></div>
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {transaction.name ?? "Unnamed transaction"}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {transaction.categoryName}
-                  </p>
+      <div className="h-[600px] overflow-y-auto">
+        <div className="space-y-4 pr-2">
+          {transactions.map((transaction) => (
+            <div
+              key={transaction.id}
+              className="flex items-center justify-between rounded-lg bg-gray-50 p-4"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center space-x-3">
+                  <div
+                    className={`h-3 w-3 rounded-full ${getGroupColor(
+                      transaction.categoryGroup.toLowerCase(),
+                    )}`}
+                  ></div>
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {transaction.name ?? "Unnamed transaction"}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {transaction.categoryName}
+                    </p>
+                  </div>
                 </div>
               </div>
+              <div className="text-right">
+                <p
+                  className={`font-medium ${transaction.amount < 0 ? "text-green-600" : "text-gray-900"}`}
+                >
+                  {transaction.amount < 0 ? "-" : ""}$
+                  {Math.abs(transaction.amount).toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {new Date(transaction.createdAt).toLocaleDateString()}
+                </p>
+              </div>
             </div>
-            <div className="text-right">
-              <p
-                className={`font-medium ${transaction.amount < 0 ? "text-green-600" : "text-gray-900"}`}
-              >
-                {transaction.amount < 0 ? "-" : ""}$
-                {Math.abs(transaction.amount).toLocaleString()}
-              </p>
-              <p className="text-sm text-gray-500">
-                {new Date(transaction.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

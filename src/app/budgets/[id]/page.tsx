@@ -459,10 +459,40 @@ const BudgetDetailsPage = () => {
 
           {/* Categories by Group */}
           <div className="mb-8">
-            <div className="mb-4 flex items-center">
+            <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900">
                 Budget Categories
               </h2>
+              <div className="flex items-center space-x-2">
+                {(() => {
+                  const totalAllocated = (budget.categories ?? []).reduce(
+                    (sum, category) => sum + category.allocatedAmount,
+                    0,
+                  );
+                  const allocationRemaining = totalIncome - totalAllocated;
+
+                  if (allocationRemaining > 0) {
+                    return (
+                      <span className="text-sm font-medium text-blue-600">
+                        ${allocationRemaining.toLocaleString()} Left to Allocate
+                      </span>
+                    );
+                  } else if (allocationRemaining === 0) {
+                    return (
+                      <span className="text-sm font-medium text-green-600">
+                        100% Allocated
+                      </span>
+                    );
+                  } else {
+                    return (
+                      <span className="text-sm font-medium text-red-600">
+                        ${Math.abs(allocationRemaining).toLocaleString()} Over
+                        Allocated
+                      </span>
+                    );
+                  }
+                })()}
+              </div>
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {Object.entries(categoriesByGroup).map(([group, categories]) => (
