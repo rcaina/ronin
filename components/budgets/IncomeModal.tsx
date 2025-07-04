@@ -91,13 +91,20 @@ export default function IncomeModal({
         }
       }
 
+      // Prepare income entries for API, converting null values to empty strings
+      const preparedIncomes = incomeEntries.map((entry) => ({
+        ...entry,
+        source: entry.source ?? "",
+        description: entry.description ?? "",
+      }));
+
       const response = await fetch(`/api/budgets/${budgetId}/income`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          incomes: incomeEntries,
+          incomes: preparedIncomes,
         }),
       });
 
@@ -279,7 +286,7 @@ export default function IncomeModal({
                           className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                         <span className="ml-2 text-sm text-gray-700">
-                          This is planned income (not yet received)
+                          Recurring income
                         </span>
                       </label>
                     </div>
