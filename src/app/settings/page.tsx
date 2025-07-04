@@ -196,7 +196,7 @@ const SettingsPage = () => {
                         <div className="flex space-x-3">
                           <button
                             onClick={handleProfileSave}
-                            className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+                            className="inline-flex items-center rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-yellow-300"
                           >
                             <Save className="mr-2 h-4 w-4" />
                             Save Changes
@@ -318,7 +318,7 @@ const SettingsPage = () => {
                           </div>
                           <button
                             onClick={handlePasswordChange}
-                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+                            className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-yellow-300"
                           >
                             Update Password
                           </button>
@@ -505,7 +505,7 @@ const SettingsPage = () => {
                         <p className="text-sm text-gray-500">
                           No payment method added yet.
                         </p>
-                        <button className="mt-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700">
+                        <button className="mt-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-yellow-300">
                           Add Payment Method
                         </button>
                       </div>
@@ -532,7 +532,7 @@ const SettingsPage = () => {
                       </h2>
                       <button
                         onClick={() => setShowCreateUserModal(true)}
-                        className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+                        className="inline-flex items-center rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-yellow-300"
                       >
                         <Plus className="mr-2 h-4 w-4" />
                         Add User

@@ -41,13 +41,9 @@ export default function AddBudgetCategoryForm({
     <div className="group relative overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-medium text-gray-500">Add Category</span>
-        <button
-          onClick={onCancel}
-          className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-          title="Cancel"
-        >
+        <Button variant="ghost" onClick={onCancel} title="Cancel">
           <X className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
 
       <form
