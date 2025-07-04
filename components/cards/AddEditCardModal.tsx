@@ -7,6 +7,7 @@ import { z } from "zod";
 import { X } from "lucide-react";
 import { CardType } from "@prisma/client";
 import { useCreateCard, useUpdateCard } from "@/lib/data-hooks/cards/useCards";
+import Button from "../Button";
 
 interface User {
   id: string;
@@ -296,18 +297,10 @@ export default function AddEditCardModal({
           )}
 
           <div className="flex space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-            >
+            <Button variant="ghost" onClick={handleClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
               {isSubmitting
                 ? isEditing
                   ? "Updating..."
@@ -315,7 +308,7 @@ export default function AddEditCardModal({
                 : isEditing
                   ? "Update"
                   : "Create"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

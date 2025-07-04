@@ -5,6 +5,7 @@ import { X, DollarSign, ShoppingBag, TrendingUp, Target } from "lucide-react";
 import { CategoryType } from "@prisma/client";
 import { useUpdateBudget } from "@/lib/data-hooks/budgets/useBudgets";
 import type { BudgetWithRelations } from "@/lib/types/budget";
+import Button from "../Button";
 
 interface EditBudgetCategoriesModalProps {
   isOpen: boolean;
@@ -311,20 +312,16 @@ export default function EditBudgetCategoriesModal({
 
         {/* Footer */}
         <div className="flex items-center justify-end space-x-3 border-t px-6 py-4">
-          <button
-            onClick={onClose}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-            disabled={isSubmitting}
-          >
+          <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 hover:bg-yellow-300 disabled:opacity-50"
           >
             {isSubmitting ? "Saving..." : "Save Changes"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

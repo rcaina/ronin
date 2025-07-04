@@ -4,7 +4,7 @@ import { z } from "zod";
 export const createTransactionSchema = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
-  amount: z.number().positive("Amount must be positive"),
+  amount: z.number(), // Allow any number (positive, negative, or zero)
   budgetId: z.string().min(1, "Budget is required"),
   categoryId: z.string().min(1, "Category is required"),
   cardId: z.string().optional(),
@@ -15,7 +15,7 @@ export const createTransactionSchema = z.object({
 export const updateTransactionSchema = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
-  amount: z.number().positive("Amount must be positive").optional(),
+  amount: z.number().optional(), // Allow any number (positive, negative, or zero)
   budgetId: z.string().min(1, "Budget is required").optional(),
   categoryId: z.string().min(1, "Category is required").optional(),
   cardId: z.string().optional(),

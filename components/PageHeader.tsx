@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
+import Button from "./Button";
 
 interface PageHeaderProps {
   title: string;
@@ -41,13 +42,10 @@ const PageHeader = ({
             </div>
           </div>
           {action && (
-            <button
-              onClick={action.onClick}
-              className="inline-flex items-center rounded-lg bg-secondary px-4 py-2 font-medium text-black/90 shadow-sm transition-colors hover:bg-yellow-300"
-            >
+            <Button onClick={action.onClick} variant="primary">
               {action.icon && <span className="mr-2">{action.icon}</span>}
               {action.label}
-            </button>
+            </Button>
           )}
         </div>
       </div>

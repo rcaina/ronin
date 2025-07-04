@@ -24,6 +24,7 @@ import type {
   IncomeEntry,
   StepType,
 } from "./types";
+import Button from "../Button";
 
 // Validation schema
 const createBudgetSchema = z
@@ -595,40 +596,33 @@ export default function CreateBudgetModal({
             </div>
 
             <div className="flex space-x-3">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-              >
+              <Button variant="ghost" onClick={handleClose}>
                 Cancel
-              </button>
+              </Button>
 
               {currentStep === "allocation" ? (
-                <button
+                <Button
                   type="submit"
                   disabled={
                     createBudgetMutation.isPending || !isAllocationStepValid()
                   }
-                  className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={handleSubmit(onSubmit)}
                 >
                   {createBudgetMutation.isPending
                     ? "Creating..."
                     : "Create Budget"}
-                </button>
+                </Button>
               ) : (
-                <button
-                  type="button"
+                <Button
                   onClick={handleNextClick}
                   disabled={
                     (currentStep === "basic" && !isBasicStepValid()) ||
                     (currentStep === "income" && !isIncomeStepValid()) ||
                     (currentStep === "categories" && !isCategoriesStepValid())
                   }
-                  className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Next
-                </button>
+                </Button>
               )}
             </div>
           </div>

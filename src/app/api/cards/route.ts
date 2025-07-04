@@ -22,10 +22,26 @@ export const GET = withUser({
             lastName: true,
           },
         },
+        transactions: {
+          where: {
+            deleted: null,
+          },
+          select: {
+            amount: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(cards, { status: 200 });
+
+    // Calculate amountSpent for each card by summing related transactions
+    const cardsWithAmountSpent = cards.map(card => ({
+      ...card,
+      amountSpent: card.transactions.reduce((sum, transaction) => sum + transaction.amount, 0),
+      transactions: undefined, // Remove transactions from response
+    }));
+
+    return NextResponse.json(cardsWithAmountSpent, { status: 200 });
   }),
 });
 

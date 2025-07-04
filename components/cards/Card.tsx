@@ -103,17 +103,31 @@ const Card = ({ card, onEdit, onCopy, onDelete }: CardProps) => {
         {/* Balance and Limit */}
         <div className="space-y-3">
           <div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">Spent</span>
-              <span className="font-semibold text-gray-900">
-                ${card.amountSpent.toLocaleString()}
-              </span>
-            </div>
             {card.spendingLimit && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">Limit</span>
                 <span className="font-semibold text-gray-900">
-                  ${card.spendingLimit.toLocaleString()}
+                  ${card.spendingLimit.toFixed(2)}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-500">Spent</span>
+              <span className="font-semibold text-red-500">
+                ${card.amountSpent.toFixed(2)}
+              </span>
+            </div>
+            {card.spendingLimit && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Available</span>
+                <span
+                  className={`font-semibold ${
+                    card.spendingLimit - card.amountSpent >= 0
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  ${(card.spendingLimit - card.amountSpent).toFixed(2)}
                 </span>
               </div>
             )}
