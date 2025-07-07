@@ -170,7 +170,9 @@ const CardsPage = () => {
     .filter((card) => card.spendingLimit)
     .reduce((sum, card) => sum + (card.spendingLimit ?? 0), 0);
   const activeCards = cards.filter((card) => card.isActive).length;
-  const creditCards = cards.filter((card) => card.type === "credit").length;
+  const creditCards = cards.filter(
+    (card) => card.type === "credit" || card.type === "business_credit",
+  ).length;
 
   if (isLoading) {
     return <LoadingSpinner message="Loading cards..." />;
@@ -190,7 +192,7 @@ const CardsPage = () => {
     <div className="flex h-screen flex-col bg-gray-50">
       <PageHeader
         title="Cards"
-        description="Manage your credit and debit cards"
+        description="View and manage credit and debit cards in your account"
       />
 
       <div className="flex-1 overflow-auto">
@@ -249,14 +251,16 @@ const CardsPage = () => {
                 {creditCards}
               </div>
               <div className="mt-1 text-sm text-gray-500">
-                {cards.length - creditCards} debit cards
+                {cards.length - creditCards} debit & cash cards
               </div>
             </div>
           </div>
 
           {/* Cards Grid */}
           <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Your Cards</h2>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Account Cards
+            </h2>
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -287,9 +291,15 @@ const CardsPage = () => {
             )}
 
             {/* Credit Cards Section */}
-            {cards.filter((card) => card.type === "credit").length > 0 &&
+            {cards.filter(
+              (card) =>
+                card.type === "credit" || card.type === "business_credit",
+            ).length > 0 &&
               cards
-                .filter((card) => card.type === "credit")
+                .filter(
+                  (card) =>
+                    card.type === "credit" || card.type === "business_credit",
+                )
                 .map((card) => {
                   const isEditing = cardToEdit?.id === card.id;
 
@@ -321,14 +331,20 @@ const CardsPage = () => {
                       onEdit={handleEditCard}
                       onCopy={handleCopyCard}
                       onDelete={handleDeleteCard}
+                      canEdit={card.userId === session?.user?.id}
                     />
                   );
                 })}
 
             {/* Debit Cards Section */}
-            {cards.filter((card) => card.type === "debit").length > 0 &&
+            {cards.filter(
+              (card) => card.type === "debit" || card.type === "business_debit",
+            ).length > 0 &&
               cards
-                .filter((card) => card.type === "debit")
+                .filter(
+                  (card) =>
+                    card.type === "debit" || card.type === "business_debit",
+                )
                 .map((card) => {
                   const isEditing = cardToEdit?.id === card.id;
 
@@ -360,6 +376,47 @@ const CardsPage = () => {
                       onEdit={handleEditCard}
                       onCopy={handleCopyCard}
                       onDelete={handleDeleteCard}
+                      canEdit={card.userId === session?.user?.id}
+                    />
+                  );
+                })}
+
+            {/* Cash Cards Section */}
+            {cards.filter((card) => card.type === "cash").length > 0 &&
+              cards
+                .filter((card) => card.type === "cash")
+                .map((card) => {
+                  const isEditing = cardToEdit?.id === card.id;
+
+                  if (isEditing) {
+                    return (
+                      <AddCardForm
+                        key={`edit-${card.id}`}
+                        onSubmit={handleSubmitCard}
+                        onCancel={handleCancelEdit}
+                        isLoading={updateCardMutation.isPending}
+                        cardToEdit={cardToEdit}
+                        users={users}
+                        loadingUsers={loadingUsers}
+                        defaultValues={{
+                          name: cardToEdit.name,
+                          cardType: cardToEdit.cardType,
+                          spendingLimit:
+                            cardToEdit.spendingLimit?.toString() ?? "",
+                          userId: cardToEdit.userId,
+                        }}
+                      />
+                    );
+                  }
+
+                  return (
+                    <CardComponent
+                      key={card.id}
+                      card={card}
+                      onEdit={handleEditCard}
+                      onCopy={handleCopyCard}
+                      onDelete={handleDeleteCard}
+                      canEdit={card.userId === session?.user?.id}
                     />
                   );
                 })}

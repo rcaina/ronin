@@ -22,10 +22,10 @@ export const GET = withUser({
       return NextResponse.json({ message: "Card ID is required" }, { status: 400 });
     }
 
+    // First, find the card and verify it belongs to a user in the same account
     const card = await prisma.card.findFirst({
       where: {
         id,
-        userId: user.id,
         deleted: null,
       },
       include: {
@@ -50,6 +50,12 @@ export const GET = withUser({
 
     if (!card) {
       return NextResponse.json({ message: "Card not found" }, { status: 404 });
+    }
+
+    // Verify the card belongs to a user in the same account
+    const ownershipError = await ensureAccountOwnership(user, card.userId);
+    if (ownershipError) {
+      return ownershipError;
     }
 
     // Calculate amountSpent by summing related transactions
@@ -80,10 +86,33 @@ export const PUT = withUser({
       );
     }
 
-    // Ensure ownership
-    const ownershipError = await ensureAccountOwnership(user, user.id);
-    if (ownershipError) {
-      return ownershipError;
+    // First, find the card to verify ownership
+    const card = await prisma.card.findFirst({
+      where: {
+        id,
+        deleted: null,
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    if (!card) {
+      return NextResponse.json({ message: "Card not found" }, { status: 404 });
+    }
+
+    // Ensure the card belongs to a user in the same account
+    const accountOwnershipError = await ensureAccountOwnership(user, card.userId);
+    if (accountOwnershipError) {
+      return accountOwnershipError;
+    }
+
+    // Ensure the current user owns the card (only card owner can edit)
+    if (card.userId !== user.id) {
+      return NextResponse.json(
+        { message: "You can only edit your own cards" },
+        { status: 403 }
+      );
     }
     
     return await prisma.$transaction(async (tx) => {
@@ -101,10 +130,33 @@ export const DELETE = withUser({
       return NextResponse.json({ message: "Card ID is required" }, { status: 400 });
     }
 
-    // Ensure ownership
-    const ownershipError = await ensureAccountOwnership(user, user.id);
-    if (ownershipError) {
-      return ownershipError;
+    // First, find the card to verify ownership
+    const card = await prisma.card.findFirst({
+      where: {
+        id,
+        deleted: null,
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    if (!card) {
+      return NextResponse.json({ message: "Card not found" }, { status: 404 });
+    }
+
+    // Ensure the card belongs to a user in the same account
+    const accountOwnershipError = await ensureAccountOwnership(user, card.userId);
+    if (accountOwnershipError) {
+      return accountOwnershipError;
+    }
+
+    // Ensure the current user owns the card (only card owner can delete)
+    if (card.userId !== user.id) {
+      return NextResponse.json(
+        { message: "You can only delete your own cards" },
+        { status: 403 }
+      );
     }
     
     return await prisma.$transaction(async (tx) => {

@@ -3,7 +3,7 @@ import { CreditCard, DollarSign, Edit, Trash2, CopyIcon } from "lucide-react";
 interface Card {
   id: string;
   name: string;
-  type: "credit" | "debit";
+  type: "credit" | "debit" | "business_credit" | "business_debit" | "cash";
   amountSpent: number;
   spendingLimit?: number;
   user: string;
@@ -16,6 +16,7 @@ interface CardProps {
   onEdit?: (card: Card) => void;
   onCopy?: (card: Card) => void;
   onDelete?: (card: Card) => void;
+  canEdit?: boolean;
 }
 
 const getCardTypeIcon = (type: string) => {
@@ -40,7 +41,13 @@ const getUtilizationColor = (percentage: number) => {
   return "text-green-600";
 };
 
-const Card = ({ card, onEdit, onCopy, onDelete }: CardProps) => {
+const Card = ({
+  card,
+  onEdit,
+  onCopy,
+  onDelete,
+  canEdit = true,
+}: CardProps) => {
   return (
     <div
       className={`group relative overflow-hidden rounded-xl border bg-white shadow-sm transition-all hover:shadow-md ${
@@ -62,20 +69,24 @@ const Card = ({ card, onEdit, onCopy, onDelete }: CardProps) => {
             >
               <CopyIcon className="h-4 w-4" />
             </button>
-            <button
-              className="rounded-md p-1 opacity-0 transition-opacity hover:bg-white/20 group-hover:opacity-100"
-              onClick={() => onEdit?.(card)}
-              title="Edit"
-            >
-              <Edit className="h-4 w-4" />
-            </button>
-            <button
-              className="rounded-md p-1 text-red-300 opacity-0 transition-opacity hover:bg-white/20 hover:text-red-500 group-hover:opacity-100"
-              onClick={() => onDelete?.(card)}
-              title="Delete card"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            {canEdit && (
+              <>
+                <button
+                  className="rounded-md p-1 opacity-0 transition-opacity hover:bg-white/20 group-hover:opacity-100"
+                  onClick={() => onEdit?.(card)}
+                  title="Edit"
+                >
+                  <Edit className="h-4 w-4" />
+                </button>
+                <button
+                  className="rounded-md p-1 text-red-300 opacity-0 transition-opacity hover:bg-white/20 hover:text-red-500 group-hover:opacity-100"
+                  onClick={() => onDelete?.(card)}
+                  title="Delete card"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </>
+            )}
           </div>
         </div>
 

@@ -62,7 +62,6 @@ export default function TransactionForm({
 
   const [selectedBudgetId, setSelectedBudgetId] = useState<string>("");
   const { data: budgetCategories = [] } = useBudgetCategories(selectedBudgetId);
-  console.log({ budgetCategories });
   const isEditing = !!transaction;
   const isPending = isCreating || isUpdating;
   console.log({ transaction });
@@ -330,11 +329,17 @@ export default function TransactionForm({
                         : "Select a category"}
                 </option>
                 {budgetCategories.map(
-                  (budgetCategory: BudgetCategoryWithCategory) => (
-                    <option key={budgetCategory.id} value={budgetCategory.id}>
-                      {budgetCategory.category.name}
-                    </option>
-                  ),
+                  (budgetCategory: BudgetCategoryWithCategory) => {
+                    const allocatedAmount = budgetCategory.allocatedAmount ?? 0;
+                    const spentAmount = budgetCategory.spentAmount ?? 0;
+                    const availableAmount = allocatedAmount - spentAmount;
+                    return (
+                      <option key={budgetCategory.id} value={budgetCategory.id}>
+                        {budgetCategory.category.name} ($
+                        {availableAmount.toFixed(2)} available)
+                      </option>
+                    );
+                  },
                 )}
                 {/* Show current category if editing and it's not in the current budget categories */}
                 {isEditing &&
@@ -344,7 +349,7 @@ export default function TransactionForm({
                     (bc) => bc.id === transaction.categoryId,
                   ) && (
                     <option value={transaction.categoryId}>
-                      {transaction.category.category.name} (current)
+                      {transaction.category.category.name} (current category)
                     </option>
                   )}
               </select>
@@ -402,7 +407,7 @@ export default function TransactionForm({
               <option value="">Select a payment method</option>
               {cards.map((card: Card) => (
                 <option key={card.id} value={card.id}>
-                  {card.name} ({card.cardType})
+                  {card.name} ({card.cardType}) - {card.user.name}
                 </option>
               ))}
             </select>

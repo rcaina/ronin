@@ -26,6 +26,14 @@ export const GET = withUser({
       },
       include: {
         category: true,
+        transactions: {
+          where: {
+            deleted: null,
+          },
+          select: {
+            amount: true,
+          },
+        },
       },
       orderBy: {
         category: {
@@ -34,7 +42,14 @@ export const GET = withUser({
       },
     });
 
-    return NextResponse.json(budgetCategories, { status: 200 });
+    // Calculate spent amount for each budget category
+    const budgetCategoriesWithSpent = budgetCategories.map(budgetCategory => ({
+      ...budgetCategory,
+      spentAmount: budgetCategory.transactions?.reduce((sum, transaction) => sum + (transaction.amount || 0), 0) || 0,
+      transactions: undefined, // Remove transactions from response
+    }));
+
+    return NextResponse.json(budgetCategoriesWithSpent, { status: 200 });
   }),
 });
 
