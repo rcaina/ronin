@@ -1,10 +1,11 @@
 "use client";
 
-import { DollarSign } from "lucide-react";
+import { DollarSign, Info } from "lucide-react";
 
 interface Transaction {
   id: string;
   name: string | null;
+  description?: string | null;
   amount: number;
   createdAt: Date;
   categoryName: string;
@@ -55,9 +56,20 @@ export default function BudgetTransactionsList({
                     )}`}
                   ></div>
                   <div>
-                    <p className="font-medium text-gray-900">
-                      {transaction.name ?? "Unnamed transaction"}
-                    </p>
+                    <div className="flex items-center space-x-2">
+                      <p className="font-medium text-gray-900">
+                        {transaction.name ?? "Unnamed transaction"}
+                      </p>
+                      {transaction.description && (
+                        <div className="group relative">
+                          <Info className="h-4 w-4 cursor-help text-gray-400" />
+                          <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                            {transaction.description}
+                            <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-500">
                       {transaction.categoryName}
                     </p>

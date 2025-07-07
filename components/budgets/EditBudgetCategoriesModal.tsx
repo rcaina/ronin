@@ -49,7 +49,7 @@ export default function EditBudgetCategoriesModal({
           return {
             categoryId: budgetCategory.categoryId,
             name: budgetCategory.category.name,
-            group: budgetCategory.category.group as CategoryType,
+            group: budgetCategory.category.group,
             allocatedAmount: budgetCategory.allocatedAmount,
             currentSpent,
           };

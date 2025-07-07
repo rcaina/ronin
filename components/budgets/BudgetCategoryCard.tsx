@@ -7,26 +7,15 @@ import {
 } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import { useState } from "react";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import type {
+  BudgetCategoryWithRelations,
+  GroupColorFunction,
+} from "@/lib/types/budget";
 
 interface BudgetCategoryCardProps {
-  budgetCategory: {
-    id: string;
-    categoryId: string;
-    allocatedAmount: number;
-    category: {
-      id: string;
-      name: string;
-      group: string;
-    };
-    transactions: Array<{
-      id: string;
-      name: string | null;
-      amount: number;
-      createdAt: Date;
-    }>;
-  };
+  budgetCategory: BudgetCategoryWithRelations;
   budgetId: string;
-  getGroupColor: (group: string) => string;
+  getGroupColor: GroupColorFunction;
 }
 
 export default function BudgetCategoryCard({
