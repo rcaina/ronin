@@ -418,7 +418,7 @@ export default function CreateBudgetModal({
       const incomes = incomeEntries.map((entry) => ({
         amount: entry.amount,
         source: entry.source,
-        description: entry.description || undefined,
+        description: entry.description ?? "",
         isPlanned: entry.isPlanned,
         frequency: entry.frequency,
       }));
