@@ -7,10 +7,24 @@ import { type User, type CardType } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const GET = withUser({
-  GET: withUserErrorHandling(async (_req: NextRequest, _context, user: User) => {
+  GET: withUserErrorHandling(async (_req: NextRequest, _context, user: User & { accountId: string }) => {
+    // Get all users in the same account
+    const accountUsers = await prisma.accountUser.findMany({
+      where: {
+        accountId: user.accountId,
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    const userIds = accountUsers.map(au => au.userId);
+
     const cards = await prisma.card.findMany({
       where: {
-        userId: user.id,
+        userId: {
+          in: userIds,
+        },
         deleted: null,
       },
       include: {

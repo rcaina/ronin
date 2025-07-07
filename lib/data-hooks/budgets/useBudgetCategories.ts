@@ -6,6 +6,7 @@ export type BudgetCategoryWithCategory = {
   budgetId: string;
   categoryId: string;
   allocatedAmount: number;
+  spentAmount?: number;
   createdAt: string;
   updatedAt: string;
   deleted: string | null;

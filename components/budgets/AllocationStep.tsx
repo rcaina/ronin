@@ -1,7 +1,7 @@
 "use client";
 
 import { DollarSign, ShoppingBag, TrendingUp, Target } from "lucide-react";
-import { CategoryType, PeriodType } from "@prisma/client";
+import { CategoryType, type PeriodType } from "@prisma/client";
 import type { CategoryAllocation } from "./types";
 import { calculateAdjustedIncome } from "@/lib/utils";
 

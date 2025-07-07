@@ -13,63 +13,18 @@ import {
 import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
-import BudgetCategoryCard from "@/components/budgets/BudgetCategoryCard";
+import BudgetCategoriesSection from "@/components/budgets/BudgetCategoriesSection";
 import BudgetTransactionsList from "@/components/budgets/BudgetTransactionsList";
-import AddBudgetCategoryForm from "@/components/budgets/AddBudgetCategoryForm";
 import IncomeModal from "@/components/budgets/IncomeModal";
-import {
-  useCreateBudgetCategory,
-  useUpdateBudgetCategory,
-} from "@/lib/data-hooks/budgets/useBudgetCategories";
-import { useCategories } from "@/lib/data-hooks/categories/useCategories";
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
-  const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [isEditBudgetOpen, setIsEditBudgetOpen] = useState(false);
-  const [activeGroup, setActiveGroup] = useState<string | null>(null);
-  const [scrollShadows, setScrollShadows] = useState<Record<string, boolean>>(
-    {},
-  );
   const { data: budget, isLoading, error, refetch } = useBudget(id as string);
-  const { data: categories } = useCategories();
-  const createBudgetCategoryMutation = useCreateBudgetCategory();
-  const updateBudgetCategoryMutation = useUpdateBudgetCategory();
-  const scrollContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
-  // Check if content is scrollable and show/hide shadow accordingly
-  useEffect(() => {
-    const checkScrollable = () => {
-      const newScrollShadows: Record<string, boolean> = {};
-
-      Object.entries(scrollContainerRefs.current).forEach(
-        ([group, element]) => {
-          if (element) {
-            const isScrollable = element.scrollHeight > element.clientHeight;
-            newScrollShadows[group] = isScrollable;
-          }
-        },
-      );
-
-      setScrollShadows(newScrollShadows);
-    };
-
-    checkScrollable();
-
-    // Re-check when budget categories change
-    const resizeObserver = new ResizeObserver(checkScrollable);
-    Object.values(scrollContainerRefs.current).forEach((element) => {
-      if (element) {
-        resizeObserver.observe(element);
-      }
-    });
-
-    return () => resizeObserver.disconnect();
-  }, [budget?.categories]);
 
   if (isLoading) {
     return <LoadingSpinner message="Loading budget..." />;
@@ -198,107 +153,6 @@ const BudgetDetailsPage = () => {
 
   const handleEditBudgetSuccess = () => {
     void refetch();
-  };
-
-  const handleStartAddCategory = (group: string) => {
-    setIsAddingCategory(true);
-    setActiveGroup(group);
-  };
-
-  const handleCancelAddCategory = () => {
-    setIsAddingCategory(false);
-    setActiveGroup(null);
-  };
-
-  const handleSubmitAddCategory = async (data: {
-    categoryName: string;
-    allocatedAmount: number;
-  }) => {
-    try {
-      await createBudgetCategoryMutation.mutateAsync({
-        budgetId: id as string,
-        data: {
-          categoryName: data.categoryName,
-          group: activeGroup as "needs" | "wants" | "investment",
-          allocatedAmount: data.allocatedAmount,
-        },
-      });
-
-      handleCancelAddCategory();
-    } catch (error) {
-      console.error("Failed to add budget category:", error);
-    }
-  };
-
-  // Drag and drop handlers for budget categories
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.currentTarget.classList.add(
-      "bg-gray-50",
-      "border-2",
-      "border-dashed",
-      "border-gray-300",
-    );
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.currentTarget.classList.remove(
-      "bg-gray-50",
-      "border-2",
-      "border-dashed",
-      "border-gray-300",
-    );
-  };
-
-  const handleDrop = async (e: React.DragEvent, targetGroup: string) => {
-    e.preventDefault();
-    e.currentTarget.classList.remove(
-      "bg-gray-50",
-      "border-2",
-      "border-dashed",
-      "border-gray-300",
-    );
-
-    const budgetCategoryId = e.dataTransfer.getData("text/plain");
-    if (!budgetCategoryId || !categories) return;
-
-    // Find the budget category being dragged
-    const draggedBudgetCategory = (budget.categories ?? []).find(
-      (bc) => bc.id === budgetCategoryId,
-    );
-    if (!draggedBudgetCategory?.category) return;
-
-    // Don't allow dropping in the same group
-    if (draggedBudgetCategory.category.group.toLowerCase() === targetGroup) {
-      return;
-    }
-
-    // Find a category template in the target group with the same name
-    const targetGroupKey = targetGroup as keyof typeof categories;
-    const targetCategories = categories[targetGroupKey] || [];
-
-    const matchingCategory = targetCategories.find(
-      (cat) => cat.name === draggedBudgetCategory.category.name,
-    );
-
-    if (!matchingCategory) {
-      console.error("No matching category found in target group");
-      return;
-    }
-
-    try {
-      // Update the budget category to use the new category template
-      await updateBudgetCategoryMutation.mutateAsync({
-        budgetId: id as string,
-        categoryId: budgetCategoryId,
-        data: {
-          categoryId: matchingCategory.id,
-        },
-      });
-    } catch (error) {
-      console.error("Failed to move budget category:", error);
-    }
   };
 
   return (
@@ -458,113 +312,14 @@ const BudgetDetailsPage = () => {
           </div>
 
           {/* Categories by Group */}
-          <div className="mb-8">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">
-                Budget Categories
-              </h2>
-              <div className="flex items-center space-x-2">
-                {(() => {
-                  const totalAllocated = (budget.categories ?? []).reduce(
-                    (sum, category) => sum + category.allocatedAmount,
-                    0,
-                  );
-                  const allocationRemaining = totalIncome - totalAllocated;
-
-                  if (allocationRemaining > 0) {
-                    return (
-                      <span className="text-sm font-medium text-blue-600">
-                        ${allocationRemaining.toLocaleString()} Left to Allocate
-                      </span>
-                    );
-                  } else if (allocationRemaining === 0) {
-                    return (
-                      <span className="text-sm font-medium text-green-600">
-                        100% Allocated
-                      </span>
-                    );
-                  } else {
-                    return (
-                      <span className="text-sm font-medium text-red-600">
-                        ${Math.abs(allocationRemaining).toLocaleString()} Over
-                        Allocated
-                      </span>
-                    );
-                  }
-                })()}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {Object.entries(categoriesByGroup).map(([group, categories]) => (
-                <div
-                  key={group}
-                  className="flex h-[600px] flex-col"
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, group)}
-                >
-                  <div className="mb-4 flex items-center justify-between">
-                    <div className="mb-4 flex items-center">
-                      <div
-                        className={`h-3 w-3 rounded-full ${getGroupColor(group)} mr-3`}
-                      ></div>
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {getGroupLabel(group)}
-                      </h3>
-                      <span className="ml-2 text-sm text-gray-500">
-                        ({categories?.length})
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <button
-                        onClick={() => handleStartAddCategory(group)}
-                        className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                        title="Add category"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="relative min-h-0 flex-1">
-                    <div
-                      ref={(el) => {
-                        scrollContainerRefs.current[group] = el;
-                      }}
-                      className="scrollbar-hide absolute inset-0 space-y-4 overflow-y-auto pb-6"
-                    >
-                      {/* Add Category Form - inline within column */}
-                      {isAddingCategory && activeGroup === group && (
-                        <AddBudgetCategoryForm
-                          onSubmit={handleSubmitAddCategory}
-                          onCancel={handleCancelAddCategory}
-                          isLoading={createBudgetCategoryMutation.isPending}
-                        />
-                      )}
-
-                      {categories?.map((budgetCategory) => {
-                        // Skip if category relation is not loaded
-                        if (!budgetCategory.category) return null;
-
-                        return (
-                          <BudgetCategoryCard
-                            key={budgetCategory.id}
-                            budgetCategory={budgetCategory}
-                            budgetId={id as string}
-                            getGroupColor={getGroupColor}
-                          />
-                        );
-                      })}
-                    </div>
-
-                    {/* Scroll Shadow Indicator */}
-                    {scrollShadows[group] && (
-                      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white/80 to-transparent" />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <BudgetCategoriesSection
+            budget={budget}
+            budgetId={id as string}
+            categoriesByGroup={categoriesByGroup}
+            getGroupColor={getGroupColor}
+            getGroupLabel={getGroupLabel}
+            onRefetch={refetch}
+          />
 
           {/* All Transactions */}
           <BudgetTransactionsList
