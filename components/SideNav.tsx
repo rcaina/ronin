@@ -38,7 +38,7 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
 
   return (
     <div
-      className={`fixed left-0 top-0 z-40 h-screen bg-black/90 transition-all duration-300 ease-in-out ${
+      className={`fixed left-0 top-0 z-40 hidden h-screen bg-black/90 transition-all duration-300 ease-in-out lg:block ${
         isCollapsed ? "w-16" : "w-64"
       }`}
     >

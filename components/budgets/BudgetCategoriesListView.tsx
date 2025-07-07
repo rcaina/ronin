@@ -58,8 +58,8 @@ export default function BudgetCategoriesListView({
   }
 
   return (
-    <div className="rounded-xl border bg-white p-6 shadow-sm">
-      <div className="h-[600px] overflow-y-auto">
+    <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-6">
+      <div className="h-[400px] overflow-y-auto sm:h-[500px] md:h-[600px]">
         <div className="space-y-2 pr-2">
           {allCategories.map((budgetCategory) => {
             // Skip if category relation is not loaded
@@ -80,18 +80,18 @@ export default function BudgetCategoriesListView({
               <div key={budgetCategory.id} className="space-y-2">
                 {/* Category Row */}
                 <div
-                  className="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100"
+                  className="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-3 transition-colors hover:bg-gray-100 sm:p-4"
                   onClick={() => toggleExpanded(budgetCategory.id)}
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
                       <div
                         className={`h-3 w-3 rounded-full ${getGroupColor(
                           budgetCategory.group.toLowerCase(),
                         )}`}
                       ></div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center space-x-2">
+                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:space-x-2">
                           <p className="font-medium text-gray-900">
                             {budgetCategory.category.name}
                           </p>
@@ -99,8 +99,8 @@ export default function BudgetCategoriesListView({
                             ({getGroupLabel(budgetCategory.group)})
                           </span>
                         </div>
-                        <div className="mt-1 space-y-2">
-                          <div className="flex items-center space-x-4 text-sm text-gray-500">
+                        <div className="mt-2 space-y-2">
+                          <div className="flex flex-col gap-1 text-sm text-gray-500 sm:flex-row sm:items-center sm:space-x-4">
                             <span>
                               Allocated: $
                               {budgetCategory.allocatedAmount.toLocaleString()}
@@ -125,7 +125,7 @@ export default function BudgetCategoriesListView({
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-4">
+                  <div className="ml-2 flex items-center space-x-2 sm:space-x-4">
                     <div className="text-right">
                       <p
                         className={`font-medium ${
@@ -152,24 +152,24 @@ export default function BudgetCategoriesListView({
 
                 {/* Expanded Transactions */}
                 {isExpanded && (
-                  <div className="ml-8 space-y-2">
+                  <div className="ml-4 space-y-2 sm:ml-8">
                     {transactions.length === 0 ? (
-                      <div className="bg-gray-25 rounded-lg p-4 text-center text-sm text-gray-500">
+                      <div className="bg-gray-25 rounded-lg p-3 text-center text-sm text-gray-500 sm:p-4">
                         No transactions in this category
                       </div>
                     ) : (
                       transactions.map((transaction) => (
                         <div
                           key={transaction.id}
-                          className="bg-gray-25 flex items-center justify-between rounded-lg p-3"
+                          className="bg-gray-25 flex items-center justify-between rounded-lg p-2 sm:p-3"
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center space-x-2">
-                              <p className="font-medium text-gray-900">
+                              <p className="truncate font-medium text-gray-900">
                                 {transaction.name ?? "Unnamed transaction"}
                               </p>
                               {transaction.description && (
-                                <div className="group relative">
+                                <div className="group relative flex-shrink-0">
                                   <Info className="h-4 w-4 cursor-help text-gray-400" />
                                   <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                                     {transaction.description}
@@ -178,13 +178,13 @@ export default function BudgetCategoriesListView({
                                 </div>
                               )}
                             </div>
-                            <p className="text-sm text-gray-500">
+                            <p className="truncate text-sm text-gray-500">
                               {new Date(
                                 transaction.createdAt,
                               ).toLocaleDateString()}
                             </p>
                           </div>
-                          <div className="text-right">
+                          <div className="ml-2 flex-shrink-0 text-right">
                             <p className="font-medium text-gray-900">
                               ${transaction.amount.toLocaleString()}
                             </p>

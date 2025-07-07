@@ -304,69 +304,69 @@ const BudgetsPage = () => {
         }}
       />
 
-      <div className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="flex-1">
+        <div className="mx-auto max-w-7xl px-2 py-16 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
           {/* Enhanced Overview Stats */}
           {budgets.length > 0 && (
-            <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-xl border bg-white p-6 shadow-sm">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-gray-500">
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
+              <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
+                <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                  <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                     Total Budgets
                   </h3>
-                  <Target className="h-5 w-5 text-blue-500" />
+                  <Target className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
                 </div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
                   {budgetStats.totalBudgets}
                 </div>
-                <div className="mt-1 text-sm text-gray-500">
+                <div className="mt-1 text-xs text-gray-500 sm:text-sm">
                   {budgetStats.activeBudgets} active
                 </div>
               </div>
 
-              <div className="rounded-xl border bg-white p-6 shadow-sm">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-gray-500">
+              <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
+                <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                  <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                     Total Income
                   </h3>
-                  <DollarSign className="h-5 w-5 text-green-500" />
+                  <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
                 </div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
                   ${budgetStats.totalIncome.toLocaleString()}
                 </div>
-                <div className="mt-1 text-sm text-gray-500">
+                <div className="mt-1 text-xs text-gray-500 sm:text-sm">
                   Across all budgets
                 </div>
               </div>
 
-              <div className="rounded-xl border bg-white p-6 shadow-sm">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-gray-500">
+              <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
+                <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                  <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                     Total Spent
                   </h3>
-                  <TrendingDown className="h-5 w-5 text-red-500" />
+                  <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
                 </div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
                   ${budgetStats.totalSpent.toLocaleString()}
                 </div>
-                <div className="mt-1 text-sm text-gray-500">
+                <div className="mt-1 text-xs text-gray-500 sm:text-sm">
                   {budgetStats.overallSpendingPercentage.toFixed(1)}% of total
                 </div>
               </div>
 
-              <div className="rounded-xl border bg-white p-6 shadow-sm">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-gray-500">
+              <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
+                <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                  <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                     Remaining
                   </h3>
-                  <TrendingUp className="h-5 w-5 text-blue-500" />
+                  <TrendingUp className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
                 </div>
                 <div
-                  className={`text-2xl font-bold ${budgetStats.totalRemaining >= 0 ? "text-gray-900" : "text-red-600"}`}
+                  className={`text-lg font-bold sm:text-xl lg:text-2xl ${budgetStats.totalRemaining >= 0 ? "text-gray-900" : "text-red-600"}`}
                 >
                   ${budgetStats.totalRemaining.toLocaleString()}
                 </div>
-                <div className="mt-1 text-sm text-gray-500">
+                <div className="mt-1 text-xs text-gray-500 sm:text-sm">
                   {budgetStats.totalRemaining >= 0
                     ? "Available"
                     : "Over budget"}
@@ -377,51 +377,55 @@ const BudgetsPage = () => {
 
           {/* New Insights Section */}
           {budgets.length > 0 && (
-            <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="mb-6 grid grid-cols-1 gap-4 sm:mb-8 sm:gap-6 lg:grid-cols-3">
               {/* Spending Trends */}
-              <div className="rounded-xl border bg-white p-6 shadow-sm">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">
+              <div className="rounded-xl border bg-white p-4 shadow-sm sm:p-6">
+                <div className="mb-3 flex items-center justify-between sm:mb-4">
+                  <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
                     Recent Spending
                   </h3>
-                  <Clock className="h-5 w-5 text-blue-500" />
+                  <Clock className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   <div>
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-xl font-bold text-gray-900 sm:text-2xl">
                       ${budgetStats.recentSpending.toLocaleString()}
                     </div>
-                    <div className="text-sm text-gray-500">Last 30 days</div>
+                    <div className="text-xs text-gray-500 sm:text-sm">
+                      Last 30 days
+                    </div>
                   </div>
                   <div>
-                    <div className="text-lg font-semibold text-gray-900">
+                    <div className="text-base font-semibold text-gray-900 sm:text-lg">
                       ${budgetStats.averageDailySpending.toFixed(0)}
                     </div>
-                    <div className="text-sm text-gray-500">Daily average</div>
+                    <div className="text-xs text-gray-500 sm:text-sm">
+                      Daily average
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Budget Health Overview */}
-              <div className="rounded-xl border bg-white p-6 shadow-sm">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">
+              <div className="rounded-xl border bg-white p-4 shadow-sm sm:p-6">
+                <div className="mb-3 flex items-center justify-between sm:mb-4">
+                  <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
                     Budget Health
                   </h3>
-                  <Zap className="h-5 w-5 text-green-500" />
+                  <Zap className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   <div>
                     <div
-                      className={`text-2xl font-bold ${getHealthScoreColor(budgetStats.averageHealthScore)}`}
+                      className={`text-xl font-bold sm:text-2xl ${getHealthScoreColor(budgetStats.averageHealthScore)}`}
                     >
                       {budgetStats.averageHealthScore.toFixed(0)}%
                     </div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-xs text-gray-500 sm:text-sm">
                       Average health score
                     </div>
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-xs text-gray-600 sm:text-sm">
                     {budgetStats.healthiestBudget && (
                       <div className="mb-1">
                         <span className="font-medium">Healthiest:</span>{" "}
@@ -441,12 +445,12 @@ const BudgetsPage = () => {
               </div>
 
               {/* Category Group Spending */}
-              <div className="rounded-xl border bg-white p-6 shadow-sm">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">
+              <div className="rounded-xl border bg-white p-4 shadow-sm sm:p-6">
+                <div className="mb-3 flex items-center justify-between sm:mb-4">
+                  <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
                     Spending by Group
                   </h3>
-                  <PieChart className="h-5 w-5 text-purple-500" />
+                  <PieChart className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
                 </div>
                 <div className="space-y-2">
                   {Object.entries(budgetStats.spendingByGroup).length > 0 ? (
@@ -466,11 +470,11 @@ const BudgetsPage = () => {
                                     : "bg-green-500"
                               }`}
                             />
-                            <span className="text-sm font-medium capitalize text-gray-700">
+                            <span className="text-xs font-medium capitalize text-gray-700 sm:text-sm">
                               {group}
                             </span>
                           </div>
-                          <span className="text-sm font-semibold text-gray-900">
+                          <span className="text-xs font-semibold text-gray-900 sm:text-sm">
                             ${amount.toLocaleString()}
                           </span>
                         </div>
@@ -478,7 +482,7 @@ const BudgetsPage = () => {
                     )
                   ) : (
                     <div className="py-4 text-center">
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs text-gray-500 sm:text-sm">
                         No spending data available
                       </p>
                       <p className="text-xs text-gray-400">
@@ -492,20 +496,20 @@ const BudgetsPage = () => {
           )}
 
           {/* Budgets List */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {budgets?.length === 0 ? (
-              <div className="rounded-xl border bg-white p-12 text-center shadow-sm">
-                <Target className="mx-auto mb-4 h-16 w-16 text-gray-300" />
-                <h3 className="mb-2 text-lg font-medium text-gray-900">
+              <div className="rounded-xl border bg-white p-8 text-center shadow-sm sm:p-12">
+                <Target className="mx-auto mb-3 h-12 w-12 text-gray-300 sm:mb-4 sm:h-16 sm:w-16" />
+                <h3 className="mb-2 text-base font-medium text-gray-900 sm:text-lg">
                   No budgets yet
                 </h3>
-                <p className="mx-auto mb-6 max-w-sm text-gray-500">
+                <p className="mx-auto mb-4 max-w-sm text-sm text-gray-500 sm:mb-6 sm:text-base">
                   Create your first budget to start tracking your spending and
                   managing your finances effectively.
                 </p>
                 <button
                   onClick={() => setIsCreateModalOpen(true)}
-                  className="inline-flex items-center rounded-lg bg-secondary px-4 py-2 text-white transition-colors hover:bg-yellow-300"
+                  className="inline-flex items-center rounded-lg bg-secondary px-4 py-2 text-sm text-white transition-colors hover:bg-yellow-300 sm:text-base"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Create Your First Budget
@@ -551,13 +555,13 @@ const BudgetsPage = () => {
                 return (
                   <div
                     key={budget.id}
-                    className={`cursor-pointer rounded-xl border bg-white p-6 shadow-sm transition-all duration-200 hover:bg-black/5 hover:shadow-xl ${budgetStatus.border}`}
+                    className={`cursor-pointer rounded-xl border bg-white p-4 shadow-sm transition-all duration-200 hover:bg-black/5 hover:shadow-xl sm:p-6 ${budgetStatus.border}`}
                     onClick={() => router.push(`/budgets/${budget.id}`)}
                   >
-                    <div className="mb-4 flex items-start justify-between">
+                    <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-start">
                       <div className="flex-1">
-                        <div className="mb-2 flex items-center space-x-3">
-                          <h3 className="text-xl font-bold text-gray-900">
+                        <div className="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
+                          <h3 className="text-lg font-bold text-gray-900 sm:text-xl">
                             {budget.name}
                           </h3>
                           <span
@@ -595,17 +599,17 @@ const BudgetsPage = () => {
                             </button>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 sm:gap-4 sm:text-sm">
                           <div className="flex items-center space-x-1">
-                            <Calendar className="h-4 w-4" />
+                            <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
                             <span>{budget.period.replace("_", " ")}</span>
                           </div>
                           <div className="flex items-center space-x-1">
-                            <Target className="h-4 w-4" />
+                            <Target className="h-3 w-3 sm:h-4 sm:w-4" />
                             <span>{budget.strategy.replace("_", " ")}</span>
                           </div>
                           <div className="flex items-center space-x-1">
-                            <Clock className="h-4 w-4" />
+                            <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
                             <span
                               className={
                                 isOverdue ? "font-medium text-red-600" : ""
@@ -623,10 +627,10 @@ const BudgetsPage = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-gray-900">
+                        <div className="text-xl font-bold text-gray-900 sm:text-2xl">
                           ${totalBudgetIncome.toLocaleString()}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-xs text-gray-500 sm:text-sm">
                           Total Budget
                         </div>
                       </div>
@@ -634,7 +638,7 @@ const BudgetsPage = () => {
 
                     {/* Progress Bar */}
                     <div className="mb-4">
-                      <div className="mb-2 flex items-center justify-between text-sm">
+                      <div className="mb-2 flex items-center justify-between text-xs sm:text-sm">
                         <span className="text-gray-500">Spending Progress</span>
                         <div className="flex items-center space-x-2">
                           <span className="font-medium">
@@ -659,34 +663,42 @@ const BudgetsPage = () => {
                     </div>
 
                     {/* Enhanced Budget Stats */}
-                    <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
-                      <div className="rounded-lg bg-gray-50 p-3 text-center">
-                        <div className="text-lg font-semibold text-gray-900">
+                    <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">
+                      <div className="rounded-lg bg-gray-50 p-2 text-center sm:p-3">
+                        <div className="text-sm font-semibold text-gray-900 sm:text-lg">
                           ${totalBudgetSpent.toLocaleString()}
                         </div>
-                        <div className="text-sm text-gray-500">Spent</div>
+                        <div className="text-xs text-gray-500 sm:text-sm">
+                          Spent
+                        </div>
                       </div>
-                      <div className="rounded-lg bg-gray-50 p-3 text-center">
+                      <div className="rounded-lg bg-gray-50 p-2 text-center sm:p-3">
                         <div
-                          className={`text-lg font-semibold ${budgetRemaining >= 0 ? "text-gray-900" : "text-red-600"}`}
+                          className={`text-sm font-semibold sm:text-lg ${budgetRemaining >= 0 ? "text-gray-900" : "text-red-600"}`}
                         >
                           ${budgetRemaining.toLocaleString()}
                         </div>
-                        <div className="text-sm text-gray-500">Remaining</div>
+                        <div className="text-xs text-gray-500 sm:text-sm">
+                          Remaining
+                        </div>
                       </div>
-                      <div className="rounded-lg bg-gray-50 p-3 text-center">
-                        <div className="text-lg font-semibold text-gray-900">
+                      <div className="rounded-lg bg-gray-50 p-2 text-center sm:p-3">
+                        <div className="text-sm font-semibold text-gray-900 sm:text-lg">
                           {budget.categories?.length ?? 0}
                         </div>
-                        <div className="text-sm text-gray-500">Categories</div>
+                        <div className="text-xs text-gray-500 sm:text-sm">
+                          Categories
+                        </div>
                       </div>
-                      <div className="rounded-lg bg-gray-50 p-3 text-center">
+                      <div className="rounded-lg bg-gray-50 p-2 text-center sm:p-3">
                         <div
-                          className={`text-lg font-semibold ${healthScoreColor}`}
+                          className={`text-sm font-semibold sm:text-lg ${healthScoreColor}`}
                         >
                           {healthScore}%
                         </div>
-                        <div className="text-sm text-gray-500">Health</div>
+                        <div className="text-xs text-gray-500 sm:text-sm">
+                          Health
+                        </div>
                       </div>
                     </div>
 

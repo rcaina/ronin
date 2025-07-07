@@ -107,79 +107,81 @@ export default function HomePage() {
         description={`Here's your financial overview for ${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}`}
       />
 
-      <div className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-7xl px-6 py-8">
+      <div className="flex-1">
+        <div className="mx-auto max-w-7xl px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
           {/* Financial Overview Cards */}
-          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border bg-white p-6 shadow-sm transition-all hover:shadow-md">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-500">
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
+            <div className="rounded-xl border bg-white p-3 shadow-sm transition-all hover:shadow-md sm:p-4 lg:p-6">
+              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                   Total Income
                 </h3>
-                <DollarSign className="h-5 w-5 text-green-500" />
+                <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
               </div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
                 ${totalIncome.toLocaleString()}
               </div>
-              <div className="mt-1 text-sm text-gray-500">
+              <div className="mt-1 text-xs text-gray-500 sm:text-sm">
                 Across {activeBudgets} active budgets
               </div>
             </div>
 
-            <div className="rounded-xl border bg-white p-6 shadow-sm transition-all hover:shadow-md">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-500">
+            <div className="rounded-xl border bg-white p-3 shadow-sm transition-all hover:shadow-md sm:p-4 lg:p-6">
+              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                   Total Spent
                 </h3>
-                <TrendingDown className="h-5 w-5 text-red-500" />
+                <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
               </div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
                 ${totalSpent.toLocaleString()}
               </div>
-              <div className="mt-1 text-sm text-gray-500">
+              <div className="mt-1 text-xs text-gray-500 sm:text-sm">
                 {spendingPercentage.toFixed(1)}% of total income
               </div>
             </div>
 
-            <div className="rounded-xl border bg-white p-6 shadow-sm transition-all hover:shadow-md">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-500">Remaining</h3>
-                <TrendingUp className="h-5 w-5 text-blue-500" />
+            <div className="rounded-xl border bg-white p-3 shadow-sm transition-all hover:shadow-md sm:p-4 lg:p-6">
+              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
+                  Remaining
+                </h3>
+                <TrendingUp className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
               </div>
               <div
-                className={`text-2xl font-bold ${totalRemaining >= 0 ? "text-gray-900" : "text-red-600"}`}
+                className={`text-lg font-bold sm:text-xl lg:text-2xl ${totalRemaining >= 0 ? "text-gray-900" : "text-red-600"}`}
               >
                 ${totalRemaining.toLocaleString()}
               </div>
-              <div className="mt-1 text-sm text-gray-500">
+              <div className="mt-1 text-xs text-gray-500 sm:text-sm">
                 {totalRemaining >= 0 ? "Available" : "Over budget"}
               </div>
             </div>
 
-            <div className="rounded-xl border bg-white p-6 shadow-sm transition-all hover:shadow-md">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-500">
+            <div className="rounded-xl border bg-white p-3 shadow-sm transition-all hover:shadow-md sm:p-4 lg:p-6">
+              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                   Active Budgets
                 </h3>
-                <Target className="h-5 w-5 text-purple-500" />
+                <Target className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
               </div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
                 {activeBudgets}
               </div>
-              <div className="mt-1 text-sm text-gray-500">
+              <div className="mt-1 text-xs text-gray-500 sm:text-sm">
                 {totalBudgets} total budgets
               </div>
             </div>
           </div>
 
           {/* Budget Progress */}
-          <div className="mb-8 rounded-xl border bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">
+          <div className="mb-6 rounded-xl border bg-white p-4 shadow-sm sm:mb-8 sm:p-6">
+            <div className="mb-4 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+              <h2 className="text-base font-semibold text-gray-900 sm:text-lg">
                 Overall Budget Progress
               </h2>
               <span
-                className={`rounded-full px-3 py-1 text-sm font-medium ${budgetStatus.bg} ${budgetStatus.color}`}
+                className={`rounded-full px-2 py-1 text-xs font-medium sm:px-3 sm:text-sm ${budgetStatus.bg} ${budgetStatus.color}`}
               >
                 {budgetStatus.status === "over"
                   ? "Over Budget"
@@ -189,15 +191,15 @@ export default function HomePage() {
               </span>
             </div>
             <div className="mb-4">
-              <div className="mb-2 flex items-center justify-between text-sm">
+              <div className="mb-2 flex items-center justify-between text-xs sm:text-sm">
                 <span className="text-gray-500">Spending Progress</span>
                 <span className="font-medium">
                   {spendingPercentage.toFixed(1)}%
                 </span>
               </div>
-              <div className="h-3 w-full rounded-full bg-gray-200">
+              <div className="h-2 w-full rounded-full bg-gray-200 sm:h-3">
                 <div
-                  className={`h-3 rounded-full transition-all duration-300 ${
+                  className={`h-2 rounded-full transition-all duration-300 sm:h-3 ${
                     spendingPercentage > 90
                       ? "bg-red-500"
                       : spendingPercentage > 75
@@ -208,64 +210,66 @@ export default function HomePage() {
                 ></div>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="grid grid-cols-3 gap-2 text-center sm:gap-4">
               <div>
-                <div className="text-lg font-semibold text-gray-900">
+                <div className="text-sm font-semibold text-gray-900 sm:text-lg">
                   ${totalIncome.toLocaleString()}
                 </div>
-                <div className="text-sm text-gray-500">Budgeted</div>
+                <div className="text-xs text-gray-500 sm:text-sm">Budgeted</div>
               </div>
               <div>
-                <div className="text-lg font-semibold text-gray-900">
+                <div className="text-sm font-semibold text-gray-900 sm:text-lg">
                   ${totalSpent.toLocaleString()}
                 </div>
-                <div className="text-sm text-gray-500">Spent</div>
+                <div className="text-xs text-gray-500 sm:text-sm">Spent</div>
               </div>
               <div>
                 <div
-                  className={`text-lg font-semibold ${totalRemaining >= 0 ? "text-gray-900" : "text-red-600"}`}
+                  className={`text-sm font-semibold sm:text-lg ${totalRemaining >= 0 ? "text-gray-900" : "text-red-600"}`}
                 >
                   ${totalRemaining.toLocaleString()}
                 </div>
-                <div className="text-sm text-gray-500">Remaining</div>
+                <div className="text-xs text-gray-500 sm:text-sm">
+                  Remaining
+                </div>
               </div>
             </div>
           </div>
 
           {/* Main Content Grid */}
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
             {/* Recent Activity */}
             <div className="lg:col-span-2">
-              <div className="rounded-xl border bg-white p-6 shadow-sm">
-                <div className="mb-6 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">
+              <div className="rounded-xl border bg-white p-4 shadow-sm sm:p-6">
+                <div className="mb-4 flex flex-col items-start justify-between gap-2 sm:mb-6 sm:flex-row sm:items-center">
+                  <h2 className="text-base font-semibold text-gray-900 sm:text-lg">
                     Recent Activity
                   </h2>
                   <Link
                     href="/transactions"
-                    className="flex items-center space-x-1 text-sm text-secondary hover:text-yellow-300"
+                    className="flex items-center space-x-1 text-xs text-secondary hover:text-yellow-300 sm:text-sm"
                   >
                     <span>View All</span>
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Link>
                 </div>
 
                 {recentTransactions.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {recentTransactions.map((transaction) => (
                       <div
                         key={transaction.id}
-                        className="flex items-center justify-between rounded-lg bg-gray-50 p-4"
+                        className="flex items-center justify-between rounded-lg bg-gray-50 p-3 sm:p-4"
                       >
-                        <div className="flex items-center space-x-3">
-                          <div className="bg-secondary/10 flex h-10 w-10 items-center justify-center rounded-full">
-                            <Receipt className="h-5 w-5 text-secondary" />
+                        <div className="flex items-center space-x-2 sm:space-x-3">
+                          <div className="bg-secondary/10 flex h-8 w-8 items-center justify-center rounded-full sm:h-10 sm:w-10">
+                            <Receipt className="h-4 w-4 text-secondary sm:h-5 sm:w-5" />
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900">
+                            <p className="text-sm font-medium text-gray-900 sm:text-base">
                               {transaction.name ?? "Unnamed transaction"}
                             </p>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-xs text-gray-500 sm:text-sm">
                               {transaction.category.category.name} •{" "}
                               {new Date(
                                 transaction.createdAt,
@@ -274,7 +278,7 @@ export default function HomePage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium text-gray-900">
+                          <p className="text-sm font-medium text-gray-900 sm:text-base">
                             ${transaction.amount.toLocaleString()}
                           </p>
                         </div>
@@ -282,10 +286,12 @@ export default function HomePage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="py-8 text-center">
-                    <Receipt className="mx-auto mb-4 h-12 w-12 text-gray-300" />
-                    <p className="text-gray-500">No recent transactions</p>
-                    <p className="text-sm text-gray-400">
+                  <div className="py-6 text-center sm:py-8">
+                    <Receipt className="mx-auto mb-3 h-8 w-8 text-gray-300 sm:mb-4 sm:h-12 sm:w-12" />
+                    <p className="text-sm text-gray-500 sm:text-base">
+                      No recent transactions
+                    </p>
+                    <p className="text-xs text-gray-400 sm:text-sm">
                       Start adding transactions to see them here
                     </p>
                   </div>
@@ -294,23 +300,25 @@ export default function HomePage() {
             </div>
 
             {/* Quick Actions & Insights */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Quick Actions */}
-              <div className="rounded-xl border bg-white p-6 shadow-sm">
-                <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              <div className="rounded-xl border bg-white p-4 shadow-sm sm:p-6">
+                <h2 className="mb-3 text-base font-semibold text-gray-900 sm:mb-4 sm:text-lg">
                   Quick Actions
                 </h2>
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   <button
                     onClick={() => router.push("/budgets")}
-                    className="flex w-full items-center space-x-3 rounded-lg border p-3 text-left transition-colors hover:bg-yellow-500/70"
+                    className="flex w-full items-center space-x-2 rounded-lg border p-2 text-left transition-colors hover:bg-yellow-500/70 sm:space-x-3 sm:p-3"
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-                      <Plus className="h-5 w-5 text-blue-600" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 sm:h-10 sm:w-10">
+                      <Plus className="h-4 w-4 text-blue-600 sm:h-5 sm:w-5" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">Create Budget</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm font-medium text-gray-900 sm:text-base">
+                        Create Budget
+                      </p>
+                      <p className="text-xs text-gray-500 sm:text-sm">
                         Set up a new budget plan
                       </p>
                     </div>
@@ -318,16 +326,16 @@ export default function HomePage() {
 
                   <button
                     onClick={() => router.push("/transactions")}
-                    className="flex w-full items-center space-x-3 rounded-lg border p-3 text-left transition-colors hover:bg-yellow-500/70"
+                    className="flex w-full items-center space-x-2 rounded-lg border p-2 text-left transition-colors hover:bg-yellow-500/70 sm:space-x-3 sm:p-3"
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-                      <Receipt className="h-5 w-5 text-green-600" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 sm:h-10 sm:w-10">
+                      <Receipt className="h-4 w-4 text-green-600 sm:h-5 sm:w-5" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 sm:text-base">
                         Add Transaction
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs text-gray-500 sm:text-sm">
                         Record a new expense
                       </p>
                     </div>
@@ -335,16 +343,16 @@ export default function HomePage() {
 
                   <button
                     onClick={() => router.push("/categories")}
-                    className="flex w-full items-center space-x-3 rounded-lg border p-3 text-left transition-colors hover:bg-yellow-500/70"
+                    className="flex w-full items-center space-x-2 rounded-lg border p-2 text-left transition-colors hover:bg-yellow-500/70 sm:space-x-3 sm:p-3"
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100">
-                      <BarChart3 className="h-5 w-5 text-purple-600" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 sm:h-10 sm:w-10">
+                      <BarChart3 className="h-4 w-4 text-purple-600 sm:h-5 sm:w-5" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 sm:text-base">
                         Manage Categories
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs text-gray-500 sm:text-sm">
                         Organize your spending
                       </p>
                     </div>
@@ -353,30 +361,34 @@ export default function HomePage() {
               </div>
 
               {/* Category Breakdown */}
-              <div className="rounded-xl border bg-white p-6 shadow-sm">
-                <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              <div className="rounded-xl border bg-white p-4 shadow-sm sm:p-6">
+                <h2 className="mb-3 text-base font-semibold text-gray-900 sm:mb-4 sm:text-lg">
                   Category Breakdown
                 </h2>
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {categories && "wants" in categories && (
                     <>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">Wants</span>
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-xs text-gray-500 sm:text-sm">
+                          Wants
+                        </span>
+                        <span className="text-xs font-medium text-gray-900 sm:text-sm">
                           {categories.wants?.length ?? 0} categories
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">Needs</span>
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-xs text-gray-500 sm:text-sm">
+                          Needs
+                        </span>
+                        <span className="text-xs font-medium text-gray-900 sm:text-sm">
                           {categories.needs?.length ?? 0} categories
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">
+                        <span className="text-xs text-gray-500 sm:text-sm">
                           Investment
                         </span>
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-xs font-medium text-gray-900 sm:text-sm">
                           {categories.investment?.length ?? 0} categories
                         </span>
                       </div>
@@ -387,18 +399,22 @@ export default function HomePage() {
                     (categories.wants?.length === 0 &&
                       categories.needs?.length === 0 &&
                       categories.investment?.length === 0)) && (
-                    <p className="text-sm text-gray-500">No categories yet</p>
+                    <p className="text-xs text-gray-500 sm:text-sm">
+                      No categories yet
+                    </p>
                   )}
                 </div>
               </div>
 
               {/* Financial Tips */}
-              <div className="from-secondary/10 rounded-xl border bg-gradient-to-br to-blue-500/10 p-6">
-                <div className="mb-3 flex items-center space-x-2">
-                  <Sparkles className="h-5 w-5 text-secondary" />
-                  <h3 className="font-semibold text-gray-900">Financial Tip</h3>
+              <div className="from-secondary/10 rounded-xl border bg-gradient-to-br to-blue-500/10 p-4 sm:p-6">
+                <div className="mb-2 flex items-center space-x-2 sm:mb-3">
+                  <Sparkles className="h-4 w-4 text-secondary sm:h-5 sm:w-5" />
+                  <h3 className="text-sm font-semibold text-gray-900 sm:text-base">
+                    Financial Tip
+                  </h3>
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs text-gray-600 sm:text-sm">
                   {spendingPercentage > 90
                     ? "You're over budget! Consider reviewing your spending habits and cutting back on non-essential expenses."
                     : spendingPercentage > 75
@@ -411,20 +427,20 @@ export default function HomePage() {
 
           {/* Budget Cards Preview */}
           {budgets.length > 0 && (
-            <div className="mt-8">
-              <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">
+            <div className="mt-6 sm:mt-8">
+              <div className="mb-4 flex flex-col items-start justify-between gap-2 sm:mb-6 sm:flex-row sm:items-center">
+                <h2 className="text-base font-semibold text-gray-900 sm:text-lg">
                   Your Budgets
                 </h2>
                 <Link
                   href="/budgets"
-                  className="flex items-center space-x-1 text-sm text-secondary hover:text-yellow-300"
+                  className="flex items-center space-x-1 text-xs text-secondary hover:text-yellow-300 sm:text-sm"
                 >
                   <span>View All Budgets</span>
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Link>
               </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
                 {budgets.slice(0, 3).map((budget) => {
                   const budgetIncome = budget.incomes?.[0]?.amount ?? 0;
                   const budgetSpent = (budget.categories ?? []).reduce(
@@ -444,10 +460,10 @@ export default function HomePage() {
                     <div
                       key={budget.id}
                       onClick={() => router.push(`/budgets/${budget.id}`)}
-                      className="cursor-pointer rounded-xl border bg-white p-6 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md"
+                      className="cursor-pointer rounded-xl border bg-white p-4 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md sm:p-6"
                     >
-                      <div className="mb-4 flex items-center justify-between">
-                        <h3 className="font-semibold text-gray-900">
+                      <div className="mb-3 flex items-center justify-between sm:mb-4">
+                        <h3 className="text-sm font-semibold text-gray-900 sm:text-base">
                           {budget.name}
                         </h3>
                         <span
@@ -478,7 +494,7 @@ export default function HomePage() {
                           ></div>
                         </div>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-gray-500">
                           ${budgetIncome.toLocaleString()}
                         </span>
