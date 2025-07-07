@@ -178,80 +178,82 @@ const BudgetDetailsPage = () => {
         }}
       />
 
-      <div className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="flex-1 overflow-x-hidden pt-16 sm:pt-20 lg:pt-0">
+        <div className="mx-auto w-full px-2 py-4 sm:max-w-7xl sm:px-4 sm:py-6 lg:px-8 lg:py-8">
           {/* Budget Overview Cards */}
-          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-            <div className="group relative rounded-xl border bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-500">
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-6">
+            <div className="group relative rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
+              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                   Total Income
                 </h3>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 sm:space-x-2">
                   <button
                     onClick={() => setIsIncomeModalOpen(true)}
                     className="rounded p-1 text-gray-400 opacity-0 transition-opacity hover:bg-gray-100 hover:text-gray-600 group-hover:opacity-100"
                     title="Edit income sources"
                   >
-                    <EditIcon className="h-4 w-4" />
+                    <EditIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                   </button>
-                  <DollarSign className="h-5 w-5 text-green-500" />
+                  <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
                 </div>
               </div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
                 ${totalIncome.toLocaleString()}
               </div>
-              <div className="mt-1 text-sm text-gray-500">
+              <div className="mt-1 text-xs text-gray-500 sm:text-sm">
                 {budget.incomes?.length === 1
                   ? (budget.incomes[0]?.source ?? "Primary income")
                   : `${budget.incomes?.length ?? 0} income sources`}
               </div>
             </div>
 
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-500">
+            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
+              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                   Total Spent
                 </h3>
-                <TrendingDown className="h-5 w-5 text-red-500" />
+                <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
               </div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
                 ${totalSpent.toLocaleString()}
               </div>
-              <div className="mt-1 text-sm text-gray-500">
+              <div className="mt-1 text-xs text-gray-500 sm:text-sm">
                 {spendingPercentage.toFixed(1)}% of budget
               </div>
             </div>
 
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-500">Remaining</h3>
-                <TrendingUp className="h-5 w-5 text-blue-500" />
+            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
+              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
+                  Remaining
+                </h3>
+                <TrendingUp className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
               </div>
               <div
-                className={`text-2xl font-bold ${totalRemaining >= 0 ? "text-gray-900" : "text-red-600"}`}
+                className={`text-lg font-bold sm:text-xl lg:text-2xl ${totalRemaining >= 0 ? "text-gray-900" : "text-red-600"}`}
               >
                 ${totalRemaining.toLocaleString()}
               </div>
-              <div className="mt-1 text-sm text-gray-500">
+              <div className="mt-1 text-xs text-gray-500 sm:text-sm">
                 {totalRemaining >= 0 ? "Available" : "Over budget"}
               </div>
             </div>
           </div>
 
           {/* Progress Bar */}
-          <div className="mb-8 rounded-xl border bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">
+          <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-8 sm:p-6">
+            <div className="mb-2 flex items-center justify-between sm:mb-4">
+              <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
                 Budget Progress
               </h3>
-              <span className="text-sm text-gray-500">
+              <span className="text-xs text-gray-500 sm:text-sm">
                 {spendingPercentage.toFixed(1)}% used
               </span>
             </div>
-            <div className="h-3 w-full rounded-full bg-gray-200">
+            <div className="h-2 w-full rounded-full bg-gray-200 sm:h-3">
               <div
-                className={`h-3 rounded-full transition-all duration-300 ${
+                className={`h-2 rounded-full transition-all duration-300 sm:h-3 ${
                   spendingPercentage > 90
                     ? "bg-red-500"
                     : spendingPercentage > 75
@@ -264,9 +266,9 @@ const BudgetDetailsPage = () => {
           </div>
 
           {/* Budget Details */}
-          <div className="mb-8 rounded-xl border bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">
+          <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-8 sm:p-6">
+            <div className="mb-2 flex items-center justify-between sm:mb-4">
+              <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
                 Budget Details
               </h3>
               <button
@@ -274,23 +276,31 @@ const BudgetDetailsPage = () => {
                 className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
                 title="Edit budget details"
               >
-                <EditIcon className="h-4 w-4" />
+                <EditIcon className="h-3 w-3 sm:h-4 sm:w-4" />
               </button>
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
               <div>
-                <span className="text-sm text-gray-500">Strategy:</span>
-                <p className="font-medium">
+                <span className="text-xs text-gray-500 sm:text-sm">
+                  Strategy:
+                </span>
+                <p className="text-sm font-medium sm:text-base">
                   {budget.strategy.replace("_", " ")}
                 </p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">Period:</span>
-                <p className="font-medium">{budget.period.replace("_", " ")}</p>
+                <span className="text-xs text-gray-500 sm:text-sm">
+                  Period:
+                </span>
+                <p className="text-sm font-medium sm:text-base">
+                  {budget.period.replace("_", " ")}
+                </p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">Start Date:</span>
-                <p className="font-medium">
+                <span className="text-xs text-gray-500 sm:text-sm">
+                  Start Date:
+                </span>
+                <p className="text-sm font-medium sm:text-base">
                   {new Date(budget.startAt).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "long",
@@ -299,8 +309,10 @@ const BudgetDetailsPage = () => {
                 </p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">End Date:</span>
-                <p className="font-medium">
+                <span className="text-xs text-gray-500 sm:text-sm">
+                  End Date:
+                </span>
+                <p className="text-sm font-medium sm:text-base">
                   {new Date(budget.endAt).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "long",

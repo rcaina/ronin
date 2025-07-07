@@ -126,25 +126,27 @@ export default function CategoryColumn({
 
   return (
     <div
-      className="flex h-[600px] flex-col"
+      className="flex h-[500px] flex-col sm:h-[600px]"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       {/* Header */}
-      <div className={`rounded-lg border p-4 ${colorClass}`}>
+      <div className={`rounded-lg border p-3 sm:p-4 ${colorClass}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <Icon className="mr-2 h-5 w-5" />
-            <span className="font-medium">{label}</span>
+            <Icon className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="text-sm font-medium sm:text-base">{label}</span>
           </div>
-          <span className="text-sm font-semibold">{categories.length}</span>
+          <span className="text-xs font-semibold sm:text-sm">
+            {categories.length}
+          </span>
         </div>
       </div>
 
       {/* Add Template Button */}
       {!isAddingCategory && (
-        <div className="mb-4 mt-4">
+        <div className="mb-3 mt-3 sm:mb-4 sm:mt-4">
           <AddItemButton
             onClick={() => onStartAdd(columnKey)}
             title="Add Template"
@@ -155,7 +157,7 @@ export default function CategoryColumn({
 
       {/* Inline Add Form */}
       {isAddingCategory && activeColumn === columnKey && (
-        <div className="mt-4">
+        <div className="mt-3 sm:mt-4">
           <AddCategoryForm
             onSubmit={onAddCategory}
             onCancel={onCancelAdd}
@@ -169,7 +171,7 @@ export default function CategoryColumn({
       <div className="relative min-h-0 flex-1">
         <div
           ref={scrollContainerRef}
-          className="scrollbar-hide absolute inset-0 space-y-4 overflow-y-auto"
+          className="scrollbar-hide absolute inset-0 space-y-3 overflow-y-auto sm:space-y-4"
         >
           {categories.map((category) => {
             const isEditing = editingCategory?.id === category.id;
@@ -198,12 +200,12 @@ export default function CategoryColumn({
                   e.dataTransfer.setData("text/plain", category.id);
                   e.dataTransfer.effectAllowed = "move";
                 }}
-                className="group relative cursor-grab overflow-hidden rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md active:cursor-grabbing"
+                className="group relative cursor-grab overflow-hidden rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md active:cursor-grabbing sm:p-6"
               >
                 {/* Category Type Badge */}
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-3 flex items-center justify-between sm:mb-4">
                   <span
-                    className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${colorClass}`}
+                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium sm:px-2.5 sm:py-0.5 ${colorClass}`}
                   >
                     <Icon className="mr-1 h-3 w-3" />
                     {label}
@@ -216,14 +218,14 @@ export default function CategoryColumn({
                       className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
                       title="Duplicate template"
                     >
-                      <Copy className="h-4 w-4" />
+                      <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
                     </button>
                     <button
                       onClick={() => onStartEdit(category)}
                       className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
                       title="Edit template"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                     </button>
                     <button
                       onClick={() =>
@@ -232,7 +234,7 @@ export default function CategoryColumn({
                       className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
                       title="Delete template"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                     </button>
                   </div>
                 </div>
@@ -242,16 +244,16 @@ export default function CategoryColumn({
                   className="absolute left-2 top-2 opacity-0 transition-opacity group-hover:opacity-100"
                   onMouseDown={(e) => e.stopPropagation()}
                 >
-                  <GripVertical className="h-4 w-4 text-gray-400" />
+                  <GripVertical className="h-3 w-3 text-gray-400 sm:h-4 sm:w-4" />
                 </div>
 
                 {/* Category Name */}
-                <h3 className="mb-2 text-lg font-semibold text-gray-900">
+                <h3 className="mb-2 text-base font-semibold text-gray-900 sm:text-lg">
                   {category.name}
                 </h3>
 
                 {/* Template Stats */}
-                <div className="flex items-center justify-between text-sm text-gray-500">
+                <div className="flex items-center justify-between text-xs text-gray-500 sm:text-sm">
                   <span>
                     Created {new Date(category.createdAt).toLocaleDateString()}
                   </span>

@@ -179,21 +179,21 @@ export default function BudgetCategoriesGridView({
   };
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
       {Object.entries(categoriesByGroup).map(([group, categories]) => (
         <div
           key={group}
-          className="flex h-[600px] flex-col"
+          className="flex h-[400px] flex-col sm:h-[500px] md:h-[600px]"
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={(e) => handleDrop(e, group)}
         >
-          <div className="mb-4 flex items-center justify-between">
-            <div className="mb-4 flex items-center">
+          <div className="mb-3 flex items-center justify-between sm:mb-4">
+            <div className="flex items-center">
               <div
-                className={`h-3 w-3 rounded-full ${getGroupColor(group)} mr-3`}
+                className={`h-3 w-3 rounded-full ${getGroupColor(group)} mr-2 sm:mr-3`}
               ></div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
                 {getGroupLabel(group)}
               </h3>
               <span className="ml-2 text-sm text-gray-500">
