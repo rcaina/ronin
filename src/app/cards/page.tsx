@@ -196,61 +196,61 @@ const CardsPage = () => {
       />
 
       <div className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
           {/* Overview Stats */}
-          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-4">
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-500">
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
+            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
+              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                   Total Spent
                 </h3>
-                <DollarSign className="h-5 w-5 text-green-500" />
+                <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
               </div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
                 ${totalSpent.toLocaleString()}
               </div>
-              <div className="mt-1 text-sm text-gray-500">Across all cards</div>
+              <div className="mt-1 text-xs text-gray-500">Across all cards</div>
             </div>
 
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-500">
+            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
+              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                   Credit Limit
                 </h3>
-                <CreditCard className="h-5 w-5 text-blue-500" />
+                <CreditCard className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
               </div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
                 ${totalLimit.toLocaleString()}
               </div>
-              <div className="mt-1 text-sm text-gray-500">Available credit</div>
+              <div className="mt-1 text-xs text-gray-500">Available credit</div>
             </div>
 
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-500">
+            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
+              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                   Active Cards
                 </h3>
-                <Shield className="h-5 w-5 text-purple-500" />
+                <Shield className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
               </div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
                 {activeCards}
               </div>
-              <div className="mt-1 text-sm text-gray-500">
+              <div className="mt-1 text-xs text-gray-500">
                 {cards.length - activeCards} inactive
               </div>
             </div>
 
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-500">
+            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
+              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                   Credit Cards
                 </h3>
-                <CreditCard className="h-5 w-5 text-indigo-500" />
+                <CreditCard className="h-4 w-4 text-indigo-500 sm:h-5 sm:w-5" />
               </div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
                 {creditCards}
               </div>
-              <div className="mt-1 text-sm text-gray-500">
+              <div className="mt-1 text-xs text-gray-500">
                 {cards.length - creditCards} debit & cash cards
               </div>
             </div>

@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import SideNav from "./SideNav";
+import MobileHeader from "./MobileHeader";
 import LoadingSpinner from "./LoadingSpinner";
 
 // Pages that don't require authentication
@@ -51,11 +52,19 @@ export default function ConditionalLayout({
 
     return (
       <main className="bg-gray/90 flex text-black">
-        <SideNav isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        {/* Mobile Header - only visible on mobile */}
+        <MobileHeader />
+
+        {/* Desktop Side Navigation - hidden on mobile */}
+        <div className="hidden lg:block">
+          <SideNav isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        </div>
+
+        {/* Main Content Area */}
         <div
-          className={`flex-1 overflow-auto transition-all duration-300 ${
-            isCollapsed ? "ml-16" : "ml-64"
-          }`}
+          className={`flex-1 transition-all duration-300 ${
+            isCollapsed ? "lg:ml-16" : "lg:ml-64"
+          } pt-32 lg:pt-0`}
         >
           {children}
         </div>

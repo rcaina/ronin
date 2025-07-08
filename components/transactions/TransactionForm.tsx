@@ -187,9 +187,9 @@ export default function TransactionForm({
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Grid Layout */}
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
           {/* Transaction Name */}
-          <div className="col-span-1">
+          <div>
             <label
               htmlFor="transactionName"
               className="mb-1 block text-sm font-medium text-gray-700"
@@ -207,7 +207,7 @@ export default function TransactionForm({
           </div>
 
           {/* Amount */}
-          <div className="col-span-1">
+          <div>
             <label
               htmlFor="amount"
               className="mb-1 block text-sm font-medium text-gray-700"
@@ -256,7 +256,7 @@ export default function TransactionForm({
 
           {/* Budget Selection */}
           {!budgetId && (
-            <div className="col-span-1">
+            <div>
               <label
                 htmlFor="budgetId"
                 className="mb-1 block text-sm font-medium text-gray-700"
@@ -289,7 +289,7 @@ export default function TransactionForm({
           )}
 
           {/* Category Selection */}
-          <div className="col-span-1">
+          <div>
             <label
               htmlFor="categoryId"
               className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700"
@@ -374,7 +374,7 @@ export default function TransactionForm({
           </div>
 
           {/* Occurred At */}
-          <div className="col-span-1">
+          <div>
             <label
               htmlFor="occurredAt"
               className="mb-1 block text-sm font-medium text-gray-700"
@@ -391,7 +391,7 @@ export default function TransactionForm({
           </div>
 
           {/* Card Selection */}
-          <div className="col-span-1">
+          <div>
             <label
               htmlFor="cardId"
               className="mb-1 block text-sm font-medium text-gray-700"
@@ -414,7 +414,7 @@ export default function TransactionForm({
           </div>
 
           {/* Description - spans full width */}
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <label
               htmlFor="description"
               className="mb-1 block text-sm font-medium text-gray-700"

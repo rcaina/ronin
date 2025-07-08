@@ -278,84 +278,84 @@ const TransactionsPage = () => {
         description="Track and manage your financial transactions"
       />
 
-      <div className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="flex-1">
+        <div className="mx-auto max-w-7xl px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
           {/* Overview Stats */}
-          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-4">
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-500">
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
+            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
+              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                   Total Transactions
                 </h3>
-                <DollarSign className="h-5 w-5 text-blue-500" />
+                <DollarSign className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
               </div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
                 {stats.totalTransactions}
               </div>
-              <div className="mt-1 text-sm text-gray-500">All time</div>
+              <div className="mt-1 text-xs text-gray-500">All time</div>
             </div>
 
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-500">
+            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
+              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                   Total Amount
                 </h3>
-                <TrendingDown className="h-5 w-5 text-red-500" />
+                <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
               </div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
                 {formatCurrency(stats.totalAmount)}
               </div>
-              <div className="mt-1 text-sm text-gray-500">All time</div>
+              <div className="mt-1 text-xs text-gray-500">All time</div>
             </div>
 
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-500">
+            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
+              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                   Average Transaction
                 </h3>
-                <TrendingUp className="h-5 w-5 text-green-500" />
+                <TrendingUp className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
               </div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
                 {formatCurrency(stats.averageAmount)}
               </div>
-              <div className="mt-1 text-sm text-gray-500">Per transaction</div>
+              <div className="mt-1 text-xs text-gray-500">Per transaction</div>
             </div>
 
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-500">
+            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
+              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
+                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
                   This Month
                 </h3>
-                <Calendar className="h-5 w-5 text-purple-500" />
+                <Calendar className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
               </div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
                 {formatCurrency(stats.thisMonthAmount)}
               </div>
-              <div className="mt-1 text-sm text-gray-500">
+              <div className="mt-1 text-xs text-gray-500">
                 {stats.thisMonthTransactions} transactions
               </div>
             </div>
           </div>
 
           {/* Filters and Search */}
-          <div className="mb-6 rounded-xl border bg-white p-6 shadow-sm">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex flex-1 items-center space-x-4">
-                <div className="relative max-w-md flex-1">
+          <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-6 sm:p-4 lg:p-6">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
                     placeholder="Search transactions..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
                   <option value="all">All Categories</option>
                   {categories.map((category) => (
@@ -376,7 +376,7 @@ const TransactionsPage = () => {
                     setSortBy(newSortBy);
                     setSortOrder(newSortOrder);
                   }}
-                  className="rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
                   <option value="date-desc">Date (Newest)</option>
                   <option value="date-asc">Date (Oldest)</option>
@@ -392,7 +392,7 @@ const TransactionsPage = () => {
           {/* Add Transaction Button or Form */}
           {!showTransactionForm ? (
             filteredAndSortedTransactions.length > 0 && (
-              <div className="mb-6">
+              <div className="mb-4 sm:mb-6">
                 <AddItemButton
                   onClick={() => setShowTransactionForm(true)}
                   title="Add Transaction"
@@ -402,7 +402,7 @@ const TransactionsPage = () => {
               </div>
             )
           ) : (
-            <div className="mb-6">
+            <div className="mb-4 sm:mb-6">
               <TransactionForm
                 onClose={handleCloseTransactionForm}
                 onSuccess={handleTransactionSuccess}
@@ -413,9 +413,9 @@ const TransactionsPage = () => {
 
           {/* Bulk Actions Bar */}
           {selectedTransactions.size > 0 && (
-            <div className="mb-6 rounded-xl border bg-blue-50 p-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
+            <div className="mb-4 rounded-xl border bg-blue-50 p-3 shadow-sm sm:mb-6 sm:p-4">
+              <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4">
                   <span className="text-sm font-medium text-blue-900">
                     {selectedTransactions.size} transaction
                     {selectedTransactions.size !== 1 ? "s" : ""} selected
@@ -445,25 +445,23 @@ const TransactionsPage = () => {
 
           {/* Transactions List */}
           <div className="rounded-xl border bg-white shadow-sm">
-            <div className="border-b px-6 py-4">
-              <div className="flex items-center justify-between">
-                {filteredAndSortedTransactions.length > 0 && (
-                  <div className="flex items-center space-x-2">
-                    <label className="flex items-center space-x-2 text-sm text-gray-600">
-                      <input
-                        type="checkbox"
-                        checked={
-                          selectedTransactions.size ===
-                            filteredAndSortedTransactions.length &&
-                          filteredAndSortedTransactions.length > 0
-                        }
-                        onChange={handleSelectAll}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span>Select All</span>
-                    </label>
-                  </div>
-                )}
+            <div className="border-b px-3 py-3 sm:px-6 sm:py-4">
+              <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+                <div className="flex items-center space-x-2">
+                  <label className="flex items-center space-x-2 text-sm text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={
+                        selectedTransactions.size ===
+                          filteredAndSortedTransactions.length &&
+                        filteredAndSortedTransactions.length > 0
+                      }
+                      onChange={handleSelectAll}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>Select All</span>
+                  </label>
+                </div>
                 <h3 className="text-lg font-semibold text-gray-900">
                   Transactions ({filteredAndSortedTransactions.length})
                 </h3>
@@ -475,9 +473,9 @@ const TransactionsPage = () => {
                 filteredAndSortedTransactions.map((transaction) => (
                   <div
                     key={transaction.id}
-                    className="group flex items-center justify-between px-6 py-4 hover:bg-gray-50"
+                    className="group flex items-center justify-between px-3 py-3 hover:bg-gray-50 sm:px-6 sm:py-4"
                   >
-                    <div className="flex items-center space-x-4">
+                    <div className="flex min-w-0 flex-1 items-center space-x-3 sm:space-x-4">
                       <input
                         type="checkbox"
                         checked={selectedTransactions.has(transaction.id)}
@@ -485,15 +483,15 @@ const TransactionsPage = () => {
                         className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <div
-                        className={`h-3 w-3 rounded-full ${getGroupColor(transaction.category.category.group)}`}
+                        className={`h-3 w-3 flex-shrink-0 rounded-full ${getGroupColor(transaction.category.category.group)}`}
                       />
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center space-x-2">
-                          <h4 className="font-medium text-gray-900">
+                          <h4 className="truncate font-medium text-gray-900">
                             {transaction.name ?? "Unnamed transaction"}
                           </h4>
                           {transaction.description && (
-                            <div className="group relative">
+                            <div className="group relative flex-shrink-0">
                               <Info className="h-4 w-4 cursor-help text-gray-400" />
                               <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                                 {transaction.description}
@@ -503,20 +501,24 @@ const TransactionsPage = () => {
                           )}
                         </div>
                         <div className="flex items-center space-x-2 text-sm text-gray-500">
-                          <span>{transaction.category.category.name}</span>
+                          <span className="truncate">
+                            {transaction.category.category.name}
+                          </span>
                           {transaction.budget && (
                             <>
-                              <span>•</span>
-                              <span>{transaction.budget.name}</span>
+                              <span className="hidden sm:inline">•</span>
+                              <span className="hidden truncate sm:inline">
+                                {transaction.budget.name}
+                              </span>
                             </>
                           )}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-4">
-                      {/* Action Icons - Only visible on hover */}
-                      <div className="flex items-center space-x-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="flex items-center space-x-2 sm:space-x-4">
+                      {/* Action Icons - Always visible on mobile, hover on desktop */}
+                      <div className="flex items-center space-x-1 opacity-100 transition-opacity sm:space-x-2 sm:opacity-0 sm:group-hover:opacity-100">
                         <button
                           onClick={() => handleCopyTransaction(transaction)}
                           className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
@@ -546,7 +548,7 @@ const TransactionsPage = () => {
                         >
                           {formatCurrency(transaction.amount)}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-xs text-gray-500 sm:text-sm">
                           {new Date(transaction.createdAt).toLocaleDateString()}
                         </div>
                       </div>
@@ -554,7 +556,7 @@ const TransactionsPage = () => {
                   </div>
                 ))
               ) : (
-                <div className="px-6 py-12 text-center">
+                <div className="px-3 py-12 text-center sm:px-6">
                   <DollarSign className="mx-auto mb-4 h-12 w-12 text-gray-300" />
                   <h3 className="mb-2 text-lg font-medium text-gray-900">
                     {searchTerm || selectedCategory !== "all"

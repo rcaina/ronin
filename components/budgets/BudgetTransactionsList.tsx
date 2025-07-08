@@ -37,31 +37,31 @@ export default function BudgetTransactionsList({
   }
 
   return (
-    <div className="rounded-xl border bg-white p-6 shadow-sm">
-      <h3 className="mb-4 text-lg font-semibold text-gray-900">
+    <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-6">
+      <h3 className="mb-3 text-base font-semibold text-gray-900 sm:mb-4 sm:text-lg">
         All Transactions ({transactions.length})
       </h3>
-      <div className="h-[600px] overflow-y-auto">
-        <div className="space-y-4 pr-2">
+      <div className="h-[400px] overflow-y-auto sm:h-[500px] md:h-[600px]">
+        <div className="space-y-3 pr-2 sm:space-y-4">
           {transactions.map((transaction) => (
             <div
               key={transaction.id}
-              className="flex items-center justify-between rounded-lg bg-gray-50 p-4"
+              className="flex items-center justify-between rounded-lg bg-gray-50 p-3 sm:p-4"
             >
               <div className="min-w-0 flex-1">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 sm:space-x-3">
                   <div
                     className={`h-3 w-3 rounded-full ${getGroupColor(
                       transaction.categoryGroup.toLowerCase(),
                     )}`}
                   ></div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center space-x-2">
-                      <p className="font-medium text-gray-900">
+                      <p className="truncate font-medium text-gray-900">
                         {transaction.name ?? "Unnamed transaction"}
                       </p>
                       {transaction.description && (
-                        <div className="group relative">
+                        <div className="group relative flex-shrink-0">
                           <Info className="h-4 w-4 cursor-help text-gray-400" />
                           <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                             {transaction.description}
@@ -70,13 +70,13 @@ export default function BudgetTransactionsList({
                         </div>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500">
+                    <p className="truncate text-sm text-gray-500">
                       {transaction.categoryName}
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="ml-2 flex-shrink-0 text-right">
                 <p
                   className={`font-medium ${transaction.amount < 0 ? "text-green-600" : "text-gray-900"}`}
                 >

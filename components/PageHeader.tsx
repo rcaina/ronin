@@ -22,27 +22,35 @@ const PageHeader = ({
   action,
 }: PageHeaderProps) => {
   return (
-    <div className="sticky top-0 z-10 border-b bg-white shadow-sm">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between">
+    <div className="fixed left-0 right-0 top-12 z-40 border-b bg-white shadow-sm lg:sticky lg:top-0">
+      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <div className="flex items-center">
             {backButton && (
               <button
                 onClick={backButton.onClick}
-                className="mr-4 flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+                className="mr-3 flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 sm:mr-4"
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
             )}
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
+              <h1 className="text-xl font-bold text-gray-900 sm:text-2xl lg:text-3xl">
+                {title}
+              </h1>
               {description && (
-                <p className="mt-1 text-gray-500">{description}</p>
+                <p className="mt-1 text-sm text-gray-500 sm:text-base">
+                  {description}
+                </p>
               )}
             </div>
           </div>
           {action && (
-            <Button onClick={action.onClick} variant="primary">
+            <Button
+              onClick={action.onClick}
+              variant="primary"
+              className="w-full sm:w-auto"
+            >
               {action.icon && <span className="mr-2">{action.icon}</span>}
               {action.label}
             </Button>

@@ -32,10 +32,12 @@ export default function BudgetCategoriesSection({
   const [view, setView] = useState<BudgetCategoriesViewType>("grid");
 
   return (
-    <div className="mb-8">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900">Budget Categories</h2>
-        <div className="flex items-center space-x-4">
+    <div className="mb-6 sm:mb-8">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-lg font-bold text-gray-900 sm:text-xl">
+          Budget Categories
+        </h2>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4">
           <div className="flex items-center space-x-2">
             {(() => {
               const totalIncome = (budget.incomes ?? []).reduce(

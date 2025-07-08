@@ -218,19 +218,19 @@ export default function CategoriesPage() {
         description="Create and manage reusable category templates for your budgets"
       />
 
-      <div className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="flex-1">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-8 lg:px-8">
           {/* Info Banner */}
-          <div className="mb-8 rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-3 sm:mb-8 sm:p-4">
             <div className="flex items-start">
               <div className="flex-shrink-0">
-                <Info className="h-5 w-5 text-blue-400" />
+                <Info className="h-4 w-4 text-blue-400 sm:h-5 sm:w-5" />
               </div>
-              <div className="ml-3">
-                <h3 className="text-xs font-medium text-blue-800">
+              <div className="ml-2 sm:ml-3">
+                <h3 className="text-xs font-medium text-blue-800 sm:text-sm">
                   Category Templates
                 </h3>
-                <p className="mt-1 text-xs text-blue-700">
+                <p className="mt-1 text-xs text-blue-700 sm:text-sm">
                   These are reusable category templates. When you create a
                   budget, you can select from these templates and set specific
                   spending limits for that budget period.
@@ -239,7 +239,7 @@ export default function CategoriesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
             {/* Wants Column */}
             <CategoryColumn
               type={CategoryType.WANTS}
@@ -316,15 +316,15 @@ export default function CategoriesPage() {
               categories.needs.length === 0 &&
               categories.investment.length === 0)) &&
             !isAddingCategory && (
-              <div className="col-span-full mt-10 text-center">
+              <div className="col-span-full mt-8 text-center sm:mt-10">
                 <div className="mx-auto max-w-md">
-                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-                    <ShoppingBag className="h-6 w-6 text-gray-400" />
+                  <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 sm:mb-4 sm:h-12 sm:w-12">
+                    <ShoppingBag className="h-5 w-5 text-gray-400 sm:h-6 sm:w-6" />
                   </div>
-                  <h3 className="mb-2 text-lg font-medium text-gray-900">
+                  <h3 className="mb-2 text-base font-medium text-gray-900 sm:text-lg">
                     No category templates yet
                   </h3>
-                  <p className="mb-6 text-gray-500">
+                  <p className="mb-4 text-sm text-gray-500 sm:mb-6 sm:text-base">
                     Create reusable category templates that you can use across
                     multiple budgets. Templates help you maintain consistency in
                     your financial planning.
