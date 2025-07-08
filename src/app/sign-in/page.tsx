@@ -32,6 +32,7 @@ export default function SignIn() {
         password: data.password,
       });
     } catch (error) {
+      console.error(error);
       toast.error("Sign in failed. Please check your credentials.");
     }
   };

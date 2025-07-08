@@ -57,7 +57,6 @@ export default function BudgetTransactionInlineEdit({
   onCancel,
   onSuccess,
   getGroupColor,
-  formatCurrency,
 }: BudgetTransactionInlineEditProps) {
   const { mutate: updateTransaction, isPending: isUpdating } =
     useUpdateTransaction();
