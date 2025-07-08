@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { toast } from "react-hot-toast";
 import {
   useTransactions,
   useDeleteTransaction,
   useCreateTransaction,
 } from "@/lib/data-hooks/transactions/useTransactions";
+import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { useCards } from "@/lib/data-hooks/cards/useCards";
 import {
   TrendingUp,
   TrendingDown,
@@ -18,27 +21,33 @@ import {
   Trash2,
   Plus,
   Info,
+  Filter,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import AddItemButton from "@/components/AddItemButton";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import TransactionForm from "@/components/transactions/TransactionForm";
+import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
 
 const TransactionsPage = () => {
   const { data: transactions = [], isLoading, error } = useTransactions();
+  const { data: budgets = [] } = useBudgets();
+  const { data: cards = [] } = useCards();
   const deleteTransactionMutation = useDeleteTransaction();
   const createTransactionMutation = useCreateTransaction();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedBudget, setSelectedBudget] = useState<string>("all");
+  const [selectedCard, setSelectedCard] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"date" | "amount" | "name">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [showTransactionForm, setShowTransactionForm] = useState(false);
-  const [transactionToEdit, setTransactionToEdit] = useState<
-    TransactionWithRelations | undefined
-  >(undefined);
+  const [editingTransactionId, setEditingTransactionId] = useState<
+    string | null
+  >(null);
   const [transactionToDelete, setTransactionToDelete] =
     useState<TransactionWithRelations | null>(null);
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(
@@ -76,20 +85,46 @@ const TransactionsPage = () => {
   // Filter and sort transactions
   const filteredAndSortedTransactions = useMemo(() => {
     const filtered = transactions.filter((transaction) => {
+      // Search term matching (including amount)
+      const searchLower = searchTerm.toLowerCase();
       const matchesSearch =
-        transaction.name?.toLowerCase().includes(searchTerm.toLowerCase()) ??
-        transaction.description
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase()) ??
+        (transaction.name?.toLowerCase().includes(searchLower) ?? false) ||
+        (transaction.description?.toLowerCase().includes(searchLower) ??
+          false) ||
         transaction.category.category.name
           .toLowerCase()
-          .includes(searchTerm.toLowerCase());
+          .includes(searchLower) ||
+        // Amount search - convert amount to string and search
+        Math.abs(transaction.amount)
+          .toString()
+          .includes(searchTerm.replace(/[^0-9.]/g, "")) ||
+        // Also search formatted amount (e.g., "100.50" matches "100.5")
+        new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+        })
+          .format(transaction.amount)
+          .toLowerCase()
+          .includes(searchLower);
 
+      // Category filter
       const matchesCategory =
         selectedCategory === "all" ||
         transaction.category.id === selectedCategory;
 
-      return matchesSearch && matchesCategory;
+      // Budget filter
+      const matchesBudget =
+        selectedBudget === "all" ||
+        transaction.budget?.id === selectedBudget ||
+        (selectedBudget === "no-budget" && !transaction.budget);
+
+      // Card filter
+      const matchesCard =
+        selectedCard === "all" ||
+        (transaction.cardId ?? "" === selectedCard) ||
+        (selectedCard === "no-card" && !transaction.cardId);
+
+      return matchesSearch && matchesCategory && matchesBudget && matchesCard;
     });
 
     // Sort transactions
@@ -113,7 +148,15 @@ const TransactionsPage = () => {
     });
 
     return filtered;
-  }, [transactions, searchTerm, selectedCategory, sortBy, sortOrder]);
+  }, [
+    transactions,
+    searchTerm,
+    selectedCategory,
+    selectedBudget,
+    selectedCard,
+    sortBy,
+    sortOrder,
+  ]);
 
   // Get unique categories for filter
   const categories = useMemo(() => {
@@ -130,8 +173,33 @@ const TransactionsPage = () => {
         });
       }
     });
-    return Array.from(uniqueCategories.values());
+    return Array.from(uniqueCategories.values()).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
   }, [transactions]);
+
+  // Get unique budgets for filter
+  const availableBudgets = useMemo(() => {
+    return budgets.sort((a, b) => a.name.localeCompare(b.name));
+  }, [budgets]);
+
+  // Get unique cards for filter
+  const availableCards = useMemo(() => {
+    const cardSet = new Set<string>();
+    transactions.forEach((t) => {
+      if (t.cardId) {
+        cardSet.add(t.cardId);
+      }
+    });
+
+    return cards
+      .filter((card) => cardSet.has(card.id))
+      .map((card) => ({
+        ...card,
+        displayName: `${card.name} - ${card.user.name}`,
+      }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }, [transactions, cards]);
 
   const getGroupColor = (group: string) => {
     switch (group.toLowerCase()) {
@@ -169,14 +237,15 @@ const TransactionsPage = () => {
       };
 
       await createTransactionMutation.mutateAsync(copyData);
+      toast.success("Transaction copied successfully!");
     } catch (err) {
       console.error("Failed to copy transaction:", err);
+      toast.error("Failed to copy transaction. Please try again.");
     }
   };
 
   const handleEditTransaction = (transaction: TransactionWithRelations) => {
-    setTransactionToEdit(transaction);
-    setShowTransactionForm(true);
+    setEditingTransactionId(transaction.id);
   };
 
   const handleDeleteTransaction = (transaction: TransactionWithRelations) => {
@@ -189,8 +258,10 @@ const TransactionsPage = () => {
     try {
       await deleteTransactionMutation.mutateAsync(transactionToDelete.id);
       setTransactionToDelete(null);
+      toast.success("Transaction deleted successfully!");
     } catch (err) {
       console.error("Failed to delete transaction:", err);
+      toast.error("Failed to delete transaction. Please try again.");
     }
   };
 
@@ -200,23 +271,32 @@ const TransactionsPage = () => {
 
   const handleCloseTransactionForm = () => {
     setShowTransactionForm(false);
-    setTransactionToEdit(undefined);
   };
 
   const handleTransactionSuccess = () => {
     // Form will stay open for adding multiple transactions
     // User can manually close it when done
-    setTransactionToEdit(undefined);
+  };
+
+  const handleInlineEditCancel = () => {
+    setEditingTransactionId(null);
+  };
+
+  const handleInlineEditSuccess = () => {
+    setEditingTransactionId(null);
   };
 
   // Bulk selection handlers
   const handleSelectAll = () => {
-    if (selectedTransactions.size === filteredAndSortedTransactions.length) {
+    // Filter out transactions that are being edited
+    const selectableTransactions = filteredAndSortedTransactions.filter(
+      (t) => t.id !== editingTransactionId,
+    );
+
+    if (selectedTransactions.size === selectableTransactions.length) {
       setSelectedTransactions(new Set());
     } else {
-      setSelectedTransactions(
-        new Set(filteredAndSortedTransactions.map((t) => t.id)),
-      );
+      setSelectedTransactions(new Set(selectableTransactions.map((t) => t.id)));
     }
   };
 
@@ -242,14 +322,33 @@ const TransactionsPage = () => {
       await Promise.all(deletePromises);
       setSelectedTransactions(new Set());
       setShowBulkDeleteModal(false);
+      toast.success(
+        `${selectedTransactions.size} transaction${selectedTransactions.size !== 1 ? "s" : ""} deleted successfully!`,
+      );
     } catch (err) {
       console.error("Failed to delete transactions:", err);
+      toast.error("Failed to delete some transactions. Please try again.");
     }
   };
 
   const handleCancelBulkDelete = () => {
     setShowBulkDeleteModal(false);
   };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchTerm("");
+    setSelectedCategory("all");
+    setSelectedBudget("all");
+    setSelectedCard("all");
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters =
+    searchTerm ||
+    selectedCategory !== "all" ||
+    selectedBudget !== "all" ||
+    selectedCard !== "all";
 
   if (isLoading) {
     return <LoadingSpinner message="Loading transactions..." />;
@@ -339,52 +438,117 @@ const TransactionsPage = () => {
 
           {/* Filters and Search */}
           <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-6 sm:p-4 lg:p-6">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search transactions..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <h3 className="text-sm font-medium text-gray-700">Filters</h3>
+              </div>
+              {hasActiveFilters && (
+                <Button
+                  onClick={clearAllFilters}
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-blue-600 hover:text-blue-800"
                 >
-                  <option value="all">All Categories</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                  Clear all filters
+                </Button>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search transactions, amounts, descriptions..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
               </div>
 
-              <div className="flex items-center space-x-2">
-                <select
-                  value={`${sortBy}-${sortOrder}`}
-                  onChange={(e) => {
-                    const [newSortBy, newSortOrder] = e.target.value.split(
-                      "-",
-                    ) as [typeof sortBy, typeof sortOrder];
-                    setSortBy(newSortBy);
-                    setSortOrder(newSortOrder);
-                  }}
-                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="date-desc">Date (Newest)</option>
-                  <option value="date-asc">Date (Oldest)</option>
-                  <option value="amount-desc">Amount (High to Low)</option>
-                  <option value="amount-asc">Amount (Low to High)</option>
-                  <option value="name-asc">Name (A-Z)</option>
-                  <option value="name-desc">Name (Z-A)</option>
-                </select>
+              {/* Filter Row 1: Categories and Budgets */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-700">
+                    Category
+                  </label>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="all">All Categories</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-700">
+                    Budget
+                  </label>
+                  <select
+                    value={selectedBudget}
+                    onChange={(e) => setSelectedBudget(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="all">All Budgets</option>
+                    <option value="no-budget">No Budget</option>
+                    {availableBudgets.map((budget) => (
+                      <option key={budget.id} value={budget.id}>
+                        {budget.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-700">
+                    Card
+                  </label>
+                  <select
+                    value={selectedCard}
+                    onChange={(e) => setSelectedCard(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="all">All Cards</option>
+                    <option value="no-card">No Card</option>
+                    {availableCards.map((card) => (
+                      <option key={card.id} value={card.id}>
+                        {card.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-700">
+                    Sort By
+                  </label>
+                  <select
+                    value={`${sortBy}-${sortOrder}`}
+                    onChange={(e) => {
+                      const [newSortBy, newSortOrder] = e.target.value.split(
+                        "-",
+                      ) as [typeof sortBy, typeof sortOrder];
+                      setSortBy(newSortBy);
+                      setSortOrder(newSortOrder);
+                    }}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="date-desc">Date (Newest)</option>
+                    <option value="date-asc">Date (Oldest)</option>
+                    <option value="amount-desc">Amount (High to Low)</option>
+                    <option value="amount-asc">Amount (Low to High)</option>
+                    <option value="name-asc">Name (A-Z)</option>
+                    <option value="name-desc">Name (Z-A)</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -406,7 +570,6 @@ const TransactionsPage = () => {
               <TransactionForm
                 onClose={handleCloseTransactionForm}
                 onSuccess={handleTransactionSuccess}
-                transaction={transactionToEdit}
               />
             </div>
           )}
@@ -453,8 +616,12 @@ const TransactionsPage = () => {
                       type="checkbox"
                       checked={
                         selectedTransactions.size ===
-                          filteredAndSortedTransactions.length &&
-                        filteredAndSortedTransactions.length > 0
+                          filteredAndSortedTransactions.filter(
+                            (t) => t.id !== editingTransactionId,
+                          ).length &&
+                        filteredAndSortedTransactions.filter(
+                          (t) => t.id !== editingTransactionId,
+                        ).length > 0
                       }
                       onChange={handleSelectAll}
                       className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -470,101 +637,130 @@ const TransactionsPage = () => {
 
             <div className="divide-y divide-gray-200">
               {filteredAndSortedTransactions.length > 0 ? (
-                filteredAndSortedTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="group flex items-center justify-between px-3 py-3 hover:bg-gray-50 sm:px-6 sm:py-4"
-                  >
-                    <div className="flex min-w-0 flex-1 items-center space-x-3 sm:space-x-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedTransactions.has(transaction.id)}
-                        onChange={() => handleSelectTransaction(transaction.id)}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <div
-                        className={`h-3 w-3 flex-shrink-0 rounded-full ${getGroupColor(transaction.category.category.group)}`}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center space-x-2">
-                          <h4 className="truncate font-medium text-gray-900">
-                            {transaction.name ?? "Unnamed transaction"}
-                          </h4>
-                          {transaction.description && (
-                            <div className="group relative flex-shrink-0">
-                              <Info className="h-4 w-4 cursor-help text-gray-400" />
-                              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                                {transaction.description}
-                                <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-2 text-sm text-gray-500">
-                          <span className="truncate">
-                            {transaction.category.category.name}
-                          </span>
-                          {transaction.budget && (
-                            <>
-                              <span className="hidden sm:inline">•</span>
-                              <span className="hidden truncate sm:inline">
-                                {transaction.budget.name}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                filteredAndSortedTransactions.map((transaction) => {
+                  // Check if this transaction is being edited
+                  const isEditing = editingTransactionId === transaction.id;
 
-                    <div className="flex items-center space-x-2 sm:space-x-4">
-                      {/* Action Icons - Always visible on mobile, hover on desktop */}
-                      <div className="flex items-center space-x-1 opacity-100 transition-opacity sm:space-x-2 sm:opacity-0 sm:group-hover:opacity-100">
-                        <button
-                          onClick={() => handleCopyTransaction(transaction)}
-                          className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                          title="Copy transaction"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEditTransaction(transaction)}
-                          className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                          title="Edit transaction"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTransaction(transaction)}
-                          className="rounded p-1 text-red-300 transition-colors hover:bg-gray-100 hover:text-red-600"
-                          title="Delete transaction"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
+                  if (isEditing) {
+                    return (
+                      <InlineTransactionEdit
+                        key={transaction.id}
+                        transaction={transaction}
+                        onCancel={handleInlineEditCancel}
+                        onSuccess={handleInlineEditSuccess}
+                        getGroupColor={getGroupColor}
+                        formatCurrency={formatCurrency}
+                      />
+                    );
+                  }
 
-                      <div className="text-right">
+                  return (
+                    <div
+                      key={transaction.id}
+                      className="group flex items-center justify-between px-3 py-3 hover:bg-gray-50 sm:px-6 sm:py-4"
+                    >
+                      <div className="flex min-w-0 flex-1 items-center space-x-3 sm:space-x-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedTransactions.has(transaction.id)}
+                          onChange={() =>
+                            handleSelectTransaction(transaction.id)
+                          }
+                          disabled={isEditing}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                        />
                         <div
-                          className={`font-medium ${transaction.amount < 0 ? "text-green-600" : "text-gray-900"}`}
-                        >
-                          {formatCurrency(transaction.amount)}
+                          className={`h-3 w-3 flex-shrink-0 rounded-full ${getGroupColor(transaction.category.category.group)}`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center space-x-2">
+                            <h4 className="truncate font-medium text-gray-900">
+                              {transaction.name ?? "Unnamed transaction"}
+                            </h4>
+                            {transaction.description && (
+                              <div className="group relative flex-shrink-0">
+                                <Info className="h-4 w-4 cursor-help text-gray-400" />
+                                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                  {transaction.description}
+                                  <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2 text-sm text-gray-500">
+                            <span className="truncate">
+                              {transaction.category.category.name}
+                            </span>
+                            {transaction.budget && (
+                              <>
+                                <span className="hidden sm:inline">•</span>
+                                <span className="hidden truncate sm:inline">
+                                  {transaction.budget.name}
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500 sm:text-sm">
-                          {new Date(transaction.createdAt).toLocaleDateString()}
+                      </div>
+
+                      <div className="flex items-center space-x-2 sm:space-x-4">
+                        {/* Action Icons - Always visible on mobile, hover on desktop */}
+                        <div className="flex items-center space-x-1 opacity-100 transition-opacity sm:space-x-2 sm:opacity-0 sm:group-hover:opacity-100">
+                          <button
+                            onClick={() => handleCopyTransaction(transaction)}
+                            className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                            title="Copy transaction"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEditTransaction(transaction)}
+                            className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                            title="Edit transaction"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTransaction(transaction)}
+                            className="rounded p-1 text-red-300 transition-colors hover:bg-gray-100 hover:text-red-600"
+                            title="Delete transaction"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        <div className="text-right">
+                          <div
+                            className={`font-medium ${transaction.amount < 0 ? "text-green-600" : "text-gray-900"}`}
+                          >
+                            {formatCurrency(transaction.amount)}
+                          </div>
+                          <div className="text-xs text-gray-500 sm:text-sm">
+                            {new Date(
+                              transaction.createdAt,
+                            ).toLocaleDateString()}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="px-3 py-12 text-center sm:px-6">
                   <DollarSign className="mx-auto mb-4 h-12 w-12 text-gray-300" />
                   <h3 className="mb-2 text-lg font-medium text-gray-900">
-                    {searchTerm || selectedCategory !== "all"
+                    {searchTerm ||
+                    selectedCategory !== "all" ||
+                    selectedBudget !== "all" ||
+                    selectedCard !== "all"
                       ? "No matching transactions"
                       : "No transactions yet"}
                   </h3>
                   <p className="text-gray-500">
-                    {searchTerm || selectedCategory !== "all"
+                    {searchTerm ||
+                    selectedCategory !== "all" ||
+                    selectedBudget !== "all" ||
+                    selectedCard !== "all"
                       ? "Try adjusting your search or filter criteria"
                       : "Start adding transactions to see them here"}
                   </p>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, UserIcon } from "lucide-react";
+import { toast } from "react-hot-toast";
 import { useCreateUser } from "@/lib/data-hooks/useCreateUser";
 import { type CreateUserRequest } from "@/lib/data-hooks/services/auth";
 import type { User as PrismaUser } from "@prisma/client";
@@ -51,9 +52,11 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
         role: "MEMBER",
       });
       onClose();
+      toast.success("User created successfully!");
     } catch (error) {
       // Error is handled by the hook
       console.error("Error creating user:", error);
+      toast.error("Failed to create user. Please try again.");
     }
   };
 

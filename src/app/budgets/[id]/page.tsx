@@ -342,6 +342,8 @@ const BudgetDetailsPage = () => {
                   ...transaction,
                   categoryName: budgetCategory.category.name,
                   categoryGroup: budgetCategory.category.group,
+                  budgetId: budget.id,
+                  categoryId: budgetCategory.id,
                 })),
               )
               .sort(

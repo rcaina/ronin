@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { X, Check, Info } from "lucide-react";
+import { toast } from "react-hot-toast";
 import {
   useCreateTransaction,
   useUpdateTransaction,
@@ -139,11 +140,13 @@ export default function TransactionForm({
         { id: transaction.id, data: updateData },
         {
           onSuccess: () => {
+            toast.success("Transaction updated successfully!");
             onSuccess?.();
             onClose();
           },
           onError: (error: unknown) => {
             console.error("Failed to update transaction:", error);
+            toast.error("Failed to update transaction. Please try again.");
           },
         },
       );
@@ -160,12 +163,14 @@ export default function TransactionForm({
 
       createTransaction(transactionData, {
         onSuccess: () => {
+          toast.success("Transaction created successfully!");
           // Reset form for adding multiple transactions
           reset();
           onSuccess?.();
         },
         onError: (error: unknown) => {
           console.error("Failed to create transaction:", error);
+          toast.error("Failed to create transaction. Please try again.");
         },
       });
     }
