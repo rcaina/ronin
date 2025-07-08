@@ -2,6 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { useState } from "react";
+import { toast } from "react-hot-toast";
 import { useSignIn } from "@/lib/data-hooks/useSignIn";
 
 interface SignInForm {
@@ -25,10 +26,14 @@ export default function SignIn() {
 
   const onSubmit = async (data: SignInForm) => {
     resetError();
-    await signIn({
-      email: data.email,
-      password: data.password,
-    });
+    try {
+      await signIn({
+        email: data.email,
+        password: data.password,
+      });
+    } catch (error) {
+      toast.error("Sign in failed. Please check your credentials.");
+    }
   };
 
   const togglePasswordVisibility = () => {

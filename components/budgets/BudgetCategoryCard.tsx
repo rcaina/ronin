@@ -1,6 +1,7 @@
 "use client";
 
 import { Edit, Trash2, GripVertical } from "lucide-react";
+import { toast } from "react-hot-toast";
 import {
   useUpdateBudgetCategory,
   useDeleteBudgetCategory,
@@ -68,8 +69,10 @@ export default function BudgetCategoryCard({
 
       setEditingCategoryId(null);
       setEditingAmount(0);
+      toast.success("Budget category updated successfully!");
     } catch (error) {
       console.error("Failed to update budget category:", error);
+      toast.error("Failed to update budget category. Please try again.");
     }
   };
 
@@ -89,8 +92,10 @@ export default function BudgetCategoryCard({
         categoryId: categoryToDelete.id,
       });
       setCategoryToDelete(null);
+      toast.success("Budget category deleted successfully!");
     } catch (error) {
       console.error("Failed to delete budget category:", error);
+      toast.error("Failed to delete budget category. Please try again.");
     }
   };
 

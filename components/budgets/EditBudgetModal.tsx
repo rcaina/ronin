@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Calendar, Target, TrendingUp } from "lucide-react";
 import { useUpdateBudget } from "@/lib/data-hooks/budgets/useBudgets";
+import { toast } from "react-hot-toast";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import type { StrategyType, PeriodType } from "@prisma/client";
 import Button from "../Button";
@@ -78,10 +79,12 @@ export default function EditBudgetModal({
         },
       });
 
+      toast.success("Budget updated successfully!");
       onSuccess();
       onClose();
     } catch (error) {
       console.error("Failed to update budget:", error);
+      toast.error("Failed to update budget. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

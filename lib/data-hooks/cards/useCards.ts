@@ -2,32 +2,6 @@ import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tansta
 import { useSession } from "next-auth/react";
 import { getCards, createCard, updateCard, deleteCard, type Card as ApiCard, type CreateCardRequest, type UpdateCardRequest } from "../services/cards";
 
-// Component interface for cards
-export interface Card {
-  id: string;
-  name: string;
-  type: "credit" | "debit" | "business_credit" | "business_debit" | "cash";
-  amountSpent: number;
-  spendingLimit?: number;
-  userId: string;
-  user: string;
-  isActive: boolean;
-  color: string;
-}
-
-// Utility function to map API card to component card
-export const mapApiCardToCard = (apiCard: ApiCard): Card => ({
-  id: apiCard.id,
-  name: apiCard.name,
-  type: apiCard.cardType === "CREDIT" ? "credit" : apiCard.cardType === "BUSINESS_CREDIT" ? "business_credit" : apiCard.cardType === "DEBIT" ? "debit" : apiCard.cardType === "BUSINESS_DEBIT" ? "business_debit" : "cash",
-  amountSpent: apiCard.amountSpent ?? 0,
-  spendingLimit: apiCard.spendingLimit,
-  userId: apiCard.userId,
-  user: apiCard.user?.name || "Unknown User",
-  isActive: true, // Placeholder, replace with real status if available
-  color: "bg-gradient-to-br from-blue-600 to-purple-600", // Placeholder, could be based on bank/type
-});
-
 export const useCards = () => {
   const { data: session } = useSession();
 

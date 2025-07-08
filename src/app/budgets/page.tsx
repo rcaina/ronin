@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 import {
   useBudgets,
   useDeleteBudget,
@@ -264,11 +265,11 @@ const BudgetsPage = () => {
   const handleDuplicateBudget = async (budget: BudgetWithRelations) => {
     try {
       await duplicateBudgetMutation.mutateAsync(budget.id);
-      alert("Budget duplicated successfully!");
+      toast.success("Budget duplicated successfully!");
       // Optionally, redirect to the new budget page:
       // if (result?.budget?.id) router.push(`/budgets/${result.budget.id}`);
     } catch (err) {
-      alert("Failed to duplicate budget");
+      toast.error("Failed to duplicate budget. Please try again.");
       console.error("Failed to duplicate budget:", err);
     }
   };
@@ -283,8 +284,10 @@ const BudgetsPage = () => {
     try {
       await deleteBudgetMutation.mutateAsync(budgetToDelete.id);
       setBudgetToDelete(null);
+      toast.success("Budget deleted successfully!");
     } catch (err) {
       console.error("Failed to delete budget:", err);
+      toast.error("Failed to delete budget. Please try again.");
     }
   };
 

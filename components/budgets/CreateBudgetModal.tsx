@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { X } from "lucide-react";
+import { toast } from "react-hot-toast";
 import { useCategories } from "@/lib/data-hooks/categories/useCategories";
 import { useCreateBudget } from "@/lib/data-hooks/budgets/useBudgets";
 import { StrategyType, PeriodType } from "@prisma/client";
@@ -432,8 +433,10 @@ export default function CreateBudgetModal({
       resetModal();
       onSuccess?.();
       onClose();
+      toast.success("Budget created successfully!");
     } catch (error) {
       console.error("Failed to create budget:", error);
+      toast.error("Failed to create budget. Please try again.");
     }
   };
 

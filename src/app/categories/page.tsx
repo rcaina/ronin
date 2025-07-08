@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "react-hot-toast";
 import {
   useCategories,
   useDeleteCategory,
@@ -66,9 +67,11 @@ export default function CategoriesPage() {
       });
 
       handleCancelAdd();
+      toast.success("Category created successfully!");
     } catch (err) {
       // Error is handled by the mutation
       console.error("Failed to create category:", err);
+      toast.error("Failed to create category. Please try again.");
     }
   };
 
@@ -100,9 +103,11 @@ export default function CategoriesPage() {
       });
 
       handleCancelEdit();
+      toast.success("Category updated successfully!");
     } catch (err) {
       // Error is handled by the mutation
       console.error("Failed to update category:", err);
+      toast.error("Failed to update category. Please try again.");
     }
   };
 
@@ -116,9 +121,11 @@ export default function CategoriesPage() {
     try {
       await deleteCategoryMutation.mutateAsync(categoryToDelete.id);
       setCategoryToDelete(null);
+      toast.success("Category deleted successfully!");
     } catch (err) {
       // Error is handled by the mutation
       console.error("Failed to delete category:", err);
+      toast.error("Failed to delete category. Please try again.");
     }
   };
 
@@ -137,6 +144,7 @@ export default function CategoriesPage() {
 
       if (!categoryToDuplicate) {
         console.error("Failed to find category to duplicate");
+        toast.error("Failed to find category to duplicate");
         return;
       }
 
@@ -147,8 +155,10 @@ export default function CategoriesPage() {
       };
 
       await createCategoryMutation.mutateAsync(copyData);
+      toast.success("Category duplicated successfully!");
     } catch (err) {
       console.error("Failed to duplicate category:", err);
+      toast.error("Failed to duplicate category. Please try again.");
     }
   };
 
@@ -166,6 +176,7 @@ export default function CategoriesPage() {
 
       if (!categoryToMove) {
         console.error("Failed to find category to move");
+        toast.error("Failed to find category to move");
         return;
       }
 
@@ -182,8 +193,10 @@ export default function CategoriesPage() {
           group: newGroup,
         },
       });
+      toast.success("Category moved successfully!");
     } catch (err) {
       console.error("Failed to move category:", err);
+      toast.error("Failed to move category. Please try again.");
     }
   };
 

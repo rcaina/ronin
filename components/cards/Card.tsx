@@ -1,15 +1,5 @@
 import { CreditCard, DollarSign, Edit, Trash2, CopyIcon } from "lucide-react";
-
-interface Card {
-  id: string;
-  name: string;
-  type: "credit" | "debit" | "business_credit" | "business_debit" | "cash";
-  amountSpent: number;
-  spendingLimit?: number;
-  user: string;
-  isActive: boolean;
-  color: string;
-}
+import type { Card } from "@/lib/utils/cards";
 
 interface CardProps {
   card: Card;
@@ -41,7 +31,7 @@ const getUtilizationColor = (percentage: number) => {
   return "text-green-600";
 };
 
-const Card = ({
+const CardComponent = ({
   card,
   onEdit,
   onCopy,
@@ -211,5 +201,5 @@ const Card = ({
   );
 };
 
-export default Card;
+export default CardComponent;
 export type { Card as CardData };
