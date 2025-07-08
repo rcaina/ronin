@@ -161,7 +161,7 @@ export default function BudgetCategoriesListView({
                       transactions.map((transaction) => (
                         <div
                           key={transaction.id}
-                          className="bg-gray-25 flex items-center justify-between rounded-lg p-2 sm:p-3"
+                          className="flex items-center justify-between rounded-lg border border-blue-100 bg-blue-50 p-2 sm:p-3"
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center space-x-2">

@@ -2,6 +2,7 @@
 
 import { Plus } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { toast } from "react-hot-toast";
 import BudgetCategoryCard from "./BudgetCategoryCard";
 import AddBudgetCategoryForm from "./AddBudgetCategoryForm";
 import {
@@ -101,8 +102,10 @@ export default function BudgetCategoriesGridView({
 
       handleCancelAddCategory();
       onRefetch();
+      toast.success("Budget category added successfully!");
     } catch (error) {
       console.error("Failed to add budget category:", error);
+      toast.error("Failed to add budget category. Please try again.");
     }
   };
 
@@ -160,6 +163,7 @@ export default function BudgetCategoriesGridView({
 
     if (!matchingCategory) {
       console.error("No matching category found in target group");
+      toast.error("No matching category found in target group");
       return;
     }
 
@@ -173,8 +177,10 @@ export default function BudgetCategoriesGridView({
         },
       });
       onRefetch();
+      toast.success("Budget category moved successfully!");
     } catch (error) {
       console.error("Failed to move budget category:", error);
+      toast.error("Failed to move budget category. Please try again.");
     }
   };
 

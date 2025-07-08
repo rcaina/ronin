@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Plus, Trash2, Check } from "lucide-react";
 import { PeriodType } from "@prisma/client";
+import { toast } from "react-hot-toast";
 import Button from "@/components/Button";
 
 interface Income {
@@ -121,10 +122,14 @@ export default function IncomeModal({
         );
       }
 
+      toast.success("Income sources updated successfully!");
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const errorMessage =
+        err instanceof Error ? err.message : "An error occurred";
+      setError(errorMessage);
+      toast.error(`Failed to update income sources: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }

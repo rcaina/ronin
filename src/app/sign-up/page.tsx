@@ -2,6 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { useState } from "react";
+import { toast } from "react-hot-toast";
 import { useSignUp } from "@/lib/data-hooks/useSignUp";
 
 interface SignUpForm {
@@ -35,12 +36,17 @@ export default function SignUp() {
 
   const onSubmit = async (data: SignUpForm) => {
     resetError();
-    await signUp({
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      password: data.password,
-    });
+    try {
+      await signUp({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        password: data.password,
+      });
+    } catch (error) {
+      console.error("Failed to sign up:", error);
+      toast.error("Sign up failed. Please try again.");
+    }
   };
 
   const togglePasswordVisibility = () => {

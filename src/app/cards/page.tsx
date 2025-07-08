@@ -3,8 +3,9 @@
 import { Plus, CreditCard, DollarSign, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { toast } from "react-hot-toast";
 import PageHeader from "@/components/PageHeader";
-import CardComponent, { type CardData } from "@/components/cards/Card";
+import { default as CardComponent } from "@/components/cards/Card";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import AddCardForm from "@/components/cards/AddCardForm";
 import AddItemButton from "@/components/AddItemButton";
@@ -13,13 +14,12 @@ import {
   useDeleteCard,
   useCreateCard,
   useUpdateCard,
-  mapApiCardToCard,
-  type Card,
 } from "@/lib/data-hooks/cards/useCards";
 import { type Card as ApiCard } from "@/lib/data-hooks/services/cards";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import type { CardType } from "@prisma/client";
 import Button from "@/components/Button";
+import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
 
 interface User {
   id: string;
@@ -36,14 +36,16 @@ const CardsPage = () => {
   const deleteCardMutation = useDeleteCard();
   const createCardMutation = useCreateCard();
   const updateCardMutation = useUpdateCard();
-  const [cardToDelete, setCardToDelete] = useState<CardData | null>(null);
+  const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [cardToEdit, setCardToEdit] = useState<ApiCard | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
 
   // Map API cards to component cards
-  const cards: Card[] = apiCards ? apiCards.map(mapApiCardToCard) : [];
+  const cards: Card[] = apiCards
+    ? apiCards.map((apiCard, index) => mapApiCardToCard(apiCard, index))
+    : [];
 
   // Fetch users for the account
   const fetchUsers = async () => {
@@ -57,6 +59,7 @@ const CardsPage = () => {
       setUsers(usersData);
     } catch (err) {
       console.error("Error fetching users:", err);
+      toast.error("Failed to load users. Please refresh the page.");
     } finally {
       setLoadingUsers(false);
     }
@@ -104,16 +107,19 @@ const CardsPage = () => {
           data: cardData,
         });
         setCardToEdit(null);
+        toast.success("Card updated successfully!");
       } else {
         await createCardMutation.mutateAsync(cardData);
         setIsAddingCard(false);
+        toast.success("Card created successfully!");
       }
     } catch (err) {
       console.error("Failed to save card:", err);
+      toast.error("Failed to save card. Please try again.");
     }
   };
 
-  const handleEditCard = (card: CardData) => {
+  const handleEditCard = (card: Card) => {
     const originalApiCard = apiCards?.find((c) => c.id === card.id);
     if (!originalApiCard) {
       console.error("Failed to load card data for editing");
@@ -123,11 +129,12 @@ const CardsPage = () => {
     setCardToEdit(originalApiCard);
   };
 
-  const handleCopyCard = async (card: CardData) => {
+  const handleCopyCard = async (card: Card) => {
     try {
       const originalApiCard = apiCards?.find((c) => c.id === card.id);
       if (!originalApiCard) {
         console.error("Failed to load card data for copying");
+        toast.error("Failed to load card data for copying");
         return;
       }
 
@@ -140,12 +147,14 @@ const CardsPage = () => {
       };
 
       await createCardMutation.mutateAsync(copyData);
+      toast.success("Card copied successfully!");
     } catch (err) {
       console.error("Failed to copy card:", err);
+      toast.error("Failed to copy card. Please try again.");
     }
   };
 
-  const handleDeleteCard = (card: CardData) => {
+  const handleDeleteCard = (card: Card) => {
     setCardToDelete(card);
   };
 
@@ -155,9 +164,11 @@ const CardsPage = () => {
     try {
       await deleteCardMutation.mutateAsync(cardToDelete.id);
       setCardToDelete(null);
+      toast.success("Card deleted successfully!");
     } catch (err) {
       // Error is handled by the mutation
       console.error("Failed to delete card:", err);
+      toast.error("Failed to delete card. Please try again.");
     }
   };
 
