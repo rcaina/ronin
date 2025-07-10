@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen, LogOut, User } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 
@@ -18,7 +19,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/", icon: "📊", label: "Overview" },
-  { href: "/budgets", icon: "💰", label: "Budget" },
+  { href: "/budgets", icon: "🎯", label: "Budget" },
   { href: "/transactions", icon: "🧾", label: "Transactions" },
   { href: "/categories", icon: "📋", label: "Categories" },
   { href: "/cards", icon: "💳", label: "Cards" },
@@ -28,6 +29,7 @@ const navItems: NavItem[] = [
 export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const { data: session } = useSession();
+  const pathname = usePathname();
 
   const handleSignOut = async () => {
     await signOut({
@@ -89,20 +91,25 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
         </div>
 
         <nav className="flex flex-col gap-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center rounded-lg px-3 py-2 text-white transition-colors hover:bg-white/10 ${isCollapsed ? "justify-center" : "gap-3"}`}
-            >
-              <span className="flex-shrink-0">{item.icon}</span>
-              <span
-                className={`transition-all duration-300 ease-in-out ${isCollapsed ? "w-0 overflow-hidden opacity-0" : "w-auto opacity-100"}`}
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center py-2 text-white transition-colors hover:bg-white/10 ${isCollapsed ? "justify-center" : "gap-3"} ${
+                  isActive ? "mx-[-1rem] bg-[#F1C232]/70 px-7" : "px-3"
+                }`}
               >
-                {item.label}
-              </span>
-            </Link>
-          ))}
+                <span className="flex-shrink-0">{item.icon}</span>
+                <span
+                  className={`transition-all duration-300 ease-in-out ${isCollapsed ? "w-0 overflow-hidden opacity-0" : "w-auto opacity-100"}`}
+                >
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Profile section at the bottom */}

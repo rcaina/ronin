@@ -11,7 +11,7 @@ import LoadingSpinner from "./LoadingSpinner";
 const PUBLIC_PAGES = ["/sign-in", "/sign-up"];
 
 // Pages that don't show the side navigation
-const NO_NAV_PAGES = ["/welcome", "/setup"];
+const NO_NAV_PAGES = ["/welcome"];
 
 export default function ConditionalLayout({
   children,
