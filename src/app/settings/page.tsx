@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import CreateUserModal from "@/components/CreateUserModal";
 import {
@@ -19,10 +20,13 @@ import {
   AlertTriangle,
   Users,
   Plus,
+  Home,
 } from "lucide-react";
+import Button from "@/components/Button";
 
 const SettingsPage = () => {
   const { data: session } = useSession();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -56,9 +60,9 @@ const SettingsPage = () => {
   const tabs = [
     { id: "profile", label: "Profile", icon: UserIcon },
     { id: "security", label: "Security", icon: Shield },
-    { id: "preferences", label: "Preferences", icon: Palette },
-    { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "billing", label: "Billing", icon: CreditCard },
+    // { id: "preferences", label: "Preferences", icon: Palette },
+    // { id: "notifications", label: "Notifications", icon: Bell },
+    // { id: "billing", label: "Billing", icon: CreditCard },
   ];
 
   // Add Users tab for admin users
@@ -238,6 +242,21 @@ const SettingsPage = () => {
                         </div>
                       </div>
                     )}
+
+                    {/* Back to Welcome Section */}
+                    <div className="mt-8 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                      <h3 className="mb-2 text-lg font-medium text-gray-900">
+                        Getting Started
+                      </h3>
+                      <p className="mb-4 text-sm text-gray-600">
+                        Need help setting up your account? Return to the welcome
+                        page to access setup options.
+                      </p>
+                      <Button onClick={() => router.push("/welcome")}>
+                        <Home className="mr-2 h-4 w-4" />
+                        Back to Welcome Page
+                      </Button>
+                    </div>
                   </div>
                 )}
 

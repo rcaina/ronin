@@ -22,6 +22,7 @@ import {
   Eye,
   Copy,
   Trash2,
+  Info,
 } from "lucide-react";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import PageHeader from "@/components/PageHeader";
@@ -412,9 +413,27 @@ const BudgetsPage = () => {
               {/* Budget Health Overview */}
               <div className="rounded-xl border bg-white p-4 shadow-sm sm:p-6">
                 <div className="mb-3 flex items-center justify-between sm:mb-4">
-                  <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
-                    Budget Health
-                  </h3>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
+                      Budget Health
+                    </h3>
+                    <div className="group relative">
+                      <Info className="h-4 w-4 cursor-help text-gray-400" />
+                      <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                        <div className="w-80 rounded-lg bg-gray-900 p-3 text-xs text-white shadow-lg">
+                          <div className="mb-1 font-medium">
+                            Budget Health Score
+                          </div>
+                          <div className="text-gray-200">
+                            Measures how well you&apos;re staying within your
+                            budget limits. Higher scores indicate better budget
+                            discipline and financial health.
+                          </div>
+                          <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   <Zap className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
                 </div>
                 <div className="space-y-2 sm:space-y-3">

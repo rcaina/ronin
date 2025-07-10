@@ -496,7 +496,8 @@ export default function CreateBudgetModal({
             <p className="text-sm text-gray-500">
               {currentStep === "basic" && "Set up your budget basics"}
               {currentStep === "income" && "Set up your income"}
-              {currentStep === "categories" && "Select spending categories"}
+              {currentStep === "categories" &&
+                "Select spending categories. You can also add, edit, or remove categories later from your budget settings."}
               {currentStep === "allocation" && "Allocate funds to categories"}
             </p>
           </div>

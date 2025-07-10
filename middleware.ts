@@ -12,7 +12,7 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isAuthPage = pathname.startsWith('/sign-in') || 
                     pathname.startsWith('/sign-up');
-  const isSetupPage = pathname.startsWith('/setup') || pathname.startsWith('/welcome');
+  const isSetupPage = pathname.startsWith('/welcome');
 
   if (isAuthPage) {
     if (token) {

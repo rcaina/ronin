@@ -100,6 +100,14 @@ export default function HomePage() {
 
   const budgetStatus = getBudgetStatus();
 
+  // Get the most recent budget for the quick action
+  const mostRecentBudget = budgets
+    .filter((budget) => !budget.deleted)
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )[0];
+
   return (
     <div className="flex h-screen flex-col bg-gray-50">
       <PageHeader
@@ -307,6 +315,27 @@ export default function HomePage() {
                   Quick Actions
                 </h2>
                 <div className="space-y-2 sm:space-y-3">
+                  {mostRecentBudget && (
+                    <button
+                      onClick={() =>
+                        router.push(`/budgets/${mostRecentBudget.id}`)
+                      }
+                      className="group flex w-full items-center space-x-2 rounded-lg border p-2 text-left transition-colors hover:bg-yellow-500/70 sm:space-x-3 sm:p-3"
+                    >
+                      <div className="bg-secondary/10 flex h-8 w-8 items-center justify-center rounded-full sm:h-10 sm:w-10">
+                        <Target className="h-5 w-5 text-secondary group-hover:text-white sm:h-9 sm:w-9" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 sm:text-base">
+                          Current Budget
+                        </p>
+                        <p className="text-xs text-gray-500 sm:text-sm">
+                          {mostRecentBudget.name}
+                        </p>
+                      </div>
+                    </button>
+                  )}
+
                   <button
                     onClick={() => router.push("/budgets")}
                     className="flex w-full items-center space-x-2 rounded-lg border p-2 text-left transition-colors hover:bg-yellow-500/70 sm:space-x-3 sm:p-3"
@@ -424,90 +453,6 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-
-          {/* Budget Cards Preview */}
-          {budgets.length > 0 && (
-            <div className="mt-6 sm:mt-8">
-              <div className="mb-4 flex flex-col items-start justify-between gap-2 sm:mb-6 sm:flex-row sm:items-center">
-                <h2 className="text-base font-semibold text-gray-900 sm:text-lg">
-                  Your Budgets
-                </h2>
-                <Link
-                  href="/budgets"
-                  className="flex items-center space-x-1 text-xs text-secondary hover:text-yellow-300 sm:text-sm"
-                >
-                  <span>View All Budgets</span>
-                  <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
-                </Link>
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-                {budgets.slice(0, 3).map((budget) => {
-                  const budgetIncome = budget.incomes?.[0]?.amount ?? 0;
-                  const budgetSpent = (budget.categories ?? []).reduce(
-                    (sum, category) =>
-                      sum +
-                      (category.transactions ?? []).reduce(
-                        (transactionSum, transaction) =>
-                          transactionSum + transaction.amount,
-                        0,
-                      ),
-                    0,
-                  );
-                  const budgetPercentage =
-                    budgetIncome > 0 ? (budgetSpent / budgetIncome) * 100 : 0;
-
-                  return (
-                    <div
-                      key={budget.id}
-                      onClick={() => router.push(`/budgets/${budget.id}`)}
-                      className="cursor-pointer rounded-xl border bg-white p-4 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md sm:p-6"
-                    >
-                      <div className="mb-3 flex items-center justify-between sm:mb-4">
-                        <h3 className="text-sm font-semibold text-gray-900 sm:text-base">
-                          {budget.name}
-                        </h3>
-                        <span
-                          className={`rounded-full px-2 py-1 text-xs font-medium ${
-                            budgetPercentage > 90
-                              ? "bg-red-100 text-red-800"
-                              : budgetPercentage > 75
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          {budgetPercentage.toFixed(0)}%
-                        </span>
-                      </div>
-                      <div className="mb-3">
-                        <div className="h-2 w-full rounded-full bg-gray-200">
-                          <div
-                            className={`h-2 rounded-full transition-all duration-300 ${
-                              budgetPercentage > 90
-                                ? "bg-red-500"
-                                : budgetPercentage > 75
-                                  ? "bg-yellow-500"
-                                  : "bg-green-500"
-                            }`}
-                            style={{
-                              width: `${Math.min(budgetPercentage, 100)}%`,
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between text-xs sm:text-sm">
-                        <span className="text-gray-500">
-                          ${budgetIncome.toLocaleString()}
-                        </span>
-                        <span className="text-gray-500">
-                          ${budgetSpent.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
