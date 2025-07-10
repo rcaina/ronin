@@ -65,7 +65,7 @@ export default function TransactionForm({
   const { data: budgetCategories = [] } = useBudgetCategories(selectedBudgetId);
   const isEditing = !!transaction;
   const isPending = isCreating || isUpdating;
-  console.log({ transaction });
+
   const {
     register,
     handleSubmit,
