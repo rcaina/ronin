@@ -115,14 +115,14 @@ const TransactionsPage = () => {
       // Budget filter
       const matchesBudget =
         selectedBudget === "all" ||
-        transaction.budget?.id === selectedBudget ||
-        (selectedBudget === "no-budget" && !transaction.budget);
+        transaction.Budget?.id === selectedBudget ||
+        (selectedBudget === "no-budget" && !transaction.Budget);
 
       // Card filter
       const matchesCard =
         selectedCard === "all" ||
-        (transaction.cardId ?? "" === selectedCard) ||
-        (selectedCard === "no-card" && !transaction.cardId);
+        (selectedCard === "no-card" && !transaction.cardId) ||
+        transaction.cardId === selectedCard;
 
       return matchesSearch && matchesCategory && matchesBudget && matchesCard;
     });
@@ -691,11 +691,11 @@ const TransactionsPage = () => {
                             <span className="truncate">
                               {transaction.category.category.name}
                             </span>
-                            {transaction.budget && (
+                            {transaction.Budget && (
                               <>
                                 <span className="hidden sm:inline">•</span>
                                 <span className="hidden truncate sm:inline">
-                                  {transaction.budget.name}
+                                  {transaction.Budget.name}
                                 </span>
                               </>
                             )}

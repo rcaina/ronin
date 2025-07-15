@@ -23,5 +23,5 @@ export type TransactionWithRelations = Transaction & {
       group: string;
     };
   };
-  budget?: Budget;
+  Budget?: Budget;
 }; 
