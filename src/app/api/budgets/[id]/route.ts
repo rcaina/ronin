@@ -38,6 +38,18 @@ export const GET = withUser({
                         deleted: null,
                     },
                 },
+                transactions: {
+                    where: {
+                        deleted: null,
+                        categoryId: null, // Only transactions without categories (like card payments)
+                    },
+                    include: {
+                        card: true,
+                    },
+                    orderBy: {
+                        createdAt: 'desc',
+                    },
+                },
             },
         });
 

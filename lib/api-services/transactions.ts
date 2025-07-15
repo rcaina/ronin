@@ -1,5 +1,5 @@
-import { type PrismaClient, type User } from "@prisma/client"
-import type { CreateTransactionSchema, UpdateTransactionSchema } from "@/lib/api-schemas/transactions"
+import { type PrismaClient, type User, TransactionType } from "@prisma/client"
+import type { CreateTransactionSchema, UpdateTransactionSchema, CreateCardPaymentSchema } from "@/lib/api-schemas/transactions"
 
 export async function getTransactions(
   tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
@@ -35,10 +35,11 @@ export async function createTransaction(
       description: data.description,
       amount: data.amount,
       budgetId: data.budgetId,
-      categoryId: data.categoryId,
+      categoryId: data.categoryId && data.categoryId.trim() !== "" ? data.categoryId : null,
       cardId: data.cardId && data.cardId.trim() !== "" ? data.cardId : null,
       accountId: user.accountId,
       userId: user.id,
+      transactionType: data.transactionType ?? "REGULAR",
       createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
       occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
     },
@@ -70,7 +71,7 @@ export async function updateTransaction(
       description: data.description,
       amount: data.amount,
       budgetId: data.budgetId,
-      categoryId: data.categoryId,
+      categoryId: data.categoryId && data.categoryId.trim() !== "" ? data.categoryId : null,
       cardId: data.cardId && data.cardId.trim() !== "" ? data.cardId : null,
       createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
       occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
@@ -101,4 +102,73 @@ export async function deleteTransaction(
       deleted: new Date(),
     },
   })
+}
+
+export async function createCardPayment(
+  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  data: CreateCardPaymentSchema,
+  user: User & { accountId: string }
+) {
+  // Create two linked transactions: 
+  // 1. Source card (debit/cash): negative amount (money going out)
+  // 2. Destination card (credit): positive amount (money being added back to credit card)
+  const fromTransaction = await tx.transaction.create({
+    data: {
+      name: data.name ?? `Payment from ${data.fromCardId}`,
+      description: data.description ?? `Card payment to ${data.toCardId}`,
+      amount: -data.amount, // Negative amount for source card (money going out)
+      budgetId: data.budgetId,
+      categoryId: null, // No category for card payments
+      cardId: data.fromCardId,
+      accountId: user.accountId,
+      userId: user.id,
+      transactionType: TransactionType.CARD_PAYMENT,
+      createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+      occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
+    },
+    include: {
+      category: {
+        include: {
+          category: true,
+        },
+      },
+      Budget: true,
+    },
+  });
+
+  const toTransaction = await tx.transaction.create({
+    data: {
+      name: data.name ?? `Payment to ${data.toCardId}`,
+      description: data.description ?? `Card payment from ${data.fromCardId}`,
+      amount: data.amount, // Positive amount for destination card (money being added back)
+      budgetId: data.budgetId,
+      categoryId: null, // No category for card payments
+      cardId: data.toCardId,
+      accountId: user.accountId,
+      userId: user.id,
+      transactionType: TransactionType.CARD_PAYMENT,
+      linkedTransactionId: fromTransaction.id, // Link to the source transaction
+      createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+      occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
+    },
+    include: {
+      category: {
+        include: {
+          category: true,
+        },
+      },
+      Budget: true,
+    },
+  });
+
+  // Update the source transaction to link to the destination transaction
+  await tx.transaction.update({
+    where: { id: fromTransaction.id },
+    data: { linkedTransactionId: toTransaction.id },
+  });
+
+  return {
+    fromTransaction,
+    toTransaction,
+  };
 } 

@@ -29,6 +29,7 @@ import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import TransactionForm from "@/components/transactions/TransactionForm";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
+
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
 
@@ -45,6 +46,7 @@ const TransactionsPage = () => {
   const [sortBy, setSortBy] = useState<"date" | "amount" | "name">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [showTransactionForm, setShowTransactionForm] = useState(false);
+
   const [editingTransactionId, setEditingTransactionId] = useState<
     string | null
   >(null);
@@ -91,9 +93,10 @@ const TransactionsPage = () => {
         (transaction.name?.toLowerCase().includes(searchLower) ?? false) ||
         (transaction.description?.toLowerCase().includes(searchLower) ??
           false) ||
-        transaction.category.category.name
+        (transaction.category?.category.name
           .toLowerCase()
-          .includes(searchLower) ||
+          .includes(searchLower) ??
+          false) ||
         // Amount search - convert amount to string and search
         Math.abs(transaction.amount)
           .toString()
@@ -110,19 +113,19 @@ const TransactionsPage = () => {
       // Category filter
       const matchesCategory =
         selectedCategory === "all" ||
-        transaction.category.id === selectedCategory;
+        transaction.category?.id === selectedCategory;
 
       // Budget filter
       const matchesBudget =
         selectedBudget === "all" ||
-        transaction.budget?.id === selectedBudget ||
-        (selectedBudget === "no-budget" && !transaction.budget);
+        transaction.Budget?.id === selectedBudget ||
+        (selectedBudget === "no-budget" && !transaction.Budget);
 
       // Card filter
       const matchesCard =
         selectedCard === "all" ||
-        (transaction.cardId ?? "" === selectedCard) ||
-        (selectedCard === "no-card" && !transaction.cardId);
+        (selectedCard === "no-card" && !transaction.cardId) ||
+        transaction.cardId === selectedCard;
 
       return matchesSearch && matchesCategory && matchesBudget && matchesCard;
     });
@@ -165,7 +168,7 @@ const TransactionsPage = () => {
       { id: string; name: string; group: string }
     >();
     transactions.forEach((t) => {
-      if (!uniqueCategories.has(t.category.id)) {
+      if (t.category && !uniqueCategories.has(t.category.id)) {
         uniqueCategories.set(t.category.id, {
           id: t.category.id,
           name: t.category.category.name,
@@ -209,6 +212,8 @@ const TransactionsPage = () => {
         return "bg-purple-500";
       case "investment":
         return "bg-green-500";
+      case "card_payment":
+        return "bg-black";
       default:
         return "bg-gray-500";
     }
@@ -225,14 +230,21 @@ const TransactionsPage = () => {
     transaction: TransactionWithRelations,
   ) => {
     try {
+      // Don't allow copying card payment transactions
+      if (transaction.transactionType === "CARD_PAYMENT") {
+        toast.error("Card payment transactions cannot be copied.");
+        return;
+      }
+
       // Create a copy with "Copy" appended to the name
       const copyData = {
         name: transaction.name ? `${transaction.name} Copy` : undefined,
         description: transaction.description ?? undefined,
         amount: transaction.amount,
         budgetId: transaction.budgetId ?? "",
-        categoryId: transaction.categoryId,
+        categoryId: transaction.categoryId ?? undefined,
         cardId: transaction.cardId ?? undefined,
+        transactionType: transaction.transactionType,
         createdAt: new Date().toISOString(),
       };
 
@@ -245,7 +257,15 @@ const TransactionsPage = () => {
   };
 
   const handleEditTransaction = (transaction: TransactionWithRelations) => {
-    setEditingTransactionId(transaction.id);
+    // Check if this is a card payment transaction
+    if (transaction.transactionType === "CARD_PAYMENT") {
+      toast.error(
+        "Card payment transactions cannot be edited. Please delete and recreate if needed.",
+      );
+      return;
+    } else {
+      setEditingTransactionId(transaction.id);
+    }
   };
 
   const handleDeleteTransaction = (transaction: TransactionWithRelations) => {
@@ -670,7 +690,15 @@ const TransactionsPage = () => {
                           className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
                         />
                         <div
-                          className={`h-3 w-3 flex-shrink-0 rounded-full ${getGroupColor(transaction.category.category.group)}`}
+                          className={`h-3 w-3 flex-shrink-0 rounded-full ${
+                            transaction.transactionType === "CARD_PAYMENT"
+                              ? getGroupColor("card_payment")
+                              : transaction.category
+                                ? getGroupColor(
+                                    transaction.category.category.group,
+                                  )
+                                : "bg-gray-500"
+                          }`}
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center space-x-2">
@@ -689,13 +717,16 @@ const TransactionsPage = () => {
                           </div>
                           <div className="flex items-center space-x-2 text-sm text-gray-500">
                             <span className="truncate">
-                              {transaction.category.category.name}
+                              {transaction.transactionType === "CARD_PAYMENT"
+                                ? "Card Payment"
+                                : (transaction.category?.category.name ??
+                                  "No Category")}
                             </span>
-                            {transaction.budget && (
+                            {transaction.Budget && (
                               <>
                                 <span className="hidden sm:inline">•</span>
                                 <span className="hidden truncate sm:inline">
-                                  {transaction.budget.name}
+                                  {transaction.Budget.name}
                                 </span>
                               </>
                             )}
@@ -731,7 +762,15 @@ const TransactionsPage = () => {
 
                         <div className="text-right">
                           <div
-                            className={`font-medium ${transaction.amount < 0 ? "text-green-600" : "text-gray-900"}`}
+                            className={`font-medium ${
+                              transaction.transactionType === "CARD_PAYMENT"
+                                ? transaction.amount < 0
+                                  ? "text-green-600" // Source transaction (money going out from debit card)
+                                  : "text-gray-900" // Destination transaction (money being added back to credit card)
+                                : transaction.amount < 0
+                                  ? "text-green-600"
+                                  : "text-gray-900"
+                            }`}
                           >
                             {formatCurrency(transaction.amount)}
                           </div>
