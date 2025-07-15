@@ -9,6 +9,7 @@ import { default as CardComponent } from "@/components/cards/Card";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import AddCardForm from "@/components/cards/AddCardForm";
 import AddItemButton from "@/components/AddItemButton";
+import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import {
   useCards,
   useDeleteCard,
@@ -41,6 +42,7 @@ const CardsPage = () => {
   const [cardToEdit, setCardToEdit] = useState<ApiCard | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [showCardPaymentModal, setShowCardPaymentModal] = useState(false);
 
   // Map API cards to component cards
   const cards: Card[] = apiCards
@@ -204,6 +206,11 @@ const CardsPage = () => {
       <PageHeader
         title="Cards"
         description="View and manage credit and debit cards in your account"
+        action={{
+          label: "Pay Credit Card",
+          onClick: () => setShowCardPaymentModal(true),
+          icon: <CreditCard className="h-4 w-4" />,
+        }}
       />
 
       <div className="flex-1 overflow-auto">
@@ -464,6 +471,12 @@ const CardsPage = () => {
         itemName={cardToDelete?.name ?? ""}
         isLoading={deleteCardMutation.isPending}
         confirmText="Delete Card"
+      />
+
+      {/* Card Payment Modal */}
+      <CardPaymentModal
+        isOpen={showCardPaymentModal}
+        onClose={() => setShowCardPaymentModal(false)}
       />
     </div>
   );

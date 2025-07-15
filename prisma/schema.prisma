@@ -181,29 +181,34 @@ model Card {
 }
 
 model Transaction {
-    id          String         @id @default(cuid())
-    name        String?
-    description String?
-    amount      Float
-    occurredAt  DateTime?
-    createdAt   DateTime       @default(now())
-    updatedAt   DateTime       @updatedAt
-    deleted     DateTime?
-    cardId      String?
-    card        Card?          @relation(fields: [cardId], references: [id])
-    budgetId    String
-    Budget      Budget         @relation(fields: [budgetId], references: [id])
-    categoryId  String
-    category    BudgetCategory @relation(fields: [categoryId], references: [id])
-    accountId   String
-    account     Account        @relation(fields: [accountId], references: [id])
-    userId      String
-    user        User           @relation(fields: [userId], references: [id])
+    id                  String          @id @default(cuid())
+    name                String?
+    description         String?
+    amount              Float
+    occurredAt          DateTime?
+    createdAt           DateTime        @default(now())
+    updatedAt           DateTime        @updatedAt
+    deleted             DateTime?
+    cardId              String?
+    card                Card?           @relation(fields: [cardId], references: [id])
+    budgetId            String
+    Budget              Budget          @relation(fields: [budgetId], references: [id])
+    categoryId          String?
+    category            BudgetCategory? @relation(fields: [categoryId], references: [id])
+    accountId           String
+    account             Account         @relation(fields: [accountId], references: [id])
+    userId              String
+    user                User            @relation(fields: [userId], references: [id])
+    transactionType     TransactionType @default(REGULAR)
+    linkedTransactionId String?
+    linkedTransaction   Transaction?    @relation("LinkedTransactions", fields: [linkedTransactionId], references: [id])
+    linkedTransactions  Transaction[]   @relation("LinkedTransactions")
 
     @@index([id])
     @@index([name])
     @@index([amount])
     @@index([deleted])
+    @@index([transactionType])
     @@map("transactions")
 }
 
@@ -238,4 +243,9 @@ enum CategoryType {
     WANTS
     NEEDS
     INVESTMENT
+}
+
+enum TransactionType {
+    REGULAR
+    CARD_PAYMENT
 }

@@ -16,7 +16,7 @@ export interface UpdateTransactionRequest extends Omit<UpdateTransactionSchema, 
 
 // Transaction with relations type
 export type TransactionWithRelations = Transaction & {
-  category: BudgetCategory & {
+  category?: BudgetCategory & {
     category: {
       id: string;
       name: string;

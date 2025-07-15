@@ -3,10 +3,20 @@ import type {
   UpdateTransactionRequest, 
   TransactionWithRelations 
 } from "@/lib/types/transaction";
+import type { CreateCardPaymentSchema } from "@/lib/api-schemas/transactions";
 
 interface ApiResponse<T> {
   message: string;
   transaction?: T;
+  errors?: Array<{ message: string }>;
+}
+
+interface CardPaymentResponse {
+  message: string;
+  result?: {
+    fromTransaction: TransactionWithRelations;
+    toTransaction: TransactionWithRelations;
+  };
   errors?: Array<{ message: string }>;
 }
 
@@ -76,4 +86,29 @@ export const deleteTransaction = async (id: string): Promise<void> => {
   if (!response.ok) {
     throw new Error(`Failed to delete transaction: ${response.statusText}`);
   }
+};
+
+export const createCardPayment = async (data: CreateCardPaymentSchema): Promise<{
+  fromTransaction: TransactionWithRelations;
+  toTransaction: TransactionWithRelations;
+}> => {
+  const response = await fetch("/api/transactions/card-payment", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  const result = await response.json() as CardPaymentResponse;
+
+  if (!response.ok) {
+    throw new Error(result.message ?? "Failed to create card payment");
+  }
+
+  if (!result.result) {
+    throw new Error("No card payment result returned from server");
+  }
+
+  return result.result;
 }; 
