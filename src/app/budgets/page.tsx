@@ -3,24 +3,18 @@
 import { useState, useMemo, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
-  AlertCircle,
   Calendar,
   Clock,
   Target,
-  Plus,
-  MoreVertical,
   Archive,
   RotateCcw,
-  CheckCircle,
+  Copy,
+  Trash2,
+  Plus,
   TrendingUp,
   TrendingDown,
-  DollarSign,
   BarChart3,
-  Receipt,
-  Sparkles,
-  Copy,
-  Trash,
-  Trash2,
+  CheckCircle,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
@@ -31,7 +25,6 @@ import {
   useMarkBudgetArchived,
   useReactivateBudget,
 } from "@/lib/data-hooks/budgets/useBudgets";
-import { useTransactions } from "@/lib/data-hooks/transactions/useTransactions";
 import {
   useDeleteBudget,
   useDuplicateBudget,
@@ -59,7 +52,6 @@ const BudgetsPage = () => {
     useCompletedBudgets();
   const { data: archivedBudgets = [], isLoading: archivedLoading } =
     useArchivedBudgets();
-  const { data: allTransactions = [] } = useTransactions();
 
   // Mutation hooks
   const deleteBudgetMutation = useDeleteBudget();
@@ -214,7 +206,7 @@ const BudgetsPage = () => {
       leastHealthyBudget,
       budgetHealthScores,
     };
-  }, [activeBudgets, completedBudgets, archivedBudgets, allTransactions]);
+  }, [activeBudgets, completedBudgets, archivedBudgets]);
 
   if (isLoading) {
     return <LoadingSpinner message="Loading budgets..." />;

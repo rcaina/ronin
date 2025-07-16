@@ -1,4 +1,4 @@
-import { PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category } from "@prisma/client"
+import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category } from "@prisma/client"
 
 export interface CreateBudgetData {
   name: string

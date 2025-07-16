@@ -7,7 +7,6 @@ import {
   User,
   Edit,
   Trash2,
-  Copy,
   Plus,
 } from "lucide-react";
 import { useState } from "react";
@@ -24,7 +23,6 @@ import {
   useCardTransactions,
   useDeleteCard,
   useUpdateCard,
-  useCreateCard,
 } from "@/lib/data-hooks/cards/useCards";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
@@ -51,7 +49,6 @@ const CardDetailsPage = () => {
     useCardTransactions(id);
   const { data: budgets = [] } = useBudgets();
   const deleteCardMutation = useDeleteCard();
-  const createCardMutation = useCreateCard();
   const updateCardMutation = useUpdateCard();
 
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
@@ -125,26 +122,6 @@ const CardDetailsPage = () => {
     } catch (err) {
       console.error("Failed to save card:", err);
       toast.error("Failed to save card. Please try again.");
-    }
-  };
-
-  const handleCopyCard = async () => {
-    if (!card) return;
-
-    try {
-      // Create a copy with "Copy" appended to the name
-      const copyData = {
-        name: `${card.name} Copy`,
-        cardType: card.cardType,
-        spendingLimit: card.spendingLimit,
-        userId: card.userId,
-      };
-
-      await createCardMutation.mutateAsync(copyData);
-      toast.success("Card copied successfully!");
-    } catch (err) {
-      console.error("Failed to copy card:", err);
-      toast.error("Failed to copy card. Please try again.");
     }
   };
 
