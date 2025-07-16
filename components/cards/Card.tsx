@@ -7,6 +7,7 @@ interface CardProps {
   onCopy?: (card: Card) => void;
   onDelete?: (card: Card) => void;
   canEdit?: boolean;
+  onClick?: (card: Card) => void;
 }
 
 const getCardTypeIcon = (type: string) => {
@@ -37,12 +38,14 @@ const CardComponent = ({
   onCopy,
   onDelete,
   canEdit = true,
+  onClick,
 }: CardProps) => {
   return (
     <div
-      className={`group relative overflow-hidden rounded-xl border bg-white shadow-sm transition-all hover:shadow-md ${
+      className={`group relative cursor-pointer overflow-hidden rounded-xl border bg-white shadow-sm transition-all hover:shadow-md ${
         !card.isActive ? "opacity-60" : ""
       }`}
+      onClick={() => onClick?.(card)}
     >
       {/* Card Header */}
       <div className={`${card.color} p-6 text-white`}>
@@ -54,7 +57,10 @@ const CardComponent = ({
           <div className="flex items-center gap-2">
             <button
               className="rounded-md p-1 opacity-0 transition-opacity hover:bg-white/20 group-hover:opacity-100"
-              onClick={() => onCopy?.(card)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCopy?.(card);
+              }}
               title="Copy"
             >
               <CopyIcon className="h-4 w-4" />
@@ -63,14 +69,20 @@ const CardComponent = ({
               <>
                 <button
                   className="rounded-md p-1 opacity-0 transition-opacity hover:bg-white/20 group-hover:opacity-100"
-                  onClick={() => onEdit?.(card)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit?.(card);
+                  }}
                   title="Edit"
                 >
                   <Edit className="h-4 w-4" />
                 </button>
                 <button
                   className="rounded-md p-1 text-red-300 opacity-0 transition-opacity hover:bg-white/20 hover:text-red-500 group-hover:opacity-100"
-                  onClick={() => onDelete?.(card)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete?.(card);
+                  }}
                   title="Delete card"
                 >
                   <Trash2 className="h-4 w-4" />

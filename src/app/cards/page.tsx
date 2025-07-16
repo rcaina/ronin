@@ -1,8 +1,9 @@
 "use client";
 
 import { Plus, CreditCard, DollarSign, Shield } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/PageHeader";
 import { default as CardComponent } from "@/components/cards/Card";
@@ -21,6 +22,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import type { CardType } from "@prisma/client";
 import Button from "@/components/Button";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
+import StatsCard from "@/components/StatsCard";
 
 interface User {
   id: string;
@@ -32,6 +34,7 @@ interface User {
 }
 
 const CardsPage = () => {
+  const router = useRouter();
   const { data: session } = useSession();
   const { data: apiCards, isLoading, error } = useCards();
   const deleteCardMutation = useDeleteCard();
@@ -45,9 +48,9 @@ const CardsPage = () => {
   const [showCardPaymentModal, setShowCardPaymentModal] = useState(false);
 
   // Map API cards to component cards
-  const cards: Card[] = apiCards
-    ? apiCards.map((apiCard, index) => mapApiCardToCard(apiCard, index))
-    : [];
+  const cards: Card[] = useMemo(() => {
+    return apiCards ? apiCards.map((apiCard) => mapApiCardToCard(apiCard)) : [];
+  }, [apiCards]);
 
   // Fetch users for the account
   const fetchUsers = async () => {
@@ -67,12 +70,12 @@ const CardsPage = () => {
     }
   };
 
-  // Fetch users when component mounts or when editing starts
+  // Fetch users when component mounts
   useEffect(() => {
     if (session) {
       void fetchUsers();
     }
-  }, [session, cardToEdit]);
+  }, [session]);
 
   const handleAddCard = () => {
     setIsAddingCard(true);
@@ -178,14 +181,39 @@ const CardsPage = () => {
     setCardToDelete(null);
   };
 
-  const totalSpent = cards.reduce((sum, card) => sum + card.amountSpent, 0);
-  const totalLimit = cards
-    .filter((card) => card.spendingLimit)
-    .reduce((sum, card) => sum + (card.spendingLimit ?? 0), 0);
-  const activeCards = cards.filter((card) => card.isActive).length;
-  const creditCards = cards.filter(
-    (card) => card.type === "credit" || card.type === "business_credit",
-  ).length;
+  const handleCardClick = (card: Card) => {
+    router.push(`/cards/${card.id}`);
+  };
+
+  const { totalSpent, totalLimit, activeCards, creditCards } = useMemo(() => {
+    const totalSpent = cards.reduce((sum, card) => sum + card.amountSpent, 0);
+    const totalLimit = cards
+      .filter((card) => card.spendingLimit)
+      .reduce((sum, card) => sum + (card.spendingLimit ?? 0), 0);
+    const activeCards = cards.filter((card) => card.isActive).length;
+    const creditCards = cards.filter(
+      (card) => card.type === "credit" || card.type === "business_credit",
+    ).length;
+
+    return { totalSpent, totalLimit, activeCards, creditCards };
+  }, [cards]);
+
+  // Memoize filtered card arrays
+  const creditCardsArray = useMemo(() => {
+    return cards.filter(
+      (card) => card.type === "credit" || card.type === "business_credit",
+    );
+  }, [cards]);
+
+  const debitCardsArray = useMemo(() => {
+    return cards.filter(
+      (card) => card.type === "debit" || card.type === "business_debit",
+    );
+  }, [cards]);
+
+  const cashCardsArray = useMemo(() => {
+    return cards.filter((card) => card.type === "cash");
+  }, [cards]);
 
   if (isLoading) {
     return <LoadingSpinner message="Loading cards..." />;
@@ -217,61 +245,45 @@ const CardsPage = () => {
         <div className="mx-auto max-w-7xl px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
           {/* Overview Stats */}
           <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
-              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                  Total Spent
-                </h3>
+            <StatsCard
+              title="Total Spent"
+              value={`$${totalSpent.toLocaleString()}`}
+              subtitle="Across all cards"
+              icon={
                 <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
-              </div>
-              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-                ${totalSpent.toLocaleString()}
-              </div>
-              <div className="mt-1 text-xs text-gray-500">Across all cards</div>
-            </div>
+              }
+              iconColor="text-green-500"
+            />
 
-            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
-              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                  Credit Limit
-                </h3>
+            <StatsCard
+              title="Credit Limit"
+              value={`$${totalLimit.toLocaleString()}`}
+              subtitle="Available credit"
+              icon={
                 <CreditCard className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
-              </div>
-              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-                ${totalLimit.toLocaleString()}
-              </div>
-              <div className="mt-1 text-xs text-gray-500">Available credit</div>
-            </div>
+              }
+              iconColor="text-blue-500"
+            />
 
-            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
-              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                  Active Cards
-                </h3>
+            <StatsCard
+              title="Active Cards"
+              value={activeCards}
+              subtitle={`${cards.length - activeCards} inactive`}
+              icon={
                 <Shield className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
-              </div>
-              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-                {activeCards}
-              </div>
-              <div className="mt-1 text-xs text-gray-500">
-                {cards.length - activeCards} inactive
-              </div>
-            </div>
+              }
+              iconColor="text-purple-500"
+            />
 
-            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
-              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                  Credit Cards
-                </h3>
+            <StatsCard
+              title="Credit Cards"
+              value={creditCards}
+              subtitle={`${cards.length - creditCards} debit & cash cards`}
+              icon={
                 <CreditCard className="h-4 w-4 text-indigo-500 sm:h-5 sm:w-5" />
-              </div>
-              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-                {creditCards}
-              </div>
-              <div className="mt-1 text-xs text-gray-500">
-                {cards.length - creditCards} debit & cash cards
-              </div>
-            </div>
+              }
+              iconColor="text-indigo-500"
+            />
           </div>
 
           {/* Cards Grid */}
@@ -309,135 +321,121 @@ const CardsPage = () => {
             )}
 
             {/* Credit Cards Section */}
-            {cards.filter(
-              (card) =>
-                card.type === "credit" || card.type === "business_credit",
-            ).length > 0 &&
-              cards
-                .filter(
-                  (card) =>
-                    card.type === "credit" || card.type === "business_credit",
-                )
-                .map((card) => {
-                  const isEditing = cardToEdit?.id === card.id;
+            {creditCardsArray.length > 0 &&
+              creditCardsArray.map((card) => {
+                const isEditing = cardToEdit?.id === card.id;
 
-                  if (isEditing) {
-                    return (
-                      <AddCardForm
-                        key={`edit-${card.id}`}
-                        onSubmit={handleSubmitCard}
-                        onCancel={handleCancelEdit}
-                        isLoading={updateCardMutation.isPending}
-                        cardToEdit={cardToEdit}
-                        users={users}
-                        loadingUsers={loadingUsers}
-                        defaultValues={{
-                          name: cardToEdit.name,
-                          cardType: cardToEdit.cardType,
-                          spendingLimit:
-                            cardToEdit.spendingLimit?.toString() ?? "",
-                          userId: cardToEdit.userId,
-                        }}
-                      />
-                    );
-                  }
-
+                if (isEditing) {
                   return (
-                    <CardComponent
-                      key={card.id}
-                      card={card}
-                      onEdit={handleEditCard}
-                      onCopy={handleCopyCard}
-                      onDelete={handleDeleteCard}
-                      canEdit={card.userId === session?.user?.id}
+                    <AddCardForm
+                      key={`edit-${card.id}`}
+                      onSubmit={handleSubmitCard}
+                      onCancel={handleCancelEdit}
+                      isLoading={updateCardMutation.isPending}
+                      cardToEdit={cardToEdit}
+                      users={users}
+                      loadingUsers={loadingUsers}
+                      defaultValues={{
+                        name: cardToEdit.name,
+                        cardType: cardToEdit.cardType,
+                        spendingLimit:
+                          cardToEdit.spendingLimit?.toString() ?? "",
+                        userId: cardToEdit.userId,
+                      }}
                     />
                   );
-                })}
+                }
+
+                return (
+                  <CardComponent
+                    key={card.id}
+                    card={card}
+                    onEdit={handleEditCard}
+                    onCopy={handleCopyCard}
+                    onDelete={handleDeleteCard}
+                    onClick={handleCardClick}
+                    canEdit={card.userId === session?.user?.id}
+                  />
+                );
+              })}
 
             {/* Debit Cards Section */}
-            {cards.filter(
-              (card) => card.type === "debit" || card.type === "business_debit",
-            ).length > 0 &&
-              cards
-                .filter(
-                  (card) =>
-                    card.type === "debit" || card.type === "business_debit",
-                )
-                .map((card) => {
-                  const isEditing = cardToEdit?.id === card.id;
+            {debitCardsArray.length > 0 &&
+              debitCardsArray.map((card) => {
+                const isEditing = cardToEdit?.id === card.id;
 
-                  if (isEditing) {
-                    return (
-                      <AddCardForm
-                        key={`edit-${card.id}`}
-                        onSubmit={handleSubmitCard}
-                        onCancel={handleCancelEdit}
-                        isLoading={updateCardMutation.isPending}
-                        cardToEdit={cardToEdit}
-                        users={users}
-                        loadingUsers={loadingUsers}
-                        defaultValues={{
-                          name: cardToEdit.name,
-                          cardType: cardToEdit.cardType,
-                          spendingLimit:
-                            cardToEdit.spendingLimit?.toString() ?? "",
-                          userId: cardToEdit.userId,
-                        }}
-                      />
-                    );
-                  }
-
+                if (isEditing) {
                   return (
-                    <CardComponent
-                      key={card.id}
-                      card={card}
-                      onEdit={handleEditCard}
-                      onCopy={handleCopyCard}
-                      onDelete={handleDeleteCard}
-                      canEdit={card.userId === session?.user?.id}
+                    <AddCardForm
+                      key={`edit-${card.id}`}
+                      onSubmit={handleSubmitCard}
+                      onCancel={handleCancelEdit}
+                      isLoading={updateCardMutation.isPending}
+                      cardToEdit={cardToEdit}
+                      users={users}
+                      loadingUsers={loadingUsers}
+                      defaultValues={{
+                        name: cardToEdit.name,
+                        cardType: cardToEdit.cardType,
+                        spendingLimit:
+                          cardToEdit.spendingLimit?.toString() ?? "",
+                        userId: cardToEdit.userId,
+                      }}
                     />
                   );
-                })}
+                }
+
+                return (
+                  <CardComponent
+                    key={card.id}
+                    card={card}
+                    onEdit={handleEditCard}
+                    onCopy={handleCopyCard}
+                    onDelete={handleDeleteCard}
+                    onClick={handleCardClick}
+                    canEdit={card.userId === session?.user?.id}
+                  />
+                );
+              })}
 
             {/* Cash Cards Section */}
-            {cards.filter((card) => card.type === "cash").length > 0 &&
-              cards
-                .filter((card) => card.type === "cash")
-                .map((card) => {
-                  const isEditing = cardToEdit?.id === card.id;
+            {cashCardsArray.length > 0 &&
+              cashCardsArray.map((card) => {
+                const isEditing = cardToEdit?.id === card.id;
 
-                  if (isEditing) {
-                    return (
-                      <AddCardForm
-                        key={`edit-${card.id}`}
-                        onSubmit={handleSubmitCard}
-                        onCancel={handleCancelEdit}
-                        isLoading={updateCardMutation.isPending}
-                        cardToEdit={cardToEdit}
-                        users={users}
-                        loadingUsers={loadingUsers}
-                        defaultValues={{
-                          name: cardToEdit.name,
-                          cardType: cardToEdit.cardType,
-                          spendingLimit:
-                            cardToEdit.spendingLimit?.toString() ?? "",
-                          userId: cardToEdit.userId,
-                        }}
-                      />
-                    );
-                  }
-
+                if (isEditing) {
                   return (
-                    <CardComponent
-                      key={card.id}
-                      card={card}
-                      onEdit={handleEditCard}
-                      onCopy={handleCopyCard}
-                      onDelete={handleDeleteCard}
-                      canEdit={card.userId === session?.user?.id}
+                    <AddCardForm
+                      key={`edit-${card.id}`}
+                      onSubmit={handleSubmitCard}
+                      onCancel={handleCancelEdit}
+                      isLoading={updateCardMutation.isPending}
+                      cardToEdit={cardToEdit}
+                      users={users}
+                      loadingUsers={loadingUsers}
+                      defaultValues={{
+                        name: cardToEdit.name,
+                        cardType: cardToEdit.cardType,
+                        spendingLimit:
+                          cardToEdit.spendingLimit?.toString() ?? "",
+                        userId: cardToEdit.userId,
+                      }}
                     />
                   );
-                })}
+                }
+
+                return (
+                  <CardComponent
+                    key={card.id}
+                    card={card}
+                    onEdit={handleEditCard}
+                    onCopy={handleCopyCard}
+                    onDelete={handleDeleteCard}
+                    onClick={handleCardClick}
+                    canEdit={card.userId === session?.user?.id}
+                  />
+                );
+              })}
 
             {/* Empty State - only show if no cards and not adding */}
             {cards.length === 0 && !isAddingCard && (

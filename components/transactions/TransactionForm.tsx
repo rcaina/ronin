@@ -47,6 +47,7 @@ interface TransactionFormProps {
   onSuccess?: () => void;
   transaction?: TransactionWithRelations; // For editing
   budgetId?: string; // For pre-selecting a budget
+  cardId?: string; // For pre-selecting a card
 }
 
 export default function TransactionForm({
@@ -54,6 +55,7 @@ export default function TransactionForm({
   onSuccess,
   transaction,
   budgetId,
+  cardId,
 }: TransactionFormProps) {
   const { mutate: createTransaction, isPending: isCreating } =
     useCreateTransaction();
@@ -89,13 +91,21 @@ export default function TransactionForm({
   });
 
   const watchedBudgetId = watch("budgetId");
+  const watchedCardId = watch("cardId");
 
   // Update selected budget when form budget changes
   useEffect(() => {
     setSelectedBudgetId(watchedBudgetId);
   }, [watchedBudgetId]);
 
-  // Initialize form data when editing or when budgetId is provided
+  // Determine if the selected card is a credit card
+  const selectedCard = cards.find((card) => card.id === watchedCardId);
+  const isCreditCard =
+    selectedCard &&
+    (selectedCard.cardType === "CREDIT" ||
+      selectedCard.cardType === "BUSINESS_CREDIT");
+
+  // Initialize form data when editing or when budgetId/cardId is provided
   useEffect(() => {
     if (transaction) {
       setValue("name", transaction.name ?? "");
@@ -114,17 +124,30 @@ export default function TransactionForm({
           : undefined,
       );
       setSelectedBudgetId(transaction.budgetId);
-    } else if (budgetId) {
-      setValue("budgetId", budgetId);
-      setSelectedBudgetId(budgetId);
+    } else {
+      if (budgetId) {
+        setValue("budgetId", budgetId);
+        setSelectedBudgetId(budgetId);
+      }
+      if (cardId) {
+        setValue("cardId", cardId);
+      }
     }
-  }, [transaction, budgetId, setValue]);
+  }, [transaction, budgetId, cardId, setValue]);
 
   const onSubmit = (data: TransactionFormData) => {
-    // Convert amount to negative if it's a return/refund
-    const amount = data.isReturn
-      ? -Math.abs(parseFloat(data.amount))
-      : Math.abs(parseFloat(data.amount));
+    let amount: number;
+    if (isCreditCard) {
+      // For credit cards: purchases should be negative (money going out), payments/returns should be positive
+      amount = data.isReturn
+        ? Math.abs(parseFloat(data.amount)) // Return/refund = positive (money back)
+        : -Math.abs(parseFloat(data.amount)); // Purchase = negative (money going out)
+    } else {
+      // For debit/cash cards: purchases are positive, returns are negative
+      amount = data.isReturn
+        ? -Math.abs(parseFloat(data.amount)) // Return/refund = negative
+        : Math.abs(parseFloat(data.amount)); // Purchase = positive
+    }
 
     if (isEditing && transaction) {
       const updateData: UpdateTransactionRequest = {
@@ -255,7 +278,9 @@ export default function TransactionForm({
                   disabled={isPending}
                 />
                 <span className="text-sm text-gray-700">
-                  This is a return or refund (money back to account)
+                  {isCreditCard
+                    ? "This is a payment or refund (money back to credit card)"
+                    : "This is a return or refund (money back to account)"}
                 </span>
               </label>
             </div>

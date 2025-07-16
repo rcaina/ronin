@@ -1,20 +1,66 @@
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { getBudgets, updateBudget, deleteBudget } from "../services/budgets";
+import { getBudgets, updateBudget, deleteBudget, markBudgetCompleted, markBudgetArchived, reactivateBudget } from "../services/budgets";
 import type { UpdateBudgetData, CreateBudgetData } from "@/lib/api-services/budgets";
+import type { BudgetStatus } from "@prisma/client";
 
-export const useBudgets = () => {
+export const useBudgets = (status?: BudgetStatus) => {
   const { data: session } = useSession();
 
   const query = useQuery({
-    queryKey: ["budgets"],
-    queryFn: () => getBudgets(),
+    queryKey: ["budgets", status],
+    queryFn: () => getBudgets(status),
     placeholderData: keepPreviousData,
     enabled: !!session,
     staleTime: 2 * 60 * 1000,
   });
 
   return query;
+};
+
+export const useActiveBudgets = () => {
+  return useBudgets('ACTIVE');
+};
+
+export const useCompletedBudgets = () => {
+  return useBudgets('COMPLETED');
+};
+
+export const useArchivedBudgets = () => {
+  return useBudgets('ARCHIVED');
+};
+
+export const useMarkBudgetCompleted = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: markBudgetCompleted,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+    },
+  });
+};
+
+export const useMarkBudgetArchived = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: markBudgetArchived,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+    },
+  });
+};
+
+export const useReactivateBudget = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: reactivateBudget,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+    },
+  });
 };
 
 export const useCreateBudget = () => {

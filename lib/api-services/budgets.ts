@@ -1,4 +1,4 @@
-import { type PrismaClient, type User, type PeriodType, type StrategyType, type BudgetCategory, type Category } from "@prisma/client"
+import { PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category } from "@prisma/client"
 
 export interface CreateBudgetData {
   name: string
@@ -199,13 +199,17 @@ export async function deleteBudget(
 
 export async function getBudgets(
   tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
-  accountId: string
+  accountId: string,
+  status?: BudgetStatus
 ) {
+  const whereClause = {
+    accountId,
+    deleted: null,
+    ...(status && { status }),
+  };
+
   return await tx.budget.findMany({
-    where: {
-      accountId,
-      deleted: null,
-    },
+    where: whereClause,
     include: {
       categories: {
         where: { deleted: null },
@@ -222,6 +226,57 @@ export async function getBudgets(
     },
     orderBy: {
       createdAt: "desc",
+    },
+  })
+}
+
+export async function markBudgetCompleted(
+  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  budgetId: string,
+  user: User & { accountId: string }
+) {
+  return await tx.budget.update({
+    where: {
+      id: budgetId,
+      accountId: user.accountId,
+      deleted: null,
+    },
+    data: {
+      status: 'COMPLETED' as BudgetStatus,
+    },
+  })
+}
+
+export async function markBudgetArchived(
+  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  budgetId: string,
+  user: User & { accountId: string }
+) {
+  return await tx.budget.update({
+    where: {
+      id: budgetId,
+      accountId: user.accountId,
+      deleted: null,
+    },
+    data: {
+      status: 'ARCHIVED' as BudgetStatus,
+    },
+  })
+}
+
+export async function reactivateBudget(
+  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  budgetId: string,
+  user: User & { accountId: string }
+) {
+  return await tx.budget.update({
+    where: {
+      id: budgetId,
+      accountId: user.accountId,
+      deleted: null,
+    },
+    data: {
+      status: 'ACTIVE' as BudgetStatus,
     },
   })
 }

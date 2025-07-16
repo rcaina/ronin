@@ -9,6 +9,7 @@ import {
   Target,
   Plus,
   EditIcon,
+  Calendar,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -19,6 +20,7 @@ import IncomeModal from "@/components/budgets/IncomeModal";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import { useState } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
+import StatsCard from "@/components/StatsCard";
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();
@@ -80,6 +82,14 @@ const BudgetDetailsPage = () => {
   const totalRemaining = totalIncome - totalSpent;
   const spendingPercentage =
     totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
+
+  // Calculate days remaining
+  const today = new Date();
+  const endDate = new Date(budget.endAt);
+  const daysRemaining = Math.ceil(
+    (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  const isBudgetExpired = daysRemaining < 0;
 
   // Group categories by type and sort by usage percentage
   const categoriesByGroup = (budget.categories ?? []).reduce(
@@ -200,64 +210,80 @@ const BudgetDetailsPage = () => {
       <div className="flex-1 overflow-x-hidden pt-16 sm:pt-20 lg:pt-0">
         <div className="mx-auto w-full px-2 py-4 sm:max-w-7xl sm:px-4 sm:py-6 lg:px-8 lg:py-8">
           {/* Budget Overview Cards */}
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-6">
-            <div className="group relative rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
-              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                  Total Income
-                </h3>
-                <div className="flex items-center space-x-1 sm:space-x-2">
-                  <button
-                    onClick={() => setIsIncomeModalOpen(true)}
-                    className="rounded p-1 text-gray-400 opacity-0 transition-opacity hover:bg-gray-100 hover:text-gray-600 group-hover:opacity-100"
-                    title="Edit income sources"
-                  >
-                    <EditIcon className="h-3 w-3 sm:h-4 sm:w-4" />
-                  </button>
-                  <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
-                </div>
-              </div>
-              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-                ${totalIncome.toLocaleString()}
-              </div>
-              <div className="mt-1 text-xs text-gray-500 sm:text-sm">
-                {budget.incomes?.length === 1
-                  ? (budget.incomes[0]?.source ?? "Primary income")
-                  : `${budget.incomes?.length ?? 0} income sources`}
-              </div>
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
+            <div className="group relative">
+              <StatsCard
+                title="Total Income"
+                value={`$${totalIncome.toLocaleString()}`}
+                subtitle={
+                  budget.incomes?.length === 1
+                    ? (budget.incomes[0]?.source ?? "Primary income")
+                    : `${budget.incomes?.length ?? 0} income sources`
+                }
+                icon={
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsIncomeModalOpen(true);
+                      }}
+                      className="rounded p-1 text-gray-400 opacity-0 transition-opacity hover:bg-gray-100 hover:text-gray-600 group-hover:opacity-100"
+                      title="Edit income sources"
+                    >
+                      <EditIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </button>
+                    <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
+                  </div>
+                }
+                iconColor="text-green-500"
+              />
             </div>
 
-            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
-              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                  Total Spent
-                </h3>
+            <StatsCard
+              title="Total Spent"
+              value={`$${totalSpent.toLocaleString()}`}
+              subtitle={`${spendingPercentage.toFixed(1)}% of budget`}
+              icon={
                 <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
-              </div>
-              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-                ${totalSpent.toLocaleString()}
-              </div>
-              <div className="mt-1 text-xs text-gray-500 sm:text-sm">
-                {spendingPercentage.toFixed(1)}% of budget
-              </div>
-            </div>
+              }
+              iconColor="text-red-500"
+            />
 
-            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
-              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                  Remaining
-                </h3>
+            <StatsCard
+              title="Remaining"
+              value={`$${totalRemaining.toLocaleString()}`}
+              subtitle={totalRemaining >= 0 ? "Available" : "Over budget"}
+              icon={
                 <TrendingUp className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
-              </div>
-              <div
-                className={`text-lg font-bold sm:text-xl lg:text-2xl ${totalRemaining >= 0 ? "text-gray-900" : "text-red-600"}`}
-              >
-                ${totalRemaining.toLocaleString()}
-              </div>
-              <div className="mt-1 text-xs text-gray-500 sm:text-sm">
-                {totalRemaining >= 0 ? "Available" : "Over budget"}
-              </div>
-            </div>
+              }
+              iconColor="text-blue-500"
+              valueColor={
+                totalRemaining >= 0 ? "text-gray-900" : "text-red-600"
+              }
+            />
+
+            <StatsCard
+              title="Days Remaining"
+              value={isBudgetExpired ? Math.abs(daysRemaining) : daysRemaining}
+              subtitle={
+                isBudgetExpired
+                  ? "Days expired"
+                  : daysRemaining <= 7
+                    ? "Ending soon"
+                    : "Days left"
+              }
+              icon={
+                <Calendar className="h-4 w-4 text-orange-500 sm:h-5 sm:w-5" />
+              }
+              iconColor="text-orange-500"
+              valueColor={
+                isBudgetExpired
+                  ? "text-red-600"
+                  : daysRemaining <= 7
+                    ? "text-orange-600"
+                    : "text-gray-900"
+              }
+            />
           </div>
 
           {/* Progress Bar */}

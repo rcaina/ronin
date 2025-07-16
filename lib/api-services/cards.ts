@@ -58,6 +58,7 @@ export async function getCards(
         },
         select: {
           amount: true,
+          transactionType: true,
         },
       },
     },
@@ -67,11 +68,32 @@ export async function getCards(
   });
 
   // Calculate amountSpent for each card by summing related transactions
-  return cards.map(card => ({
-    ...card,
-    amountSpent: card.transactions.reduce((sum, transaction) => sum + transaction.amount, 0),
-    transactions: undefined, // Remove transactions from response
-  }));
+  return cards.map(card => {
+    const isCreditCard = card.cardType === 'CREDIT' || card.cardType === 'BUSINESS_CREDIT';
+    
+    let amountSpent = 0;
+    if (isCreditCard) {
+      // For credit cards: handle regular transactions and card payments differently
+      amountSpent = card.transactions.reduce((sum, transaction) => {
+        if (transaction.transactionType === 'CARD_PAYMENT') {
+          // Card payments reduce the balance (positive amount = payment received)
+          return sum - transaction.amount; // Subtract payment amount (reduces balance)
+        } else {
+          // Regular transactions: negative = purchases (increase balance), positive = returns (decrease balance)
+          return sum + transaction.amount;
+        }
+      }, 0);
+    } else {
+      // For debit/cash cards: sum all amounts normally
+      amountSpent = card.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+    }
+    
+    return {
+      ...card,
+      amountSpent,
+      transactions: undefined, // Remove transactions from response
+    };
+  });
 }
 
 export async function getCard(
@@ -92,6 +114,7 @@ export async function getCard(
         },
         select: {
           amount: true,
+          transactionType: true,
         },
       },
     },
@@ -100,9 +123,28 @@ export async function getCard(
   if (!card) return null;
 
   // Calculate amountSpent by summing related transactions
+  const isCreditCard = card.cardType === 'CREDIT' || card.cardType === 'BUSINESS_CREDIT';
+  
+  let amountSpent = 0;
+  if (isCreditCard) {
+    // For credit cards: handle regular transactions and card payments differently
+    amountSpent = card.transactions.reduce((sum, transaction) => {
+      if (transaction.transactionType === 'CARD_PAYMENT') {
+        // Card payments reduce the balance (positive amount = payment received)
+        return sum - transaction.amount; // Subtract payment amount (reduces balance)
+      } else {
+        // Regular transactions: negative = purchases (increase balance), positive = returns (decrease balance)
+        return sum + transaction.amount;
+      }
+    }, 0);
+  } else {
+    // For debit/cash cards: sum all amounts normally
+    amountSpent = card.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  }
+
   return {
     ...card,
-    amountSpent: card.transactions.reduce((sum, transaction) => sum + transaction.amount, 0),
+    amountSpent,
     transactions: undefined, // Remove transactions from response
   };
 }
