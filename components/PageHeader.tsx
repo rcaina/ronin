@@ -13,6 +13,12 @@ interface PageHeaderProps {
     onClick: () => void;
     icon?: ReactNode;
   };
+  actions?: Array<{
+    label: string;
+    onClick: () => void;
+    icon?: ReactNode;
+    variant?: "primary" | "secondary";
+  }>;
 }
 
 const PageHeader = ({
@@ -20,6 +26,7 @@ const PageHeader = ({
   description,
   backButton,
   action,
+  actions,
 }: PageHeaderProps) => {
   return (
     <div className="fixed left-0 right-0 top-12 z-40 border-b bg-white shadow-sm lg:sticky lg:top-0">
@@ -45,15 +52,32 @@ const PageHeader = ({
               )}
             </div>
           </div>
-          {action && (
-            <Button
-              onClick={action.onClick}
-              variant="primary"
-              className="w-full sm:w-auto"
-            >
-              {action.icon && <span className="mr-2">{action.icon}</span>}
-              {action.label}
-            </Button>
+          {(action ?? actions) && (
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:gap-3">
+              {action && (
+                <Button
+                  onClick={action.onClick}
+                  variant="primary"
+                  className="w-full sm:w-auto"
+                >
+                  {action.icon && <span className="mr-2">{action.icon}</span>}
+                  {action.label}
+                </Button>
+              )}
+              {actions?.map((actionItem, index) => (
+                <Button
+                  key={index}
+                  onClick={actionItem.onClick}
+                  variant={actionItem.variant ?? "secondary"}
+                  className="w-full sm:w-auto"
+                >
+                  {actionItem.icon && (
+                    <span className="mr-2">{actionItem.icon}</span>
+                  )}
+                  {actionItem.label}
+                </Button>
+              ))}
+            </div>
           )}
         </div>
       </div>

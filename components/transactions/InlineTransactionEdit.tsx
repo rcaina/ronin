@@ -67,7 +67,7 @@ export default function InlineTransactionEdit({
       description: transaction.description ?? "",
       amount: Math.abs(transaction.amount).toString(),
       budgetId: transaction.budgetId,
-      categoryId: transaction.categoryId,
+      categoryId: transaction.categoryId ?? undefined,
       cardId: transaction.cardId ?? "",
       isReturn: transaction.amount < 0,
       occurredAt: transaction.occurredAt
@@ -118,7 +118,7 @@ export default function InlineTransactionEdit({
     <div className="group flex items-center justify-between bg-blue-50 px-3 py-3 sm:px-6 sm:py-4">
       <div className="flex min-w-0 flex-1 items-center space-x-3 sm:space-x-4">
         <div
-          className={`h-3 w-3 flex-shrink-0 rounded-full ${getGroupColor(transaction.category.category.group)}`}
+          className={`h-3 w-3 flex-shrink-0 rounded-full ${getGroupColor(transaction.category?.category.group ?? "regular")}`}
         />
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 space-y-3">
@@ -226,7 +226,7 @@ export default function InlineTransactionEdit({
                   !budgetCategories.some(
                     (bc) => bc.id === transaction.categoryId,
                   ) && (
-                    <option value={transaction.categoryId}>
+                    <option value={transaction.categoryId ?? ""}>
                       {transaction.category.category.name} (current category)
                     </option>
                   )}

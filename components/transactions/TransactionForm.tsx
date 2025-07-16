@@ -23,6 +23,7 @@ import type {
 } from "@/lib/types/transaction";
 import type { Card } from "@/lib/data-hooks/services/cards";
 import Button from "../Button";
+import { TransactionType } from "@prisma/client";
 
 // Validation schema
 const transactionSchema = z.object({
@@ -101,7 +102,7 @@ export default function TransactionForm({
       setValue("description", transaction.description ?? "");
       setValue("amount", Math.abs(transaction.amount).toString());
       setValue("budgetId", transaction.budgetId);
-      setValue("categoryId", transaction.categoryId);
+      setValue("categoryId", transaction.categoryId ?? "");
       setValue("cardId", transaction.cardId ?? "");
       setValue("isReturn", transaction.amount < 0);
       setValue(
@@ -156,9 +157,10 @@ export default function TransactionForm({
         description: data.description ?? undefined,
         amount: amount,
         budgetId: data.budgetId,
-        categoryId: data.categoryId,
+        categoryId: data.categoryId ?? undefined,
         cardId: data.cardId ?? undefined,
         occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
+        transactionType: TransactionType.REGULAR,
       };
 
       createTransaction(transactionData, {
@@ -353,7 +355,7 @@ export default function TransactionForm({
                   !budgetCategories.some(
                     (bc) => bc.id === transaction.categoryId,
                   ) && (
-                    <option value={transaction.categoryId}>
+                    <option value={transaction.categoryId ?? ""}>
                       {transaction.category.category.name} (current category)
                     </option>
                   )}

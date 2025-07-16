@@ -16,6 +16,7 @@ import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import BudgetCategoriesSection from "@/components/budgets/BudgetCategoriesSection";
 import BudgetTransactionsList from "@/components/budgets/BudgetTransactionsList";
 import IncomeModal from "@/components/budgets/IncomeModal";
+import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import { useState } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 
@@ -24,6 +25,7 @@ const BudgetDetailsPage = () => {
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [isEditBudgetOpen, setIsEditBudgetOpen] = useState(false);
+  const [isCardPaymentOpen, setIsCardPaymentOpen] = useState(false);
   const { data: budget, isLoading, error, refetch } = useBudget(id as string);
 
   if (isLoading) {
@@ -62,8 +64,8 @@ const BudgetDetailsPage = () => {
     (sum, income) => sum + income.amount,
     0,
   );
-  const totalSpent = (budget.categories ?? []).reduce(
-    (categoryTotal: number, category) => {
+  const totalSpent =
+    (budget.categories ?? []).reduce((categoryTotal: number, category) => {
       const categorySpent = (category.transactions ?? []).reduce(
         (transactionTotal: number, transaction) => {
           return transactionTotal + transaction.amount;
@@ -71,9 +73,10 @@ const BudgetDetailsPage = () => {
         0,
       );
       return categoryTotal + categorySpent;
-    },
-    0,
-  );
+    }, 0) +
+    (budget.transactions ?? []).reduce((total: number, transaction) => {
+      return total + transaction.amount;
+    }, 0);
   const totalRemaining = totalIncome - totalSpent;
   const spendingPercentage =
     totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
@@ -125,6 +128,8 @@ const BudgetDetailsPage = () => {
         return "bg-purple-500";
       case "investment":
         return "bg-green-500";
+      case "card_payment":
+        return "bg-black";
       default:
         return "bg-gray-500";
     }
@@ -155,6 +160,10 @@ const BudgetDetailsPage = () => {
     void refetch();
   };
 
+  const handleCardPaymentSuccess = () => {
+    void refetch();
+  };
+
   return (
     <div className="flex h-screen flex-col bg-gray-50">
       <PageHeader
@@ -176,6 +185,16 @@ const BudgetDetailsPage = () => {
             setIsAddTransactionOpen(true);
           },
         }}
+        actions={[
+          {
+            icon: <DollarSign className="h-4 w-4" />,
+            label: "Pay Credit Card",
+            onClick: () => {
+              setIsCardPaymentOpen(true);
+            },
+            variant: "secondary",
+          },
+        ]}
       />
 
       <div className="flex-1 overflow-x-hidden pt-16 sm:pt-20 lg:pt-0">
@@ -335,23 +354,37 @@ const BudgetDetailsPage = () => {
 
           {/* All Transactions */}
           <BudgetTransactionsList
-            transactions={(budget.categories ?? [])
-              .filter((budgetCategory) => budgetCategory.category)
-              .flatMap((budgetCategory) =>
-                (budgetCategory.transactions ?? []).map((transaction) => ({
-                  ...transaction,
-                  categoryName: budgetCategory.category.name,
-                  categoryGroup: budgetCategory.category.group,
-                  budgetId: budget.id,
-                  categoryId: budgetCategory.id,
-                })),
-              )
-              .sort(
-                (a, b) =>
-                  new Date(b.createdAt).getTime() -
-                  new Date(a.createdAt).getTime(),
-              )}
+            transactions={[
+              // Regular transactions with categories
+              ...(budget.categories ?? [])
+                .filter((budgetCategory) => budgetCategory.category)
+                .flatMap((budgetCategory) =>
+                  (budgetCategory.transactions ?? []).map((transaction) => ({
+                    ...transaction,
+                    categoryName: budgetCategory.category.name,
+                    categoryGroup: budgetCategory.category.group,
+                    budgetId: budget.id,
+                    categoryId: budgetCategory.id,
+                  })),
+                ),
+              // Card payment transactions (no categories)
+              ...(budget.transactions ?? []).map((transaction) => ({
+                ...transaction,
+                categoryName:
+                  transaction.transactionType === "CARD_PAYMENT"
+                    ? "Card Payment"
+                    : "Uncategorized",
+                categoryGroup: "card_payment",
+                budgetId: budget.id,
+                categoryId: "", // No category for card payments
+              })),
+            ].sort(
+              (a, b) =>
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime(),
+            )}
             getGroupColor={getGroupColor}
+            onRefetch={refetch}
           />
         </div>
       </div>
@@ -373,6 +406,11 @@ const BudgetDetailsPage = () => {
         budget={budget}
         onClose={() => setIsEditBudgetOpen(false)}
         onSuccess={handleEditBudgetSuccess}
+      />
+      <CardPaymentModal
+        isOpen={isCardPaymentOpen}
+        onClose={() => setIsCardPaymentOpen(false)}
+        onSuccess={handleCardPaymentSuccess}
       />
     </div>
   );

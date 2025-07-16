@@ -7,10 +7,7 @@ import PageHeader from "@/components/PageHeader";
 import CreateUserModal from "@/components/CreateUserModal";
 import {
   User as UserIcon,
-  Bell,
   Shield,
-  Palette,
-  CreditCard,
   Trash2,
   Edit,
   Save,

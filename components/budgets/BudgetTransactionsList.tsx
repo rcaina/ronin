@@ -22,16 +22,19 @@ interface Transaction {
   categoryId: string;
   cardId?: string | null;
   occurredAt?: Date | null;
+  transactionType?: string;
 }
 
 interface BudgetTransactionsListProps {
   transactions: Transaction[];
   getGroupColor: (group: string) => string;
+  onRefetch?: () => void;
 }
 
 export default function BudgetTransactionsList({
   transactions,
   getGroupColor,
+  onRefetch,
 }: BudgetTransactionsListProps) {
   const deleteTransactionMutation = useDeleteTransaction();
   const createTransactionMutation = useCreateTransaction();
@@ -50,6 +53,12 @@ export default function BudgetTransactionsList({
 
   const handleCopyTransaction = async (transaction: Transaction) => {
     try {
+      // Don't allow copying card payment transactions
+      if (transaction.categoryGroup === "card_payment") {
+        toast.error("Card payment transactions cannot be copied.");
+        return;
+      }
+
       const copyData = {
         name: transaction.name ? `${transaction.name} Copy` : undefined,
         description: transaction.description ?? undefined,
@@ -58,6 +67,7 @@ export default function BudgetTransactionsList({
         categoryId: transaction.categoryId,
         cardId: transaction.cardId ?? undefined,
         occurredAt: transaction.occurredAt ?? undefined,
+        transactionType: "REGULAR" as const,
       };
 
       await createTransactionMutation.mutateAsync(copyData);
@@ -69,6 +79,13 @@ export default function BudgetTransactionsList({
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
+    // Don't allow editing card payment transactions
+    if (transaction.categoryGroup === "card_payment") {
+      toast.error(
+        "Card payment transactions cannot be edited. Please delete and recreate if needed.",
+      );
+      return;
+    }
     setEditingTransactionId(transaction.id);
   };
 
@@ -83,6 +100,8 @@ export default function BudgetTransactionsList({
       await deleteTransactionMutation.mutateAsync(transactionToDelete.id);
       setTransactionToDelete(null);
       toast.success("Transaction deleted successfully!");
+      // Refresh the budget data to update the transaction list
+      onRefetch?.();
     } catch (err) {
       console.error("Failed to delete transaction:", err);
       toast.error("Failed to delete transaction. Please try again.");
@@ -202,7 +221,15 @@ export default function BudgetTransactionsList({
 
                   <div className="flex-shrink-0 text-right">
                     <p
-                      className={`font-medium ${transaction.amount < 0 ? "text-green-600" : "text-gray-900"}`}
+                      className={`font-medium ${
+                        transaction.categoryGroup === "card_payment"
+                          ? transaction.amount < 0
+                            ? "text-green-600" // Source transaction (money going out from debit card)
+                            : "text-gray-900" // Destination transaction (money being added back to credit card)
+                          : transaction.amount < 0
+                            ? "text-green-600"
+                            : "text-gray-900"
+                      }`}
                     >
                       {formatCurrency(transaction.amount)}
                     </p>

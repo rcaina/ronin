@@ -10,6 +10,7 @@ export type BudgetWithRelations = Budget & {
     transactions: Transaction[];
   })[];
   incomes: Income[];
+  transactions: Transaction[];
 };
 
 export type BudgetCategoryWithRelations = BudgetCategory & {
