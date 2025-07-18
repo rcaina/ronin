@@ -42,47 +42,6 @@ export interface UpdateCardData {
   spendingLimit?: number;
 }
 
-/**
- * Calculate the amount spent for a card based on its transactions
- */
-function calculateCardAmountSpent(
-  cardType: CardType,
-  transactions: Array<{ amount: number; transactionType: string }>
-): number {
-  const isCreditCard = cardType === 'CREDIT' || cardType === 'BUSINESS_CREDIT';
-  
-  if (isCreditCard) {
-    // For credit cards: handle regular transactions and card payments differently
-    return transactions.reduce((sum, transaction) => {
-      if (transaction.transactionType === 'CARD_PAYMENT') {
-        // Card payments reduce the balance (positive amount = payment received)
-        return sum + transaction.amount; // Subtract payment amount (reduces balance)
-      } else {
-        // Regular transactions: negative = purchases (increase balance), positive = returns (decrease balance)
-        return sum + transaction.amount;
-      }
-    }, 0);
-  } else {
-    // For debit/cash cards: sum all amounts normally
-    return transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
-  }
-}
-
-export async function getCardsForAccount(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
-  userIds: string[]
-) {
-  // Get cards for all users in the account
-  const allCards = await Promise.all(
-    userIds.map(userId => getCards(tx, userId))
-  );
-
-  // Flatten the results and sort by creation date
-  return allCards
-    .flat()
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-}
-
 export async function getCards(
   tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
   userId: string
@@ -93,14 +52,6 @@ export async function getCards(
       deleted: null,
     },
     include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          firstName: true,
-          lastName: true,
-        },
-      },
       transactions: {
         where: {
           deleted: null,
@@ -118,7 +69,24 @@ export async function getCards(
 
   // Calculate amountSpent for each card by summing related transactions
   return cards.map(card => {
-    const amountSpent = calculateCardAmountSpent(card.cardType, card.transactions);
+    const isCreditCard = card.cardType === 'CREDIT' || card.cardType === 'BUSINESS_CREDIT';
+    
+    let amountSpent = 0;
+    if (isCreditCard) {
+      // For credit cards: handle regular transactions and card payments differently
+      amountSpent = card.transactions.reduce((sum, transaction) => {
+        if (transaction.transactionType === 'CARD_PAYMENT') {
+          // Card payments reduce the balance (positive amount = payment received)
+          return sum - transaction.amount; // Subtract payment amount (reduces balance)
+        } else {
+          // Regular transactions: negative = purchases (increase balance), positive = returns (decrease balance)
+          return sum + transaction.amount;
+        }
+      }, 0);
+    } else {
+      // For debit/cash cards: sum all amounts normally
+      amountSpent = card.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+    }
     
     return {
       ...card,
@@ -140,14 +108,6 @@ export async function getCard(
       deleted: null,
     },
     include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          firstName: true,
-          lastName: true,
-        },
-      },
       transactions: {
         where: {
           deleted: null,
@@ -163,7 +123,24 @@ export async function getCard(
   if (!card) return null;
 
   // Calculate amountSpent by summing related transactions
-  const amountSpent = calculateCardAmountSpent(card.cardType, card.transactions);
+  const isCreditCard = card.cardType === 'CREDIT' || card.cardType === 'BUSINESS_CREDIT';
+  
+  let amountSpent = 0;
+  if (isCreditCard) {
+    // For credit cards: handle regular transactions and card payments differently
+    amountSpent = card.transactions.reduce((sum, transaction) => {
+      if (transaction.transactionType === 'CARD_PAYMENT') {
+        // Card payments reduce the balance (positive amount = payment received)
+        return sum - transaction.amount; // Subtract payment amount (reduces balance)
+      } else {
+        // Regular transactions: negative = purchases (increase balance), positive = returns (decrease balance)
+        return sum + transaction.amount;
+      }
+    }, 0);
+  } else {
+    // For debit/cash cards: sum all amounts normally
+    amountSpent = card.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  }
 
   return {
     ...card,

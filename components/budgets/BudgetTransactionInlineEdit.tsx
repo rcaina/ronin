@@ -62,6 +62,10 @@ export default function BudgetTransactionInlineEdit({
     useUpdateTransaction();
   const { data: cards = [] } = useCards();
 
+  const { data: budgetCategories = [] } = useBudgetCategories(
+    transaction.budgetId,
+  );
+
   const {
     register,
     handleSubmit,
@@ -83,16 +87,11 @@ export default function BudgetTransactionInlineEdit({
     },
   });
 
-  const { data: budgetCategories = [] } = useBudgetCategories(
-    transaction.budgetId,
-  );
-
   const onSubmit = (data: TransactionFormData) => {
-    // For regular transactions: purchases are positive, returns are negative
-    // This applies to all card types - credit card logic is handled separately in card payments
+    // Convert amount to negative if it's a return/refund
     const amount = data.isReturn
-      ? -Math.abs(parseFloat(data.amount)) // Return/refund = negative
-      : Math.abs(parseFloat(data.amount)); // Purchase = positive
+      ? -Math.abs(parseFloat(data.amount))
+      : Math.abs(parseFloat(data.amount));
 
     const updateData: UpdateTransactionRequest = {
       name: data.name ?? undefined,
@@ -169,7 +168,7 @@ export default function BudgetTransactionInlineEdit({
                   className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   disabled={isUpdating}
                 />
-                <span className="text-xs text-gray-600">Return/Refund</span>
+                <span className="text-xs text-gray-600">Return</span>
               </label>
             </div>
           </div>
