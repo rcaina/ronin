@@ -45,10 +45,30 @@ This project is built with the [T3 Stack](https://create.t3.gg/):
    pnpm db:push
    ```
 
-5. Start the development server:
+5. Seed the database with demo data:
+
+   ```bash
+   pnpm db:seed
+   ```
+
+6. Start the development server:
    ```bash
    pnpm dev
    ```
+
+### Demo Account
+
+For recruiters and others who want to quickly explore the app, you can use the following demo credentials:
+
+**Email:** `demo@ronin.com`  
+**Password:** `demo123`
+
+This demo account includes:
+
+- Sample budgets with different strategies (Zero Sum and 50/30/20)
+- Pre-configured budget categories (Housing, Food & Groceries, Transportation, etc.)
+- Sample transactions and financial data
+- Multiple user accounts to demonstrate collaboration features
 
 ## Environment Variables
 
