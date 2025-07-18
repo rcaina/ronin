@@ -171,7 +171,10 @@ const CardDetailsPage = () => {
   }
 
   const totalSpent = mappedCard.amountSpent;
-  const availableCredit = (mappedCard.spendingLimit ?? 0) - totalSpent;
+  const availableCredit =
+    mappedCard.type === "credit"
+      ? (mappedCard.spendingLimit ?? 0) - totalSpent
+      : (mappedCard.spendingLimit ?? 0) + totalSpent;
   const utilizationRate = mappedCard.spendingLimit
     ? (totalSpent / mappedCard.spendingLimit) * 100
     : 0;
