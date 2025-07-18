@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, CreditCard, DollarSign, Shield } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
@@ -53,7 +53,7 @@ const CardsPage = () => {
   }, [apiCards]);
 
   // Fetch users for the account
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoadingUsers(true);
     try {
       const response = await fetch("/api/users");
@@ -68,14 +68,14 @@ const CardsPage = () => {
     } finally {
       setLoadingUsers(false);
     }
-  };
+  }, []);
 
   // Fetch users when component mounts
   useEffect(() => {
     if (session) {
       void fetchUsers();
     }
-  }, [session]);
+  }, [session, fetchUsers]);
 
   const handleAddCard = () => {
     setIsAddingCard(true);
@@ -185,6 +185,14 @@ const CardsPage = () => {
     router.push(`/cards/${card.id}`);
   };
 
+  const handleShowCardPaymentModal = useCallback(() => {
+    setShowCardPaymentModal(true);
+  }, []);
+
+  const handleCloseCardPaymentModal = useCallback(() => {
+    setShowCardPaymentModal(false);
+  }, []);
+
   const { totalSpent, totalLimit, activeCards, creditCards } = useMemo(() => {
     const totalSpent = cards.reduce((sum, card) => sum + card.amountSpent, 0);
     const totalLimit = cards
@@ -215,6 +223,25 @@ const CardsPage = () => {
     return cards.filter((card) => card.type === "cash");
   }, [cards]);
 
+  // Memoize default values for forms
+  const defaultFormValues = useMemo(
+    () => ({
+      userId:
+        users.length === 1 ? (users[0]?.id ?? "") : (session?.user?.id ?? ""),
+    }),
+    [users, session?.user?.id],
+  );
+
+  const getEditFormValues = useCallback(
+    (cardToEdit: ApiCard) => ({
+      name: cardToEdit.name,
+      cardType: cardToEdit.cardType,
+      spendingLimit: cardToEdit.spendingLimit?.toString() ?? "",
+      userId: cardToEdit.userId,
+    }),
+    [],
+  );
+
   if (isLoading) {
     return <LoadingSpinner message="Loading cards..." />;
   }
@@ -236,7 +263,7 @@ const CardsPage = () => {
         description="View and manage credit and debit cards in your account"
         action={{
           label: "Pay Credit Card",
-          onClick: () => setShowCardPaymentModal(true),
+          onClick: handleShowCardPaymentModal,
           icon: <CreditCard className="h-4 w-4" />,
         }}
       />
@@ -302,12 +329,7 @@ const CardsPage = () => {
                 isLoading={createCardMutation.isPending}
                 users={users}
                 loadingUsers={loadingUsers}
-                defaultValues={{
-                  userId:
-                    users.length === 1
-                      ? (users[0]?.id ?? "")
-                      : (session?.user?.id ?? ""),
-                }}
+                defaultValues={defaultFormValues}
               />
             )}
 
@@ -335,13 +357,7 @@ const CardsPage = () => {
                       cardToEdit={cardToEdit}
                       users={users}
                       loadingUsers={loadingUsers}
-                      defaultValues={{
-                        name: cardToEdit.name,
-                        cardType: cardToEdit.cardType,
-                        spendingLimit:
-                          cardToEdit.spendingLimit?.toString() ?? "",
-                        userId: cardToEdit.userId,
-                      }}
+                      defaultValues={getEditFormValues(cardToEdit)}
                     />
                   );
                 }
@@ -374,13 +390,7 @@ const CardsPage = () => {
                       cardToEdit={cardToEdit}
                       users={users}
                       loadingUsers={loadingUsers}
-                      defaultValues={{
-                        name: cardToEdit.name,
-                        cardType: cardToEdit.cardType,
-                        spendingLimit:
-                          cardToEdit.spendingLimit?.toString() ?? "",
-                        userId: cardToEdit.userId,
-                      }}
+                      defaultValues={getEditFormValues(cardToEdit)}
                     />
                   );
                 }
@@ -413,13 +423,7 @@ const CardsPage = () => {
                       cardToEdit={cardToEdit}
                       users={users}
                       loadingUsers={loadingUsers}
-                      defaultValues={{
-                        name: cardToEdit.name,
-                        cardType: cardToEdit.cardType,
-                        spendingLimit:
-                          cardToEdit.spendingLimit?.toString() ?? "",
-                        userId: cardToEdit.userId,
-                      }}
+                      defaultValues={getEditFormValues(cardToEdit)}
                     />
                   );
                 }
@@ -474,7 +478,7 @@ const CardsPage = () => {
       {/* Card Payment Modal */}
       <CardPaymentModal
         isOpen={showCardPaymentModal}
-        onClose={() => setShowCardPaymentModal(false)}
+        onClose={handleCloseCardPaymentModal}
       />
     </div>
   );

@@ -26,6 +26,8 @@ export const useCreateTransaction = () => {
     onSuccess: () => {
       // Invalidate and refetch transactions
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      // Also invalidate budget categories to refresh available amounts
+      void queryClient.invalidateQueries({ queryKey: ["budgetCategories"] });
     },
   });
 };
@@ -38,6 +40,8 @@ export const useUpdateTransaction = () => {
     onSuccess: () => {
       // Invalidate and refetch transactions
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      // Also invalidate budget categories to refresh available amounts
+      void queryClient.invalidateQueries({ queryKey: ["budgetCategories"] });
     },
   });
 };
@@ -50,6 +54,8 @@ export const useDeleteTransaction = () => {
     onSuccess: () => {
       // Invalidate and refetch transactions
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      // Also invalidate budget categories to refresh available amounts
+      void queryClient.invalidateQueries({ queryKey: ["budgetCategories"] });
     },
   });
 };
@@ -63,6 +69,8 @@ export const useCreateCardPayment = () => {
       // Invalidate and refetch both transactions and cards
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
       void queryClient.invalidateQueries({ queryKey: ["cards"] });
+      // Also invalidate budget categories to refresh available amounts
+      void queryClient.invalidateQueries({ queryKey: ["budgetCategories"] });
     },
   });
 }; 

@@ -3,6 +3,7 @@ import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling";
 import prisma from "@/lib/prisma";
 import { createCardSchema } from "@/lib/api-schemas/cards";
 import { ensureAccountOwnership } from "@/lib/ownership";
+import { getCardsForAccount } from "@/lib/api-services/cards";
 import { type User, type CardType } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -20,62 +21,8 @@ export const GET = withUser({
 
     const userIds = accountUsers.map(au => au.userId);
 
-    const cards = await prisma.card.findMany({
-      where: {
-        userId: {
-          in: userIds,
-        },
-        deleted: null,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-        transactions: {
-          where: {
-            deleted: null,
-          },
-          select: {
-            amount: true,
-            transactionType: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    // Calculate amountSpent for each card by summing related transactions
-    const cardsWithAmountSpent = cards.map(card => {
-      const isCreditCard = card.cardType === 'CREDIT' || card.cardType === 'BUSINESS_CREDIT';
-      
-      let amountSpent = 0;
-      if (isCreditCard) {
-        // For credit cards: handle regular transactions and card payments differently
-        amountSpent = card.transactions.reduce((sum, transaction) => {
-          if (transaction.transactionType === 'CARD_PAYMENT') {
-            // Card payments reduce the balance (positive amount = payment received)
-            return sum - transaction.amount; // Subtract payment amount (reduces balance)
-          } else {
-            // Regular transactions: negative = purchases (increase balance), positive = returns (decrease balance)
-            return sum + transaction.amount;
-          }
-        }, 0);
-      } else {
-        // For debit/cash cards: sum all amounts normally
-        amountSpent = card.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
-      }
-      
-      return {
-        ...card,
-        amountSpent,
-        transactions: undefined, // Remove transactions from response
-      };
-    });
+    // Get cards for all users in the account using the service
+    const cardsWithAmountSpent = await getCardsForAccount(prisma, userIds);
 
     return NextResponse.json(cardsWithAmountSpent, { status: 200 });
   }),

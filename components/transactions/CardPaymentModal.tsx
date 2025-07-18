@@ -37,18 +37,19 @@ export function CardPaymentModal({
     toCardId: "",
   });
 
-  // Memoize the current card lookup to avoid dependency array issues
-  const currentCard = useMemo(() => {
-    return cards.find((card) => card.id === currentCardId);
-  }, [cards, currentCardId]);
+  // Memoize the first budget ID to avoid dependency issues
+  const firstBudgetId = useMemo(() => budgets[0]?.id ?? "", [budgets]);
 
-  // Memoize the card type to avoid dependency array issues
-  const currentCardType = useMemo(() => {
-    return currentCard?.cardType;
-  }, [currentCard?.cardType]);
+  // Memoize the current card to avoid dependency issues
+  const currentCard = useMemo(
+    () => cards.find((card) => card.id === currentCardId),
+    [cards, currentCardId],
+  );
 
   // Initialize form data when editing
   useEffect(() => {
+    if (!isOpen) return;
+
     if (editingTransaction) {
       setFormData({
         name: editingTransaction.name ?? "",
@@ -60,18 +61,20 @@ export function CardPaymentModal({
       });
     } else {
       const isCredit =
-        currentCardType === "CREDIT" || currentCardType === "BUSINESS_CREDIT";
+        currentCard?.cardType === "CREDIT" ||
+        currentCard?.cardType === "BUSINESS_CREDIT";
       setFormData({
         name: "",
         description: "",
         amount: "",
-        budgetId: budgets[0]?.id ?? "",
+        budgetId: firstBudgetId,
         fromCardId: isCredit ? "" : (currentCardId ?? ""),
         toCardId: isCredit ? (currentCardId ?? "") : "",
       });
     }
-  }, [editingTransaction, currentCardId, budgets, currentCardType]);
+  }, [isOpen, editingTransaction, currentCardId, firstBudgetId, currentCard]);
 
+  // Early return if modal is not open
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {

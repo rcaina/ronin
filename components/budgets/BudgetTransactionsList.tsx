@@ -117,10 +117,17 @@ export const BudgetTransactionsList = ({
         return;
       }
 
+      // For regular transactions: purchases are positive, returns are negative
+      // This applies to all card types - credit card logic is handled separately in card payments
+      const isReturn = transaction.amount < 0;
+      const amount = isReturn
+        ? -Math.abs(transaction.amount) // Return/refund = negative
+        : Math.abs(transaction.amount); // Purchase = positive
+
       const copyData = {
         name: transaction.name ? `${transaction.name} Copy` : undefined,
         description: transaction.description ?? undefined,
-        amount: transaction.amount,
+        amount: amount,
         budgetId: transaction.budgetId,
         categoryId: transaction.categoryId,
         cardId: transaction.cardId ?? undefined,
