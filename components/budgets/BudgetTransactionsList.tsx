@@ -1,14 +1,72 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { DollarSign, Info, Edit, Trash2, Copy } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { createPortal } from "react-dom";
 import {
   useDeleteTransaction,
   useCreateTransaction,
 } from "@/lib/data-hooks/transactions/useTransactions";
 import BudgetTransactionInlineEdit from "@/components/budgets/BudgetTransactionInlineEdit";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+
+// Tooltip component that renders via portal
+const Tooltip = ({
+  children,
+  content,
+}: {
+  children: React.ReactNode;
+  content: string;
+}) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const triggerRef = useRef<HTMLDivElement>(null);
+
+  const getTooltipPosition = useCallback(() => {
+    if (!triggerRef.current) return { top: 0, left: 0 };
+    const rect = triggerRef.current.getBoundingClientRect();
+    return {
+      top: rect.top - 10,
+      left: rect.left + rect.width / 2,
+    };
+  }, []);
+
+  const handleMouseEnter = useCallback(() => {
+    setIsVisible(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsVisible(false);
+  }, []);
+
+  return (
+    <>
+      <div
+        ref={triggerRef}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className="flex-shrink-0"
+      >
+        {children}
+      </div>
+      {isVisible &&
+        createPortal(
+          <div
+            className="pointer-events-none fixed z-[9999] transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white"
+            style={{
+              top: getTooltipPosition().top,
+              left: getTooltipPosition().left,
+              transform: "translateX(-50%) translateY(-100%)",
+            }}
+          >
+            {content}
+            <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+};
 
 interface Transaction {
   id: string;
@@ -31,11 +89,11 @@ interface BudgetTransactionsListProps {
   onRefetch?: () => void;
 }
 
-export default function BudgetTransactionsList({
+export const BudgetTransactionsList = ({
   transactions,
   getGroupColor,
   onRefetch,
-}: BudgetTransactionsListProps) {
+}: BudgetTransactionsListProps) => {
   const deleteTransactionMutation = useDeleteTransaction();
   const createTransactionMutation = useCreateTransaction();
   const [editingTransactionId, setEditingTransactionId] = useState<
@@ -136,11 +194,11 @@ export default function BudgetTransactionsList({
   }
 
   return (
-    <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-6">
+    <div className="relative rounded-xl border bg-white p-3 shadow-sm sm:p-6">
       <h3 className="mb-3 text-base font-semibold text-gray-900 sm:mb-4 sm:text-lg">
         All Transactions ({transactions.length})
       </h3>
-      <div className="h-[400px] overflow-y-auto sm:h-[500px] md:h-[600px]">
+      <div className="relative h-[400px] overflow-y-auto sm:h-[500px] md:h-[600px]">
         <div className="space-y-3 pr-2 sm:space-y-4">
           {transactions.map((transaction) => {
             // Check if this transaction is being edited
@@ -177,13 +235,9 @@ export default function BudgetTransactionsList({
                           {transaction.name ?? "Unnamed transaction"}
                         </p>
                         {transaction.description && (
-                          <div className="group relative flex-shrink-0">
+                          <Tooltip content={transaction.description}>
                             <Info className="h-4 w-4 cursor-help text-gray-400" />
-                            <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                              {transaction.description}
-                              <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                            </div>
-                          </div>
+                          </Tooltip>
                         )}
                       </div>
                       <p className="truncate text-sm text-gray-500">
@@ -259,4 +313,4 @@ export default function BudgetTransactionsList({
       />
     </div>
   );
-}
+};
