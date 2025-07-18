@@ -7,7 +7,7 @@ import { createCardPaymentSchema } from "@/lib/api-schemas/transactions";
 import type { User } from "@prisma/client";
 
 export const POST = withUser({
-  POST: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
+  POST: withUserErrorHandling(async (req: NextRequest, _context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
     const body = await req.json() as unknown;
     const validationResult = createCardPaymentSchema.safeParse(body);
     
