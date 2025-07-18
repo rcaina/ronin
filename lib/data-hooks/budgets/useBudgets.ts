@@ -36,7 +36,7 @@ export const useMarkBudgetCompleted = () => {
   return useMutation({
     mutationFn: markBudgetCompleted,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      void queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },
   });
 };
@@ -47,7 +47,7 @@ export const useMarkBudgetArchived = () => {
   return useMutation({
     mutationFn: markBudgetArchived,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      void queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },
   });
 };
@@ -58,7 +58,7 @@ export const useReactivateBudget = () => {
   return useMutation({
     mutationFn: reactivateBudget,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      void queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },
   });
 };
