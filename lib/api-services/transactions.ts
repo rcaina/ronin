@@ -140,7 +140,7 @@ export async function createCardPayment(
     data: {
       name: data.name ?? `Payment to ${data.toCardId}`,
       description: data.description ?? `Card payment from ${data.fromCardId}`,
-      amount: -data.amount, // Positive amount for destination card (money being added back)
+      amount: data.amount, // Positive amount for destination card (money being added back)
       budgetId: data.budgetId,
       categoryId: null, // No category for card payments
       cardId: data.toCardId,

@@ -98,6 +98,13 @@ export default function TransactionForm({
     setSelectedBudgetId(watchedBudgetId);
   }, [watchedBudgetId]);
 
+  // Determine if the selected card is a credit card
+  const selectedCard = cards.find((card) => card.id === watchedCardId);
+  const isCreditCard =
+    selectedCard &&
+    (selectedCard.cardType === "CREDIT" ||
+      selectedCard.cardType === "BUSINESS_CREDIT");
+
   // Initialize form data when editing or when budgetId/cardId is provided
   useEffect(() => {
     if (transaction) {
@@ -129,8 +136,6 @@ export default function TransactionForm({
   }, [transaction, budgetId, cardId, setValue]);
 
   const onSubmit = (data: TransactionFormData) => {
-    // For regular transactions: purchases are positive, returns are negative
-    // This applies to all card types - credit card logic is handled separately in card payments
     const amount = data.isReturn
       ? -Math.abs(parseFloat(data.amount)) // Return/refund = negative
       : Math.abs(parseFloat(data.amount)); // Purchase = positive
@@ -264,7 +269,9 @@ export default function TransactionForm({
                   disabled={isPending}
                 />
                 <span className="text-sm text-gray-700">
-                  This is a return or refund (money back to account)
+                  {isCreditCard
+                    ? "This is a payment or refund (money back to credit card)"
+                    : "This is a return or refund (money back to account)"}
                 </span>
               </label>
             </div>

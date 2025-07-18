@@ -200,7 +200,7 @@ const TransactionsPage = () => {
       .filter((card) => cardSet.has(card.id))
       .map((card) => ({
         ...card,
-        displayName: `${card.name} - ${card.user?.name || "Unknown User"}`,
+        displayName: `${card.name} - ${card.user.name}`,
       }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
   }, [transactions, cards]);
@@ -237,18 +237,11 @@ const TransactionsPage = () => {
         return;
       }
 
-      // For regular transactions: purchases are positive, returns are negative
-      // This applies to all card types - credit card logic is handled separately in card payments
-      const isReturn = transaction.amount < 0;
-      const amount = isReturn
-        ? -Math.abs(transaction.amount) // Return/refund = negative
-        : Math.abs(transaction.amount); // Purchase = positive
-
       // Create a copy with "Copy" appended to the name
       const copyData = {
         name: transaction.name ? `${transaction.name} Copy` : undefined,
         description: transaction.description ?? undefined,
-        amount: amount,
+        amount: transaction.amount,
         budgetId: transaction.budgetId ?? "",
         categoryId: transaction.categoryId ?? undefined,
         cardId: transaction.cardId ?? undefined,
