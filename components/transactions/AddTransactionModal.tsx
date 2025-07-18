@@ -4,6 +4,7 @@ import TransactionForm from "./TransactionForm";
 
 interface AddTransactionModalProps {
   budgetId: string;
+  cardId?: string; // Optional card ID to pre-select
   onSuccess?: () => void;
   isOpen: boolean;
   onClose: () => void;
@@ -11,6 +12,7 @@ interface AddTransactionModalProps {
 
 export default function AddTransactionModal({
   budgetId,
+  cardId,
   onSuccess,
   isOpen,
   onClose,
@@ -29,6 +31,7 @@ export default function AddTransactionModal({
               onClose={onClose}
               onSuccess={handleSuccess}
               budgetId={budgetId}
+              cardId={cardId}
             />
           </div>
         </div>

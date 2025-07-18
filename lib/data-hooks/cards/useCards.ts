@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { getCards, createCard, updateCard, deleteCard, type Card as ApiCard, type CreateCardRequest, type UpdateCardRequest } from "../services/cards";
+import { getCards, getCard, getCardTransactions, createCard, updateCard, deleteCard, type Card as ApiCard, type CreateCardRequest, type UpdateCardRequest } from "../services/cards";
+import type { TransactionWithRelations } from "@/lib/types/transaction";
 
 export const useCards = () => {
   const { data: session } = useSession();
@@ -51,4 +52,32 @@ export const useDeleteCard = () => {
       void queryClient.invalidateQueries({ queryKey: ["cards"] });
     },
   });
+};
+
+export const useCard = (id: string) => {
+  const { data: session } = useSession();
+
+  const query = useQuery<ApiCard>({
+    queryKey: ["cards", id],
+    queryFn: () => getCard(id),
+    placeholderData: keepPreviousData,
+    enabled: !!session && !!id,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+
+  return query;
+};
+
+export const useCardTransactions = (id: string) => {
+  const { data: session } = useSession();
+
+  const query = useQuery<TransactionWithRelations[]>({
+    queryKey: ["cards", id, "transactions"],
+    queryFn: () => getCardTransactions(id),
+    placeholderData: keepPreviousData,
+    enabled: !!session && !!id,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+
+  return query;
 }; 

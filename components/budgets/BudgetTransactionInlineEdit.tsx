@@ -237,7 +237,7 @@ export default function BudgetTransactionInlineEdit({
                   <option value="">No card</option>
                   {cards.map((card: Card) => (
                     <option key={card.id} value={card.id}>
-                      {card.name}
+                      {card.name} ({card.cardType}) - {card.user.name}
                     </option>
                   ))}
                 </select>
