@@ -36,7 +36,7 @@ interface User {
 const CardsPage = () => {
   const router = useRouter();
   const { data: session } = useSession();
-  const { data: apiCards, isLoading, error } = useCards();
+  const { data: apiCards, isLoading, error } = useCards(true); // Exclude card payments for spending calculations
   const deleteCardMutation = useDeleteCard();
   const createCardMutation = useCreateCard();
   const updateCardMutation = useUpdateCard();

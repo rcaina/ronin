@@ -9,6 +9,8 @@ import { type NextRequest, NextResponse } from "next/server"
 export const GET = withUser({
     GET: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
         const { id } = await context.params;
+        const { searchParams } = new URL(req.url);
+        const excludeCardPayments = searchParams.get('excludeCardPayments') === 'true';
         
         const budget = await prisma.budget.findFirst({
             where: {
@@ -26,6 +28,11 @@ export const GET = withUser({
                         transactions: {
                             where: {
                                 deleted: null,
+                                ...(excludeCardPayments && {
+                                    transactionType: {
+                                        not: 'CARD_PAYMENT'
+                                    }
+                                }),
                             },
                             orderBy: {
                                 createdAt: 'desc',
@@ -42,6 +49,11 @@ export const GET = withUser({
                     where: {
                         deleted: null,
                         categoryId: null, // Only transactions without categories (like card payments)
+                        ...(excludeCardPayments && {
+                            transactionType: {
+                                not: 'CARD_PAYMENT'
+                            }
+                        }),
                     },
                     include: {
                         card: true,

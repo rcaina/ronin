@@ -31,8 +31,12 @@ export interface UpdateCardRequest {
   spendingLimit?: number;
 }
 
-export const getCards = async (): Promise<Card[]> => {
-  const response = await fetch("/api/cards");
+export const getCards = async (excludeCardPayments?: boolean): Promise<Card[]> => {
+  const params = new URLSearchParams();
+  if (excludeCardPayments) params.append('excludeCardPayments', 'true');
+  
+  const url = params.toString() ? `/api/cards?${params.toString()}` : "/api/cards";
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch cards: ${response.statusText}`);
   }

@@ -7,7 +7,10 @@ import { type User, type CardType } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const GET = withUser({
-  GET: withUserErrorHandling(async (_req: NextRequest, _context, user: User & { accountId: string }) => {
+  GET: withUserErrorHandling(async (req: NextRequest, _context, user: User & { accountId: string }) => {
+    const { searchParams } = new URL(req.url);
+    const excludeCardPayments = searchParams.get('excludeCardPayments') === 'true';
+    
     // Get all users in the same account
     const accountUsers = await prisma.accountUser.findMany({
       where: {
@@ -39,6 +42,11 @@ export const GET = withUser({
         transactions: {
           where: {
             deleted: null,
+            ...(excludeCardPayments && {
+              transactionType: {
+                not: 'CARD_PAYMENT'
+              }
+            }),
           },
           select: {
             amount: true,

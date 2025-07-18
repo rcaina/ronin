@@ -4,12 +4,12 @@ import { getBudgets, updateBudget, deleteBudget, markBudgetCompleted, markBudget
 import type { UpdateBudgetData, CreateBudgetData } from "@/lib/api-services/budgets";
 import type { BudgetStatus } from "@prisma/client";
 
-export const useBudgets = (status?: BudgetStatus) => {
+export const useBudgets = (status?: BudgetStatus, excludeCardPayments?: boolean) => {
   const { data: session } = useSession();
 
   const query = useQuery({
-    queryKey: ["budgets", status],
-    queryFn: () => getBudgets(status),
+    queryKey: ["budgets", status, excludeCardPayments],
+    queryFn: () => getBudgets(status, excludeCardPayments),
     placeholderData: keepPreviousData,
     enabled: !!session,
     staleTime: 2 * 60 * 1000,
@@ -18,16 +18,16 @@ export const useBudgets = (status?: BudgetStatus) => {
   return query;
 };
 
-export const useActiveBudgets = () => {
-  return useBudgets('ACTIVE');
+export const useActiveBudgets = (excludeCardPayments?: boolean) => {
+  return useBudgets('ACTIVE', excludeCardPayments);
 };
 
-export const useCompletedBudgets = () => {
-  return useBudgets('COMPLETED');
+export const useCompletedBudgets = (excludeCardPayments?: boolean) => {
+  return useBudgets('COMPLETED', excludeCardPayments);
 };
 
-export const useArchivedBudgets = () => {
-  return useBudgets('ARCHIVED');
+export const useArchivedBudgets = (excludeCardPayments?: boolean) => {
+  return useBudgets('ARCHIVED', excludeCardPayments);
 };
 
 export const useMarkBudgetCompleted = () => {

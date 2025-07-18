@@ -136,18 +136,9 @@ export default function TransactionForm({
   }, [transaction, budgetId, cardId, setValue]);
 
   const onSubmit = (data: TransactionFormData) => {
-    let amount: number;
-    if (isCreditCard) {
-      // For credit cards: purchases should be negative (money going out), payments/returns should be positive
-      amount = data.isReturn
-        ? Math.abs(parseFloat(data.amount)) // Return/refund = positive (money back)
-        : -Math.abs(parseFloat(data.amount)); // Purchase = negative (money going out)
-    } else {
-      // For debit/cash cards: purchases are positive, returns are negative
-      amount = data.isReturn
-        ? -Math.abs(parseFloat(data.amount)) // Return/refund = negative
-        : Math.abs(parseFloat(data.amount)); // Purchase = positive
-    }
+    const amount = data.isReturn
+      ? -Math.abs(parseFloat(data.amount)) // Return/refund = negative
+      : Math.abs(parseFloat(data.amount)); // Purchase = positive
 
     if (isEditing && transaction) {
       const updateData: UpdateTransactionRequest = {

@@ -50,13 +50,13 @@ const BudgetsPage = () => {
     useState<BudgetWithRelations | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  // Data hooks for different budget statuses
+  // Data hooks for different budget statuses (excluding card payments for calculations)
   const { data: activeBudgets = [], isLoading: activeLoading } =
-    useActiveBudgets();
+    useActiveBudgets(true);
   const { data: completedBudgets = [], isLoading: completedLoading } =
-    useCompletedBudgets();
+    useCompletedBudgets(true);
   const { data: archivedBudgets = [], isLoading: archivedLoading } =
-    useArchivedBudgets();
+    useArchivedBudgets(true);
 
   // Mutation hooks
   const deleteBudgetMutation = useDeleteBudget();

@@ -200,7 +200,8 @@ export async function deleteBudget(
 export async function getBudgets(
   tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
   accountId: string,
-  status?: BudgetStatus
+  status?: BudgetStatus,
+  excludeCardPayments?: boolean
 ) {
   const whereClause = {
     accountId,
@@ -216,7 +217,14 @@ export async function getBudgets(
         include: {
           category: true,
           transactions: {
-            where: { deleted: null }
+            where: {
+              deleted: null,
+              ...(excludeCardPayments && {
+                transactionType: {
+                  not: 'CARD_PAYMENT'
+                }
+              }),
+            }
           }
         }
       },

@@ -2,13 +2,21 @@ import type { BudgetWithRelations } from "@/lib/types/budget";
 import type { UpdateBudgetData } from "@/lib/api-services/budgets";
 import type { BudgetStatus } from "@prisma/client";
 
-export const getBudgets = async (status?: BudgetStatus): Promise<BudgetWithRelations[]> => {
-  const url = status ? `/api/budgets?status=${status}` : "/api/budgets";
+export const getBudgets = async (status?: BudgetStatus, excludeCardPayments?: boolean): Promise<BudgetWithRelations[]> => {
+  const params = new URLSearchParams();
+  if (status) params.append('status', status);
+  if (excludeCardPayments) params.append('excludeCardPayments', 'true');
+  
+  const url = params.toString() ? `/api/budgets?${params.toString()}` : "/api/budgets";
   return fetch(url).then((res) => res.json()) as Promise<BudgetWithRelations[]>;
 };
 
-export const getBudget = async (id: string): Promise<BudgetWithRelations> => {
-  const response = await fetch(`/api/budgets/${id}`);
+export const getBudget = async (id: string, excludeCardPayments?: boolean): Promise<BudgetWithRelations> => {
+  const params = new URLSearchParams();
+  if (excludeCardPayments) params.append('excludeCardPayments', 'true');
+  
+  const url = params.toString() ? `/api/budgets/${id}?${params.toString()}` : `/api/budgets/${id}`;
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch budget: ${response.statusText}`);
   }
