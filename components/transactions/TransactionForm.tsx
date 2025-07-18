@@ -166,7 +166,6 @@ export default function TransactionForm({
         },
       );
     } else {
-      console.log({ amount });
       const transactionData: CreateTransactionRequest = {
         name: data.name ?? undefined,
         description: data.description ?? undefined,

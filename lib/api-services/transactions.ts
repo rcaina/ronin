@@ -29,7 +29,6 @@ export async function createTransaction(
   data: CreateTransactionSchema,
   user: User & { accountId: string }
 ) {
-  console.log({ data });
   return await tx.transaction.create({
     data: {
       name: data.name,
