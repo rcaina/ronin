@@ -28,7 +28,12 @@ const BudgetDetailsPage = () => {
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [isEditBudgetOpen, setIsEditBudgetOpen] = useState(false);
   const [isCardPaymentOpen, setIsCardPaymentOpen] = useState(false);
-  const { data: budget, isLoading, error, refetch } = useBudget(id as string);
+  const {
+    data: budget,
+    isLoading,
+    error,
+    refetch,
+  } = useBudget(id as string, true); // Exclude card payments for calculations
 
   if (isLoading) {
     return <LoadingSpinner message="Loading budget..." />;
@@ -393,16 +398,13 @@ const BudgetDetailsPage = () => {
                     categoryId: budgetCategory.id,
                   })),
                 ),
-              // Card payment transactions (no categories)
+              // Uncategorized transactions
               ...(budget.transactions ?? []).map((transaction) => ({
                 ...transaction,
-                categoryName:
-                  transaction.transactionType === "CARD_PAYMENT"
-                    ? "Card Payment"
-                    : "Uncategorized",
-                categoryGroup: "card_payment",
+                categoryName: "Uncategorized",
+                categoryGroup: "uncategorized",
                 budgetId: budget.id,
-                categoryId: "", // No category for card payments
+                categoryId: "", // No category for uncategorized transactions
               })),
             ].sort(
               (a, b) =>

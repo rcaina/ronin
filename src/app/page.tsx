@@ -24,7 +24,10 @@ import StatsCard from "@/components/StatsCard";
 export default function HomePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { data: budgets = [], isLoading: budgetsLoading } = useBudgets();
+  const { data: budgets = [], isLoading: budgetsLoading } = useBudgets(
+    undefined,
+    true,
+  ); // Exclude card payments for calculations
   const { data: transactions = [], isLoading: transactionsLoading } =
     useTransactions();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -72,8 +75,9 @@ export default function HomePage() {
   const spendingPercentage =
     totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
 
-  // Get recent transactions (last 5)
+  // Get recent transactions (last 5, excluding card payments)
   const recentTransactions = transactions
+    .filter((transaction) => transaction.transactionType !== "CARD_PAYMENT")
     .sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),

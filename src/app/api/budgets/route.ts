@@ -10,8 +10,9 @@ export const GET = withUser({
     GET: withUserErrorHandling(async (req: NextRequest, _context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
         const { searchParams } = new URL(req.url);
         const status = searchParams.get('status') as 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' | null;
+        const excludeCardPayments = searchParams.get('excludeCardPayments') === 'true';
         
-        const budgets = await getBudgets(prisma, user.accountId, status ?? undefined);
+        const budgets = await getBudgets(prisma, user.accountId, status ?? undefined, excludeCardPayments);
         
         return NextResponse.json(budgets);
     })
