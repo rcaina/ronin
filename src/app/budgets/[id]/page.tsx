@@ -15,7 +15,7 @@ import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import BudgetCategoriesSection from "@/components/budgets/BudgetCategoriesSection";
-import BudgetTransactionsList from "@/components/budgets/BudgetTransactionsList";
+import { BudgetTransactionsList } from "@/components/budgets/BudgetTransactionsList";
 import IncomeModal from "@/components/budgets/IncomeModal";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import { useState } from "react";

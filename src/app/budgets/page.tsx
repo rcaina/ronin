@@ -38,6 +38,11 @@ import StatsCard from "@/components/StatsCard";
 
 type TabType = "active" | "completed" | "archived";
 
+// Helper function to calculate total income from all income sources
+const calculateTotalIncome = (budget: BudgetWithRelations): number => {
+  return (budget.incomes ?? []).reduce((sum, income) => sum + income.amount, 0);
+};
+
 const BudgetsPage = () => {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("active");
@@ -84,7 +89,7 @@ const BudgetsPage = () => {
 
     // Calculate total income and spending for active budgets only
     const totalIncome = activeBudgets.reduce((sum, budget) => {
-      return sum + (budget.incomes?.[0]?.amount ?? 0);
+      return sum + calculateTotalIncome(budget);
     }, 0);
 
     const totalSpent = activeBudgets.reduce((sum, budget) => {
@@ -152,7 +157,7 @@ const BudgetsPage = () => {
 
     // Calculate budget health metrics for active budgets
     const budgetHealthScores = activeBudgets.map((budget) => {
-      const budgetIncome = budget.incomes?.[0]?.amount ?? 0;
+      const budgetIncome = calculateTotalIncome(budget);
       const budgetSpent = (budget.categories ?? []).reduce(
         (sum, category) =>
           sum +
@@ -213,7 +218,7 @@ const BudgetsPage = () => {
   }
 
   const getBudgetStatus = (budget: BudgetWithRelations) => {
-    const totalBudgetIncome = budget.incomes?.[0]?.amount ?? 0;
+    const totalBudgetIncome = calculateTotalIncome(budget);
     const totalBudgetSpent = (budget.categories ?? []).reduce(
       (sum: number, category) => {
         return (
@@ -500,7 +505,7 @@ const BudgetsPage = () => {
               currentBudgets?.map((budget: BudgetWithRelations) => {
                 const budgetStatus = getBudgetStatus(budget);
                 const categorySummary = getCategorySummary(budget);
-                const totalBudgetIncome = budget.incomes?.[0]?.amount ?? 0;
+                const totalBudgetIncome = calculateTotalIncome(budget);
                 const totalBudgetSpent = (budget.categories ?? []).reduce(
                   (sum: number, category) => {
                     return (
