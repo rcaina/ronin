@@ -49,6 +49,8 @@ export function CardPaymentModal({
 
   // Initialize form data when editing
   useEffect(() => {
+    if (!isOpen) return;
+
     if (editingTransaction) {
       setFormData({
         name: editingTransaction.name ?? "",
