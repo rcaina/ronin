@@ -32,6 +32,7 @@ import InlineTransactionEdit from "@/components/transactions/InlineTransactionEd
 
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
+import StatsCard from "@/components/StatsCard";
 
 const TransactionsPage = () => {
   const { data: transactions = [], isLoading, error } = useTransactions();
@@ -401,59 +402,45 @@ const TransactionsPage = () => {
         <div className="mx-auto max-w-7xl px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
           {/* Overview Stats */}
           <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
-              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                  Total Transactions
-                </h3>
+            <StatsCard
+              title="Total Transactions"
+              value={stats.totalTransactions}
+              subtitle="All time"
+              icon={
                 <DollarSign className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
-              </div>
-              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-                {stats.totalTransactions}
-              </div>
-              <div className="mt-1 text-xs text-gray-500">All time</div>
-            </div>
+              }
+              iconColor="text-blue-500"
+            />
 
-            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
-              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                  Total Amount
-                </h3>
+            <StatsCard
+              title="Total Amount"
+              value={formatCurrency(stats.totalAmount)}
+              subtitle="All time"
+              icon={
                 <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
-              </div>
-              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-                {formatCurrency(stats.totalAmount)}
-              </div>
-              <div className="mt-1 text-xs text-gray-500">All time</div>
-            </div>
+              }
+              iconColor="text-red-500"
+            />
 
-            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
-              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                  Average Transaction
-                </h3>
+            <StatsCard
+              title="Average Transaction"
+              value={formatCurrency(stats.averageAmount)}
+              subtitle="Per transaction"
+              icon={
                 <TrendingUp className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
-              </div>
-              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-                {formatCurrency(stats.averageAmount)}
-              </div>
-              <div className="mt-1 text-xs text-gray-500">Per transaction</div>
-            </div>
+              }
+              iconColor="text-green-500"
+            />
 
-            <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
-              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                  This Month
-                </h3>
+            <StatsCard
+              title="This Month"
+              value={formatCurrency(stats.thisMonthAmount)}
+              subtitle={`${stats.thisMonthTransactions} transactions`}
+              icon={
                 <Calendar className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
-              </div>
-              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-                {formatCurrency(stats.thisMonthAmount)}
-              </div>
-              <div className="mt-1 text-xs text-gray-500">
-                {stats.thisMonthTransactions} transactions
-              </div>
-            </div>
+              }
+              iconColor="text-purple-500"
+            />
           </div>
 
           {/* Filters and Search */}

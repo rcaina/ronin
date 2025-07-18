@@ -6,7 +6,7 @@ import { type User } from "@prisma/client"
 import { type NextRequest, NextResponse } from "next/server"
 
 export const POST = withUser({
-    POST: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
+    POST: withUserErrorHandling(async (req: NextRequest, _context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
         const body = await req.json() as { budgetId: string };
         
         if (!body.budgetId) {

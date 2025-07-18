@@ -1,4 +1,5 @@
 import type { CardType } from "@prisma/client";
+import type { TransactionWithRelations } from "@/lib/types/transaction";
 
 export interface Card {
   id: string;
@@ -81,4 +82,12 @@ export const deleteCard = async (id: string): Promise<void> => {
   if (!response.ok) {
     throw new Error(`Failed to delete card: ${response.statusText}`);
   }
+};
+
+export const getCardTransactions = async (id: string): Promise<TransactionWithRelations[]> => {
+  const response = await fetch(`/api/cards/${id}/transactions`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch card transactions: ${response.statusText}`);
+  }
+  return response.json() as Promise<TransactionWithRelations[]>;
 }; 

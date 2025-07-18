@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { X } from "lucide-react";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
@@ -14,6 +14,7 @@ interface CardPaymentModalProps {
   onClose: () => void;
   editingTransaction?: TransactionWithRelations | null;
   onSuccess?: () => void;
+  currentCardId?: string; // Optional current card ID to pre-select
 }
 
 export function CardPaymentModal({
@@ -21,6 +22,7 @@ export function CardPaymentModal({
   onClose,
   editingTransaction,
   onSuccess,
+  currentCardId,
 }: CardPaymentModalProps) {
   const { data: cards = [] } = useCards();
   const { data: budgets = [] } = useBudgets();
@@ -35,6 +37,16 @@ export function CardPaymentModal({
     toCardId: "",
   });
 
+  // Memoize the current card lookup to avoid dependency array issues
+  const currentCard = useMemo(() => {
+    return cards.find((card) => card.id === currentCardId);
+  }, [cards, currentCardId]);
+
+  // Memoize the card type to avoid dependency array issues
+  const currentCardType = useMemo(() => {
+    return currentCard?.cardType;
+  }, [currentCard?.cardType]);
+
   // Initialize form data when editing
   useEffect(() => {
     if (editingTransaction) {
@@ -47,16 +59,18 @@ export function CardPaymentModal({
         toCardId: "", // We'll need to find the linked transaction to get this
       });
     } else {
+      const isCredit =
+        currentCardType === "CREDIT" || currentCardType === "BUSINESS_CREDIT";
       setFormData({
         name: "",
         description: "",
         amount: "",
-        budgetId: "",
-        fromCardId: "",
-        toCardId: "",
+        budgetId: budgets[0]?.id ?? "",
+        fromCardId: isCredit ? "" : (currentCardId ?? ""),
+        toCardId: isCredit ? (currentCardId ?? "") : "",
       });
     }
-  }, [editingTransaction]);
+  }, [editingTransaction, currentCardId, budgets, currentCardType]);
 
   if (!isOpen) return null;
 

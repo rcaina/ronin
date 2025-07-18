@@ -19,6 +19,7 @@ import {
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import StatsCard from "@/components/StatsCard";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -42,7 +43,12 @@ export default function HomePage() {
   const activeBudgets = budgets.filter((budget) => !budget.deleted).length;
 
   const totalIncome = budgets.reduce((sum, budget) => {
-    return sum + (budget.incomes?.[0]?.amount ?? 0);
+    return (
+      sum +
+      (budget.incomes ?? []).reduce((incomeSum, income) => {
+        return incomeSum + income.amount;
+      }, 0)
+    );
   }, 0);
 
   const totalSpent = budgets.reduce((sum, budget) => {
@@ -119,67 +125,52 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
           {/* Financial Overview Cards */}
           <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-            <div className="rounded-xl border bg-white p-3 shadow-sm transition-all hover:shadow-md sm:p-4 lg:p-6">
-              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                  Total Income
-                </h3>
+            <StatsCard
+              title="Total Income"
+              value={`$${totalIncome.toLocaleString()}`}
+              subtitle={`Across ${activeBudgets} active budgets`}
+              icon={
                 <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
-              </div>
-              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-                ${totalIncome.toLocaleString()}
-              </div>
-              <div className="mt-1 text-xs text-gray-500 sm:text-sm">
-                Across {activeBudgets} active budgets
-              </div>
-            </div>
+              }
+              iconColor="text-green-500"
+              hover={true}
+            />
 
-            <div className="rounded-xl border bg-white p-3 shadow-sm transition-all hover:shadow-md sm:p-4 lg:p-6">
-              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                  Total Spent
-                </h3>
+            <StatsCard
+              title="Total Spent"
+              value={`$${totalSpent.toLocaleString()}`}
+              subtitle={`${spendingPercentage.toFixed(1)}% of total income`}
+              icon={
                 <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
-              </div>
-              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-                ${totalSpent.toLocaleString()}
-              </div>
-              <div className="mt-1 text-xs text-gray-500 sm:text-sm">
-                {spendingPercentage.toFixed(1)}% of total income
-              </div>
-            </div>
+              }
+              iconColor="text-red-500"
+              hover={true}
+            />
 
-            <div className="rounded-xl border bg-white p-3 shadow-sm transition-all hover:shadow-md sm:p-4 lg:p-6">
-              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                  Remaining
-                </h3>
+            <StatsCard
+              title="Remaining"
+              value={`$${totalRemaining.toLocaleString()}`}
+              subtitle={totalRemaining >= 0 ? "Available" : "Over budget"}
+              icon={
                 <TrendingUp className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
-              </div>
-              <div
-                className={`text-lg font-bold sm:text-xl lg:text-2xl ${totalRemaining >= 0 ? "text-gray-900" : "text-red-600"}`}
-              >
-                ${totalRemaining.toLocaleString()}
-              </div>
-              <div className="mt-1 text-xs text-gray-500 sm:text-sm">
-                {totalRemaining >= 0 ? "Available" : "Over budget"}
-              </div>
-            </div>
+              }
+              iconColor="text-blue-500"
+              valueColor={
+                totalRemaining >= 0 ? "text-gray-900" : "text-red-600"
+              }
+              hover={true}
+            />
 
-            <div className="rounded-xl border bg-white p-3 shadow-sm transition-all hover:shadow-md sm:p-4 lg:p-6">
-              <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                  Active Budgets
-                </h3>
+            <StatsCard
+              title="Active Budgets"
+              value={activeBudgets}
+              subtitle={`${totalBudgets} total budgets`}
+              icon={
                 <Target className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
-              </div>
-              <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-                {activeBudgets}
-              </div>
-              <div className="mt-1 text-xs text-gray-500 sm:text-sm">
-                {totalBudgets} total budgets
-              </div>
-            </div>
+              }
+              iconColor="text-purple-500"
+              hover={true}
+            />
           </div>
 
           {/* Budget Progress */}

@@ -12,14 +12,14 @@ const createCategorySchema = z.object({
 });
 
 export const GET = withUser({
-    GET: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
+    GET: withUserErrorHandling(async (_req: NextRequest, _context: { params: Promise<Record<string, string>> }, _user: User & { accountId: string }) => {
         const categories = await getCategories(prisma)
         return NextResponse.json(categories, { status: 200 })
     }),
 })
 
 export const POST = withUser({
-  POST: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
+  POST: withUserErrorHandling(async (req: NextRequest, _context: { params: Promise<Record<string, string>> }, _user: User & { accountId: string }) => {
     const body = await req.json() as unknown;
     
     // Validate request body

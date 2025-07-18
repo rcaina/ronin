@@ -1,58 +1,93 @@
 "use client";
 
+import { useState, useMemo, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "react-hot-toast";
 import {
-  useBudgets,
-  useDeleteBudget,
-  useDuplicateBudget,
-} from "@/lib/data-hooks/budgets/useBudgets";
-import { useTransactions } from "@/lib/data-hooks/transactions/useTransactions";
-import {
+  Calendar,
+  Clock,
+  Target,
+  Archive,
+  RotateCcw,
+  Copy,
+  Trash2,
   Plus,
   TrendingUp,
   TrendingDown,
-  DollarSign,
-  Calendar,
-  Target,
-  AlertCircle,
-  Clock,
-  PieChart,
-  Zap,
-  Eye,
-  Copy,
-  Trash2,
-  Info,
+  BarChart3,
+  CheckCircle,
 } from "lucide-react";
+import { toast } from "react-hot-toast";
+import {
+  useActiveBudgets,
+  useCompletedBudgets,
+  useArchivedBudgets,
+  useMarkBudgetCompleted,
+  useMarkBudgetArchived,
+  useReactivateBudget,
+} from "@/lib/data-hooks/budgets/useBudgets";
+import {
+  useDeleteBudget,
+  useDuplicateBudget,
+} from "@/lib/data-hooks/budgets/useBudgets";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import CreateBudgetModal from "@/components/budgets/CreateBudgetModal";
-import { useMemo, useState } from "react";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import StatsCard from "@/components/StatsCard";
+
+type TabType = "active" | "completed" | "archived";
 
 const BudgetsPage = () => {
   const router = useRouter();
-  const { data: budgets = [], isLoading, error } = useBudgets();
-  const { data: allTransactions = [] } = useTransactions();
-  const deleteBudgetMutation = useDeleteBudget();
-  const duplicateBudgetMutation = useDuplicateBudget();
-
+  const [activeTab, setActiveTab] = useState<TabType>("active");
   const [budgetToDelete, setBudgetToDelete] =
     useState<BudgetWithRelations | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+  // Data hooks for different budget statuses
+  const { data: activeBudgets = [], isLoading: activeLoading } =
+    useActiveBudgets();
+  const { data: completedBudgets = [], isLoading: completedLoading } =
+    useCompletedBudgets();
+  const { data: archivedBudgets = [], isLoading: archivedLoading } =
+    useArchivedBudgets();
+
+  // Mutation hooks
+  const deleteBudgetMutation = useDeleteBudget();
+  const duplicateBudgetMutation = useDuplicateBudget();
+  const markCompletedMutation = useMarkBudgetCompleted();
+  const markArchivedMutation = useMarkBudgetArchived();
+  const reactivateMutation = useReactivateBudget();
+
+  // Get current budgets based on active tab
+  const currentBudgets = useMemo(() => {
+    switch (activeTab) {
+      case "active":
+        return activeBudgets;
+      case "completed":
+        return completedBudgets;
+      case "archived":
+        return archivedBudgets;
+      default:
+        return activeBudgets;
+    }
+  }, [activeTab, activeBudgets, completedBudgets, archivedBudgets]);
+
+  const isLoading = activeLoading || completedLoading || archivedLoading;
+
   // Enhanced budget statistics with more sophisticated calculations
   const budgetStats = useMemo(() => {
-    const totalBudgets = budgets.length;
-    const activeBudgets = budgets.filter((budget) => !budget.deleted).length;
+    const totalBudgets =
+      activeBudgets.length + completedBudgets.length + archivedBudgets.length;
+    const activeBudgetsCount = activeBudgets.length;
 
-    // Calculate total income and spending
-    const totalIncome = budgets.reduce((sum, budget) => {
+    // Calculate total income and spending for active budgets only
+    const totalIncome = activeBudgets.reduce((sum, budget) => {
       return sum + (budget.incomes?.[0]?.amount ?? 0);
     }, 0);
 
-    const totalSpent = budgets.reduce((sum, budget) => {
+    const totalSpent = activeBudgets.reduce((sum, budget) => {
       return (
         sum +
         (budget.categories ?? []).reduce((categorySum, category) => {
@@ -73,44 +108,50 @@ const BudgetsPage = () => {
     const overallSpendingPercentage =
       totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
 
-    // Calculate spending by category groups across all budgets
-    const spendingByGroup = budgets.reduce(
+    // Calculate spending by category group for active budgets
+    const spendingByGroup = activeBudgets.reduce(
       (acc, budget) => {
-        (budget.categories ?? []).forEach((budgetCategory) => {
-          // Skip if category relation is not loaded
-          if (!budgetCategory.category) return;
-
-          const group = budgetCategory.category.group?.toLowerCase();
-          // Skip categories without a group
-          if (!group) return;
-
-          const categorySpent = (budgetCategory.transactions ?? []).reduce(
+        (budget.categories ?? []).forEach((category) => {
+          const group = category.category?.group.toLowerCase() ?? "unknown";
+          const spent = (category.transactions ?? []).reduce(
             (sum, transaction) => sum + transaction.amount,
             0,
           );
-          acc[group] = (acc[group] ?? 0) + categorySpent;
+          acc[group] = (acc[group] ?? 0) + spent;
         });
         return acc;
       },
       {} as Record<string, number>,
     );
 
-    // Calculate recent spending trends (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // Calculate recent spending (last 7 days) for active budgets
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentSpending = activeBudgets.reduce((sum, budget) => {
+      return (
+        sum +
+        (budget.categories ?? []).reduce((categorySum, category) => {
+          return (
+            categorySum +
+            (category.transactions ?? []).reduce(
+              (transactionSum, transaction) => {
+                const transactionDate = new Date(transaction.createdAt);
+                return transactionDate >= sevenDaysAgo
+                  ? transactionSum + transaction.amount
+                  : transactionSum;
+              },
+              0,
+            )
+          );
+        }, 0)
+      );
+    }, 0);
 
-    const recentTransactions = allTransactions.filter(
-      (transaction) => new Date(transaction.createdAt) >= thirtyDaysAgo,
-    );
+    // Calculate average daily spending for active budgets
+    const averageDailySpending = recentSpending / 7;
 
-    const recentSpending = recentTransactions.reduce(
-      (sum, transaction) => sum + transaction.amount,
-      0,
-    );
-    const averageDailySpending = recentSpending / 30;
-
-    // Calculate budget health metrics
-    const budgetHealthScores = budgets.map((budget) => {
+    // Calculate budget health metrics for active budgets
+    const budgetHealthScores = activeBudgets.map((budget) => {
       const budgetIncome = budget.incomes?.[0]?.amount ?? 0;
       const budgetSpent = (budget.categories ?? []).reduce(
         (sum, category) =>
@@ -152,7 +193,7 @@ const BudgetsPage = () => {
 
     return {
       totalBudgets,
-      activeBudgets,
+      activeBudgetsCount,
       totalIncome,
       totalSpent,
       totalRemaining,
@@ -165,24 +206,10 @@ const BudgetsPage = () => {
       leastHealthyBudget,
       budgetHealthScores,
     };
-  }, [budgets, allTransactions]);
+  }, [activeBudgets, completedBudgets, archivedBudgets]);
 
   if (isLoading) {
     return <LoadingSpinner message="Loading budgets..." />;
-  }
-
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="mb-4 text-red-500">
-            <AlertCircle className="mx-auto h-12 w-12" />
-          </div>
-          <div className="mb-2 text-lg text-red-600">Error loading budgets</div>
-          <div className="text-sm text-gray-500">{error.message}</div>
-        </div>
-      </div>
-    );
   }
 
   const getBudgetStatus = (budget: BudgetWithRelations) => {
@@ -267,8 +294,6 @@ const BudgetsPage = () => {
     try {
       await duplicateBudgetMutation.mutateAsync(budget.id);
       toast.success("Budget duplicated successfully!");
-      // Optionally, redirect to the new budget page:
-      // if (result?.budget?.id) router.push(`/budgets/${result.budget.id}`);
     } catch (err) {
       toast.error("Failed to duplicate budget. Please try again.");
       console.error("Failed to duplicate budget:", err);
@@ -279,266 +304,200 @@ const BudgetsPage = () => {
     setBudgetToDelete(budget);
   };
 
-  const handleConfirmDelete = async () => {
-    if (!budgetToDelete) return;
-
+  const handleMarkCompleted = async (budget: BudgetWithRelations) => {
     try {
-      await deleteBudgetMutation.mutateAsync(budgetToDelete.id);
-      setBudgetToDelete(null);
-      toast.success("Budget deleted successfully!");
+      await markCompletedMutation.mutateAsync(budget.id);
+      toast.success("Budget marked as completed!");
     } catch (err) {
-      console.error("Failed to delete budget:", err);
-      toast.error("Failed to delete budget. Please try again.");
+      toast.error("Failed to mark budget as completed. Please try again.");
+      console.error("Failed to mark budget as completed:", err);
     }
   };
 
-  const handleCancelDelete = () => {
-    setBudgetToDelete(null);
+  const handleMarkArchived = async (budget: BudgetWithRelations) => {
+    try {
+      await markArchivedMutation.mutateAsync(budget.id);
+      toast.success("Budget archived!");
+    } catch (err) {
+      toast.error("Failed to archive budget. Please try again.");
+      console.error("Failed to archive budget:", err);
+    }
   };
+
+  const handleReactivate = async (budget: BudgetWithRelations) => {
+    try {
+      await reactivateMutation.mutateAsync(budget.id);
+      toast.success("Budget reactivated!");
+    } catch (err) {
+      toast.error("Failed to reactivate budget. Please try again.");
+      console.error("Failed to reactivate budget:", err);
+    }
+  };
+
+  const tabs = [
+    { id: "active" as TabType, label: "Active", count: activeBudgets.length },
+    {
+      id: "completed" as TabType,
+      label: "Completed",
+      count: completedBudgets.length,
+    },
+    {
+      id: "archived" as TabType,
+      label: "Archived",
+      count: archivedBudgets.length,
+    },
+  ];
 
   return (
     <div className="flex h-screen flex-col bg-gray-50">
       <PageHeader
         title="Budgets"
-        description="Manage your financial plans and track spending"
+        description="Manage your financial budgets and track spending"
         action={{
-          label: "Add Budget",
-          onClick: () => setIsCreateModalOpen(true),
           icon: <Plus className="h-4 w-4" />,
+          label: "Create Budget",
+          onClick: () => setIsCreateModalOpen(true),
         }}
       />
 
-      <div className="flex-1">
-        <div className="mx-auto max-w-7xl px-2 py-16 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
-          {/* Enhanced Overview Stats */}
-          {budgets.length > 0 && (
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-              <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
-                <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                  <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                    Total Budgets
-                  </h3>
-                  <Target className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
-                </div>
-                <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-                  {budgetStats.totalBudgets}
-                </div>
-                <div className="mt-1 text-xs text-gray-500 sm:text-sm">
-                  {budgetStats.activeBudgets} active
-                </div>
-              </div>
+      <div className="flex-1 overflow-x-hidden pt-16 sm:pt-20 lg:pt-0">
+        <div className="mx-auto w-full px-2 py-4 sm:max-w-7xl sm:px-4 sm:py-6 lg:px-8 lg:py-8">
+          {/* Budget Statistics Cards */}
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
+            <StatsCard
+              title="Active Budgets"
+              value={budgetStats.activeBudgetsCount}
+              subtitle={`${budgetStats.totalBudgets} total budgets`}
+              icon={
+                <Target className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
+              }
+              iconColor="text-purple-500"
+              hover={true}
+            />
 
-              <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
-                <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                  <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                    Total Income
-                  </h3>
-                  <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
-                </div>
-                <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-                  ${budgetStats.totalIncome.toLocaleString()}
-                </div>
-                <div className="mt-1 text-xs text-gray-500 sm:text-sm">
-                  Across all budgets
-                </div>
-              </div>
+            <StatsCard
+              title="Total Income"
+              value={`$${budgetStats.totalIncome.toLocaleString()}`}
+              subtitle="Active budgets only"
+              icon={
+                <TrendingUp className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
+              }
+              iconColor="text-green-500"
+              hover={true}
+            />
 
-              <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
-                <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                  <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                    Total Spent
-                  </h3>
-                  <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
-                </div>
-                <div className="text-lg font-bold text-gray-900 sm:text-xl lg:text-2xl">
-                  ${budgetStats.totalSpent.toLocaleString()}
-                </div>
-                <div className="mt-1 text-xs text-gray-500 sm:text-sm">
-                  {budgetStats.overallSpendingPercentage.toFixed(1)}% of total
-                </div>
-              </div>
+            <StatsCard
+              title="Total Spent"
+              value={`$${budgetStats.totalSpent.toLocaleString()}`}
+              subtitle={`${budgetStats.overallSpendingPercentage.toFixed(1)}% of budget`}
+              icon={
+                <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
+              }
+              iconColor="text-red-500"
+              hover={true}
+            />
 
-              <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
-                <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-                  <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-                    Remaining
-                  </h3>
-                  <TrendingUp className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
-                </div>
-                <div
-                  className={`text-lg font-bold sm:text-xl lg:text-2xl ${budgetStats.totalRemaining >= 0 ? "text-gray-900" : "text-red-600"}`}
-                >
-                  ${budgetStats.totalRemaining.toLocaleString()}
-                </div>
-                <div className="mt-1 text-xs text-gray-500 sm:text-sm">
+            <StatsCard
+              title="Health Score"
+              value={`${budgetStats.averageHealthScore.toFixed(0)}%`}
+              subtitle="Average score"
+              icon={
+                <BarChart3 className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
+              }
+              iconColor="text-blue-500"
+              hover={true}
+            />
+          </div>
+
+          {/* Budget Progress */}
+          <div className="mb-6 rounded-xl border bg-white p-4 shadow-sm sm:mb-8 sm:p-6">
+            <div className="mb-4 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+              <h2 className="text-base font-semibold text-gray-900 sm:text-lg">
+                Overall Budget Progress
+              </h2>
+              <div className="flex items-center space-x-2">
+                <span className="text-xs text-gray-500 sm:text-sm">
                   {budgetStats.totalRemaining >= 0
-                    ? "Available"
-                    : "Over budget"}
-                </div>
+                    ? "Remaining:"
+                    : "Over budget:"}
+                </span>
+                <span
+                  className={`text-sm font-semibold ${
+                    budgetStats.totalRemaining >= 0
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  ${Math.abs(budgetStats.totalRemaining).toLocaleString()}
+                </span>
               </div>
             </div>
-          )}
-
-          {/* New Insights Section */}
-          {budgets.length > 0 && (
-            <div className="mb-6 grid grid-cols-1 gap-4 sm:mb-8 sm:gap-6 lg:grid-cols-3">
-              {/* Spending Trends */}
-              <div className="rounded-xl border bg-white p-4 shadow-sm sm:p-6">
-                <div className="mb-3 flex items-center justify-between sm:mb-4">
-                  <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
-                    Recent Spending
-                  </h3>
-                  <Clock className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
-                </div>
-                <div className="space-y-2 sm:space-y-3">
-                  <div>
-                    <div className="text-xl font-bold text-gray-900 sm:text-2xl">
-                      ${budgetStats.recentSpending.toLocaleString()}
-                    </div>
-                    <div className="text-xs text-gray-500 sm:text-sm">
-                      Last 30 days
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-base font-semibold text-gray-900 sm:text-lg">
-                      ${budgetStats.averageDailySpending.toFixed(0)}
-                    </div>
-                    <div className="text-xs text-gray-500 sm:text-sm">
-                      Daily average
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Budget Health Overview */}
-              <div className="rounded-xl border bg-white p-4 shadow-sm sm:p-6">
-                <div className="mb-3 flex items-center justify-between sm:mb-4">
-                  <div className="flex items-center space-x-2">
-                    <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
-                      Budget Health
-                    </h3>
-                    <div className="group relative">
-                      <Info className="h-4 w-4 cursor-help text-gray-400" />
-                      <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                        <div className="w-80 rounded-lg bg-gray-900 p-3 text-xs text-white shadow-lg">
-                          <div className="mb-1 font-medium">
-                            Budget Health Score
-                          </div>
-                          <div className="text-gray-200">
-                            Measures how well you&apos;re staying within your
-                            budget limits. Higher scores indicate better budget
-                            discipline and financial health.
-                          </div>
-                          <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <Zap className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
-                </div>
-                <div className="space-y-2 sm:space-y-3">
-                  <div>
-                    <div
-                      className={`text-xl font-bold sm:text-2xl ${getHealthScoreColor(budgetStats.averageHealthScore)}`}
-                    >
-                      {budgetStats.averageHealthScore.toFixed(0)}%
-                    </div>
-                    <div className="text-xs text-gray-500 sm:text-sm">
-                      Average health score
-                    </div>
-                  </div>
-                  <div className="text-xs text-gray-600 sm:text-sm">
-                    {budgetStats.healthiestBudget && (
-                      <div className="mb-1">
-                        <span className="font-medium">Healthiest:</span>{" "}
-                        {budgetStats.healthiestBudget.healthScore}%
-                      </div>
-                    )}
-                    {budgetStats.leastHealthyBudget &&
-                      budgetStats.leastHealthyBudget.budgetId !==
-                        budgetStats.healthiestBudget?.budgetId && (
-                        <div>
-                          <span className="font-medium">Needs attention:</span>{" "}
-                          {budgetStats.leastHealthyBudget.healthScore}%
-                        </div>
-                      )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Category Group Spending */}
-              <div className="rounded-xl border bg-white p-4 shadow-sm sm:p-6">
-                <div className="mb-3 flex items-center justify-between sm:mb-4">
-                  <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
-                    Spending by Group
-                  </h3>
-                  <PieChart className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
-                </div>
-                <div className="space-y-2">
-                  {Object.entries(budgetStats.spendingByGroup).length > 0 ? (
-                    Object.entries(budgetStats.spendingByGroup).map(
-                      ([group, amount]) => (
-                        <div
-                          key={group}
-                          className="flex items-center justify-between"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <div
-                              className={`h-3 w-3 rounded-full ${
-                                group === "needs"
-                                  ? "bg-blue-500"
-                                  : group === "wants"
-                                    ? "bg-purple-500"
-                                    : "bg-green-500"
-                              }`}
-                            />
-                            <span className="text-xs font-medium capitalize text-gray-700 sm:text-sm">
-                              {group}
-                            </span>
-                          </div>
-                          <span className="text-xs font-semibold text-gray-900 sm:text-sm">
-                            ${amount.toLocaleString()}
-                          </span>
-                        </div>
-                      ),
-                    )
-                  ) : (
-                    <div className="py-4 text-center">
-                      <p className="text-xs text-gray-500 sm:text-sm">
-                        No spending data available
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        Add transactions to see spending by group
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
+            <div className="h-2 w-full rounded-full bg-gray-200 sm:h-3">
+              <div
+                className={`h-2 rounded-full transition-all duration-300 sm:h-3 ${
+                  budgetStats.overallSpendingPercentage > 90
+                    ? "bg-red-500"
+                    : budgetStats.overallSpendingPercentage > 75
+                      ? "bg-yellow-500"
+                      : "bg-green-500"
+                }`}
+                style={{
+                  width: `${Math.min(budgetStats.overallSpendingPercentage, 100)}%`,
+                }}
+              ></div>
             </div>
-          )}
+          </div>
+
+          {/* Budget Tabs */}
+          <div className="mb-6">
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`whitespace-nowrap border-b-2 px-1 py-2 text-sm font-medium ${
+                      activeTab === tab.id
+                        ? "border-yellow-500 text-yellow-600"
+                        : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                    }`}
+                  >
+                    {tab.label}
+                    <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-900">
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </div>
 
           {/* Budgets List */}
-          <div className="space-y-4 sm:space-y-6">
-            {budgets?.length === 0 ? (
-              <div className="rounded-xl border bg-white p-8 text-center shadow-sm sm:p-12">
-                <Target className="mx-auto mb-3 h-12 w-12 text-gray-300 sm:mb-4 sm:h-16 sm:w-16" />
-                <h3 className="mb-2 text-base font-medium text-gray-900 sm:text-lg">
-                  No budgets yet
+          <div className="grid gap-4 sm:gap-6">
+            {currentBudgets.length === 0 ? (
+              <div className="rounded-xl border bg-white p-8 text-center shadow-sm">
+                <div className="mb-4 text-gray-400">
+                  <Target className="mx-auto h-12 w-12" />
+                </div>
+                <h3 className="mb-2 text-lg font-semibold text-gray-900">
+                  No {activeTab} budgets
                 </h3>
-                <p className="mx-auto mb-4 max-w-sm text-sm text-gray-500 sm:mb-6 sm:text-base">
-                  Create your first budget to start tracking your spending and
-                  managing your finances effectively.
+                <p className="text-sm text-gray-500">
+                  {activeTab === "active"
+                    ? "Create your first budget to get started"
+                    : `No ${activeTab} budgets found`}
                 </p>
-                <button
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="inline-flex items-center rounded-lg bg-secondary px-4 py-2 text-sm text-white transition-colors hover:bg-yellow-300 sm:text-base"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Your First Budget
-                </button>
+                {activeTab === "active" && (
+                  <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="mt-4 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+                  >
+                    Create Budget
+                  </button>
+                )}
               </div>
             ) : (
-              budgets?.map((budget: BudgetWithRelations) => {
+              currentBudgets?.map((budget: BudgetWithRelations) => {
                 const budgetStatus = getBudgetStatus(budget);
                 const categorySummary = getCategorySummary(budget);
                 const totalBudgetIncome = budget.incomes?.[0]?.amount ?? 0;
@@ -601,27 +560,68 @@ const BudgetsPage = () => {
                             {healthScoreLabel} ({healthScore}%)
                           </span>
                           {/* Action Icons */}
-                          <div
-                            className="flex items-center space-x-1"
-                            onClick={(e) => e.stopPropagation()}
-                          >
+                          <div className="ml-auto flex items-center space-x-1">
+                            {activeTab === "active" && (
+                              <>
+                                <button
+                                  onClick={async (e: MouseEvent) => {
+                                    e.stopPropagation();
+                                    await handleMarkCompleted(budget);
+                                  }}
+                                  className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-green-600"
+                                  title="Mark as Completed"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={async (e: MouseEvent) => {
+                                    e.stopPropagation();
+                                    await handleMarkArchived(budget);
+                                  }}
+                                  className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-yellow-600"
+                                  title="Archive"
+                                >
+                                  <Archive className="h-4 w-4" />
+                                </button>
+                              </>
+                            )}
+                            {(activeTab === "completed" ||
+                              activeTab === "archived") && (
+                              <button
+                                onClick={async (e: MouseEvent) => {
+                                  e.stopPropagation();
+                                  await handleReactivate(budget);
+                                }}
+                                className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-purple-600"
+                                title="Reactivate"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </button>
+                            )}
                             <button
-                              onClick={() => handleDuplicateBudget(budget)}
+                              onClick={async (e: MouseEvent) => {
+                                e.stopPropagation();
+                                await handleDuplicateBudget(budget);
+                              }}
                               className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-blue-600"
-                              title="Duplicate Budget"
+                              title="Duplicate"
                             >
                               <Copy className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() => handleDeleteBudget(budget)}
+                              onClick={(e: MouseEvent) => {
+                                e.stopPropagation();
+                                handleDeleteBudget(budget);
+                              }}
                               className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-red-600"
-                              title="Delete Budget"
+                              title="Delete"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 sm:gap-4 sm:text-sm">
+
+                        <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-gray-500 sm:gap-4 sm:text-sm">
                           <div className="flex items-center space-x-1">
                             <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
                             <span>{budget.period.replace("_", " ")}</span>
@@ -630,18 +630,20 @@ const BudgetsPage = () => {
                             <Target className="h-3 w-3 sm:h-4 sm:w-4" />
                             <span>{budget.strategy.replace("_", " ")}</span>
                           </div>
-                          <div className="flex items-center space-x-1">
-                            <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-                            <span
-                              className={
-                                isOverdue ? "font-medium text-red-600" : ""
-                              }
-                            >
-                              {isOverdue
-                                ? `${Math.abs(daysRemaining)} days overdue`
-                                : `${daysRemaining} days left`}
-                            </span>
-                          </div>
+                          {activeTab === "active" && (
+                            <div className="flex items-center space-x-1">
+                              <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                              <span
+                                className={
+                                  isOverdue ? "font-medium text-red-600" : ""
+                                }
+                              >
+                                {isOverdue
+                                  ? `${Math.abs(daysRemaining)} days overdue`
+                                  : `${daysRemaining} days left`}
+                              </span>
+                            </div>
+                          )}
                           <span>
                             Created{" "}
                             {new Date(budget.createdAt).toLocaleDateString()}
@@ -660,13 +662,13 @@ const BudgetsPage = () => {
 
                     {/* Progress Bar */}
                     <div className="mb-4">
-                      <div className="mb-2 flex items-center justify-between text-xs sm:text-sm">
-                        <span className="text-gray-500">Spending Progress</span>
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium">
-                            {spendingPercentage.toFixed(1)}%
-                          </span>
-                        </div>
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-xs text-gray-500 sm:text-sm">
+                          Progress
+                        </span>
+                        <span className="text-xs text-gray-500 sm:text-sm">
+                          {spendingPercentage.toFixed(1)}% used
+                        </span>
                       </div>
                       <div className="h-2 w-full rounded-full bg-gray-200">
                         <div
@@ -684,58 +686,39 @@ const BudgetsPage = () => {
                       </div>
                     </div>
 
-                    {/* Enhanced Budget Stats */}
-                    <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">
-                      <div className="rounded-lg bg-gray-50 p-2 text-center sm:p-3">
-                        <div className="text-sm font-semibold text-gray-900 sm:text-lg">
+                    {/* Budget Summary */}
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <div className="text-lg font-bold text-gray-900 sm:text-xl">
                           ${totalBudgetSpent.toLocaleString()}
                         </div>
                         <div className="text-xs text-gray-500 sm:text-sm">
                           Spent
                         </div>
                       </div>
-                      <div className="rounded-lg bg-gray-50 p-2 text-center sm:p-3">
+                      <div>
                         <div
-                          className={`text-sm font-semibold sm:text-lg ${budgetRemaining >= 0 ? "text-gray-900" : "text-red-600"}`}
+                          className={`text-lg font-bold sm:text-xl ${
+                            budgetRemaining >= 0
+                              ? "text-gray-900"
+                              : "text-red-600"
+                          }`}
                         >
-                          ${budgetRemaining.toLocaleString()}
+                          ${Math.abs(budgetRemaining).toLocaleString()}
                         </div>
                         <div className="text-xs text-gray-500 sm:text-sm">
-                          Remaining
+                          {budgetRemaining >= 0 ? "Remaining" : "Over Budget"}
                         </div>
                       </div>
-                      <div className="rounded-lg bg-gray-50 p-2 text-center sm:p-3">
-                        <div className="text-sm font-semibold text-gray-900 sm:text-lg">
-                          {budget.categories?.length ?? 0}
+                      <div>
+                        <div className="text-lg font-bold text-gray-900 sm:text-xl">
+                          {categorySummary.needs +
+                            categorySummary.wants +
+                            categorySummary.investments}
                         </div>
                         <div className="text-xs text-gray-500 sm:text-sm">
                           Categories
                         </div>
-                      </div>
-                      <div className="rounded-lg bg-gray-50 p-2 text-center sm:p-3">
-                        <div
-                          className={`text-sm font-semibold sm:text-lg ${healthScoreColor}`}
-                        >
-                          {healthScore}%
-                        </div>
-                        <div className="text-xs text-gray-500 sm:text-sm">
-                          Health
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Category Summary */}
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                      <div className="flex items-center space-x-4">
-                        <span>
-                          Categories: {categorySummary.needs} Needs,{" "}
-                          {categorySummary.wants} Wants,{" "}
-                          {categorySummary.investments} Investment
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <span>View Details</span>
-                        <Eye className="h-4 w-4" />
                       </div>
                     </div>
                   </div>
@@ -746,23 +729,34 @@ const BudgetsPage = () => {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        isOpen={!!budgetToDelete}
-        onClose={handleCancelDelete}
-        onConfirm={handleConfirmDelete}
-        title="Delete Budget"
-        message="Are you sure you want to delete {itemName}? This action cannot be undone and will also delete all associated income records and category allocations."
-        itemName={budgetToDelete?.name ?? ""}
-        confirmText="Delete Budget"
-        cancelText="Cancel"
-        isLoading={deleteBudgetMutation.isPending}
-      />
-
-      {/* Create Budget Modal */}
+      {/* Modals */}
       <CreateBudgetModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          setIsCreateModalOpen(false);
+          toast.success("Budget created successfully!");
+        }}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={!!budgetToDelete}
+        onClose={() => setBudgetToDelete(null)}
+        onConfirm={async () => {
+          if (budgetToDelete) {
+            try {
+              await deleteBudgetMutation.mutateAsync(budgetToDelete.id);
+              toast.success("Budget deleted successfully!");
+              setBudgetToDelete(null);
+            } catch (err) {
+              toast.error("Failed to delete budget. Please try again.");
+              console.error("Failed to delete budget:", err);
+            }
+          }
+        }}
+        title="Delete Budget"
+        message={`Are you sure you want to delete "${budgetToDelete?.name}"? This action cannot be undone.`}
+        itemName={budgetToDelete?.name ?? ""}
       />
     </div>
   );

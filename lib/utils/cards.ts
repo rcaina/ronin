@@ -74,8 +74,8 @@ export const mapCardType = (cardType: string): "credit" | "debit" | "business_cr
 }; 
 
 // Utility function to map API card to component card
-export const mapApiCardToCard = (apiCard: ApiCard, index: number): Card => {
-    const cardColor = cardColors[index];
+export const mapApiCardToCard = (apiCard: ApiCard): Card => {
+    const cardColor = getCardColor(apiCard.id ?? "");
     
     return {
       id: apiCard.id ?? "",
@@ -86,6 +86,6 @@ export const mapApiCardToCard = (apiCard: ApiCard, index: number): Card => {
       userId: apiCard.userId,
       user: apiCard.user?.name ?? "Unknown User",
       isActive: true, // Placeholder, replace with real status if available
-      color: cardColor ?? "bg-gradient-to-br from-blue-600 to-purple-600", // Generate unique color based on card ID
+      color: cardColor,
     };
   };
