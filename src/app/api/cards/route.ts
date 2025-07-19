@@ -67,18 +67,12 @@ export const GET = withUser({
         amountSpent = card.transactions.reduce((sum, transaction) => {
           if (transaction.transactionType === TransactionType.CARD_PAYMENT) {
             // Card payments reduce the balance (positive amount = payment received)
-            if(card.name === 'Amazon') {
-              console.log({transaction});
-            }
             return sum - transaction.amount; // Subtract payment amount (reduces balance)
           } else {
             // Regular transactions: negative = purchases (increase balance), positive = returns (decrease balance)
             return sum + transaction.amount;
           }
         }, 0);
-        if(card.name === 'Amazon') {
-          console.log({amountSpent});
-        }
       } else {
         // For debit/cash cards: sum all amounts normally
         amountSpent = card.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
