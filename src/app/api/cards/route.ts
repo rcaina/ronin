@@ -3,7 +3,7 @@ import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling";
 import prisma from "@/lib/prisma";
 import { createCardSchema } from "@/lib/api-schemas/cards";
 import { ensureAccountOwnership } from "@/lib/ownership";
-import { type User, type CardType } from "@prisma/client";
+import { CardType, TransactionType, type User } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const GET = withUser({
@@ -44,7 +44,7 @@ export const GET = withUser({
             deleted: null,
             ...(excludeCardPayments && {
               transactionType: {
-                not: 'CARD_PAYMENT'
+                not: TransactionType.CARD_PAYMENT
               }
             }),
           },
@@ -59,13 +59,13 @@ export const GET = withUser({
 
     // Calculate amountSpent for each card by summing related transactions
     const cardsWithAmountSpent = cards.map(card => {
-      const isCreditCard = card.cardType === 'CREDIT' || card.cardType === 'BUSINESS_CREDIT';
+      const isCreditCard = card.cardType === CardType.CREDIT || card.cardType === CardType.BUSINESS_CREDIT;
       
       let amountSpent = 0;
       if (isCreditCard) {
         // For credit cards: handle regular transactions and card payments differently
         amountSpent = card.transactions.reduce((sum, transaction) => {
-          if (transaction.transactionType === 'CARD_PAYMENT') {
+          if (transaction.transactionType === TransactionType.CARD_PAYMENT) {
             // Card payments reduce the balance (positive amount = payment received)
             return sum - transaction.amount; // Subtract payment amount (reduces balance)
           } else {

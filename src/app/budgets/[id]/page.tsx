@@ -416,30 +416,38 @@ const BudgetDetailsPage = () => {
           />
         </div>
       </div>
-      <AddTransactionModal
-        isOpen={isAddTransactionOpen}
-        budgetId={id as string}
-        onClose={() => setIsAddTransactionOpen(false)}
-        onSuccess={handleTransactionSuccess}
-      />
-      <IncomeModal
-        isOpen={isIncomeModalOpen}
-        budgetId={id as string}
-        incomes={budget.incomes ?? []}
-        onClose={() => setIsIncomeModalOpen(false)}
-        onSuccess={handleIncomeSuccess}
-      />
-      <EditBudgetModal
-        isOpen={isEditBudgetOpen}
-        budget={budget}
-        onClose={() => setIsEditBudgetOpen(false)}
-        onSuccess={handleEditBudgetSuccess}
-      />
-      <CardPaymentModal
-        isOpen={isCardPaymentOpen}
-        onClose={() => setIsCardPaymentOpen(false)}
-        onSuccess={handleCardPaymentSuccess}
-      />
+      {isAddTransactionOpen && (
+        <AddTransactionModal
+          isOpen={isAddTransactionOpen}
+          budgetId={id as string}
+          onClose={() => setIsAddTransactionOpen(false)}
+          onSuccess={handleTransactionSuccess}
+        />
+      )}
+      {isIncomeModalOpen && (
+        <IncomeModal
+          isOpen={isIncomeModalOpen}
+          budgetId={id as string}
+          incomes={budget.incomes ?? []}
+          onClose={() => setIsIncomeModalOpen(false)}
+          onSuccess={handleIncomeSuccess}
+        />
+      )}
+      {isEditBudgetOpen && (
+        <EditBudgetModal
+          isOpen={isEditBudgetOpen}
+          budget={budget}
+          onClose={() => setIsEditBudgetOpen(false)}
+          onSuccess={handleEditBudgetSuccess}
+        />
+      )}
+      {isCardPaymentOpen && (
+        <CardPaymentModal
+          isOpen={isCardPaymentOpen}
+          onClose={() => setIsCardPaymentOpen(false)}
+          onSuccess={handleCardPaymentSuccess}
+        />
+      )}
     </div>
   );
 };

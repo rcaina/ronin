@@ -36,7 +36,7 @@ interface User {
 const CardsPage = () => {
   const router = useRouter();
   const { data: session } = useSession();
-  const { data: apiCards, isLoading, error } = useCards(true); // Exclude card payments for spending calculations
+  const { data: apiCards, isLoading, error } = useCards(false); // Exclude card payments for spending calculations
   const deleteCardMutation = useDeleteCard();
   const createCardMutation = useCreateCard();
   const updateCardMutation = useUpdateCard();
@@ -460,22 +460,26 @@ const CardsPage = () => {
       </div>
 
       {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        isOpen={!!cardToDelete}
-        onClose={handleCancelDelete}
-        onConfirm={handleConfirmDelete}
-        title="Delete Card"
-        message={`Are you sure you want to delete "${cardToDelete?.name ?? ""}"? This action cannot be undone.`}
-        itemName={cardToDelete?.name ?? ""}
-        isLoading={deleteCardMutation.isPending}
-        confirmText="Delete Card"
-      />
+      {cardToDelete && (
+        <DeleteConfirmationModal
+          isOpen={!!cardToDelete}
+          onClose={handleCancelDelete}
+          onConfirm={handleConfirmDelete}
+          title="Delete Card"
+          message={`Are you sure you want to delete "${cardToDelete?.name ?? ""}"? This action cannot be undone.`}
+          itemName={cardToDelete?.name ?? ""}
+          isLoading={deleteCardMutation.isPending}
+          confirmText="Delete Card"
+        />
+      )}
 
       {/* Card Payment Modal */}
-      <CardPaymentModal
-        isOpen={showCardPaymentModal}
-        onClose={() => setShowCardPaymentModal(false)}
-      />
+      {showCardPaymentModal && (
+        <CardPaymentModal
+          isOpen={showCardPaymentModal}
+          onClose={() => setShowCardPaymentModal(false)}
+        />
+      )}
     </div>
   );
 };
