@@ -63,7 +63,7 @@ export default function ConditionalLayout({
         {/* Main Content Area */}
         <div
           className={`flex-1 transition-all duration-300 ${
-            isCollapsed ? "lg:ml-16" : "lg:ml-64"
+            isCollapsed ? "lg:ml-20 lg:mr-4" : "lg:ml-72 lg:mr-8"
           } pt-32 lg:pt-0`}
         >
           {children}

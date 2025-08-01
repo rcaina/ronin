@@ -38,6 +38,7 @@ const config: Config = {
       colors: {
         primary: 'var(--color-primary)',
         secondary: 'var(--color-secondary)',
+        accent: 'var(--color-accent)',
         gray: {
           50: '#f9fafb',
           100: '#f3f4f6',

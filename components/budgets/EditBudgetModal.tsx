@@ -274,7 +274,7 @@ export default function EditBudgetModal({
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-md bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 disabled:opacity-50"
+              className="hover:bg-accent rounded-md bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 disabled:opacity-50"
             >
               {isSubmitting ? "Saving..." : "Save Changes"}
             </Button>

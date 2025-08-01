@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen, LogOut, User } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
@@ -40,13 +41,13 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
 
   return (
     <div
-      className={`fixed left-0 top-0 z-40 hidden h-screen bg-black/90 transition-all duration-300 ease-in-out lg:block ${
+      className={`fixed left-0 top-0 z-40 hidden h-screen bg-primary transition-all duration-300 ease-in-out lg:block ${
         isCollapsed ? "w-16" : "w-64"
       }`}
     >
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className={`fixed top-24 z-50 flex h-6 w-6 items-center justify-center rounded-md bg-black/90 text-white transition-all duration-300 ease-in-out hover:bg-black/80 ${
+        className={`fixed top-24 z-50 flex h-6 w-6 items-center justify-center rounded-md bg-primary text-white transition-all duration-300 ease-in-out hover:bg-black/80 ${
           isCollapsed ? "left-12" : "left-60"
         }`}
       >
@@ -63,23 +64,16 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
           className={`mb-8 flex items-center overflow-hidden ${isCollapsed ? "justify-center" : "gap-3 px-3"}`}
         >
           <div
-            className={`flex-shrink-0 ${isCollapsed ? "h-10 w-10" : "h-12 w-12"}`}
+            className={`flex-shrink-0 ${isCollapsed ? "h-10 w-10" : "h-16 w-16"}`}
           >
-            {/* Fox SVG */}
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="h-full w-full text-secondary"
-            >
-              <path
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
-                fill="currentColor"
-              />
-              <path
-                d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"
-                fill="currentColor"
-              />
-            </svg>
+            <Image
+              src="/ronin_logo.jpg"
+              alt="Ronin Logo"
+              width={isCollapsed ? 48 : 64}
+              height={isCollapsed ? 48 : 64}
+              className="h-full w-full rounded-full"
+              priority
+            />
           </div>
           <div
             className={`transition-all duration-300 ease-in-out ${isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}
@@ -97,8 +91,10 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center py-2 text-white transition-colors hover:bg-white/10 ${isCollapsed ? "justify-center" : "gap-3"} ${
-                  isActive ? "mx-[-1rem] bg-[#F1C232]/70 px-7" : "px-3"
+                className={`flex items-center py-2 text-white transition-colors ${isCollapsed ? "justify-center" : "gap-3"} ${
+                  isActive
+                    ? "mx-[-1rem] bg-secondary px-7"
+                    : "mx-[-1rem] px-7 hover:bg-white/10"
                 }`}
               >
                 <span className="flex-shrink-0">{item.icon}</span>

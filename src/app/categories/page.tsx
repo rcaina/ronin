@@ -212,7 +212,7 @@ export default function CategoriesPage() {
           description="Manage your reusable category templates"
         />
         <div className="flex-1 overflow-auto">
-          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mx-auto px-4 py-8 sm:px-6 lg:px-8">
             <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
               <p className="text-red-800">
                 Failed to load category templates. Please try again.
@@ -232,7 +232,7 @@ export default function CategoriesPage() {
       />
 
       <div className="flex-1">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-8 lg:px-8">
+        <div className="mx-auto px-4 py-10 sm:px-6 sm:py-8 lg:px-8">
           {/* Info Banner */}
           <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-3 sm:mb-8 sm:p-4">
             <div className="flex items-start">

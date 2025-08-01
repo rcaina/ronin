@@ -79,7 +79,7 @@ export default function AddEditCardModal({
     resolver: zodResolver(cardSchema),
     defaultValues: {
       name: "",
-      cardType: "CREDIT",
+      cardType: CardType.CREDIT,
       spendingLimit: undefined,
       userId: "",
     },
@@ -120,7 +120,7 @@ export default function AddEditCardModal({
         // Reset form for new card
         reset({
           name: "",
-          cardType: "CREDIT",
+          cardType: CardType.CREDIT,
           spendingLimit: undefined,
           userId: "",
         });
@@ -254,11 +254,15 @@ export default function AddEditCardModal({
               {...register("cardType")}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
-              <option value="CREDIT">Credit Card</option>
-              <option value="DEBIT">Debit Card</option>
-              <option value="CASH">Cash</option>
-              <option value="BUSINESS_CREDIT">Business Credit Card</option>
-              <option value="BUSINESS_DEBIT">Business Debit Card</option>
+              <option value={CardType.CREDIT}>Credit Card</option>
+              <option value={CardType.DEBIT}>Debit Card</option>
+              <option value={CardType.CASH}>Cash</option>
+              <option value={CardType.BUSINESS_CREDIT}>
+                Business Credit Card
+              </option>
+              <option value={CardType.BUSINESS_DEBIT}>
+                Business Debit Card
+              </option>
             </select>
             {errors.cardType && (
               <p className="mt-1 text-sm text-red-600">

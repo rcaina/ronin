@@ -12,6 +12,7 @@ import type {
   BudgetCategoryWithRelations,
   GroupColorFunction,
 } from "@/lib/types/budget";
+import { TransactionType } from "@prisma/client";
 
 interface BudgetCategoryCardProps {
   budgetCategory: BudgetCategoryWithRelations;
@@ -36,7 +37,15 @@ export default function BudgetCategoryCard({
   const deleteBudgetCategoryMutation = useDeleteBudgetCategory();
 
   const categorySpent = (budgetCategory.transactions ?? []).reduce(
-    (acc, transaction) => acc + transaction.amount,
+    (acc, transaction) => {
+      if (transaction.transactionType === TransactionType.RETURN) {
+        // Returns reduce spending (positive amount = refund received)
+        return acc - transaction.amount;
+      } else {
+        // Regular transactions: positive = purchases (increase spending)
+        return acc + transaction.amount;
+      }
+    },
     0,
   );
   const categoryRemaining = budgetCategory.allocatedAmount - categorySpent;

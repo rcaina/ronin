@@ -28,7 +28,7 @@ import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Button from "@/components/Button";
-import type { CardType } from "@prisma/client";
+import { CardType, TransactionType } from "@prisma/client";
 import StatsCard from "@/components/StatsCard";
 
 interface User {
@@ -193,7 +193,8 @@ const CardDetailsPage = () => {
             onClick: () => setShowAddTransactionModal(true),
             icon: <Plus className="h-4 w-4" />,
           },
-          ...(card.cardType === "CREDIT" || card.cardType === "BUSINESS_CREDIT"
+          ...(card.cardType === CardType.CREDIT ||
+          card.cardType === CardType.BUSINESS_CREDIT
             ? [
                 {
                   label: "Pay Credit Card",
@@ -206,7 +207,7 @@ const CardDetailsPage = () => {
       />
 
       <div className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-7xl px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
+        <div className="mx-auto px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
           {/* Card Details Section */}
           <div className="mb-6">
             <div className="mb-4 flex items-center justify-between">
@@ -380,14 +381,16 @@ const CardDetailsPage = () => {
                         <div className="text-right">
                           <p
                             className={`font-semibold ${
-                              transaction.transactionType === "CARD_PAYMENT"
+                              transaction.transactionType ===
+                              TransactionType.CARD_PAYMENT
                                 ? "text-red-600" // Always red for card payments
                                 : transaction.amount >= 0
                                   ? "text-green-600"
                                   : "text-red-600"
                             }`}
                           >
-                            {transaction.transactionType === "CARD_PAYMENT"
+                            {transaction.transactionType ===
+                            TransactionType.CARD_PAYMENT
                               ? "-$" // Always negative for card payments
                               : transaction.amount >= 0
                                 ? "+$"

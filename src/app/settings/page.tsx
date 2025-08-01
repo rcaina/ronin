@@ -98,7 +98,7 @@ const SettingsPage = () => {
       />
 
       <div className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto px-4 py-8 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
             {/* Sidebar Navigation */}
             <div className="lg:col-span-1">
@@ -136,7 +136,7 @@ const SettingsPage = () => {
                       {!isEditingProfile && (
                         <button
                           onClick={() => setIsEditingProfile(true)}
-                          className="inline-flex items-center rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-yellow-300"
+                          className="hover:bg-accent inline-flex items-center rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors"
                         >
                           <Edit className="mr-2 h-4 w-4" />
                           Edit Profile
@@ -197,7 +197,7 @@ const SettingsPage = () => {
                         <div className="flex space-x-3">
                           <button
                             onClick={handleProfileSave}
-                            className="inline-flex items-center rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-yellow-300"
+                            className="hover:bg-accent inline-flex items-center rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors"
                           >
                             <Save className="mr-2 h-4 w-4" />
                             Save Changes
@@ -334,7 +334,7 @@ const SettingsPage = () => {
                           </div>
                           <button
                             onClick={handlePasswordChange}
-                            className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-yellow-300"
+                            className="hover:bg-accent rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors"
                           >
                             Update Password
                           </button>
@@ -521,7 +521,7 @@ const SettingsPage = () => {
                         <p className="text-sm text-gray-500">
                           No payment method added yet.
                         </p>
-                        <button className="mt-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-yellow-300">
+                        <button className="hover:bg-accent mt-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors">
                           Add Payment Method
                         </button>
                       </div>
@@ -548,7 +548,7 @@ const SettingsPage = () => {
                       </h2>
                       <button
                         onClick={() => setShowCreateUserModal(true)}
-                        className="inline-flex items-center rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-yellow-300"
+                        className="hover:bg-accent inline-flex items-center rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors"
                       >
                         <Plus className="mr-2 h-4 w-4" />
                         Add User

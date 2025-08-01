@@ -4,6 +4,8 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { useSignIn } from "@/lib/data-hooks/useSignIn";
+import Image from "next/image";
+import roninLogo from "@/public/ronin_logo.jpg";
 
 interface SignInForm {
   email: string;
@@ -45,22 +47,15 @@ export default function SignIn() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-lg">
         <div className="text-center">
-          <div className="relative mx-auto h-24 w-24">
-            {/* Fox SVG */}
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="h-full w-full text-secondary"
-            >
-              <path
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
-                fill="currentColor"
-              />
-              <path
-                d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"
-                fill="currentColor"
-              />
-            </svg>
+          <div className={`mx-auto h-36 w-36 flex-shrink-0`}>
+            <Image
+              src={roninLogo}
+              alt="Ronin Logo"
+              width={128}
+              height={128}
+              className="h-full w-full rounded-full"
+              priority
+            />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">Sign in</h2>
         </div>

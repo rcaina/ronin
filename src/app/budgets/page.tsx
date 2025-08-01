@@ -35,6 +35,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import CreateBudgetModal from "@/components/budgets/CreateBudgetModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import StatsCard from "@/components/StatsCard";
+import { TransactionType } from "@prisma/client";
 
 type TabType = "active" | "completed" | "archived";
 
@@ -100,7 +101,13 @@ const BudgetsPage = () => {
             categorySum +
             (category.transactions ?? []).reduce(
               (transactionSum, transaction) => {
-                return transactionSum + transaction.amount;
+                if (transaction.transactionType === TransactionType.RETURN) {
+                  // Returns reduce spending (positive amount = refund received)
+                  return transactionSum - transaction.amount;
+                } else {
+                  // Regular transactions: positive = purchases (increase spending)
+                  return transactionSum + transaction.amount;
+                }
               },
               0,
             )
@@ -119,7 +126,15 @@ const BudgetsPage = () => {
         (budget.categories ?? []).forEach((category) => {
           const group = category.category?.group.toLowerCase() ?? "unknown";
           const spent = (category.transactions ?? []).reduce(
-            (sum, transaction) => sum + transaction.amount,
+            (sum, transaction) => {
+              if (transaction.transactionType === TransactionType.RETURN) {
+                // Returns reduce spending (positive amount = refund received)
+                return sum - transaction.amount;
+              } else {
+                // Regular transactions: positive = purchases (increase spending)
+                return sum + transaction.amount;
+              }
+            },
             0,
           );
           acc[group] = (acc[group] ?? 0) + spent;
@@ -141,9 +156,16 @@ const BudgetsPage = () => {
             (category.transactions ?? []).reduce(
               (transactionSum, transaction) => {
                 const transactionDate = new Date(transaction.createdAt);
-                return transactionDate >= sevenDaysAgo
-                  ? transactionSum + transaction.amount
-                  : transactionSum;
+                if (transactionDate >= sevenDaysAgo) {
+                  if (transaction.transactionType === TransactionType.RETURN) {
+                    // Returns reduce spending (positive amount = refund received)
+                    return transactionSum - transaction.amount;
+                  } else {
+                    // Regular transactions: positive = purchases (increase spending)
+                    return transactionSum + transaction.amount;
+                  }
+                }
+                return transactionSum;
               },
               0,
             )
@@ -162,8 +184,15 @@ const BudgetsPage = () => {
         (sum, category) =>
           sum +
           (category.transactions ?? []).reduce(
-            (transactionSum, transaction) =>
-              transactionSum + transaction.amount,
+            (transactionSum, transaction) => {
+              if (transaction.transactionType === TransactionType.RETURN) {
+                // Returns reduce spending (positive amount = refund received)
+                return transactionSum - transaction.amount;
+              } else {
+                // Regular transactions: positive = purchases (increase spending)
+                return transactionSum + transaction.amount;
+              }
+            },
             0,
           ),
         0,
@@ -225,7 +254,13 @@ const BudgetsPage = () => {
           sum +
           (category.transactions ?? []).reduce(
             (transactionSum: number, transaction) => {
-              return transactionSum + transaction.amount;
+              if (transaction.transactionType === TransactionType.RETURN) {
+                // Returns reduce spending (positive amount = refund received)
+                return transactionSum - transaction.amount;
+              } else {
+                // Regular transactions: positive = purchases (increase spending)
+                return transactionSum + transaction.amount;
+              }
             },
             0,
           )
@@ -366,7 +401,7 @@ const BudgetsPage = () => {
       />
 
       <div className="flex-1 overflow-x-hidden pt-16 sm:pt-20 lg:pt-0">
-        <div className="mx-auto w-full px-2 py-4 sm:max-w-7xl sm:px-4 sm:py-6 lg:px-8 lg:py-8">
+        <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
           {/* Budget Statistics Cards */}
           <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
             <StatsCard
@@ -512,7 +547,16 @@ const BudgetsPage = () => {
                       sum +
                       (category.transactions ?? []).reduce(
                         (transactionSum: number, transaction) => {
-                          return transactionSum + transaction.amount;
+                          if (
+                            transaction.transactionType ===
+                            TransactionType.RETURN
+                          ) {
+                            // Returns reduce spending (positive amount = refund received)
+                            return transactionSum - transaction.amount;
+                          } else {
+                            // Regular transactions: positive = purchases (increase spending)
+                            return transactionSum + transaction.amount;
+                          }
                         },
                         0,
                       )

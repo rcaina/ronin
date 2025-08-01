@@ -20,6 +20,7 @@ import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import StatsCard from "@/components/StatsCard";
+import { TransactionType } from "@prisma/client";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -62,7 +63,13 @@ export default function HomePage() {
           categorySum +
           (category.transactions ?? []).reduce(
             (transactionSum, transaction) => {
-              return transactionSum + transaction.amount;
+              if (transaction.transactionType === TransactionType.RETURN) {
+                // Returns reduce spending (positive amount = refund received)
+                return transactionSum - transaction.amount;
+              } else {
+                // Regular transactions: positive = purchases (increase spending)
+                return transactionSum + transaction.amount;
+              }
             },
             0,
           )
@@ -77,7 +84,10 @@ export default function HomePage() {
 
   // Get recent transactions (last 5, excluding card payments)
   const recentTransactions = transactions
-    .filter((transaction) => transaction.transactionType !== "CARD_PAYMENT")
+    .filter(
+      (transaction) =>
+        transaction.transactionType !== TransactionType.CARD_PAYMENT,
+    )
     .sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
@@ -126,7 +136,7 @@ export default function HomePage() {
       />
 
       <div className="flex-1">
-        <div className="mx-auto max-w-7xl px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
+        <div className="mx-auto px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
           {/* Financial Overview Cards */}
           <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
             <StatsCard
@@ -317,7 +327,7 @@ export default function HomePage() {
                       onClick={() =>
                         router.push(`/budgets/${mostRecentBudget.id}`)
                       }
-                      className="group flex w-full items-center space-x-2 rounded-lg border p-2 text-left transition-colors hover:bg-yellow-500/70 sm:space-x-3 sm:p-3"
+                      className="group flex w-full items-center space-x-2 rounded-lg border p-2 text-left transition-colors hover:bg-accent sm:space-x-3 sm:p-3"
                     >
                       <div className="bg-secondary/10 flex h-8 w-8 items-center justify-center rounded-full sm:h-10 sm:w-10">
                         <Target className="h-5 w-5 text-secondary group-hover:text-white sm:h-9 sm:w-9" />
@@ -335,7 +345,7 @@ export default function HomePage() {
 
                   <button
                     onClick={() => router.push("/budgets")}
-                    className="flex w-full items-center space-x-2 rounded-lg border p-2 text-left transition-colors hover:bg-yellow-500/70 sm:space-x-3 sm:p-3"
+                    className="flex w-full items-center space-x-2 rounded-lg border p-2 text-left transition-colors hover:bg-accent sm:space-x-3 sm:p-3"
                   >
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 sm:h-10 sm:w-10">
                       <Plus className="h-4 w-4 text-blue-600 sm:h-5 sm:w-5" />
@@ -352,7 +362,7 @@ export default function HomePage() {
 
                   <button
                     onClick={() => router.push("/transactions")}
-                    className="flex w-full items-center space-x-2 rounded-lg border p-2 text-left transition-colors hover:bg-yellow-500/70 sm:space-x-3 sm:p-3"
+                    className="flex w-full items-center space-x-2 rounded-lg border p-2 text-left transition-colors hover:bg-accent sm:space-x-3 sm:p-3"
                   >
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 sm:h-10 sm:w-10">
                       <Receipt className="h-4 w-4 text-green-600 sm:h-5 sm:w-5" />
@@ -369,7 +379,7 @@ export default function HomePage() {
 
                   <button
                     onClick={() => router.push("/categories")}
-                    className="flex w-full items-center space-x-2 rounded-lg border p-2 text-left transition-colors hover:bg-yellow-500/70 sm:space-x-3 sm:p-3"
+                    className="flex w-full items-center space-x-2 rounded-lg border p-2 text-left transition-colors hover:bg-accent sm:space-x-3 sm:p-3"
                   >
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 sm:h-10 sm:w-10">
                       <BarChart3 className="h-4 w-4 text-purple-600 sm:h-5 sm:w-5" />
