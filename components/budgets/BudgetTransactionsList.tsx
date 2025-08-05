@@ -10,6 +10,7 @@ import {
 } from "@/lib/data-hooks/transactions/useTransactions";
 import BudgetTransactionInlineEdit from "@/components/budgets/BudgetTransactionInlineEdit";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import { TransactionType } from "@prisma/client";
 
 // Tooltip component that renders via portal
 const Tooltip = ({
@@ -125,7 +126,7 @@ export const BudgetTransactionsList = ({
         categoryId: transaction.categoryId,
         cardId: transaction.cardId ?? undefined,
         occurredAt: transaction.occurredAt ?? undefined,
-        transactionType: "REGULAR" as const,
+        transactionType: TransactionType.REGULAR,
       };
 
       await createTransactionMutation.mutateAsync(copyData);

@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getCategories, deleteCategory, createCategory, updateCategory, type CreateCategoryRequest, type GroupedCategories } from "@/lib/data-hooks/services/categories";
 import { useSession } from "next-auth/react";
-import { type CategoryType } from "@prisma/client";
+import { CategoryType } from "@prisma/client";
 
 export const useCategories = () => {
   const { data: session } = useSession();
@@ -73,13 +73,13 @@ export const useUpdateCategory = () => {
           };
 
           switch (data.group) {
-            case "WANTS":
+            case CategoryType.WANTS:
               updatedCategories.wants = [...(updatedCategories.wants || []), updatedCategory];
               break;
-            case "NEEDS":
+            case CategoryType.NEEDS:
               updatedCategories.needs = [...(updatedCategories.needs || []), updatedCategory];
               break;
-            case "INVESTMENT":
+            case CategoryType.INVESTMENT:
               updatedCategories.investment = [...(updatedCategories.investment || []), updatedCategory];
               break;
           }

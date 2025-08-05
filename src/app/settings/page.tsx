@@ -20,6 +20,7 @@ import {
   Home,
 } from "lucide-react";
 import Button from "@/components/Button";
+import { Role } from "@prisma/client";
 
 const SettingsPage = () => {
   const { data: session } = useSession();
@@ -63,7 +64,7 @@ const SettingsPage = () => {
   ];
 
   // Add Users tab for admin users
-  if (session?.user?.role === "ADMIN") {
+  if (session?.user?.role === Role.ADMIN) {
     tabs.push({ id: "users", label: "Users", icon: Users });
   }
 
@@ -136,7 +137,7 @@ const SettingsPage = () => {
                       {!isEditingProfile && (
                         <button
                           onClick={() => setIsEditingProfile(true)}
-                          className="hover:bg-accent inline-flex items-center rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors"
+                          className="inline-flex items-center rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-accent"
                         >
                           <Edit className="mr-2 h-4 w-4" />
                           Edit Profile
@@ -197,7 +198,7 @@ const SettingsPage = () => {
                         <div className="flex space-x-3">
                           <button
                             onClick={handleProfileSave}
-                            className="hover:bg-accent inline-flex items-center rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors"
+                            className="inline-flex items-center rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-accent"
                           >
                             <Save className="mr-2 h-4 w-4" />
                             Save Changes
@@ -334,7 +335,7 @@ const SettingsPage = () => {
                           </div>
                           <button
                             onClick={handlePasswordChange}
-                            className="hover:bg-accent rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors"
+                            className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-accent"
                           >
                             Update Password
                           </button>
@@ -521,7 +522,7 @@ const SettingsPage = () => {
                         <p className="text-sm text-gray-500">
                           No payment method added yet.
                         </p>
-                        <button className="hover:bg-accent mt-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors">
+                        <button className="mt-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-accent">
                           Add Payment Method
                         </button>
                       </div>
@@ -548,7 +549,7 @@ const SettingsPage = () => {
                       </h2>
                       <button
                         onClick={() => setShowCreateUserModal(true)}
-                        className="hover:bg-accent inline-flex items-center rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors"
+                        className="inline-flex items-center rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-accent"
                       >
                         <Plus className="mr-2 h-4 w-4" />
                         Add User

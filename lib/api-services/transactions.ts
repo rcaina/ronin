@@ -39,7 +39,7 @@ export async function createTransaction(
       cardId: data.cardId && data.cardId.trim() !== "" ? data.cardId : null,
       accountId: user.accountId,
       userId: user.id,
-      transactionType: data.transactionType ?? "REGULAR",
+      transactionType: data.transactionType ?? TransactionType.REGULAR,
       createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
       occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
     },

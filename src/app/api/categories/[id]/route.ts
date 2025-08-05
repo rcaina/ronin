@@ -2,13 +2,13 @@ import { withUser } from "@/lib/middleware/withUser";
 import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling";
 import prisma from "@/lib/prisma";
 import { deleteCategory, updateCategory } from "@/lib/api-services/categories";
-import { type User } from "@prisma/client";
+import { CategoryType, type User } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const updateCategorySchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
-  group: z.enum(["WANTS", "NEEDS", "INVESTMENT"]),
+  group: z.enum(Object.values(CategoryType) as [string, ...string[]]),
 });
 
 export const DELETE = withUser({

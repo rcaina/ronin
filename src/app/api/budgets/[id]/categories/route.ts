@@ -1,7 +1,7 @@
 import { withUser } from "@/lib/middleware/withUser";
 import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling";
 import prisma from "@/lib/prisma";
-import { TransactionType, type User } from "@prisma/client";
+import { CategoryType, TransactionType, type User } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -95,9 +95,9 @@ export const POST = withUser({
 
     // Convert group to CategoryType enum
     const groupToCategoryType = {
-      needs: "NEEDS" as const,
-      wants: "WANTS" as const,
-      investment: "INVESTMENT" as const,
+      needs: CategoryType.NEEDS,
+      wants: CategoryType.WANTS,
+      investment: CategoryType.INVESTMENT,
     };
 
     const categoryType = groupToCategoryType[validationResult.data.group];

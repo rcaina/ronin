@@ -35,7 +35,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import CreateBudgetModal from "@/components/budgets/CreateBudgetModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import StatsCard from "@/components/StatsCard";
-import { TransactionType } from "@prisma/client";
+import { CategoryType, TransactionType } from "@prisma/client";
 
 type TabType = "active" | "completed" | "archived";
 
@@ -296,13 +296,13 @@ const BudgetsPage = () => {
   const getCategorySummary = (budget: BudgetWithRelations) => {
     const categories = budget.categories ?? [];
     const needs = categories.filter(
-      (cat) => cat.category?.group === "NEEDS",
+      (cat) => cat.category?.group === CategoryType.NEEDS,
     ).length;
     const wants = categories.filter(
-      (cat) => cat.category?.group === "WANTS",
+      (cat) => cat.category?.group === CategoryType.WANTS,
     ).length;
     const investments = categories.filter(
-      (cat) => cat.category?.group === "INVESTMENT",
+      (cat) => cat.category?.group === CategoryType.INVESTMENT,
     ).length;
 
     return { needs, wants, investments };

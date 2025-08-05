@@ -5,7 +5,7 @@ import { X, UserIcon } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useCreateUser } from "@/lib/data-hooks/useCreateUser";
 import { type CreateUserRequest } from "@/lib/data-hooks/services/auth";
-import type { User as PrismaUser } from "@prisma/client";
+import { Role, type User as PrismaUser } from "@prisma/client";
 import Button from "./Button";
 
 interface CreatedUser {
@@ -34,7 +34,7 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
     lastName: "",
     email: "",
     password: "",
-    role: "MEMBER",
+    role: Role.MEMBER,
   });
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -49,7 +49,7 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
         lastName: "",
         email: "",
         password: "",
-        role: "MEMBER",
+        role: Role.MEMBER,
       });
       onClose();
       toast.success("User created successfully!");
@@ -169,13 +169,13 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
                 onChange={(e) =>
                   setCreateUserForm({
                     ...createUserForm,
-                    role: e.target.value as "ADMIN" | "MEMBER",
+                    role: e.target.value as Role,
                   })
                 }
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
-                <option value="MEMBER">Member</option>
-                <option value="ADMIN">Admin</option>
+                <option value={Role.MEMBER}>Member</option>
+                <option value={Role.ADMIN}>Admin</option>
               </select>
             </div>
 
