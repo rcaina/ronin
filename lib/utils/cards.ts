@@ -1,3 +1,4 @@
+import { CardType } from "@prisma/client";
 import type { Card as ApiCard } from "../data-hooks/services/cards";
 
 // Component interface for cards
@@ -60,13 +61,13 @@ export const getCardColor = (cardId: string): string => {
  */
 export const mapCardType = (cardType: string): "credit" | "debit" | "business_credit" | "business_debit" | "cash" => {
   switch (cardType) {
-    case "CREDIT":
+    case CardType.CREDIT:
       return "credit";
-    case "BUSINESS_CREDIT":
+    case CardType.BUSINESS_CREDIT:
       return "business_credit";
-    case "DEBIT":
+    case CardType.DEBIT:
       return "debit";
-    case "BUSINESS_DEBIT":
+    case CardType.BUSINESS_DEBIT:
       return "business_debit";
     default:
       return "cash";

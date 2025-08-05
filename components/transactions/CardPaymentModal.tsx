@@ -8,6 +8,7 @@ import { useCreateCardPayment } from "@/lib/data-hooks/transactions/useTransacti
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Button from "@/components/Button";
+import { CardType } from "@prisma/client";
 
 interface CardPaymentModalProps {
   isOpen: boolean;
@@ -60,7 +61,8 @@ export function CardPaymentModal({
       });
     } else {
       const isCredit =
-        currentCardType === "CREDIT" || currentCardType === "BUSINESS_CREDIT";
+        currentCardType === CardType.CREDIT ||
+        currentCardType === CardType.BUSINESS_CREDIT;
       setFormData({
         name: "",
         description: "",
@@ -110,12 +112,14 @@ export function CardPaymentModal({
   // Filter cards by type for better UX
   const debitCards = cards.filter(
     (card) =>
-      card.cardType === "DEBIT" ||
-      card.cardType === "CASH" ||
-      card.cardType === "BUSINESS_DEBIT",
+      card.cardType === CardType.DEBIT ||
+      card.cardType === CardType.CASH ||
+      card.cardType === CardType.BUSINESS_DEBIT,
   );
   const creditCards = cards.filter(
-    (card) => card.cardType === "CREDIT" || card.cardType === "BUSINESS_CREDIT",
+    (card) =>
+      card.cardType === CardType.CREDIT ||
+      card.cardType === CardType.BUSINESS_CREDIT,
   );
 
   return (

@@ -23,7 +23,7 @@ import type {
 } from "@/lib/types/transaction";
 import type { Card } from "@/lib/data-hooks/services/cards";
 import Button from "../Button";
-import { TransactionType } from "@prisma/client";
+import { CardType, TransactionType } from "@prisma/client";
 
 // Validation schema
 const transactionSchema = z.object({
@@ -102,10 +102,10 @@ export default function TransactionForm({
   const selectedCard = cards.find((card) => card.id === watchedCardId);
   const isCreditCard =
     selectedCard &&
-    (selectedCard.cardType === "CREDIT" ||
-      selectedCard.cardType === "BUSINESS_CREDIT");
+    (selectedCard.cardType === CardType.CREDIT ||
+      selectedCard.cardType === CardType.BUSINESS_CREDIT);
 
-  // Initialize form data when editing or when budgetId/cardId is provided
+  // Set form values when editing
   useEffect(() => {
     if (transaction) {
       setValue("name", transaction.name ?? "");
@@ -114,7 +114,10 @@ export default function TransactionForm({
       setValue("budgetId", transaction.budgetId);
       setValue("categoryId", transaction.categoryId ?? "");
       setValue("cardId", transaction.cardId ?? "");
-      setValue("isReturn", transaction.amount < 0);
+      setValue(
+        "isReturn",
+        transaction.transactionType === TransactionType.RETURN,
+      );
       setValue(
         "occurredAt",
         transaction.occurredAt
@@ -136,19 +139,18 @@ export default function TransactionForm({
   }, [transaction, budgetId, cardId, setValue]);
 
   const onSubmit = (data: TransactionFormData) => {
-    const amount = data.isReturn
-      ? -Math.abs(parseFloat(data.amount)) // Return/refund = negative
-      : Math.abs(parseFloat(data.amount)); // Purchase = positive
-
     if (isEditing && transaction) {
       const updateData: UpdateTransactionRequest = {
         name: data.name ?? undefined,
         description: data.description ?? undefined,
-        amount: amount,
+        amount: parseFloat(data.amount),
         budgetId: data.budgetId,
         categoryId: data.categoryId,
         cardId: data.cardId ?? undefined,
         occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
+        transactionType: data.isReturn
+          ? TransactionType.RETURN
+          : TransactionType.REGULAR,
       };
 
       updateTransaction(
@@ -169,12 +171,14 @@ export default function TransactionForm({
       const transactionData: CreateTransactionRequest = {
         name: data.name ?? undefined,
         description: data.description ?? undefined,
-        amount: amount,
+        amount: parseFloat(data.amount),
         budgetId: data.budgetId,
         categoryId: data.categoryId ?? undefined,
         cardId: data.cardId ?? undefined,
         occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
-        transactionType: TransactionType.REGULAR,
+        transactionType: data.isReturn
+          ? TransactionType.RETURN
+          : TransactionType.REGULAR,
       };
 
       createTransaction(transactionData, {

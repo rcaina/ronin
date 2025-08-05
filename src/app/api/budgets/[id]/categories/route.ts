@@ -1,7 +1,7 @@
 import { withUser } from "@/lib/middleware/withUser";
 import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling";
 import prisma from "@/lib/prisma";
-import type { User } from "@prisma/client";
+import { CategoryType, TransactionType, type User } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -32,6 +32,7 @@ export const GET = withUser({
           },
           select: {
             amount: true,
+            transactionType: true,
           },
         },
       },
@@ -45,7 +46,15 @@ export const GET = withUser({
     // Calculate spent amount for each budget category
     const budgetCategoriesWithSpent = budgetCategories.map(budgetCategory => ({
       ...budgetCategory,
-      spentAmount: budgetCategory.transactions?.reduce((sum, transaction) => sum + (transaction.amount || 0), 0) || 0,
+      spentAmount: budgetCategory.transactions?.reduce((sum, transaction) => {
+        if (transaction.transactionType === TransactionType.RETURN) {
+          // Returns reduce spending (positive amount = refund received)
+          return sum - (transaction.amount || 0);
+        } else {
+          // Regular transactions: positive = purchases (increase spending)
+          return sum + (transaction.amount || 0);
+        }
+      }, 0) || 0,
       transactions: undefined, // Remove transactions from response
     }));
 
@@ -86,9 +95,9 @@ export const POST = withUser({
 
     // Convert group to CategoryType enum
     const groupToCategoryType = {
-      needs: "NEEDS" as const,
-      wants: "WANTS" as const,
-      investment: "INVESTMENT" as const,
+      needs: CategoryType.NEEDS,
+      wants: CategoryType.WANTS,
+      investment: CategoryType.INVESTMENT,
     };
 
     const categoryType = groupToCategoryType[validationResult.data.group];

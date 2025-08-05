@@ -2,14 +2,14 @@ import { withUser } from "@/lib/middleware/withUser";
 import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling";
 import prisma from "@/lib/prisma";
 import { ensureAccountOwnership } from "@/lib/ownership";
-import { type User } from "@prisma/client";
+import { CardType, TransactionType, type User } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 import { deleteCard, updateCard } from "@/lib/api-services/cards";
 import { z } from "zod";
 
 const updateCardSchema = z.object({
   name: z.string().min(2).max(100).optional(),
-  cardType: z.enum(["CREDIT", "DEBIT", "CASH", "BUSINESS_CREDIT", "BUSINESS_DEBIT"]).optional(),
+  cardType: z.enum([CardType.CREDIT, CardType.DEBIT, CardType.CASH, CardType.BUSINESS_CREDIT, CardType.BUSINESS_DEBIT]).optional(),
   spendingLimit: z.number().min(0).optional(),
   userId: z.string().min(1).optional(),
 });
@@ -60,23 +60,34 @@ export const GET = withUser({
     }
 
     // Calculate amountSpent by summing related transactions
-    const isCreditCard = card.cardType === 'CREDIT' || card.cardType === 'BUSINESS_CREDIT';
+    const isCreditCard = card.cardType === CardType.CREDIT || card.cardType === CardType.BUSINESS_CREDIT;
     
     let amountSpent = 0;
     if (isCreditCard) {
       // For credit cards: handle regular transactions and card payments differently
       amountSpent = card.transactions.reduce((sum, transaction) => {
-        if (transaction.transactionType === 'CARD_PAYMENT') {
+        if (transaction.transactionType === TransactionType.CARD_PAYMENT) {
           // Card payments reduce the balance (positive amount = payment received)
           return sum - transaction.amount; // Subtract payment amount (reduces balance)
+        } else if (transaction.transactionType === TransactionType.RETURN) {
+          // Returns reduce the balance (positive amount = refund received)
+          return sum - transaction.amount; // Subtract return amount (reduces balance)
         } else {
-          // Regular transactions: negative = purchases (increase balance), positive = returns (decrease balance)
+          // Regular transactions: positive = purchases (increase balance)
           return sum + transaction.amount;
         }
       }, 0);
     } else {
       // For debit/cash cards: sum all amounts normally
-      amountSpent = card.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+      amountSpent = card.transactions.reduce((sum, transaction) => {
+        if (transaction.transactionType === TransactionType.RETURN) {
+          // Returns reduce the balance (positive amount = refund received)
+          return sum - transaction.amount; // Subtract return amount (reduces balance)
+        } else {
+          // Regular transactions: positive = purchases (increase balance)
+          return sum + transaction.amount;
+        }
+      }, 0);
     }
 
     const cardWithAmountSpent = {

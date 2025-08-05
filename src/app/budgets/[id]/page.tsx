@@ -21,6 +21,7 @@ import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import { useState } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 import StatsCard from "@/components/StatsCard";
+import { TransactionType } from "@prisma/client";
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();
@@ -75,14 +76,26 @@ const BudgetDetailsPage = () => {
     (budget.categories ?? []).reduce((categoryTotal: number, category) => {
       const categorySpent = (category.transactions ?? []).reduce(
         (transactionTotal: number, transaction) => {
-          return transactionTotal + transaction.amount;
+          if (transaction.transactionType === TransactionType.RETURN) {
+            // Returns reduce spending (positive amount = refund received)
+            return transactionTotal - transaction.amount;
+          } else {
+            // Regular transactions: positive = purchases (increase spending)
+            return transactionTotal + transaction.amount;
+          }
         },
         0,
       );
       return categoryTotal + categorySpent;
     }, 0) +
     (budget.transactions ?? []).reduce((total: number, transaction) => {
-      return total + transaction.amount;
+      if (transaction.transactionType === TransactionType.RETURN) {
+        // Returns reduce spending (positive amount = refund received)
+        return total - transaction.amount;
+      } else {
+        // Regular transactions: positive = purchases (increase spending)
+        return total + transaction.amount;
+      }
     }, 0);
   const totalRemaining = totalIncome - totalSpent;
   const spendingPercentage =
@@ -115,14 +128,24 @@ const BudgetDetailsPage = () => {
     const categories = categoriesByGroup[group];
     if (categories) {
       categories.sort((a, b) => {
-        const aSpent = (a.transactions ?? []).reduce(
-          (sum, transaction) => sum + transaction.amount,
-          0,
-        );
-        const bSpent = (b.transactions ?? []).reduce(
-          (sum, transaction) => sum + transaction.amount,
-          0,
-        );
+        const aSpent = (a.transactions ?? []).reduce((sum, transaction) => {
+          if (transaction.transactionType === TransactionType.RETURN) {
+            // Returns reduce spending (positive amount = refund received)
+            return sum - transaction.amount;
+          } else {
+            // Regular transactions: positive = purchases (increase spending)
+            return sum + transaction.amount;
+          }
+        }, 0);
+        const bSpent = (b.transactions ?? []).reduce((sum, transaction) => {
+          if (transaction.transactionType === TransactionType.RETURN) {
+            // Returns reduce spending (positive amount = refund received)
+            return sum - transaction.amount;
+          } else {
+            // Regular transactions: positive = purchases (increase spending)
+            return sum + transaction.amount;
+          }
+        }, 0);
 
         const aPercentage =
           a.allocatedAmount > 0 ? (aSpent / a.allocatedAmount) * 100 : 0;
@@ -213,7 +236,7 @@ const BudgetDetailsPage = () => {
       />
 
       <div className="flex-1 overflow-x-hidden pt-16 sm:pt-20 lg:pt-0">
-        <div className="mx-auto w-full px-2 py-4 sm:max-w-7xl sm:px-4 sm:py-6 lg:px-8 lg:py-8">
+        <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
           {/* Budget Overview Cards */}
           <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
             <div className="group relative">

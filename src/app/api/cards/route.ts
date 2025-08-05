@@ -68,14 +68,25 @@ export const GET = withUser({
           if (transaction.transactionType === TransactionType.CARD_PAYMENT) {
             // Card payments reduce the balance (positive amount = payment received)
             return sum - transaction.amount; // Subtract payment amount (reduces balance)
+          } else if (transaction.transactionType === TransactionType.RETURN) {
+            // Returns reduce the balance (positive amount = refund received)
+            return sum - transaction.amount; // Subtract return amount (reduces balance)
           } else {
-            // Regular transactions: negative = purchases (increase balance), positive = returns (decrease balance)
+            // Regular transactions: positive = purchases (increase balance)
             return sum + transaction.amount;
           }
         }, 0);
       } else {
         // For debit/cash cards: sum all amounts normally
-        amountSpent = card.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+        amountSpent = card.transactions.reduce((sum, transaction) => {
+          if (transaction.transactionType === TransactionType.RETURN) {
+            // Returns reduce the balance (positive amount = refund received)
+            return sum - transaction.amount; // Subtract return amount (reduces balance)
+          } else {
+            // Regular transactions: positive = purchases (increase balance)
+            return sum + transaction.amount;
+          }
+        }, 0);
       }
       
       return {

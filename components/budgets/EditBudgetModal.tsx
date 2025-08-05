@@ -5,7 +5,7 @@ import { X, Calendar, Target, TrendingUp } from "lucide-react";
 import { useUpdateBudget } from "@/lib/data-hooks/budgets/useBudgets";
 import { toast } from "react-hot-toast";
 import type { BudgetWithRelations } from "@/lib/types/budget";
-import type { StrategyType, PeriodType } from "@prisma/client";
+import { PeriodType, StrategyType } from "@prisma/client";
 import Button from "../Button";
 
 interface EditBudgetModalProps {
@@ -32,8 +32,8 @@ export default function EditBudgetModal({
   const updateBudgetMutation = useUpdateBudget();
   const [formData, setFormData] = useState<EditBudgetFormData>({
     name: "",
-    strategy: "ZERO_SUM",
-    period: "MONTHLY",
+    strategy: StrategyType.ZERO_SUM,
+    period: PeriodType.MONTHLY,
     startAt: "",
     endAt: "",
   });
@@ -92,9 +92,9 @@ export default function EditBudgetModal({
 
   const getStrategyIcon = (strategy: string) => {
     switch (strategy) {
-      case "ZERO_SUM":
+      case StrategyType.ZERO_SUM:
         return <Target className="h-4 w-4" />;
-      case "FIFTY_THIRTY_TWENTY":
+      case StrategyType.FIFTY_THIRTY_TWENTY:
         return <TrendingUp className="h-4 w-4" />;
       default:
         return <Target className="h-4 w-4" />;
@@ -103,9 +103,9 @@ export default function EditBudgetModal({
 
   const getStrategyLabel = (strategy: string) => {
     switch (strategy) {
-      case "ZERO_SUM":
+      case StrategyType.ZERO_SUM:
         return "Zero Sum Budget";
-      case "FIFTY_THIRTY_TWENTY":
+      case StrategyType.FIFTY_THIRTY_TWENTY:
         return "50/30/20";
       default:
         return strategy;
@@ -114,13 +114,13 @@ export default function EditBudgetModal({
 
   const getPeriodLabel = (period: string) => {
     switch (period) {
-      case "WEEKLY":
+      case PeriodType.WEEKLY:
         return "Weekly";
-      case "MONTHLY":
+      case PeriodType.MONTHLY:
         return "Monthly";
-      case "QUARTERLY":
+      case PeriodType.QUARTERLY:
         return "Quarterly";
-      case "YEARLY":
+      case PeriodType.YEARLY:
         return "Yearly";
       default:
         return period;
@@ -200,7 +200,7 @@ export default function EditBudgetModal({
               Period
             </label>
             <div className="mt-1 grid grid-cols-2 gap-2">
-              {["WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"].map((period) => (
+              {Object.values(PeriodType).map((period) => (
                 <label
                   key={period}
                   className="flex cursor-pointer items-center rounded-md border border-gray-200 p-3 hover:bg-gray-50"
@@ -274,7 +274,7 @@ export default function EditBudgetModal({
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-md bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 disabled:opacity-50"
+              className="rounded-md bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm hover:bg-accent focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 disabled:opacity-50"
             >
               {isSubmitting ? "Saving..." : "Save Changes"}
             </Button>

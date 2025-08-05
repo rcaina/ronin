@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, DollarSign, ShoppingBag, TrendingUp, Target } from "lucide-react";
-import { CategoryType } from "@prisma/client";
+import { CategoryType, TransactionType } from "@prisma/client";
 import { useUpdateBudget } from "@/lib/data-hooks/budgets/useBudgets";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import Button from "../Button";
@@ -42,7 +42,15 @@ export default function EditBudgetCategoriesModal({
           if (!budgetCategory.category) return null;
 
           const currentSpent = (budgetCategory.transactions ?? []).reduce(
-            (sum, transaction) => sum + transaction.amount,
+            (sum, transaction) => {
+              if (transaction.transactionType === TransactionType.RETURN) {
+                // Returns reduce spending (positive amount = refund received)
+                return sum - transaction.amount;
+              } else {
+                // Regular transactions: positive = purchases (increase spending)
+                return sum + transaction.amount;
+              }
+            },
             0,
           );
 
@@ -318,7 +326,7 @@ export default function EditBudgetCategoriesModal({
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 hover:bg-yellow-300 disabled:opacity-50"
+            className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 hover:bg-accent disabled:opacity-50"
           >
             {isSubmitting ? "Saving..." : "Save Changes"}
           </Button>

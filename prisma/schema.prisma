@@ -249,6 +249,7 @@ enum CategoryType {
 
 enum TransactionType {
     REGULAR
+    RETURN
     CARD_PAYMENT
 }
 

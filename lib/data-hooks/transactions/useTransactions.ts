@@ -23,9 +23,14 @@ export const useCreateTransaction = () => {
 
   return useMutation({
     mutationFn: (data: CreateTransactionRequest) => createTransaction(data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       // Invalidate and refetch transactions
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      // Invalidate and refetch budget data to update category spending amounts
+      if (variables.budgetId) {
+        void queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId] });
+        void queryClient.invalidateQueries({ queryKey: ["budgetCategories", variables.budgetId] });
+      }
     },
   });
 };
@@ -35,9 +40,14 @@ export const useUpdateTransaction = () => {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateTransactionRequest }) => updateTransaction(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       // Invalidate and refetch transactions
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      // Invalidate and refetch budget data to update category spending amounts
+      if (variables.data.budgetId) {
+        void queryClient.invalidateQueries({ queryKey: ["budget", variables.data.budgetId] });
+        void queryClient.invalidateQueries({ queryKey: ["budgetCategories", variables.data.budgetId] });
+      }
     },
   });
 };
@@ -46,10 +56,15 @@ export const useDeleteTransaction = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => deleteTransaction(id),
-    onSuccess: () => {
+    mutationFn: ({ id, budgetId }: { id: string; budgetId?: string }) => deleteTransaction(id),
+    onSuccess: (_, variables) => {
       // Invalidate and refetch transactions
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      // Invalidate and refetch budget data to update category spending amounts
+      if (variables.budgetId) {
+        void queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId] });
+        void queryClient.invalidateQueries({ queryKey: ["budgetCategories", variables.budgetId] });
+      }
     },
   });
 };

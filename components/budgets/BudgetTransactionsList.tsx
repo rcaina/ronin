@@ -10,6 +10,7 @@ import {
 } from "@/lib/data-hooks/transactions/useTransactions";
 import BudgetTransactionInlineEdit from "@/components/budgets/BudgetTransactionInlineEdit";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import { TransactionType } from "@prisma/client";
 
 // Tooltip component that renders via portal
 const Tooltip = ({
@@ -125,7 +126,7 @@ export const BudgetTransactionsList = ({
         categoryId: transaction.categoryId,
         cardId: transaction.cardId ?? undefined,
         occurredAt: transaction.occurredAt ?? undefined,
-        transactionType: "REGULAR" as const,
+        transactionType: TransactionType.REGULAR,
       };
 
       await createTransactionMutation.mutateAsync(copyData);
@@ -155,7 +156,10 @@ export const BudgetTransactionsList = ({
     if (!transactionToDelete) return;
 
     try {
-      await deleteTransactionMutation.mutateAsync(transactionToDelete.id);
+      await deleteTransactionMutation.mutateAsync({
+        id: transactionToDelete.id,
+        budgetId: transactionToDelete.budgetId,
+      });
       setTransactionToDelete(null);
       toast.success("Transaction deleted successfully!");
       // Refresh the budget data to update the transaction list
@@ -276,13 +280,15 @@ export const BudgetTransactionsList = ({
                   <div className="flex-shrink-0 text-right">
                     <p
                       className={`font-medium ${
-                        transaction.categoryGroup === "card_payment"
-                          ? transaction.amount < 0
-                            ? "text-green-600" // Source transaction (money going out from debit card)
-                            : "text-gray-900" // Destination transaction (money being added back to credit card)
-                          : transaction.amount < 0
-                            ? "text-green-600"
-                            : "text-gray-900"
+                        transaction.transactionType === "RETURN"
+                          ? "text-green-600" // Return transactions in green
+                          : transaction.categoryGroup === "card_payment"
+                            ? transaction.amount < 0
+                              ? "text-green-600" // Source transaction (money going out from debit card)
+                              : "text-gray-900" // Destination transaction (money being added back to credit card)
+                            : transaction.amount < 0
+                              ? "text-green-600"
+                              : "text-gray-900"
                       }`}
                     >
                       {formatCurrency(transaction.amount)}

@@ -8,6 +8,7 @@ import type {
   GroupColorFunction,
   GroupLabelFunction,
 } from "@/lib/types/budget";
+import { TransactionType } from "@prisma/client";
 
 interface BudgetCategoriesListViewProps {
   budget: BudgetWithRelations;
@@ -67,10 +68,15 @@ export default function BudgetCategoriesListView({
 
             const isExpanded = expandedCategories.has(budgetCategory.id);
             const transactions = budgetCategory.transactions ?? [];
-            const spent = transactions.reduce(
-              (sum: number, transaction) => sum + transaction.amount,
-              0,
-            );
+            const spent = transactions.reduce((sum: number, transaction) => {
+              if (transaction.transactionType === TransactionType.RETURN) {
+                // Returns reduce spending (positive amount = refund received)
+                return sum - transaction.amount;
+              } else {
+                // Regular transactions: positive = purchases (increase spending)
+                return sum + transaction.amount;
+              }
+            }, 0);
             const percentage =
               budgetCategory.allocatedAmount > 0
                 ? (spent / budgetCategory.allocatedAmount) * 100

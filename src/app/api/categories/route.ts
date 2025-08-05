@@ -2,13 +2,13 @@ import { withUser } from "@/lib/middleware/withUser"
 import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling"
 import prisma from "@/lib/prisma"
 import { getCategories, createCategory } from "@/lib/api-services/categories"
-import type { User } from "@prisma/client"
+import { CategoryType, type User } from "@prisma/client"
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 
 const createCategorySchema = z.object({
   name: z.string().min(2).max(100),
-  group: z.enum(["WANTS", "NEEDS", "INVESTMENT"]),
+  group: z.enum(Object.values(CategoryType) as [string, ...string[]]),
 });
 
 export const GET = withUser({
@@ -36,7 +36,7 @@ export const POST = withUser({
     return await prisma.$transaction(async (tx) => {
       const category = await createCategory(tx, {
         name,
-        group,
+        group: group as CategoryType,
       });
       return NextResponse.json(category, { status: 201 });
     });

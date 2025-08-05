@@ -36,7 +36,7 @@ interface User {
 const CardsPage = () => {
   const router = useRouter();
   const { data: session } = useSession();
-  const { data: apiCards, isLoading, error } = useCards(false); // Exclude card payments for spending calculations
+  const { data: apiCards, isLoading, error } = useCards(false);
   const deleteCardMutation = useDeleteCard();
   const createCardMutation = useCreateCard();
   const updateCardMutation = useUpdateCard();
@@ -242,7 +242,7 @@ const CardsPage = () => {
       />
 
       <div className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-7xl px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
+        <div className="mx-auto px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
           {/* Overview Stats */}
           <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
             <StatsCard

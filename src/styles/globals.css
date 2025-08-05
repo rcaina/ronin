@@ -6,8 +6,9 @@
   :root {
     --foreground: 0, 0, 0;
     --background: 214, 219, 220;
-    --color-primary: #000000;
-    --color-secondary: #F1C232;
+    --color-primary: #0e0e10;
+    --color-secondary: #b9a15e;
+    --color-accent: #fce5a0;
   }
 }
 

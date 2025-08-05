@@ -277,7 +277,10 @@ const TransactionsPage = () => {
     if (!transactionToDelete) return;
 
     try {
-      await deleteTransactionMutation.mutateAsync(transactionToDelete.id);
+      await deleteTransactionMutation.mutateAsync({
+        id: transactionToDelete.id,
+        budgetId: transactionToDelete.budgetId,
+      });
       setTransactionToDelete(null);
       toast.success("Transaction deleted successfully!");
     } catch (err) {
@@ -337,9 +340,13 @@ const TransactionsPage = () => {
 
   const handleConfirmBulkDelete = async () => {
     try {
-      const deletePromises = Array.from(selectedTransactions).map((id) =>
-        deleteTransactionMutation.mutateAsync(id),
-      );
+      const deletePromises = Array.from(selectedTransactions).map((id) => {
+        const transaction = transactions.find((t) => t.id === id);
+        return deleteTransactionMutation.mutateAsync({
+          id,
+          budgetId: transaction?.budgetId,
+        });
+      });
       await Promise.all(deletePromises);
       setSelectedTransactions(new Set());
       setShowBulkDeleteModal(false);
@@ -399,7 +406,7 @@ const TransactionsPage = () => {
       />
 
       <div className="flex-1">
-        <div className="mx-auto max-w-7xl px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
+        <div className="mx-auto px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
           {/* Overview Stats */}
           <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
             <StatsCard
@@ -678,13 +685,15 @@ const TransactionsPage = () => {
                         />
                         <div
                           className={`h-3 w-3 flex-shrink-0 rounded-full ${
-                            transaction.transactionType === "CARD_PAYMENT"
-                              ? getGroupColor("card_payment")
-                              : transaction.category
-                                ? getGroupColor(
-                                    transaction.category.category.group,
-                                  )
-                                : "bg-gray-500"
+                            transaction.transactionType === "RETURN"
+                              ? "bg-green-500"
+                              : transaction.transactionType === "CARD_PAYMENT"
+                                ? getGroupColor("card_payment")
+                                : transaction.category
+                                  ? getGroupColor(
+                                      transaction.category.category.group,
+                                    )
+                                  : "bg-gray-500"
                           }`}
                         />
                         <div className="min-w-0 flex-1">
@@ -750,13 +759,15 @@ const TransactionsPage = () => {
                         <div className="text-right">
                           <div
                             className={`font-medium ${
-                              transaction.transactionType === "CARD_PAYMENT"
-                                ? transaction.amount < 0
-                                  ? "text-green-600" // Source transaction (money going out from debit card)
-                                  : "text-gray-900" // Destination transaction (money being added back to credit card)
-                                : transaction.amount < 0
-                                  ? "text-green-600"
-                                  : "text-gray-900"
+                              transaction.transactionType === "RETURN"
+                                ? "text-green-600" // Return transactions in green
+                                : transaction.transactionType === "CARD_PAYMENT"
+                                  ? transaction.amount < 0
+                                    ? "text-green-600" // Source transaction (money going out from debit card)
+                                    : "text-gray-900" // Destination transaction (money being added back to credit card)
+                                  : transaction.amount < 0
+                                    ? "text-green-600"
+                                    : "text-gray-900"
                             }`}
                           >
                             {formatCurrency(transaction.amount)}

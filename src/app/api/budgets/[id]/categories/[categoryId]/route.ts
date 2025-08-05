@@ -8,6 +8,7 @@ import { z } from "zod";
 const updateBudgetCategorySchema = z.object({
   allocatedAmount: z.number().positive("Allocated amount must be positive").optional(),
   categoryId: z.string().min(1, "Category ID is required").optional(),
+  categoryName: z.string().min(1, "Category name is required").max(100, "Category name must be less than 100 characters").optional(),
 });
 
 export const PUT = withUser({
@@ -78,6 +79,34 @@ export const PUT = withUser({
     }
     if (validationResult.data.categoryId) {
       updateData.categoryId = validationResult.data.categoryId;
+    }
+
+    // If updating category name, update the associated category template
+    if (validationResult.data.categoryName) {
+      const budgetCategory = await prisma.budgetCategory.findFirst({
+        where: {
+          id: categoryId,
+          budgetId: budgetId,
+          deleted: null,
+        },
+        include: {
+          category: true,
+        },
+      });
+
+      if (!budgetCategory) {
+        return NextResponse.json({ message: "Budget category not found" }, { status: 404 });
+      }
+
+      // Update the category template name
+      await prisma.category.update({
+        where: {
+          id: budgetCategory.categoryId,
+        },
+        data: {
+          name: validationResult.data.categoryName,
+        },
+      });
     }
 
     const updatedBudgetCategory = await prisma.budgetCategory.update({
