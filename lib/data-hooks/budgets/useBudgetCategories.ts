@@ -68,6 +68,7 @@ const createBudgetCategory = async (
 export interface UpdateBudgetCategoryData {
   allocatedAmount?: number;
   categoryId?: string;
+  categoryName?: string;
 }
 
 interface BudgetCategoryResponse {

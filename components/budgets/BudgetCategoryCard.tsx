@@ -28,6 +28,7 @@ export default function BudgetCategoryCard({
     null,
   );
   const [editingAmount, setEditingAmount] = useState<number>(0);
+  const [editingName, setEditingName] = useState<string>("");
   const [categoryToDelete, setCategoryToDelete] = useState<{
     id: string;
     name: string;
@@ -57,11 +58,13 @@ export default function BudgetCategoryCard({
   const handleStartEditCategory = () => {
     setEditingCategoryId(budgetCategory.id);
     setEditingAmount(budgetCategory.allocatedAmount);
+    setEditingName(budgetCategory.category.name);
   };
 
   const handleCancelEditCategory = () => {
     setEditingCategoryId(null);
     setEditingAmount(0);
+    setEditingName("");
   };
 
   const handleSaveCategory = async () => {
@@ -73,11 +76,13 @@ export default function BudgetCategoryCard({
         categoryId: editingCategoryId,
         data: {
           allocatedAmount: editingAmount,
+          categoryName: editingName,
         },
       });
 
       setEditingCategoryId(null);
       setEditingAmount(0);
+      setEditingName("");
       toast.success("Budget category updated successfully!");
     } catch (error) {
       console.error("Failed to update budget category:", error);
@@ -135,27 +140,60 @@ export default function BudgetCategoryCard({
         </div>
 
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {budgetCategory.category.name}
-          </h3>
-          <div className="flex items-center space-x-2">
-            {/* Action Icons - Only visible on hover */}
-            <div className="flex items-center space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
-              <button
-                onClick={handleStartEditCategory}
-                className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                title="Edit allocation"
-              >
-                <Edit className="h-4 w-4" />
-              </button>
-              <button
-                onClick={handleDeleteCategory}
-                className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
-                title="Delete category"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+          {editingCategoryId === budgetCategory.id ? (
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                value={editingName}
+                onChange={(e) => setEditingName(e.target.value)}
+                className="rounded-md border border-gray-300 px-2 py-1 text-lg font-semibold text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Category name"
+              />
             </div>
+          ) : (
+            <h3 className="text-lg font-semibold text-gray-900">
+              {budgetCategory.category.name}
+            </h3>
+          )}
+          <div className="flex items-center space-x-2">
+            {/* Action Icons - Only visible on hover when not editing */}
+            {editingCategoryId !== budgetCategory.id ? (
+              <div className="flex items-center space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
+                <button
+                  onClick={handleStartEditCategory}
+                  className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                  title="Edit category"
+                >
+                  <Edit className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={handleDeleteCategory}
+                  className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
+                  title="Delete category"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={handleSaveCategory}
+                  disabled={updateBudgetCategoryMutation.isPending}
+                  className="rounded p-1 text-green-600 transition-colors hover:bg-green-100 disabled:opacity-50"
+                  title="Save changes"
+                >
+                  ✓
+                </button>
+                <button
+                  onClick={handleCancelEditCategory}
+                  disabled={updateBudgetCategoryMutation.isPending}
+                  className="rounded p-1 text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
+                  title="Cancel editing"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
             <span
               className={`rounded-full px-2 py-1 text-xs font-medium ${
                 categoryPercentage > 90
@@ -185,24 +223,8 @@ export default function BudgetCategoryCard({
                     onChange={(e) =>
                       setEditingAmount(parseFloat(e.target.value) || 0)
                     }
-                    className="w-20 rounded border border-gray-300 px-1 py-0.5 text-right text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-20 rounded-md border border-gray-300 px-1 py-0.5 text-right text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
-                  <button
-                    onClick={handleSaveCategory}
-                    disabled={updateBudgetCategoryMutation.isPending}
-                    className="rounded-md p-2 text-green-600 hover:bg-green-200 disabled:opacity-50"
-                    title="Save"
-                  >
-                    ✓
-                  </button>
-                  <button
-                    onClick={handleCancelEditCategory}
-                    disabled={updateBudgetCategoryMutation.isPending}
-                    className="rounded p-2 text-gray-600 hover:bg-gray-200 disabled:opacity-50"
-                    title="Cancel"
-                  >
-                    ✕
-                  </button>
                 </div>
               ) : (
                 <span className="font-medium">

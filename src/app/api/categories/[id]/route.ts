@@ -38,7 +38,10 @@ export const PUT = withUser({
     const validatedData = updateCategorySchema.parse(body);
     
     return await prisma.$transaction(async (tx) => {
-      const updatedCategory = await updateCategory(tx, id, validatedData);
+      const updatedCategory = await updateCategory(tx, id, {
+        name: validatedData.name,
+        group: validatedData.group as CategoryType,
+      });
       return NextResponse.json(updatedCategory, { status: 200 });
     });
   }),

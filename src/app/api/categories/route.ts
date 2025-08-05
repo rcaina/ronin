@@ -36,7 +36,7 @@ export const POST = withUser({
     return await prisma.$transaction(async (tx) => {
       const category = await createCategory(tx, {
         name,
-        group,
+        group: group as CategoryType,
       });
       return NextResponse.json(category, { status: 201 });
     });
