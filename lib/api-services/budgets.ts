@@ -1,4 +1,7 @@
-import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category } from "@prisma/client"
+import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category, type Budget, TransactionType, type Transaction } from "@prisma/client"
+import { HttpError } from "../errors"
+import { formatBudget } from "../db/converter"
+import type { PrismaClientTx } from "../prisma"
 
 export interface CreateBudgetData {
   name: string
@@ -34,8 +37,74 @@ export interface UpdateBudgetData {
   }
 }
 
+export async function getBudgetById(
+  tx: PrismaClient,
+  id: string,
+  params: URLSearchParams
+) {
+  const excludeCardPayments = params.get('excludeCardPayments') === 'true';
+  
+  const budget = await tx.budget.findFirst({
+    where: {
+        id,
+        deleted: null,
+    },
+    include: {
+        categories: {
+            where: {
+                deleted: null,
+            },
+            include: {
+                category: true,
+                transactions: {
+                    where: {
+                        deleted: null,
+                        ...(excludeCardPayments && {
+                            transactionType: {
+                                not: TransactionType.CARD_PAYMENT
+                            }
+                        }),
+                    },
+                    orderBy: {
+                        createdAt: 'desc',
+                    },
+                },
+            },
+        },
+        incomes: {
+            where: {
+                deleted: null,
+            },
+        },
+        transactions: {
+            where: {
+                deleted: null,
+                categoryId: null, // Only transactions without categories (like card payments)
+                ...(excludeCardPayments && {
+                    transactionType: {
+                        not: TransactionType.CARD_PAYMENT
+                    }
+                }),
+            },
+            include: {
+                card: true,
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        },
+    },
+});
+
+if (!budget) {
+    throw new HttpError("Budget not found", 404);
+}
+
+  return formatBudget(budget);
+}
+
 export async function createBudget(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   data: CreateBudgetData,
   user: User & { accountId: string }
 ) {
@@ -86,7 +155,7 @@ export async function createBudget(
 }
 
 export async function updateBudget(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   id: string,
   data: UpdateBudgetData,
   user: User & { accountId: string }
@@ -155,7 +224,7 @@ export async function updateBudget(
 }
 
 export async function deleteBudget(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   id: string,
   user: User & { accountId: string }
 ) {
@@ -198,11 +267,11 @@ export async function deleteBudget(
 }
 
 export async function getBudgets(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClient,
   accountId: string,
   status?: BudgetStatus,
   excludeCardPayments?: boolean
-) {
+): Promise<Budget[]> {
   const whereClause = {
     accountId,
     deleted: null,
@@ -239,7 +308,7 @@ export async function getBudgets(
 }
 
 export async function markBudgetCompleted(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   budgetId: string,
   user: User & { accountId: string }
 ) {
@@ -256,7 +325,7 @@ export async function markBudgetCompleted(
 }
 
 export async function markBudgetArchived(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   budgetId: string,
   user: User & { accountId: string }
 ) {
@@ -273,7 +342,7 @@ export async function markBudgetArchived(
 }
 
 export async function reactivateBudget(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   budgetId: string,
   user: User & { accountId: string }
 ) {
@@ -290,7 +359,7 @@ export async function reactivateBudget(
 }
 
 export async function duplicateBudget(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   budgetId: string,
   user: User & { accountId: string }
 ) {
