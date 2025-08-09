@@ -39,6 +39,27 @@ export const ensureBudgetOwnership = async (id: string, accountId: string): Prom
   }
 };
 
+export const ensureCardAccountOwnership = async (id: string, accountId: string): Promise<void> => {  
+  const card = await prisma.card.findUnique({
+    where: {
+      id,
+      user:{
+        accountUsers: {
+          some: {
+            accountId: accountId,
+          },
+        },
+        deleted: null,
+      },
+      deleted: null,
+    },
+  });
+
+  if (!card) {
+    throw new HttpError("Card does not exist or is not in user's account", 404);
+  } 
+};
+
 export const validateBudgetId = (id: unknown): string => {
   const idString = id as string;
   if (!idString) {
@@ -64,4 +85,31 @@ export const validateIncomeId = (id: unknown): string => {
   }
 
   return idString;
+};  
+
+export const validateCardId = (id: unknown): string => {
+  const idString = id as string;
+  if (!idString) {
+    throw new HttpError("Card ID is required", 400);
+  }
+
+  return idString;
+};
+
+export const ensureCardUserOwnership = async (id: string, userId: string): Promise<void> => {
+  // ensure card exists and belongs to the specified user not just the account
+  const card = await prisma.card.findUnique({
+    where: {
+      id,
+      user: {
+        id: userId,
+        deleted: null,
+      },
+      deleted: null,
+    },
+  });
+
+  if (!card) {
+    throw new HttpError("Card does not exist or is not in user's account", 404);
+  }
 };
