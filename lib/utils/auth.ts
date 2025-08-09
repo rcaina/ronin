@@ -47,3 +47,21 @@ export const validateBudgetId = (id: unknown): string => {
 
   return idString;
 };
+
+export const validateCategoryId = (id: unknown): string => {
+  const idString = id as string;
+  if (!idString) {
+    throw new HttpError("Category ID is required", 400);
+  }
+
+  return idString;
+};
+
+export const validateIncomeId = (id: unknown): string => {
+  const idString = id as string;
+  if (!idString) {
+    throw new HttpError("Income ID is required", 400);
+  }
+
+  return idString;
+};
