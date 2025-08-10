@@ -25,12 +25,11 @@ export async function getTransactions(
   })
 }
 
-export async function createTransaction(
+export const createTransaction = async (
   tx: PrismaClientTx,
   data: CreateTransactionSchema,
   user: User & { accountId: string }
-) {
-  return await tx.transaction.create({
+) => await tx.transaction.create({
     data: {
       name: data.name,
       description: data.description,
@@ -53,7 +52,6 @@ export async function createTransaction(
       Budget: true,
     },
   })
-}
 
 export async function updateTransaction(
   tx: PrismaClientTx,

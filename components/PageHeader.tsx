@@ -29,7 +29,7 @@ const PageHeader = ({
   actions,
 }: PageHeaderProps) => {
   return (
-    <div className="fixed left-0 right-0 top-12 z-[30] border-b bg-white shadow-sm lg:sticky lg:top-0">
+    <div className="fixed left-0 right-0 top-16 z-[30] border-b bg-white shadow-sm lg:sticky lg:top-0">
       <div className="mx-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
         <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <div className="flex items-center">
@@ -53,7 +53,7 @@ const PageHeader = ({
             </div>
           </div>
           {(action ?? actions) && (
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:gap-3">
+            <div className="flex w-full flex-row gap-2 sm:w-auto sm:gap-3">
               {action && (
                 <Button
                   onClick={action.onClick}

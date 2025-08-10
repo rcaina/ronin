@@ -18,7 +18,6 @@ const navItems: NavItem[] = [
   { href: "/", icon: "📊", label: "Overview" },
   { href: "/budgets", icon: "💰", label: "Budget" },
   { href: "/transactions", icon: "🧾", label: "Transactions" },
-  { href: "/categories", icon: "📋", label: "Categories" },
   { href: "/cards", icon: "💳", label: "Cards" },
   { href: "/settings", icon: "⚙️", label: "Settings" },
 ];
@@ -44,12 +43,12 @@ export default function MobileHeader() {
         <div className="flex items-center justify-between px-3 py-2">
           {/* Logo */}
           <div className="flex items-center gap-1.5">
-            <div className={`mx-auto h-36 w-36 flex-shrink-0`}>
+            <div className={`mx-auto h-14 w-14 flex-shrink-0`}>
               <Image
                 src={roninLogo}
                 alt="Ronin Logo"
-                width={128}
-                height={128}
+                width={36}
+                height={36}
                 className="h-full w-full rounded-full"
                 priority
               />

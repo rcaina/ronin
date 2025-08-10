@@ -241,220 +241,222 @@ const CardsPage = () => {
         }}
       />
 
-      <div className="flex-1 overflow-auto">
-        <div className="mx-auto px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
-          {/* Overview Stats */}
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-            <StatsCard
-              title="Total Spent"
-              value={`$${totalSpent.toLocaleString()}`}
-              subtitle="Across all cards"
-              icon={
-                <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-green-500"
-            />
-
-            <StatsCard
-              title="Credit Limit"
-              value={`$${totalLimit.toLocaleString()}`}
-              subtitle="Available credit"
-              icon={
-                <CreditCard className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-blue-500"
-            />
-
-            <StatsCard
-              title="Active Cards"
-              value={activeCards}
-              subtitle={`${cards.length - activeCards} inactive`}
-              icon={
-                <Shield className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-purple-500"
-            />
-
-            <StatsCard
-              title="Credit Cards"
-              value={creditCards}
-              subtitle={`${cards.length - creditCards} debit & cash cards`}
-              icon={
-                <CreditCard className="h-4 w-4 text-indigo-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-indigo-500"
-            />
-          </div>
-
-          {/* Cards Grid */}
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Account Cards
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Add New Card Form */}
-            {isAddingCard && !cardToEdit && (
-              <AddCardForm
-                onSubmit={handleSubmitCard}
-                onCancel={handleCancelAdd}
-                isLoading={createCardMutation.isPending}
-                users={users}
-                loadingUsers={loadingUsers}
-                defaultValues={{
-                  userId:
-                    users.length === 1
-                      ? (users[0]?.id ?? "")
-                      : (session?.user?.id ?? ""),
-                }}
+      <div className="flex-1 overflow-hidden pt-16 sm:pt-20 lg:pt-0">
+        <div className="h-full overflow-y-auto">
+          <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
+            {/* Overview Stats */}
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
+              <StatsCard
+                title="Total Spent"
+                value={`$${totalSpent.toLocaleString()}`}
+                subtitle="Across all cards"
+                icon={
+                  <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
+                }
+                iconColor="text-green-500"
               />
-            )}
 
-            {/* Add New Card Button (always visible) */}
-            {!isAddingCard && cards.length !== 0 && (
-              <AddItemButton
-                onClick={handleAddCard}
-                title="Add Card"
-                description="Add a new credit or debit card"
+              <StatsCard
+                title="Credit Limit"
+                value={`$${totalLimit.toLocaleString()}`}
+                subtitle="Available credit"
+                icon={
+                  <CreditCard className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
+                }
+                iconColor="text-blue-500"
               />
-            )}
 
-            {/* Credit Cards Section */}
-            {creditCardsArray.length > 0 &&
-              creditCardsArray.map((card) => {
-                const isEditing = cardToEdit?.id === card.id;
+              <StatsCard
+                title="Active Cards"
+                value={activeCards}
+                subtitle={`${cards.length - activeCards} inactive`}
+                icon={
+                  <Shield className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
+                }
+                iconColor="text-purple-500"
+              />
 
-                if (isEditing) {
+              <StatsCard
+                title="Credit Cards"
+                value={creditCards}
+                subtitle={`${cards.length - creditCards} debit & cash cards`}
+                icon={
+                  <CreditCard className="h-4 w-4 text-indigo-500 sm:h-5 sm:w-5" />
+                }
+                iconColor="text-indigo-500"
+              />
+            </div>
+
+            {/* Cards Grid */}
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">
+                Account Cards
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {/* Add New Card Form */}
+              {isAddingCard && !cardToEdit && (
+                <AddCardForm
+                  onSubmit={handleSubmitCard}
+                  onCancel={handleCancelAdd}
+                  isLoading={createCardMutation.isPending}
+                  users={users}
+                  loadingUsers={loadingUsers}
+                  defaultValues={{
+                    userId:
+                      users.length === 1
+                        ? (users[0]?.id ?? "")
+                        : (session?.user?.id ?? ""),
+                  }}
+                />
+              )}
+
+              {/* Add New Card Button (always visible) */}
+              {!isAddingCard && cards.length !== 0 && (
+                <AddItemButton
+                  onClick={handleAddCard}
+                  title="Add Card"
+                  description="Add a new credit or debit card"
+                />
+              )}
+
+              {/* Credit Cards Section */}
+              {creditCardsArray.length > 0 &&
+                creditCardsArray.map((card) => {
+                  const isEditing = cardToEdit?.id === card.id;
+
+                  if (isEditing) {
+                    return (
+                      <AddCardForm
+                        key={`edit-${card.id}`}
+                        onSubmit={handleSubmitCard}
+                        onCancel={handleCancelEdit}
+                        isLoading={updateCardMutation.isPending}
+                        cardToEdit={cardToEdit}
+                        users={users}
+                        loadingUsers={loadingUsers}
+                        defaultValues={{
+                          name: cardToEdit.name,
+                          cardType: cardToEdit.cardType,
+                          spendingLimit:
+                            cardToEdit.spendingLimit?.toString() ?? "",
+                          userId: cardToEdit.userId,
+                        }}
+                      />
+                    );
+                  }
+
                   return (
-                    <AddCardForm
-                      key={`edit-${card.id}`}
-                      onSubmit={handleSubmitCard}
-                      onCancel={handleCancelEdit}
-                      isLoading={updateCardMutation.isPending}
-                      cardToEdit={cardToEdit}
-                      users={users}
-                      loadingUsers={loadingUsers}
-                      defaultValues={{
-                        name: cardToEdit.name,
-                        cardType: cardToEdit.cardType,
-                        spendingLimit:
-                          cardToEdit.spendingLimit?.toString() ?? "",
-                        userId: cardToEdit.userId,
-                      }}
+                    <CardComponent
+                      key={card.id}
+                      card={card}
+                      onEdit={handleEditCard}
+                      onCopy={handleCopyCard}
+                      onDelete={handleDeleteCard}
+                      onClick={handleCardClick}
+                      canEdit={card.userId === session?.user?.id}
                     />
                   );
-                }
+                })}
 
-                return (
-                  <CardComponent
-                    key={card.id}
-                    card={card}
-                    onEdit={handleEditCard}
-                    onCopy={handleCopyCard}
-                    onDelete={handleDeleteCard}
-                    onClick={handleCardClick}
-                    canEdit={card.userId === session?.user?.id}
-                  />
-                );
-              })}
+              {/* Debit Cards Section */}
+              {debitCardsArray.length > 0 &&
+                debitCardsArray.map((card) => {
+                  const isEditing = cardToEdit?.id === card.id;
 
-            {/* Debit Cards Section */}
-            {debitCardsArray.length > 0 &&
-              debitCardsArray.map((card) => {
-                const isEditing = cardToEdit?.id === card.id;
+                  if (isEditing) {
+                    return (
+                      <AddCardForm
+                        key={`edit-${card.id}`}
+                        onSubmit={handleSubmitCard}
+                        onCancel={handleCancelEdit}
+                        isLoading={updateCardMutation.isPending}
+                        cardToEdit={cardToEdit}
+                        users={users}
+                        loadingUsers={loadingUsers}
+                        defaultValues={{
+                          name: cardToEdit.name,
+                          cardType: cardToEdit.cardType,
+                          spendingLimit:
+                            cardToEdit.spendingLimit?.toString() ?? "",
+                          userId: cardToEdit.userId,
+                        }}
+                      />
+                    );
+                  }
 
-                if (isEditing) {
                   return (
-                    <AddCardForm
-                      key={`edit-${card.id}`}
-                      onSubmit={handleSubmitCard}
-                      onCancel={handleCancelEdit}
-                      isLoading={updateCardMutation.isPending}
-                      cardToEdit={cardToEdit}
-                      users={users}
-                      loadingUsers={loadingUsers}
-                      defaultValues={{
-                        name: cardToEdit.name,
-                        cardType: cardToEdit.cardType,
-                        spendingLimit:
-                          cardToEdit.spendingLimit?.toString() ?? "",
-                        userId: cardToEdit.userId,
-                      }}
+                    <CardComponent
+                      key={card.id}
+                      card={card}
+                      onEdit={handleEditCard}
+                      onCopy={handleCopyCard}
+                      onDelete={handleDeleteCard}
+                      onClick={handleCardClick}
+                      canEdit={card.userId === session?.user?.id}
                     />
                   );
-                }
+                })}
 
-                return (
-                  <CardComponent
-                    key={card.id}
-                    card={card}
-                    onEdit={handleEditCard}
-                    onCopy={handleCopyCard}
-                    onDelete={handleDeleteCard}
-                    onClick={handleCardClick}
-                    canEdit={card.userId === session?.user?.id}
-                  />
-                );
-              })}
+              {/* Cash Cards Section */}
+              {cashCardsArray.length > 0 &&
+                cashCardsArray.map((card) => {
+                  const isEditing = cardToEdit?.id === card.id;
 
-            {/* Cash Cards Section */}
-            {cashCardsArray.length > 0 &&
-              cashCardsArray.map((card) => {
-                const isEditing = cardToEdit?.id === card.id;
+                  if (isEditing) {
+                    return (
+                      <AddCardForm
+                        key={`edit-${card.id}`}
+                        onSubmit={handleSubmitCard}
+                        onCancel={handleCancelEdit}
+                        isLoading={updateCardMutation.isPending}
+                        cardToEdit={cardToEdit}
+                        users={users}
+                        loadingUsers={loadingUsers}
+                        defaultValues={{
+                          name: cardToEdit.name,
+                          cardType: cardToEdit.cardType,
+                          spendingLimit:
+                            cardToEdit.spendingLimit?.toString() ?? "",
+                          userId: cardToEdit.userId,
+                        }}
+                      />
+                    );
+                  }
 
-                if (isEditing) {
                   return (
-                    <AddCardForm
-                      key={`edit-${card.id}`}
-                      onSubmit={handleSubmitCard}
-                      onCancel={handleCancelEdit}
-                      isLoading={updateCardMutation.isPending}
-                      cardToEdit={cardToEdit}
-                      users={users}
-                      loadingUsers={loadingUsers}
-                      defaultValues={{
-                        name: cardToEdit.name,
-                        cardType: cardToEdit.cardType,
-                        spendingLimit:
-                          cardToEdit.spendingLimit?.toString() ?? "",
-                        userId: cardToEdit.userId,
-                      }}
+                    <CardComponent
+                      key={card.id}
+                      card={card}
+                      onEdit={handleEditCard}
+                      onCopy={handleCopyCard}
+                      onDelete={handleDeleteCard}
+                      onClick={handleCardClick}
+                      canEdit={card.userId === session?.user?.id}
                     />
                   );
-                }
+                })}
 
-                return (
-                  <CardComponent
-                    key={card.id}
-                    card={card}
-                    onEdit={handleEditCard}
-                    onCopy={handleCopyCard}
-                    onDelete={handleDeleteCard}
-                    onClick={handleCardClick}
-                    canEdit={card.userId === session?.user?.id}
-                  />
-                );
-              })}
-
-            {/* Empty State - only show if no cards and not adding */}
-            {cards.length === 0 && !isAddingCard && (
-              <div className="col-span-full text-center">
-                <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-white py-12">
-                  <CreditCard className="mb-4 h-12 w-12 text-gray-400" />
-                  <h3 className="mb-2 text-lg font-medium text-gray-900">
-                    No cards yet
-                  </h3>
-                  <p className="mb-6 text-sm text-gray-500">
-                    Add your first credit or debit card to get started
-                  </p>
-                  <Button onClick={handleAddCard} variant="primary">
-                    <Plus className="h-4 w-4" />
-                    Add Card
-                  </Button>
+              {/* Empty State - only show if no cards and not adding */}
+              {cards.length === 0 && !isAddingCard && (
+                <div className="col-span-full text-center">
+                  <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-white py-12">
+                    <CreditCard className="mb-4 h-12 w-12 text-gray-400" />
+                    <h3 className="mb-2 text-lg font-medium text-gray-900">
+                      No cards yet
+                    </h3>
+                    <p className="mb-6 text-sm text-gray-500">
+                      Add your first credit or debit card to get started
+                    </p>
+                    <Button onClick={handleAddCard} variant="primary">
+                      <Plus className="h-4 w-4" />
+                      Add Card
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>

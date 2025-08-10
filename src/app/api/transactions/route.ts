@@ -31,7 +31,7 @@ export const POST = withUser({
       return await prisma.$transaction(async (tx) => {
         const transaction = await createTransaction(tx, validationResult.data, user);
         
-        return NextResponse.json(transaction, { status: 201 });
+        return NextResponse.json(transaction, { status: 200 });
       });
 
   }),

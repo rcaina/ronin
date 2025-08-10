@@ -14,7 +14,7 @@ export const GET = withUser({
     
     return await prisma.$transaction(async (tx) => {
       const card = await getCardTransactions(tx, cardId);
-      return NextResponse.json(card, { status: 200 });
+      return NextResponse.json({ card }, { status: 200 });
     });
   }),
 }); 

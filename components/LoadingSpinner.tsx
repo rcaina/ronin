@@ -24,9 +24,9 @@ const LoadingSpinner = ({
     <div className={`flex ${className} items-center justify-center bg-gray-50`}>
       <div className="text-center">
         <div
-          className={`relative mx-auto ${logoSize === "lg" ? "mb-6" : "mb-4"} ${sizeClasses[logoSize]}`}
+          className={`relative mx-auto ${logoSize === "lg" ? "mb-6" : "mb-4"}`}
         >
-          <div className={`mx-auto h-36 w-36 flex-shrink-0`}>
+          <div className={`mx-auto ${sizeClasses[logoSize]} flex-shrink-0`}>
             <Image
               src={roninLogo}
               alt="Ronin Logo"
