@@ -1,4 +1,4 @@
-import { type PrismaClient, type User, TransactionType } from "@prisma/client"
+import {  type User, TransactionType } from "@prisma/client"
 import type { CreateTransactionSchema, UpdateTransactionSchema, CreateCardPaymentSchema } from "@/lib/api-schemas/transactions"
 import type { PrismaClientTx } from "../prisma"
 
