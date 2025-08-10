@@ -114,12 +114,11 @@ export const useDuplicateBudget = () => {
 
   return useMutation({
     mutationFn: (budgetId: string) => {
-      return fetch("/api/budgets/duplicate", {
+      return fetch(`/api/budgets/${budgetId}/duplicate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ budgetId }),
       }).then((res) => {
         if (!res.ok) {
           throw new Error(`Failed to duplicate budget: ${res.statusText}`);

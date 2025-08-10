@@ -1,17 +1,26 @@
-import { Role, type PrismaClient } from "@prisma/client"
+import { Role } from "@prisma/client"
+import type { PrismaClientTx } from "../prisma"
 import bcrypt from "bcryptjs"
-
-export interface CreateUserData {
-  firstName: string
-  lastName: string
-  email: string
-  password: string
-}
+import { isEmailAllowed } from "../utils/auth"
+import type { z } from "zod"
+import type { signUpSchema } from "../api-schemas/auth"
 
 export async function createUserWithAccount(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
-  data: CreateUserData
+  tx: PrismaClientTx,
+  data: z.infer<typeof signUpSchema>
 ) {
+
+  if(!isEmailAllowed(data.email)) {
+    throw new Error("Email not allowed for sign up")
+  }
+
+  // Check if user already exists
+  const existingUser = await findUserByEmail(tx, data.email);
+
+  if (existingUser) {
+    throw new Error("User with this email already exists")
+  }
+
   // Hash password
   const hashedPassword = await bcrypt.hash(data.password, 12)
 
@@ -42,11 +51,12 @@ export async function createUserWithAccount(
     },
   })
 
-  return { user, account }
+
+  return {...user, password: undefined};
 }
 
 export async function findUserByEmail(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   email: string
 ) {
   return await tx.user.findUnique({

@@ -5,17 +5,14 @@ import prisma from "@/lib/prisma";
 import { updateIncome, deleteIncome } from "@/lib/api-services/income";
 import { updateSingleIncomeSchema } from "@/lib/api-schemas/income";
 import type { User } from "@prisma/client";
+import { ensureBudgetOwnership, validateBudgetId, validateIncomeId } from "@/lib/utils/auth";
 
 export const PUT = withUser({
   PUT: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
-    const { id: budgetId, incomeId } = await context.params;
-    
-    if (!budgetId || !incomeId) {
-      return NextResponse.json(
-        { message: "Budget ID and Income ID are required" },
-        { status: 400 }
-      );
-    }
+    const { id, incomeId:incId } = await context.params;
+    const budgetId = validateBudgetId(id);
+    const incomeId = validateIncomeId(incId);
+    await ensureBudgetOwnership(budgetId, user.accountId);
 
     const body = await req.json() as unknown;
     const validationResult = updateSingleIncomeSchema.safeParse(body);
@@ -27,83 +24,25 @@ export const PUT = withUser({
       );
     }
 
-    // Verify the budget exists and belongs to the user
-    const budget = await prisma.budget.findFirst({
-      where: {
-        id: budgetId,
-        accountId: user.accountId,
-        deleted: null,
-      },
+    return await prisma.$transaction(async (tx) => {
+      const income = await updateIncome(tx, incomeId, budgetId, validationResult.data, user);
+
+      return NextResponse.json(income, { status: 200 });
     });
-
-    if (!budget) {
-      return NextResponse.json(
-        { message: "Budget not found" },
-        { status: 404 }
-      );
-    }
-
-    try {
-      const income = await prisma.$transaction(async (tx) => 
-        await updateIncome(tx, incomeId, budgetId, validationResult.data, user)
-      );
-
-      return NextResponse.json(
-        { message: 'Income updated successfully', income },
-        { status: 200 }
-      );
-    } catch (error) {
-      console.error("Error updating income:", error);
-      return NextResponse.json(
-        { message: "Failed to update income" },
-        { status: 500 }
-      );
-    }
   }),
 });
 
 export const DELETE = withUser({
   DELETE: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
-    const { id: budgetId, incomeId } = await context.params;
-    
-    if (!budgetId || !incomeId) {
-      return NextResponse.json(
-        { message: "Budget ID and Income ID are required" },
-        { status: 400 }
-      );
-    }
+    const { id, incomeId: incId } = await context.params;
+    const budgetId = validateBudgetId(id);
+    const incomeId = validateIncomeId(incId);
+    await ensureBudgetOwnership(budgetId, user.accountId);
 
-    // Verify the budget exists and belongs to the user
-    const budget = await prisma.budget.findFirst({
-      where: {
-        id: budgetId,
-        accountId: user.accountId,
-        deleted: null,
-      },
+    return await prisma.$transaction(async (tx) => {
+      const income = await deleteIncome(tx, incomeId, budgetId, user);
+
+      return NextResponse.json(income, { status: 200 });
     });
-
-    if (!budget) {
-      return NextResponse.json(
-        { message: "Budget not found" },
-        { status: 404 }
-      );
-    }
-
-    try {
-      await prisma.$transaction(async (tx) => 
-        await deleteIncome(tx, incomeId, budgetId, user)
-      );
-
-      return NextResponse.json(
-        { message: 'Income deleted successfully' },
-        { status: 200 }
-      );
-    } catch (error) {
-      console.error("Error deleting income:", error);
-      return NextResponse.json(
-        { message: "Failed to delete income" },
-        { status: 500 }
-      );
-    }
   }),
 }); 

@@ -1,4 +1,8 @@
-import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category } from "@prisma/client"
+import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category, type Budget, TransactionType, CategoryType } from "@prisma/client"
+import { HttpError } from "../errors"
+import { formatBudget, formatBudgetCategories } from "../db/converter"
+import type { PrismaClientTx } from "../prisma"
+import type { UpdateBudgetCategoryData } from "../data-hooks/budgets/useBudgetCategories"
 
 export interface CreateBudgetData {
   name: string
@@ -34,8 +38,80 @@ export interface UpdateBudgetData {
   }
 }
 
+export type BudgetCategories = (BudgetCategory & { 
+  category: Category, 
+  spentAmount: number,
+  transactions?: undefined 
+})[]
+
+export async function getBudgetById(
+  tx: PrismaClient,
+  id: string,
+  params: URLSearchParams
+) {
+  const excludeCardPayments = params.get('excludeCardPayments') === 'true';
+  
+  const budget = await tx.budget.findFirst({
+    where: {
+        id,
+        deleted: null,
+    },
+    include: {
+        categories: {
+            where: {
+                deleted: null,
+            },
+            include: {
+                category: true,
+                transactions: {
+                    where: {
+                        deleted: null,
+                        ...(excludeCardPayments && {
+                            transactionType: {
+                                not: TransactionType.CARD_PAYMENT
+                            }
+                        }),
+                    },
+                    orderBy: {
+                        createdAt: 'desc',
+                    },
+                },
+            },
+        },
+        incomes: {
+            where: {
+                deleted: null,
+            },
+        },
+        transactions: {
+            where: {
+                deleted: null,
+                categoryId: null, // Only transactions without categories (like card payments)
+                ...(excludeCardPayments && {
+                    transactionType: {
+                        not: TransactionType.CARD_PAYMENT
+                    }
+                }),
+            },
+            include: {
+                card: true,
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        },
+    },
+});
+
+if (!budget) {
+    throw new HttpError("Budget not found", 404);
+}
+
+  return formatBudget(budget);
+}
+
 export async function createBudget(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   data: CreateBudgetData,
   user: User & { accountId: string }
 ) {
@@ -86,7 +162,7 @@ export async function createBudget(
 }
 
 export async function updateBudget(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   id: string,
   data: UpdateBudgetData,
   user: User & { accountId: string }
@@ -155,7 +231,7 @@ export async function updateBudget(
 }
 
 export async function deleteBudget(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   id: string,
   user: User & { accountId: string }
 ) {
@@ -198,11 +274,11 @@ export async function deleteBudget(
 }
 
 export async function getBudgets(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClient,
   accountId: string,
   status?: BudgetStatus,
   excludeCardPayments?: boolean
-) {
+): Promise<Budget[]> {
   const whereClause = {
     accountId,
     deleted: null,
@@ -239,7 +315,7 @@ export async function getBudgets(
 }
 
 export async function markBudgetCompleted(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   budgetId: string,
   user: User & { accountId: string }
 ) {
@@ -256,7 +332,7 @@ export async function markBudgetCompleted(
 }
 
 export async function markBudgetArchived(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   budgetId: string,
   user: User & { accountId: string }
 ) {
@@ -273,7 +349,7 @@ export async function markBudgetArchived(
 }
 
 export async function reactivateBudget(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   budgetId: string,
   user: User & { accountId: string }
 ) {
@@ -290,7 +366,7 @@ export async function reactivateBudget(
 }
 
 export async function duplicateBudget(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   budgetId: string,
   user: User & { accountId: string }
 ) {
@@ -362,27 +438,240 @@ export async function duplicateBudget(
   return newBudget;
 }
 
+
+// Budget Categories
+
+export const getBudgetCategories = async (
+  tx: PrismaClientTx,
+  budgetId: string,
+): Promise<BudgetCategories> => {
+  const budgetCategories = await tx.budgetCategory.findMany({
+    where: {
+      budgetId: budgetId,
+      deleted: null,
+    },
+    include: {
+      category: true,
+      transactions: {
+        where: {
+          deleted: null,
+        },
+        select: {
+          amount: true,
+          transactionType: true,
+        },
+      },
+    },
+    orderBy: {
+      category: {
+        name: 'asc',
+      },
+    },
+  });
+
+  return formatBudgetCategories(budgetCategories);
+}
+
 export const createBudgetCategory = async (
+  tx: PrismaClientTx,
   budgetId: string,
   data: {
     categoryName: string;
     group: "needs" | "wants" | "investment";
     allocatedAmount: number;
-  }
+  },
+  user: User & { accountId: string }
 ): Promise<BudgetCategory & { category: Category }> => {
-  const response = await fetch(`/api/budgets/${budgetId}/categories`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  // Verify the budget belongs to the user
+  const budget = await tx.budget.findFirst({
+    where: {
+      id: budgetId,
+      accountId: user.accountId,
+      deleted: null,
     },
-    body: JSON.stringify(data),
   });
 
-  if (!response.ok) {
-    const error = await response.json() as { message?: string };
-    throw new Error(error.message ?? "Failed to create budget category");
+  if (!budget) {
+    throw new HttpError("Budget not found", 404);
   }
 
-  const result = await response.json() as { budgetCategory: BudgetCategory & { category: Category } };
-  return result.budgetCategory;
+  // Convert group to CategoryType enum
+  const groupToCategoryType = {
+    needs: CategoryType.NEEDS,
+    wants: CategoryType.WANTS,
+    investment: CategoryType.INVESTMENT,
+  };
+
+  const categoryType = groupToCategoryType[data.group];
+
+    // Create the category template first
+    const category = await tx.category.create({
+      data: {
+        name: data.categoryName,
+        group: categoryType,
+      },
+    });
+
+    // Create the budget category
+    const budgetCategory = await tx.budgetCategory.create({
+      data: {
+        budgetId: budgetId,
+        categoryId: category.id,
+        allocatedAmount: data.allocatedAmount,
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    return budgetCategory;
 }; 
+
+export const updateBudgetCategory = async (
+  tx: PrismaClientTx,
+  budgetId: string,
+  categoryId: string,
+  data: UpdateBudgetCategoryData,
+  user: User & { accountId: string }
+): Promise<BudgetCategory & { category: Category }> => {
+  // Verify the budget belongs to the user
+  const budget = await tx.budget.findFirst({
+    where: {
+      id: budgetId,
+      accountId: user.accountId,
+      deleted: null,
+    },
+  });
+
+  if (!budget) {
+    throw new HttpError("Budget not found", 404);
+  }
+
+  // If updating categoryId, verify the new category exists
+  if (data.categoryId) {
+    const newCategory = await tx.category.findFirst({
+      where: {
+        id: data.categoryId,
+        deleted: null,
+      },
+    });
+
+    if (!newCategory) {
+      throw new HttpError("Category not found", 404);
+    }
+
+    // Check if the new category is already added to this budget
+    const existingBudgetCategory = await tx.budgetCategory.findFirst({
+      where: {
+        budgetId: budgetId,
+        categoryId: data.categoryId,
+        deleted: null,
+      },
+    });
+
+    if (existingBudgetCategory) {
+      throw new HttpError("Category is already added to this budget", 400);
+    }
+  }
+
+  // Update the budget category
+  const updateData: {
+    allocatedAmount?: number;
+    categoryId?: string;
+  } = {};
+  if (data.allocatedAmount !== undefined) {
+    updateData.allocatedAmount = data.allocatedAmount;
+  }
+  if (data.categoryId) {
+    updateData.categoryId = data.categoryId;
+  }
+
+  // If updating category name, update the associated category template
+  if (data.categoryName) {
+    const budgetCategory = await tx.budgetCategory.findFirst({
+      where: {
+        id: categoryId,
+        budgetId: budgetId,
+        deleted: null,
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    if (!budgetCategory) {
+      throw new HttpError("Budget category not found", 404);
+    }
+
+    // Update the category template name
+      await tx.category.update({
+      where: {
+        id: budgetCategory.categoryId,
+      },
+      data: {
+        name: data.categoryName,
+      },
+    });
+  }
+
+  const updatedBudgetCategory = await tx.budgetCategory.update({
+    where: {
+      id: categoryId,
+      budgetId: budgetId,
+      deleted: null,
+    },
+    data: updateData,
+    include: {
+      category: true,
+    },
+  });
+
+  return updatedBudgetCategory;
+};
+
+export const deleteBudgetCategory = async (
+  tx: PrismaClientTx,
+  budgetId: string,
+  categoryId: string,
+  user: User & { accountId: string }
+): Promise<BudgetCategory> => {
+  // Verify the budget belongs to the user
+  const budget = await tx.budget.findFirst({
+    where: {
+      id: budgetId,
+      accountId: user.accountId,
+      deleted: null,
+    },
+  });
+
+  if (!budget) {
+    throw new HttpError("Budget not found", 404);
+  }
+
+  // Check if there are any transactions in this category
+  const transactions = await tx.transaction.findMany({
+    where: {
+      budgetId: budgetId,
+      categoryId: categoryId,
+      deleted: null,
+    },
+  });
+
+  if (transactions.length > 0) {
+    throw new HttpError("Cannot delete category with existing transactions", 400);
+  }
+
+  // Soft delete the budget category
+  const budgetCategory = await tx.budgetCategory.update({
+    where: {
+      id: categoryId,
+      budgetId: budgetId,
+      deleted: null,
+    },
+    data: {
+      deleted: new Date(),
+    },
+  });
+
+  return budgetCategory;
+}

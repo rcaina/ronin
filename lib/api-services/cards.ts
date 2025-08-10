@@ -1,60 +1,51 @@
-import { CardType, type PrismaClient, type User, TransactionType } from "@prisma/client";
-
-export interface Card {
-  id: string;
-  name: string;
-  cardType: CardType;
-  amountSpent?: number;
-  spendingLimit?: number;
-  userId: string;
-  user: {
-    id: string;
-    name: string;
-    firstName: string;
-    lastName: string;
-  };
-  deleted?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateCardRequest {
-  name: string;
-  cardType: CardType;
-  spendingLimit?: number;
-}
-
-export interface UpdateCardRequest {
-  name?: string;
-  cardType?: CardType;
-  spendingLimit?: number;
-}
-
-export interface CreateCardData {
-  name: string;
-  cardType: CardType;
-  spendingLimit?: number;
-}
-
-export interface UpdateCardData {
-  name?: string;
-  cardType?: CardType;
-  spendingLimit?: number;
-}
+import { CardType, type User, TransactionType } from "@prisma/client";
+import type { PrismaClientTx } from "../prisma";
+import type { createCardSchema, updateCardSchema } from "../api-schemas/cards";
+import type { z } from "zod";
+import { HttpError } from "../errors";
 
 export async function getCards(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
-  userId: string
+  tx: PrismaClientTx,
+  params: URLSearchParams,
+  user: User & { accountId: string }
 ) {
+  const excludeCardPayments = params.get('excludeCardPayments') === 'true';
+  // Get all users in the same account
+  const accountUsers = await tx.accountUser.findMany({
+    where: {
+      accountId: user.accountId,
+    },
+    select: {
+      userId: true,
+    },
+  });
+
+  const userIds = accountUsers.map(au => au.userId);
+
   const cards = await tx.card.findMany({
     where: {
-      userId,
+      userId: {
+        in: userIds,
+      },
       deleted: null,
     },
     include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
       transactions: {
         where: {
           deleted: null,
+          ...(excludeCardPayments && {
+            transactionType: {
+              not: TransactionType.CARD_PAYMENT
+            }
+          }),
         },
         select: {
           amount: true,
@@ -62,13 +53,11 @@ export async function getCards(
         },
       },
     },
-    orderBy: {
-      createdAt: 'desc',
-    },
+    orderBy: { createdAt: "desc" },
   });
 
   // Calculate amountSpent for each card by summing related transactions
-  return cards.map(card => {
+  const cardsWithAmountSpent = cards.map(card => {
     const isCreditCard = card.cardType === CardType.CREDIT || card.cardType === CardType.BUSINESS_CREDIT;
     
     let amountSpent = 0;
@@ -105,10 +94,12 @@ export async function getCards(
       transactions: undefined, // Remove transactions from response
     };
   });
+
+  return cardsWithAmountSpent;
 }
 
-export async function getCard(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+export async function getCardById(
+  tx: PrismaClientTx,
   id: string,
   userId: string
 ) {
@@ -119,6 +110,14 @@ export async function getCard(
       deleted: null,
     },
     include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
       transactions: {
         where: {
           deleted: null,
@@ -131,7 +130,9 @@ export async function getCard(
     },
   });
 
-  if (!card) return null;
+  if (!card) {
+    throw new HttpError("Card not found", 404);
+  }
 
   // Calculate amountSpent by summing related transactions
   const isCreditCard = card.cardType === CardType.CREDIT || card.cardType === CardType.BUSINESS_CREDIT;
@@ -164,17 +165,19 @@ export async function getCard(
     }, 0);
   }
 
-  return {
+  const cardWithAmountSpent = {
     ...card,
     amountSpent,
     transactions: undefined, // Remove transactions from response
   };
+
+  return cardWithAmountSpent;
 }
 
 export async function createCard(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
-  data: CreateCardData,
-  user: User
+  tx: PrismaClientTx,
+  data: z.infer<typeof createCardSchema>,
+  user: User & { accountId: string }
 ) {
   return await tx.card.create({
     data: {
@@ -187,9 +190,9 @@ export async function createCard(
 }
 
 export async function updateCard(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   id: string,
-  data: UpdateCardData,
+  data: z.infer<typeof updateCardSchema>,
   userId: string
 ) {
   return await tx.card.update({
@@ -207,7 +210,7 @@ export async function updateCard(
 }
 
 export async function deleteCard(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   id: string,
   userId: string
 ) {
@@ -221,4 +224,42 @@ export async function deleteCard(
       deleted: new Date(),
     },
   });
-} 
+}
+
+//transactions region
+
+export const getCardTransactions = async (
+  tx: PrismaClientTx,
+  cardId: string,
+) => await tx.transaction.findMany({
+  where: {
+    cardId,
+    deleted: null,
+  },
+  include: {
+    category: {
+      include: {
+        category: true,
+      },
+    },
+    Budget: true,
+    card: {
+      select: {
+        id: true,
+        name: true,
+        cardType: true,
+      },
+    },
+    user: {
+      select: {
+        id: true,
+        name: true,
+        firstName: true,
+        lastName: true,
+      },
+    },
+  },
+  orderBy: {
+    createdAt: "desc",
+  },
+});

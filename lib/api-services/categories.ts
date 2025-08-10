@@ -1,4 +1,7 @@
-import { type PrismaClient, type CategoryType } from "@prisma/client"
+import { type CategoryType } from "@prisma/client"
+import type { PrismaClientTx } from "../prisma";
+import type { z } from "zod";
+import type { createCategorySchema } from "../api-schemas/categories";
 
 export interface CreateCategoryData {
   name: string;
@@ -35,7 +38,7 @@ export interface GroupedCategories {
 }
 
 export async function getCategories(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>
+  tx: PrismaClientTx
 ): Promise<GroupedCategories> {
   const categories = await tx.category.findMany({
     where: {
@@ -79,19 +82,19 @@ export async function getCategories(
 }
 
 export async function createCategory(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
-  data: CreateCategoryData
+  tx: PrismaClientTx,
+  data: z.infer<typeof createCategorySchema>
 ) {
   return await tx.category.create({
     data: {
       name: data.name,
-      group: data.group,
+      group: data.group as CategoryType,
     },
   });
 }
 
 export async function deleteCategory(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   id: string
 ) {
   return await tx.category.update({
@@ -106,7 +109,7 @@ export async function deleteCategory(
 }
 
 export async function updateCategory(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   id: string,
   data: UpdateCategoryData
 ) {

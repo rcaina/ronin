@@ -405,413 +405,418 @@ const TransactionsPage = () => {
         description="Track and manage your financial transactions"
       />
 
-      <div className="flex-1">
-        <div className="mx-auto px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
-          {/* Overview Stats */}
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-            <StatsCard
-              title="Total Transactions"
-              value={stats.totalTransactions}
-              subtitle="All time"
-              icon={
-                <DollarSign className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-blue-500"
-            />
+      <div className="flex-1 overflow-hidden pt-4 sm:pt-20 lg:pt-0">
+        <div className="h-full overflow-y-auto">
+          <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
+            {/* Overview Stats */}
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
+              <StatsCard
+                title="Total Transactions"
+                value={stats.totalTransactions}
+                subtitle="All time"
+                icon={
+                  <DollarSign className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
+                }
+                iconColor="text-blue-500"
+              />
 
-            <StatsCard
-              title="Total Amount"
-              value={formatCurrency(stats.totalAmount)}
-              subtitle="All time"
-              icon={
-                <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-red-500"
-            />
+              <StatsCard
+                title="Total Amount"
+                value={formatCurrency(stats.totalAmount)}
+                subtitle="All time"
+                icon={
+                  <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
+                }
+                iconColor="text-red-500"
+              />
 
-            <StatsCard
-              title="Average Transaction"
-              value={formatCurrency(stats.averageAmount)}
-              subtitle="Per transaction"
-              icon={
-                <TrendingUp className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-green-500"
-            />
+              <StatsCard
+                title="Average Transaction"
+                value={formatCurrency(stats.averageAmount)}
+                subtitle="Per transaction"
+                icon={
+                  <TrendingUp className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
+                }
+                iconColor="text-green-500"
+              />
 
-            <StatsCard
-              title="This Month"
-              value={formatCurrency(stats.thisMonthAmount)}
-              subtitle={`${stats.thisMonthTransactions} transactions`}
-              icon={
-                <Calendar className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-purple-500"
-            />
-          </div>
-
-          {/* Filters and Search */}
-          <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-6 sm:p-4 lg:p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Filter className="h-4 w-4 text-gray-500" />
-                <h3 className="text-sm font-medium text-gray-700">Filters</h3>
-              </div>
-              {hasActiveFilters && (
-                <Button
-                  onClick={clearAllFilters}
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-blue-600 hover:text-blue-800"
-                >
-                  Clear all filters
-                </Button>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search transactions, amounts, descriptions..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Filter Row 1: Categories and Budgets */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-700">
-                    Category
-                  </label>
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="all">All Categories</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-700">
-                    Budget
-                  </label>
-                  <select
-                    value={selectedBudget}
-                    onChange={(e) => setSelectedBudget(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="all">All Budgets</option>
-                    <option value="no-budget">No Budget</option>
-                    {availableBudgets.map((budget) => (
-                      <option key={budget.id} value={budget.id}>
-                        {budget.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-700">
-                    Card
-                  </label>
-                  <select
-                    value={selectedCard}
-                    onChange={(e) => setSelectedCard(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="all">All Cards</option>
-                    <option value="no-card">No Card</option>
-                    {availableCards.map((card) => (
-                      <option key={card.id} value={card.id}>
-                        {card.displayName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-700">
-                    Sort By
-                  </label>
-                  <select
-                    value={`${sortBy}-${sortOrder}`}
-                    onChange={(e) => {
-                      const [newSortBy, newSortOrder] = e.target.value.split(
-                        "-",
-                      ) as [typeof sortBy, typeof sortOrder];
-                      setSortBy(newSortBy);
-                      setSortOrder(newSortOrder);
-                    }}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="date-desc">Date (Newest)</option>
-                    <option value="date-asc">Date (Oldest)</option>
-                    <option value="amount-desc">Amount (High to Low)</option>
-                    <option value="amount-asc">Amount (Low to High)</option>
-                    <option value="name-asc">Name (A-Z)</option>
-                    <option value="name-desc">Name (Z-A)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Add Transaction Button or Form */}
-          {!showTransactionForm ? (
-            filteredAndSortedTransactions.length > 0 && (
-              <div className="mb-4 sm:mb-6">
-                <AddItemButton
-                  onClick={() => setShowTransactionForm(true)}
-                  title="Add Transaction"
-                  description="Add a new transaction to your records"
-                  variant="compact"
-                />
-              </div>
-            )
-          ) : (
-            <div className="mb-4 sm:mb-6">
-              <TransactionForm
-                onClose={handleCloseTransactionForm}
-                onSuccess={handleTransactionSuccess}
+              <StatsCard
+                title="This Month"
+                value={formatCurrency(stats.thisMonthAmount)}
+                subtitle={`${stats.thisMonthTransactions} transactions`}
+                icon={
+                  <Calendar className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
+                }
+                iconColor="text-purple-500"
               />
             </div>
-          )}
 
-          {/* Bulk Actions Bar */}
-          {selectedTransactions.size > 0 && (
-            <div className="mb-4 rounded-xl border bg-blue-50 p-3 shadow-sm sm:mb-6 sm:p-4">
-              <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4">
-                  <span className="text-sm font-medium text-blue-900">
-                    {selectedTransactions.size} transaction
-                    {selectedTransactions.size !== 1 ? "s" : ""} selected
-                  </span>
-                  <Button
-                    variant="ghost"
-                    onClick={() => setSelectedTransactions(new Set())}
-                    className="text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    Clear selection
-                  </Button>
-                </div>
+            {/* Filters and Search */}
+            <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-6 sm:p-4 lg:p-6">
+              <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
+                  <Filter className="h-4 w-4 text-gray-500" />
+                  <h3 className="text-sm font-medium text-gray-700">Filters</h3>
+                </div>
+                {hasActiveFilters && (
                   <Button
-                    onClick={handleBulkDelete}
-                    variant="danger"
+                    onClick={clearAllFilters}
+                    variant="ghost"
                     size="sm"
-                    disabled={deleteTransactionMutation.isPending}
+                    className="text-xs text-blue-600 hover:text-blue-800"
                   >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Selected
+                    Clear all filters
                   </Button>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search transactions, amounts, descriptions..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Filter Row 1: Categories and Budgets */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">
+                      Category
+                    </label>
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="all">All Categories</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">
+                      Budget
+                    </label>
+                    <select
+                      value={selectedBudget}
+                      onChange={(e) => setSelectedBudget(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="all">All Budgets</option>
+                      <option value="no-budget">No Budget</option>
+                      {availableBudgets.map((budget) => (
+                        <option key={budget.id} value={budget.id}>
+                          {budget.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">
+                      Card
+                    </label>
+                    <select
+                      value={selectedCard}
+                      onChange={(e) => setSelectedCard(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="all">All Cards</option>
+                      <option value="no-card">No Card</option>
+                      {availableCards.map((card) => (
+                        <option key={card.id} value={card.id}>
+                          {card.displayName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">
+                      Sort By
+                    </label>
+                    <select
+                      value={`${sortBy}-${sortOrder}`}
+                      onChange={(e) => {
+                        const [newSortBy, newSortOrder] = e.target.value.split(
+                          "-",
+                        ) as [typeof sortBy, typeof sortOrder];
+                        setSortBy(newSortBy);
+                        setSortOrder(newSortOrder);
+                      }}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="date-desc">Date (Newest)</option>
+                      <option value="date-asc">Date (Oldest)</option>
+                      <option value="amount-desc">Amount (High to Low)</option>
+                      <option value="amount-asc">Amount (Low to High)</option>
+                      <option value="name-asc">Name (A-Z)</option>
+                      <option value="name-desc">Name (Z-A)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
-          )}
 
-          {/* Transactions List */}
-          <div className="rounded-xl border bg-white shadow-sm">
-            <div className="border-b px-3 py-3 sm:px-6 sm:py-4">
-              <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-                <div className="flex items-center space-x-2">
-                  <label className="flex items-center space-x-2 text-sm text-gray-600">
-                    <input
-                      type="checkbox"
-                      checked={
-                        selectedTransactions.size ===
+            {/* Add Transaction Button or Form */}
+            {!showTransactionForm ? (
+              filteredAndSortedTransactions.length > 0 && (
+                <div className="mb-4 sm:mb-6">
+                  <AddItemButton
+                    onClick={() => setShowTransactionForm(true)}
+                    title="Add Transaction"
+                    description="Add a new transaction to your records"
+                    variant="compact"
+                  />
+                </div>
+              )
+            ) : (
+              <div className="mb-4 sm:mb-6">
+                <TransactionForm
+                  onClose={handleCloseTransactionForm}
+                  onSuccess={handleTransactionSuccess}
+                />
+              </div>
+            )}
+
+            {/* Bulk Actions Bar */}
+            {selectedTransactions.size > 0 && (
+              <div className="mb-4 rounded-xl border bg-blue-50 p-3 shadow-sm sm:mb-6 sm:p-4">
+                <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4">
+                    <span className="text-sm font-medium text-blue-900">
+                      {selectedTransactions.size} transaction
+                      {selectedTransactions.size !== 1 ? "s" : ""} selected
+                    </span>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setSelectedTransactions(new Set())}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      Clear selection
+                    </Button>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      onClick={handleBulkDelete}
+                      variant="danger"
+                      size="sm"
+                      disabled={deleteTransactionMutation.isPending}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Selected
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Transactions List */}
+            <div className="rounded-xl border bg-white shadow-sm">
+              <div className="border-b px-3 py-3 sm:px-6 sm:py-4">
+                <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+                  <div className="flex items-center space-x-2">
+                    <label className="flex items-center space-x-2 text-sm text-gray-600">
+                      <input
+                        type="checkbox"
+                        checked={
+                          selectedTransactions.size ===
+                            filteredAndSortedTransactions.filter(
+                              (t) => t.id !== editingTransactionId,
+                            ).length &&
                           filteredAndSortedTransactions.filter(
                             (t) => t.id !== editingTransactionId,
-                          ).length &&
-                        filteredAndSortedTransactions.filter(
-                          (t) => t.id !== editingTransactionId,
-                        ).length > 0
-                      }
-                      onChange={handleSelectAll}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span>Select All</span>
-                  </label>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Transactions ({filteredAndSortedTransactions.length})
-                </h3>
-              </div>
-            </div>
-
-            <div className="divide-y divide-gray-200">
-              {filteredAndSortedTransactions.length > 0 ? (
-                filteredAndSortedTransactions.map((transaction) => {
-                  // Check if this transaction is being edited
-                  const isEditing = editingTransactionId === transaction.id;
-
-                  if (isEditing) {
-                    return (
-                      <InlineTransactionEdit
-                        key={transaction.id}
-                        transaction={transaction}
-                        onCancel={handleInlineEditCancel}
-                        onSuccess={handleInlineEditSuccess}
-                        getGroupColor={getGroupColor}
-                        formatCurrency={formatCurrency}
+                          ).length > 0
+                        }
+                        onChange={handleSelectAll}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                    );
-                  }
-
-                  return (
-                    <div
-                      key={transaction.id}
-                      className="group flex items-center justify-between px-3 py-3 hover:bg-gray-50 sm:px-6 sm:py-4"
-                    >
-                      <div className="flex min-w-0 flex-1 items-center space-x-3 sm:space-x-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedTransactions.has(transaction.id)}
-                          onChange={() =>
-                            handleSelectTransaction(transaction.id)
-                          }
-                          disabled={isEditing}
-                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
-                        />
-                        <div
-                          className={`h-3 w-3 flex-shrink-0 rounded-full ${
-                            transaction.transactionType === "RETURN"
-                              ? "bg-green-500"
-                              : transaction.transactionType === "CARD_PAYMENT"
-                                ? getGroupColor("card_payment")
-                                : transaction.category
-                                  ? getGroupColor(
-                                      transaction.category.category.group,
-                                    )
-                                  : "bg-gray-500"
-                          }`}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center space-x-2">
-                            <h4 className="truncate font-medium text-gray-900">
-                              {transaction.name ?? "Unnamed transaction"}
-                            </h4>
-                            {transaction.description && (
-                              <div className="group relative flex-shrink-0">
-                                <Info className="h-4 w-4 cursor-help text-gray-400" />
-                                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                                  {transaction.description}
-                                  <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center space-x-2 text-sm text-gray-500">
-                            <span className="truncate">
-                              {transaction.transactionType === "CARD_PAYMENT"
-                                ? "Card Payment"
-                                : (transaction.category?.category.name ??
-                                  "No Category")}
-                            </span>
-                            {transaction.Budget && (
-                              <>
-                                <span className="hidden sm:inline">•</span>
-                                <span className="hidden truncate sm:inline">
-                                  {transaction.Budget.name}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center space-x-2 sm:space-x-4">
-                        {/* Action Icons - Always visible on mobile, hover on desktop */}
-                        <div className="flex items-center space-x-1 opacity-100 transition-opacity sm:space-x-2 sm:opacity-0 sm:group-hover:opacity-100">
-                          <button
-                            onClick={() => handleCopyTransaction(transaction)}
-                            className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                            title="Copy transaction"
-                          >
-                            <Copy className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleEditTransaction(transaction)}
-                            className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                            title="Edit transaction"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteTransaction(transaction)}
-                            className="rounded p-1 text-red-300 transition-colors hover:bg-gray-100 hover:text-red-600"
-                            title="Delete transaction"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-
-                        <div className="text-right">
-                          <div
-                            className={`font-medium ${
-                              transaction.transactionType === "RETURN"
-                                ? "text-green-600" // Return transactions in green
-                                : transaction.transactionType === "CARD_PAYMENT"
-                                  ? transaction.amount < 0
-                                    ? "text-green-600" // Source transaction (money going out from debit card)
-                                    : "text-gray-900" // Destination transaction (money being added back to credit card)
-                                  : transaction.amount < 0
-                                    ? "text-green-600"
-                                    : "text-gray-900"
-                            }`}
-                          >
-                            {formatCurrency(transaction.amount)}
-                          </div>
-                          <div className="text-xs text-gray-500 sm:text-sm">
-                            {new Date(
-                              transaction.createdAt,
-                            ).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="px-3 py-12 text-center sm:px-6">
-                  <DollarSign className="mx-auto mb-4 h-12 w-12 text-gray-300" />
-                  <h3 className="mb-2 text-lg font-medium text-gray-900">
-                    {searchTerm ||
-                    selectedCategory !== "all" ||
-                    selectedBudget !== "all" ||
-                    selectedCard !== "all"
-                      ? "No matching transactions"
-                      : "No transactions yet"}
+                      <span>Select All</span>
+                    </label>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Transactions ({filteredAndSortedTransactions.length})
                   </h3>
-                  <p className="text-gray-500">
-                    {searchTerm ||
-                    selectedCategory !== "all" ||
-                    selectedBudget !== "all" ||
-                    selectedCard !== "all"
-                      ? "Try adjusting your search or filter criteria"
-                      : "Start adding transactions to see them here"}
-                  </p>
-                  <Button
-                    onClick={() => setShowTransactionForm(true)}
-                    variant="primary"
-                    size="md"
-                    className="mt-4"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Transaction
-                  </Button>
                 </div>
-              )}
+              </div>
+
+              <div className="divide-y divide-gray-200">
+                {filteredAndSortedTransactions.length > 0 ? (
+                  filteredAndSortedTransactions.map((transaction) => {
+                    // Check if this transaction is being edited
+                    const isEditing = editingTransactionId === transaction.id;
+
+                    if (isEditing) {
+                      return (
+                        <InlineTransactionEdit
+                          key={transaction.id}
+                          transaction={transaction}
+                          onCancel={handleInlineEditCancel}
+                          onSuccess={handleInlineEditSuccess}
+                          getGroupColor={getGroupColor}
+                          formatCurrency={formatCurrency}
+                        />
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={transaction.id}
+                        className="group flex items-center justify-between px-3 py-3 hover:bg-gray-50 sm:px-6 sm:py-4"
+                      >
+                        <div className="flex min-w-0 flex-1 items-center space-x-3 sm:space-x-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedTransactions.has(transaction.id)}
+                            onChange={() =>
+                              handleSelectTransaction(transaction.id)
+                            }
+                            disabled={isEditing}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                          />
+                          <div
+                            className={`h-3 w-3 flex-shrink-0 rounded-full ${
+                              transaction.transactionType === "RETURN"
+                                ? "bg-green-500"
+                                : transaction.transactionType === "CARD_PAYMENT"
+                                  ? getGroupColor("card_payment")
+                                  : transaction.category
+                                    ? getGroupColor(
+                                        transaction.category.category.group,
+                                      )
+                                    : "bg-gray-500"
+                            }`}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center space-x-2">
+                              <h4 className="truncate font-medium text-gray-900">
+                                {transaction.name ?? "Unnamed transaction"}
+                              </h4>
+                              {transaction.description && (
+                                <div className="group relative flex-shrink-0">
+                                  <Info className="h-4 w-4 cursor-help text-gray-400" />
+                                  <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                    {transaction.description}
+                                    <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-2 text-sm text-gray-500">
+                              <span className="truncate">
+                                {transaction.transactionType === "CARD_PAYMENT"
+                                  ? "Card Payment"
+                                  : (transaction.category?.category.name ??
+                                    "No Category")}
+                              </span>
+                              {transaction.Budget && (
+                                <>
+                                  <span className="hidden sm:inline">•</span>
+                                  <span className="hidden truncate sm:inline">
+                                    {transaction.Budget.name}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 sm:space-x-4">
+                          {/* Action Icons - Always visible on mobile, hover on desktop */}
+                          <div className="flex items-center space-x-1 opacity-100 transition-opacity sm:space-x-2 sm:opacity-0 sm:group-hover:opacity-100">
+                            <button
+                              onClick={() => handleCopyTransaction(transaction)}
+                              className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                              title="Copy transaction"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleEditTransaction(transaction)}
+                              className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                              title="Edit transaction"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleDeleteTransaction(transaction)
+                              }
+                              className="rounded p-1 text-red-300 transition-colors hover:bg-gray-100 hover:text-red-600"
+                              title="Delete transaction"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          <div className="text-right">
+                            <div
+                              className={`font-medium ${
+                                transaction.transactionType === "RETURN"
+                                  ? "text-green-600" // Return transactions in green
+                                  : transaction.transactionType ===
+                                      "CARD_PAYMENT"
+                                    ? transaction.amount < 0
+                                      ? "text-green-600" // Source transaction (money going out from debit card)
+                                      : "text-gray-900" // Destination transaction (money being added back to credit card)
+                                    : transaction.amount < 0
+                                      ? "text-green-600"
+                                      : "text-gray-900"
+                              }`}
+                            >
+                              {formatCurrency(transaction.amount)}
+                            </div>
+                            <div className="text-xs text-gray-500 sm:text-sm">
+                              {new Date(
+                                transaction.createdAt,
+                              ).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="px-3 py-12 text-center sm:px-6">
+                    <DollarSign className="mx-auto mb-4 h-12 w-12 text-gray-300" />
+                    <h3 className="mb-2 text-lg font-medium text-gray-900">
+                      {searchTerm ||
+                      selectedCategory !== "all" ||
+                      selectedBudget !== "all" ||
+                      selectedCard !== "all"
+                        ? "No matching transactions"
+                        : "No transactions yet"}
+                    </h3>
+                    <p className="text-gray-500">
+                      {searchTerm ||
+                      selectedCategory !== "all" ||
+                      selectedBudget !== "all" ||
+                      selectedCard !== "all"
+                        ? "Try adjusting your search or filter criteria"
+                        : "Start adding transactions to see them here"}
+                    </p>
+                    <Button
+                      onClick={() => setShowTransactionForm(true)}
+                      variant="primary"
+                      size="md"
+                      className="mt-4"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Transaction
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

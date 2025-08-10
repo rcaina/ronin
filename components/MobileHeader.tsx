@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, LogOut } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
+import Image from "next/image";
+import roninLogo from "@/public/ronin_logo.jpg";
 
 interface NavItem {
   href: string;
@@ -16,7 +18,6 @@ const navItems: NavItem[] = [
   { href: "/", icon: "📊", label: "Overview" },
   { href: "/budgets", icon: "💰", label: "Budget" },
   { href: "/transactions", icon: "🧾", label: "Transactions" },
-  { href: "/categories", icon: "📋", label: "Categories" },
   { href: "/cards", icon: "💳", label: "Cards" },
   { href: "/settings", icon: "⚙️", label: "Settings" },
 ];
@@ -42,21 +43,15 @@ export default function MobileHeader() {
         <div className="flex items-center justify-between px-3 py-2">
           {/* Logo */}
           <div className="flex items-center gap-1.5">
-            <div className="h-6 w-6">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                className="h-full w-full text-secondary"
-              >
-                <path
-                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
-                  fill="currentColor"
-                />
-                <path
-                  d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"
-                  fill="currentColor"
-                />
-              </svg>
+            <div className={`mx-auto h-14 w-14 flex-shrink-0`}>
+              <Image
+                src={roninLogo}
+                alt="Ronin Logo"
+                width={36}
+                height={36}
+                className="h-full w-full rounded-full"
+                priority
+              />
             </div>
             <h1 className="text-base font-bold text-secondary">RONIN</h1>
           </div>

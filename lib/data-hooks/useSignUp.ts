@@ -37,12 +37,8 @@ export function useSignUp(): UseSignUpReturn {
 
       // Redirect to the welcome page to check if user has a budget
       router.push("/welcome");
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "An error occurred during sign up"
-      );
+    } catch {
+      setError("An error occurred during sign up");
     } finally {
       setIsLoading(false);
     }

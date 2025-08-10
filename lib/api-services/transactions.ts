@@ -1,8 +1,9 @@
 import { type PrismaClient, type User, TransactionType } from "@prisma/client"
 import type { CreateTransactionSchema, UpdateTransactionSchema, CreateCardPaymentSchema } from "@/lib/api-schemas/transactions"
+import type { PrismaClientTx } from "../prisma"
 
 export async function getTransactions(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   accountId: string
 ) {
   return await tx.transaction.findMany({
@@ -24,12 +25,11 @@ export async function getTransactions(
   })
 }
 
-export async function createTransaction(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+export const createTransaction = async (
+  tx: PrismaClientTx,
   data: CreateTransactionSchema,
   user: User & { accountId: string }
-) {
-  return await tx.transaction.create({
+) => await tx.transaction.create({
     data: {
       name: data.name,
       description: data.description,
@@ -52,10 +52,9 @@ export async function createTransaction(
       Budget: true,
     },
   })
-}
 
 export async function updateTransaction(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   id: string,
   data: UpdateTransactionSchema,
   user: User & { accountId: string }
@@ -88,7 +87,7 @@ export async function updateTransaction(
 }
 
 export async function deleteTransaction(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   id: string,
   user: User & { accountId: string }
 ) {
@@ -105,7 +104,7 @@ export async function deleteTransaction(
 }
 
 export async function createCardPayment(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   data: CreateCardPaymentSchema,
   user: User & { accountId: string }
 ) {

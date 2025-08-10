@@ -34,4 +34,6 @@ export const createBudgetSchema = z.object({
   })).min(1, "At least one income is required"),
 })
 
+export const updateBudgetSchema = createBudgetSchema.partial()
+
 export type CreateBudgetSchema = z.infer<typeof createBudgetSchema> 

@@ -5,11 +5,7 @@ import type {
 } from "@/lib/types/transaction";
 import type { CreateCardPaymentSchema } from "@/lib/api-schemas/transactions";
 
-interface ApiResponse<T> {
-  message: string;
-  transaction?: T;
-  errors?: Array<{ message: string }>;
-}
+
 
 interface CardPaymentResponse {
   message: string;
@@ -38,17 +34,11 @@ export const createTransaction = async (data: CreateTransactionRequest): Promise
     body: JSON.stringify(data),
   });
 
-  const result = await response.json() as ApiResponse<TransactionWithRelations>;
-
   if (!response.ok) {
-    throw new Error(result.message ?? "Failed to create transaction");
+    throw new Error("Failed to create transaction");
   }
 
-  if (!result.transaction) {
-    throw new Error("No transaction returned from server");
-  }
-
-  return result.transaction;
+  return response.json() as Promise<TransactionWithRelations>;
 };
 
 export const updateTransaction = async (id: string, data: UpdateTransactionRequest): Promise<TransactionWithRelations> => {
@@ -66,12 +56,12 @@ export const updateTransaction = async (id: string, data: UpdateTransactionReque
     body: JSON.stringify(data),
   });
 
-  const result = await response.json() as ApiResponse<TransactionWithRelations>;
-
   if (!response.ok) {
-    throw new Error(result.message ?? "Failed to update transaction");
+    throw new Error("Failed to update transaction");
   }
 
+  const result = await response.json() as { message: string; transaction: TransactionWithRelations };
+  
   if (!result.transaction) {
     throw new Error("No transaction returned from server");
   }

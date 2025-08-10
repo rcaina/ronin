@@ -36,6 +36,7 @@ import CreateBudgetModal from "@/components/budgets/CreateBudgetModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import StatsCard from "@/components/StatsCard";
 import { CategoryType, TransactionType } from "@prisma/client";
+import Button from "@/components/Button";
 
 type TabType = "active" | "completed" | "archived";
 
@@ -515,11 +516,11 @@ const BudgetsPage = () => {
           {/* Budgets List */}
           <div className="grid gap-4 sm:gap-6">
             {currentBudgets.length === 0 ? (
-              <div className="rounded-xl border bg-white p-8 text-center shadow-sm">
-                <div className="mb-4 text-gray-400">
+              <div className="flex flex-col items-center justify-center gap-2 rounded-xl border bg-white p-8 text-center shadow-sm">
+                <div className="text-gray-400">
                   <Target className="mx-auto h-12 w-12" />
                 </div>
-                <h3 className="mb-2 text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900">
                   No {activeTab} budgets
                 </h3>
                 <p className="text-sm text-gray-500">
@@ -528,12 +529,9 @@ const BudgetsPage = () => {
                     : `No ${activeTab} budgets found`}
                 </p>
                 {activeTab === "active" && (
-                  <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="mt-4 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
-                  >
+                  <Button onClick={() => setIsCreateModalOpen(true)}>
                     Create Budget
-                  </button>
+                  </Button>
                 )}
               </div>
             ) : (

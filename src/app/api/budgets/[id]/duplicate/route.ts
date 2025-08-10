@@ -4,33 +4,21 @@ import prisma from "@/lib/prisma"
 import { duplicateBudget } from "@/lib/api-services/budgets"
 import { type User } from "@prisma/client"
 import { type NextRequest, NextResponse } from "next/server"
+import { ensureBudgetOwnership, validateBudgetId } from "@/lib/utils/auth"
 
 export const POST = withUser({
     POST: withUserErrorHandling(async (req: NextRequest, _context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
-        const body = await req.json() as { budgetId: string };
+        const { id } = await _context.params;
+        const budgetId = validateBudgetId(id);
+        await ensureBudgetOwnership(budgetId, user.accountId);
         
-        if (!body.budgetId) {
-            return NextResponse.json(
-                { message: "Budget ID is required" },
-                { status: 400 }
-            );
-        }
-
-        try {
-            const duplicatedBudget = await prisma.$transaction(async (tx) => 
-                await duplicateBudget(tx, body.budgetId, user)
-            );
-
+        return await prisma.$transaction(async (tx) => {
+            const duplicatedBudget = await duplicateBudget(tx, budgetId, user);
+            
             return NextResponse.json(
                 { message: 'Budget duplicated successfully', budget: duplicatedBudget },
                 { status: 201 }
             );
-        } catch (error: unknown) {
-            console.error("Error duplicating budget:", error);
-            return NextResponse.json(
-                { message: "Failed to duplicate budget" },
-                { status: 500 }
-            );
-        }
+        });
     }),
 }) 
