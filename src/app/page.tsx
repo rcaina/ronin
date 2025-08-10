@@ -4,7 +4,6 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useTransactions } from "@/lib/data-hooks/transactions/useTransactions";
-import { useCategories } from "@/lib/data-hooks/categories/useCategories";
 import {
   TrendingUp,
   TrendingDown,
@@ -12,7 +11,6 @@ import {
   Target,
   Plus,
   ArrowRight,
-  BarChart3,
   Receipt,
   Sparkles,
 } from "lucide-react";
@@ -31,14 +29,8 @@ export default function HomePage() {
   ); // Exclude card payments for calculations
   const { data: transactions = [], isLoading: transactionsLoading } =
     useTransactions();
-  const { data: categories, isLoading: categoriesLoading } = useCategories();
 
-  if (
-    status === "loading" ||
-    budgetsLoading ||
-    transactionsLoading ||
-    categoriesLoading
-  ) {
+  if (status === "loading" || budgetsLoading || transactionsLoading) {
     return <LoadingSpinner message="Loading your financial overview..." />;
   }
 
@@ -376,69 +368,6 @@ export default function HomePage() {
                       </p>
                     </div>
                   </button>
-
-                  <button
-                    onClick={() => router.push("/categories")}
-                    className="flex w-full items-center space-x-2 rounded-lg border p-2 text-left transition-colors hover:bg-accent sm:space-x-3 sm:p-3"
-                  >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 sm:h-10 sm:w-10">
-                      <BarChart3 className="h-4 w-4 text-purple-600 sm:h-5 sm:w-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 sm:text-base">
-                        Manage Categories
-                      </p>
-                      <p className="text-xs text-gray-500 sm:text-sm">
-                        Organize your spending
-                      </p>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Category Breakdown */}
-              <div className="rounded-xl border bg-white p-4 shadow-sm sm:p-6">
-                <h2 className="mb-3 text-base font-semibold text-gray-900 sm:mb-4 sm:text-lg">
-                  Category Breakdown
-                </h2>
-                <div className="space-y-2 sm:space-y-3">
-                  {categories && "wants" in categories && (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500 sm:text-sm">
-                          Wants
-                        </span>
-                        <span className="text-xs font-medium text-gray-900 sm:text-sm">
-                          {categories.wants?.length ?? 0} categories
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500 sm:text-sm">
-                          Needs
-                        </span>
-                        <span className="text-xs font-medium text-gray-900 sm:text-sm">
-                          {categories.needs?.length ?? 0} categories
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500 sm:text-sm">
-                          Investment
-                        </span>
-                        <span className="text-xs font-medium text-gray-900 sm:text-sm">
-                          {categories.investment?.length ?? 0} categories
-                        </span>
-                      </div>
-                    </>
-                  )}
-                  {(!categories ||
-                    !("wants" in categories) ||
-                    (categories.wants?.length === 0 &&
-                      categories.needs?.length === 0 &&
-                      categories.investment?.length === 0)) && (
-                    <p className="text-xs text-gray-500 sm:text-sm">
-                      No categories yet
-                    </p>
-                  )}
                 </div>
               </div>
 

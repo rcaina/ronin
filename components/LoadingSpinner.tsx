@@ -1,3 +1,6 @@
+import Image from "next/image";
+import roninLogo from "@/public/ronin_logo.jpg";
+
 interface LoadingSpinnerProps {
   message?: string;
   className?: string;
@@ -23,20 +26,16 @@ const LoadingSpinner = ({
         <div
           className={`relative mx-auto ${logoSize === "lg" ? "mb-6" : "mb-4"} ${sizeClasses[logoSize]}`}
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className="h-full w-full animate-pulse text-secondary"
-          >
-            <path
-              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
-              fill="currentColor"
+          <div className={`mx-auto h-36 w-36 flex-shrink-0`}>
+            <Image
+              src={roninLogo}
+              alt="Ronin Logo"
+              width={128}
+              height={128}
+              className="h-full w-full rounded-full"
+              priority
             />
-            <path
-              d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"
-              fill="currentColor"
-            />
-          </svg>
+          </div>
         </div>
         {showWelcome && (
           <h2 className="mb-2 text-2xl font-bold text-gray-900">

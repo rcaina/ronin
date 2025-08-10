@@ -8,8 +8,11 @@ import type { User } from "@prisma/client";
 
 export const GET = withUser({
   GET: withUserErrorHandling(async (req: NextRequest, _context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
-    const transactions = await getTransactions(prisma, user.accountId);
-    return NextResponse.json(transactions, { status: 200 });
+    return await prisma.$transaction(async (tx) => {
+      const transactions = await getTransactions(tx, user.accountId);
+
+      return NextResponse.json(transactions, { status: 200 })
+    });
   }),
 });
 
@@ -25,21 +28,11 @@ export const POST = withUser({
       );
     }
 
-    try {
-      const transaction = await prisma.$transaction(async (tx) => 
-        await createTransaction(tx, validationResult.data, user)
-      );
+      return await prisma.$transaction(async (tx) => {
+        const transaction = await createTransaction(tx, validationResult.data, user);
+        
+        return NextResponse.json(transaction, { status: 201 });
+      });
 
-      return NextResponse.json(
-        { message: 'Transaction created successfully', transaction },
-        { status: 201 }
-      );
-    } catch (error) {
-      console.error("Error creating transaction:", error);
-      return NextResponse.json(
-        { message: "Failed to create transaction" },
-        { status: 500 }
-      );
-    }
   }),
 }); 

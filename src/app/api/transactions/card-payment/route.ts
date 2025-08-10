@@ -18,21 +18,13 @@ export const POST = withUser({
       );
     }
 
-    try {
-      const result = await prisma.$transaction(async (tx) => 
-        await createCardPayment(tx, validationResult.data, user)
-      );
+    return await prisma.$transaction(async (tx) => {
+      const result = await createCardPayment(tx, validationResult.data, user);
 
       return NextResponse.json(
         { message: 'Card payment created successfully', result },
         { status: 201 }
       );
-    } catch (error) {
-      console.error("Error creating card payment:", error);
-      return NextResponse.json(
-        { message: "Failed to create card payment" },
-        { status: 500 }
-      );
-    }
+    });
   }),
 }); 

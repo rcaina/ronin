@@ -113,3 +113,25 @@ export const ensureCardUserOwnership = async (id: string, userId: string): Promi
     throw new HttpError("Card does not exist or is not in user's account", 404);
   }
 };
+
+export const ensureTransactionOwnership = async (id: string, userId: string): Promise<void> => {
+  const transaction = await prisma.transaction.findUnique({
+    where: {
+      id,
+      userId,
+    },
+  });
+
+  if (!transaction) {
+    throw new HttpError("Transaction does not exist or is not in user's account", 404);
+  }
+};
+
+export const validateTransactionId = (id: unknown): string => {
+  const idString = id as string;
+  if (!idString) {
+    throw new HttpError("Transaction ID is required", 400);
+  }
+
+  return idString;
+};

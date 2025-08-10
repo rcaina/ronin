@@ -3,7 +3,7 @@ import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling";
 import prisma from "@/lib/prisma";
 import type { User } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
-import { updateBudgetCategorySchema } from "@/lib/api-schemas/categories";
+import { updateBudgetCategorySchema } from "@/lib/api-schemas/budget-categories";
 import { ensureBudgetOwnership, validateBudgetId, validateCategoryId } from "@/lib/utils/auth";
 import { deleteBudgetCategory, updateBudgetCategory } from "@/lib/api-services/budgets";
 

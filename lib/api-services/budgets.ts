@@ -1,10 +1,8 @@
-import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category, type Budget, TransactionType, type Transaction, CategoryType } from "@prisma/client"
+import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category, type Budget, TransactionType, CategoryType } from "@prisma/client"
 import { HttpError } from "../errors"
 import { formatBudget, formatBudgetCategories } from "../db/converter"
 import type { PrismaClientTx } from "../prisma"
 import type { UpdateBudgetCategoryData } from "../data-hooks/budgets/useBudgetCategories"
-import prisma from "../prisma"
-import { NextResponse } from "next/server"
 
 export interface CreateBudgetData {
   name: string

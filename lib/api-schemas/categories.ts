@@ -1,13 +1,13 @@
 import { z } from "zod";
 
-export const createBudgetCategorySchema = z.object({
-    categoryName: z.string().min(1, "Category name is required"),
-    group: z.enum(["needs", "wants", "investment"]),
-    allocatedAmount: z.number().positive("Allocated amount must be positive"),
+import { CategoryType } from "@prisma/client";
+
+export const createCategorySchema = z.object({
+    name: z.string().min(2).max(100),
+    group: z.enum(Object.values(CategoryType) as [string, ...string[]]),
   });
 
-export const updateBudgetCategorySchema = z.object({
-    allocatedAmount: z.number().positive("Allocated amount must be positive").optional(),
-    categoryId: z.string().min(1, "Category ID is required").optional(),
-    categoryName: z.string().min(1, "Category name is required").max(100, "Category name must be less than 100 characters").optional(),
-  });
+export const updateCategorySchema = z.object({
+name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
+group: z.enum(Object.values(CategoryType) as [string, ...string[]]),
+});
