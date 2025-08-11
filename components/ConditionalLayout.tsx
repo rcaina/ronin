@@ -2,10 +2,26 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, createContext, useContext } from "react";
 import SideNav from "./SideNav";
 import MobileHeader from "./MobileHeader";
 import LoadingSpinner from "./LoadingSpinner";
+
+// Create context for main navigation state
+interface MainNavContextType {
+  isMainNavCollapsed: boolean;
+  setIsMainNavCollapsed: (collapsed: boolean) => void;
+}
+
+const MainNavContext = createContext<MainNavContextType | undefined>(undefined);
+
+export const useMainNav = () => {
+  const context = useContext(MainNavContext);
+  if (context === undefined) {
+    throw new Error("useMainNav must be used within a MainNavProvider");
+  }
+  return context;
+};
 
 // Pages that don't require authentication
 const PUBLIC_PAGES = ["/sign-in", "/sign-up"];
@@ -22,6 +38,16 @@ export default function ConditionalLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Auto-collapse main nav when entering budget pages
+  useEffect(() => {
+    if (pathname.startsWith("/budgets/") && pathname !== "/budgets") {
+      setIsCollapsed(true);
+    } else if (pathname === "/budgets") {
+      // Keep main nav open on the budgets list page
+      setIsCollapsed(false);
+    }
+  }, [pathname]);
 
   useEffect(() => {
     if (status === "unauthenticated" && !PUBLIC_PAGES.includes(pathname)) {
@@ -51,24 +77,34 @@ export default function ConditionalLayout({
     }
 
     return (
-      <main className="bg-gray/90 flex text-black">
-        {/* Mobile Header - only visible on mobile */}
-        <MobileHeader />
+      <MainNavContext.Provider
+        value={{
+          isMainNavCollapsed: isCollapsed,
+          setIsMainNavCollapsed: setIsCollapsed,
+        }}
+      >
+        <main className="bg-gray/90 flex text-black">
+          {/* Mobile Header - only visible on mobile */}
+          <MobileHeader />
 
-        {/* Desktop Side Navigation - hidden on mobile */}
-        <div className="hidden lg:block">
-          <SideNav isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-        </div>
+          {/* Desktop Side Navigation - hidden on mobile */}
+          <div className="hidden lg:block">
+            <SideNav
+              isCollapsed={isCollapsed}
+              setIsCollapsed={setIsCollapsed}
+            />
+          </div>
 
-        {/* Main Content Area */}
-        <div
-          className={`flex-1 transition-all duration-300 ${
-            isCollapsed ? "lg:ml-20 lg:mr-4" : "lg:ml-72 lg:mr-8"
-          } pt-32 lg:pt-0`}
-        >
-          {children}
-        </div>
-      </main>
+          {/* Main Content Area */}
+          <div
+            className={`flex-1 transition-all duration-300 ${
+              isCollapsed ? "lg:ml-20 lg:mr-4" : "lg:ml-72 lg:mr-8"
+            } pt-32 lg:pt-0`}
+          >
+            {children}
+          </div>
+        </main>
+      </MainNavContext.Provider>
     );
   }
 

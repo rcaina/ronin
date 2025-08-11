@@ -39,6 +39,8 @@ model AccountUser {
     user      User    @relation(fields: [userId], references: [id])
 
     @@index([accountId])
+    @@index([userId])
+    @@map("account_users")
 }
 
 model User {
@@ -104,6 +106,7 @@ model Budget {
     categories   BudgetCategory[]
     transactions Transaction[]
     incomes      Income[]
+    cards        Card[]
 
     @@index([id])
     @@index([name])
@@ -133,6 +136,7 @@ model Income {
     deleted     DateTime?
 
     @@index([id])
+    @@map("incomes")
 }
 
 model Category {
@@ -164,6 +168,7 @@ model BudgetCategory {
 
     @@index([id])
     @@index([deleted])
+    @@map("budget_categories")
 }
 
 model Card {
@@ -172,6 +177,8 @@ model Card {
     cardType      CardType
     amountSpent   Float?
     spendingLimit Float?
+    budgetId      String?
+    budget        Budget?       @relation(fields: [budgetId], references: [id])
     userId        String
     user          User          @relation(fields: [userId], references: [id])
     transactions  Transaction[]
@@ -180,6 +187,7 @@ model Card {
     updatedAt     DateTime      @updatedAt
 
     @@index([id])
+    @@map("cards")
 }
 
 model Transaction {

@@ -20,7 +20,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/", icon: "📊", label: "Overview" },
-  { href: "/budgets", icon: "🎯", label: "Budget" },
+  { href: "/budgets", icon: "🎯", label: "Budgets" },
   { href: "/transactions", icon: "🧾", label: "Transactions" },
   { href: "/cards", icon: "💳", label: "Cards" },
   { href: "/settings", icon: "⚙️", label: "Settings" },
@@ -46,7 +46,7 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
     >
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className={`fixed top-24 z-50 flex h-6 w-6 items-center justify-center rounded-md bg-primary text-white transition-all duration-300 ease-in-out hover:bg-black/80 ${
+        className={`fixed top-24 z-50 flex h-6 w-6 items-center justify-center rounded-md border border-primary bg-accent text-primary transition-all duration-300 ease-in-out hover:bg-black/80 hover:text-white ${
           isCollapsed ? "left-12" : "left-60"
         }`}
       >
