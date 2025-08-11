@@ -3,6 +3,8 @@ import { HttpError } from "../errors"
 import { formatBudget, formatBudgetCategories } from "../db/converter"
 import type { PrismaClientTx } from "../prisma"
 import type { UpdateBudgetCategoryData } from "../data-hooks/budgets/useBudgetCategories"
+import type { z } from "zod"
+import type { createBudgetSchema } from "../api-schemas/budgets"
 
 export interface CreateBudgetData {
   name: string
@@ -11,7 +13,11 @@ export interface CreateBudgetData {
   startAt: string
   endAt: string
   isRecurring: boolean
-  categoryAllocations?: Record<string, number>
+  categoryAllocations?: Array<{
+    name: string
+    group: CategoryType
+    allocatedAmount: number
+  }>
   incomes: Array<{
     amount: number
     source: string
@@ -28,7 +34,11 @@ export interface UpdateBudgetData {
   startAt?: string
   endAt?: string
   isRecurring?: boolean
-  categoryAllocations?: Record<string, number>
+  categoryAllocations?: Array<{
+    name: string
+    group: CategoryType
+    allocatedAmount: number
+  }>
   income?: {
     amount: number
     source: string
@@ -112,7 +122,7 @@ if (!budget) {
 
 export async function createBudget(
   tx: PrismaClientTx,
-  data: CreateBudgetData,
+  data: z.infer<typeof createBudgetSchema>,
   user: User & { accountId: string }
 ) {
   // Create the budget
@@ -146,16 +156,29 @@ export async function createBudget(
   }
 
   // Create budget category allocations
-  if (data.categoryAllocations) {
-    const budgetCategories = Object.entries(data.categoryAllocations).map(([categoryId, allocatedAmount]) => ({
+  if (data.categoryAllocations && data.categoryAllocations.length > 0) {
+    // Create categories first
+    const createdCategories = await Promise.all(
+      data.categoryAllocations.map(async ({ name, group }) => {
+        return await tx.category.create({
+          data: {
+            name,
+            group,
+          },
+        });
+      })
+    );
+
+    // Create budget category allocations using the created category IDs
+    const budgetCategories = data.categoryAllocations.map(({ allocatedAmount }, index) => ({
       budgetId: budget.id,
-      categoryId,
+      categoryId: createdCategories[index]!.id,
       allocatedAmount,
-    }))
+    }));
 
     await tx.budgetCategory.createMany({
       data: budgetCategories,
-    })
+    });
   }
 
   return budget
@@ -213,18 +236,47 @@ export async function updateBudget(
       data: {
         deleted: new Date(),
       },
-    })
+    });
 
     // Create new allocations
-    const budgetCategories = Object.entries(data.categoryAllocations).map(([categoryId, allocatedAmount]) => ({
-      budgetId: id,
-      categoryId,
-      allocatedAmount,
-    }))
+    if (data.categoryAllocations.length > 0) {
+      // Create categories first if they don't exist
+      const createdCategories = await Promise.all(
+        data.categoryAllocations.map(async ({ name, group }) => {
+          // Check if category already exists
+          const existingCategory = await tx.category.findFirst({
+            where: {
+              name,
+              group,
+              deleted: null,
+            },
+          });
 
-    await tx.budgetCategory.createMany({
-      data: budgetCategories,
-    })
+          if (existingCategory) {
+            return existingCategory;
+          }
+
+          // Create new category if it doesn't exist
+          return await tx.category.create({
+            data: {
+              name,
+              group,
+            },
+          });
+        })
+      );
+
+      // Create budget category allocations using the category IDs
+      const budgetCategories = data.categoryAllocations.map(({ allocatedAmount }, index) => ({
+        budgetId: id,
+        categoryId: createdCategories[index]!.id,
+        allocatedAmount,
+      }));
+
+      await tx.budgetCategory.createMany({
+        data: budgetCategories,
+      });
+    }
   }
 
   return budget

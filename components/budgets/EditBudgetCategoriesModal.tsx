@@ -145,15 +145,17 @@ export default function EditBudgetCategoriesModal({
 
     setIsSubmitting(true);
     try {
-      const categoryAllocationsMap: Record<string, number> = {};
-      categoryAllocations.forEach((cat) => {
-        categoryAllocationsMap[cat.categoryId] = cat.allocatedAmount;
-      });
+      // Transform categoryAllocations to the new format expected by the API
+      const transformedCategoryAllocations = categoryAllocations.map((cat) => ({
+        name: cat.name,
+        group: cat.group,
+        allocatedAmount: cat.allocatedAmount,
+      }));
 
       await updateBudgetMutation.mutateAsync({
         id: budget.id,
         data: {
-          categoryAllocations: categoryAllocationsMap,
+          categoryAllocations: transformedCategoryAllocations,
         },
       });
 

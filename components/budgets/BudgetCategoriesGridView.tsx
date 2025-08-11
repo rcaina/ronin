@@ -46,6 +46,15 @@ export default function BudgetCategoriesGridView({
   const updateBudgetCategoryMutation = useUpdateBudgetCategory();
   const scrollContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  // Define the three main category groups that should always be shown
+  const mainGroups = ["needs", "wants", "investment"];
+
+  // Ensure all main groups are present in categoriesByGroup, even if empty
+  const displayCategoriesByGroup = mainGroups.reduce((acc, group) => {
+    acc[group] = categoriesByGroup[group] ?? [];
+    return acc;
+  }, {} as CategoriesByGroup);
+
   // Check if content is scrollable and show/hide shadow accordingly
   useEffect(() => {
     const checkScrollable = () => {
@@ -186,7 +195,7 @@ export default function BudgetCategoriesGridView({
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {Object.entries(categoriesByGroup).map(([group, categories]) => (
+      {Object.entries(displayCategoriesByGroup).map(([group, categories]) => (
         <div
           key={group}
           className="flex h-[400px] flex-col sm:h-[500px] md:h-[600px]"
@@ -203,7 +212,7 @@ export default function BudgetCategoriesGridView({
                 {getGroupLabel(group)}
               </h3>
               <span className="ml-2 text-sm text-gray-500">
-                ({categories?.length})
+                ({categories?.length ?? 0})
               </span>
             </div>
             <div className="flex items-center">
@@ -247,6 +256,17 @@ export default function BudgetCategoriesGridView({
                   );
                 },
               )}
+
+              {/* Show empty state message when no categories in this group */}
+              {(!categories || categories.length === 0) &&
+                !(isAddingCategory && activeGroup === group) && (
+                  <div className="flex h-32 items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50">
+                    <div className="text-center text-sm text-gray-500">
+                      <p>No categories yet</p>
+                      <p>Click the + button to add one</p>
+                    </div>
+                  </div>
+                )}
             </div>
 
             {/* Scroll Shadow Indicator */}
