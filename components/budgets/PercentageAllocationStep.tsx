@@ -50,18 +50,16 @@ export default function PercentageAllocationStep({
   }, 0);
 
   // Group categories by type
-  const categoriesByGroup = selectedCategories
-    .filter((cat) => cat.isSelected)
-    .reduce(
-      (acc, category) => {
-        if (!acc[category.group]) {
-          acc[category.group] = [];
-        }
-        acc[category.group].push(category);
-        return acc;
-      },
-      {} as Record<CategoryType, CategoryAllocation[]>,
-    );
+  const categoriesByGroup = selectedCategories.reduce(
+    (acc, category) => {
+      if (!acc[category.group]) {
+        acc[category.group] = [];
+      }
+      acc[category.group].push(category);
+      return acc;
+    },
+    {} as Record<CategoryType, CategoryAllocation[]>,
+  );
 
   const getCategoryGroupIcon = (group: CategoryType) => {
     switch (group) {
@@ -90,9 +88,10 @@ export default function PercentageAllocationStep({
   };
 
   // Calculate total allocated amount
-  const totalAllocated = selectedCategories
-    .filter((cat) => cat.isSelected)
-    .reduce((sum, cat) => sum + cat.allocatedAmount, 0);
+  const totalAllocated = selectedCategories.reduce(
+    (sum, cat) => sum + cat.allocatedAmount,
+    0,
+  );
 
   const allocationRemaining = totalIncome - totalAllocated;
 
@@ -112,114 +111,132 @@ export default function PercentageAllocationStep({
         </div>
       </div>
 
-      {/* Categories grouped by type */}
-      <div className="space-y-6">
-        {Object.entries(categoriesByGroup).map(([group, categories]) => {
-          const categoryType = group as CategoryType;
-          const percentage = PERCENTAGE_RULE[categoryType];
-          const recommendedGroupTotal = totalIncome * percentage;
-          const groupAllocated = categories.reduce(
-            (sum, cat) => sum + cat.allocatedAmount,
-            0,
-          );
-          const isOverBudget = groupAllocated > recommendedGroupTotal;
+      {selectedCategories.length === 0 ? (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
+          <div className="mx-auto mb-4 h-12 w-12 text-gray-400">
+            <TrendingUp className="h-12 w-12" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900">
+            No Categories to Allocate
+          </h3>
+          <p className="mt-2 text-sm text-gray-500">
+            You haven&apos;t added any spending categories yet. You can add
+            categories in the previous step, or create your budget without
+            categories and add them later from your budget settings.
+          </p>
+        </div>
+      ) : (
+        /* Categories grouped by type */
+        <div className="space-y-6">
+          {Object.entries(categoriesByGroup).map(([group, categories]) => {
+            const categoryType = group as CategoryType;
+            const percentage = PERCENTAGE_RULE[categoryType];
+            const recommendedGroupTotal = totalIncome * percentage;
+            const groupAllocated = categories.reduce(
+              (sum, cat) => sum + cat.allocatedAmount,
+              0,
+            );
+            const isOverBudget = groupAllocated > recommendedGroupTotal;
 
-          return (
-            <div key={group} className="space-y-4">
-              {/* Group header */}
-              <div
-                className={`flex items-center justify-between rounded-lg p-4 ${
-                  isOverBudget
-                    ? "border border-red-200 bg-red-50"
-                    : "bg-gray-50"
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  {getCategoryGroupIcon(categoryType)}
-                  <div>
-                    <div className="font-medium text-gray-900">
-                      {getGroupLabel(categoryType)}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-sm">
-                  Amount to allocate: ${recommendedGroupTotal.toLocaleString()}{" "}
-                  ({(percentage * 100).toFixed(0)}%)
-                </div>
-              </div>
-
-              {/* Categories in this group */}
-              <div className="space-y-3">
-                {categories.map((category) => (
-                  <div
-                    key={category.categoryId}
-                    className="flex items-center justify-between rounded-lg border p-4"
-                  >
-                    <div className="flex items-center space-x-3">
-                      {getCategoryGroupIcon(category.group)}
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {category.name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {category.group}
-                        </div>
+            return (
+              <div key={group} className="space-y-4">
+                {/* Group header */}
+                <div
+                  className={`flex items-center justify-between rounded-lg p-4 ${
+                    isOverBudget
+                      ? "border border-red-200 bg-red-50"
+                      : "bg-gray-50"
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    {getCategoryGroupIcon(categoryType)}
+                    <div>
+                      <div className="font-medium text-gray-900">
+                        {getGroupLabel(categoryType)}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-500">$</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={
-                          category.allocatedAmount === 0
-                            ? ""
-                            : category.allocatedAmount
-                        }
-                        onChange={(e) =>
-                          onAllocationChange(
-                            category.categoryId,
-                            parseFloat(e.target.value) || 0,
-                          )
-                        }
-                        className="w-24 rounded-md border border-gray-300 px-2 py-1 text-right text-sm focus:border-secondary focus:outline-none focus:ring-secondary"
-                      />
+                  </div>
+                  <div className="text-sm">
+                    Amount to allocate: $
+                    {recommendedGroupTotal.toLocaleString()} (
+                    {(percentage * 100).toFixed(0)}%)
+                  </div>
+                </div>
+
+                {/* Categories in this group */}
+                <div className="space-y-3">
+                  {categories.map((category) => (
+                    <div
+                      key={category.categoryId}
+                      className="flex items-center justify-between rounded-lg border p-4"
+                    >
+                      <div className="flex items-center space-x-3">
+                        {getCategoryGroupIcon(category.group)}
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {category.name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {category.group}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-500">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={
+                            category.allocatedAmount === 0
+                              ? ""
+                              : category.allocatedAmount
+                          }
+                          onChange={(e) =>
+                            onAllocationChange(
+                              category.categoryId,
+                              parseFloat(e.target.value) || 0,
+                            )
+                          }
+                          className="w-24 rounded-md border border-gray-300 px-2 py-1 text-right text-sm focus:border-secondary focus:outline-none focus:ring-secondary"
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-              <div className="text-right">
-                <div
-                  className={`text-sm font-medium ${
-                    isOverBudget ? "text-red-900" : "text-gray-900"
-                  }`}
-                >
-                  Amount allocated: ${groupAllocated.toLocaleString()}
+                  ))}
                 </div>
-                <div
-                  className={`text-sm ${
-                    isOverBudget ? "text-red-600" : "text-gray-500"
-                  }`}
-                >
-                  {recommendedGroupTotal > 0
-                    ? ((groupAllocated / recommendedGroupTotal) * 100).toFixed(
-                        1,
-                      )
-                    : 0}
-                  %
-                </div>
-                {isOverBudget && (
-                  <div className="mt-1 flex items-center space-x-1 text-xs text-red-600">
-                    <AlertTriangle className="h-3 w-3" />
-                    <span>Over recommended budget</span>
+                <div className="text-right">
+                  <div
+                    className={`text-sm font-medium ${
+                      isOverBudget ? "text-red-900" : "text-gray-900"
+                    }`}
+                  >
+                    Amount allocated: ${groupAllocated.toLocaleString()}
                   </div>
-                )}
+                  <div
+                    className={`text-sm ${
+                      isOverBudget ? "text-red-600" : "text-gray-500"
+                    }`}
+                  >
+                    {recommendedGroupTotal > 0
+                      ? (
+                          (groupAllocated / recommendedGroupTotal) *
+                          100
+                        ).toFixed(1)
+                      : 0}
+                    %
+                  </div>
+                  {isOverBudget && (
+                    <div className="mt-1 flex items-center space-x-1 text-xs text-red-600">
+                      <AlertTriangle className="h-3 w-3" />
+                      <span>Over recommended budget</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Summary */}
       <div className="rounded-lg bg-gray-50 p-4">

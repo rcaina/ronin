@@ -1,4 +1,4 @@
-import { PeriodType, StrategyType } from "@prisma/client"
+import { PeriodType, StrategyType, CategoryType } from "@prisma/client"
 import { z } from "zod"
 
 export const createBudgetSchema = z.object({
@@ -24,7 +24,11 @@ export const createBudgetSchema = z.object({
       return val;
     })
     .pipe(z.string().datetime("Invalid end date format")),
-  categoryAllocations: z.record(z.string(), z.coerce.number()).optional(),
+  categoryAllocations: z.array(z.object({
+    name: z.string().min(1, "Category name is required"),
+    group: z.nativeEnum(CategoryType),
+    allocatedAmount: z.coerce.number().min(0, "Allocated amount must be non-negative"),
+  })).optional(),
   incomes: z.array(z.object({
     amount: z.coerce.number().positive("Income amount must be positive"),
     source: z.string().min(1, "Income source is required"),

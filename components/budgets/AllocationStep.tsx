@@ -3,7 +3,7 @@
 import { DollarSign, ShoppingBag, TrendingUp, Target } from "lucide-react";
 import { CategoryType, type PeriodType } from "@prisma/client";
 import type { CategoryAllocation } from "./types";
-import { calculateAdjustedIncome } from "@/lib/utils";
+import { calculateAdjustedIncome, getCategoryGroupColor } from "@/lib/utils";
 
 interface IncomeEntry {
   id: string;
@@ -50,29 +50,45 @@ export default function AllocationStep({
     return sum + adjustedAmount;
   }, 0);
 
-  const totalAllocated = selectedCategories
-    .filter((cat) => cat.isSelected)
-    .reduce((sum, cat) => sum + cat.allocatedAmount, 0);
+  const totalAllocated = selectedCategories.reduce(
+    (sum, cat) => sum + cat.allocatedAmount,
+    0,
+  );
 
   const allocationRemaining = totalIncome - totalAllocated;
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        {selectedCategories
-          .filter((cat) => cat.isSelected)
-          .map((category) => (
+      {selectedCategories.length === 0 ? (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
+          <div className="mx-auto mb-4 h-12 w-12 text-gray-400">
+            <DollarSign className="h-12 w-12" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900">
+            No Categories to Allocate
+          </h3>
+          <p className="mt-2 text-sm text-gray-500">
+            You haven&apos;t added any spending categories yet. You can add
+            categories in the previous step, or create your budget without
+            categories and add them later from your budget settings.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {selectedCategories.map((category) => (
             <div
               key={category.categoryId}
               className="flex items-center justify-between rounded-lg border p-4"
             >
               <div className="flex items-center space-x-3">
                 {getCategoryGroupIcon(category.group)}
-                <div>
-                  <div className="font-medium text-gray-900">
-                    {category.name}
-                  </div>
-                  <div className="text-sm text-gray-500">{category.group}</div>
+                <div className="font-medium text-gray-900">{category.name}</div>
+                <div
+                  className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${getCategoryGroupColor(
+                    category.group,
+                  )}`}
+                >
+                  {category.group}
                 </div>
               </div>
               <div className="flex items-center space-x-2">
@@ -93,7 +109,8 @@ export default function AllocationStep({
               </div>
             </div>
           ))}
-      </div>
+        </div>
+      )}
 
       <div className="rounded-lg bg-gray-50 p-4">
         <div className="mt-2 flex items-center justify-between text-sm">

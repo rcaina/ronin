@@ -15,7 +15,6 @@ export interface CategoryAllocation {
   name: string;
   group: CategoryType;
   allocatedAmount: number;
-  isSelected: boolean;
 }
 
 export interface IncomeEntry {

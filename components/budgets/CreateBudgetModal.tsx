@@ -6,10 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { X } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { useCategories } from "@/lib/data-hooks/categories/useCategories";
 import { useCreateBudget } from "@/lib/data-hooks/budgets/useBudgets";
-import { StrategyType, PeriodType } from "@prisma/client";
-import type { Category } from "@prisma/client";
+import { StrategyType, PeriodType, type CategoryType } from "@prisma/client";
 import { calculateAdjustedIncome } from "@/lib/utils";
 
 // Import components
@@ -180,7 +178,6 @@ export default function CreateBudgetModal({
   onClose,
   onSuccess,
 }: CreateBudgetModalProps) {
-  const { data: categories, isLoading: categoriesLoading } = useCategories();
   const createBudgetMutation = useCreateBudget();
   const [selectedCategories, setSelectedCategories] = useState<
     CategoryAllocation[]
@@ -283,30 +280,31 @@ export default function CreateBudgetModal({
     }
   };
 
-  // Initialize categories when data loads
+  // Start with no categories selected
   useEffect(() => {
-    if (categories && Object.values(categories).flat().length > 0) {
-      const allCategories = Object.values(categories).flat() as Category[];
-      const categoryAllocations: CategoryAllocation[] = allCategories.map(
-        (category) => ({
-          categoryId: category.id,
-          name: category.name,
-          group: category.group,
-          allocatedAmount: 0,
-          isSelected: true, // Default to selected
-        }),
-      );
-      setSelectedCategories(categoryAllocations);
-    }
-  }, [categories]);
+    setSelectedCategories([]);
+  }, []);
 
-  const handleCategoryToggle = (categoryId: string) => {
+  const handleAddCategory = (category: {
+    name: string;
+    group: CategoryType;
+  }) => {
+    // Generate a unique ID for the new category
+    const newId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    setSelectedCategories((prev) => [
+      ...prev,
+      {
+        categoryId: newId,
+        name: category.name,
+        group: category.group,
+        allocatedAmount: 0,
+      },
+    ]);
+  };
+
+  const handleRemoveCategory = (categoryId: string) => {
     setSelectedCategories((prev) =>
-      prev.map((cat) =>
-        cat.categoryId === categoryId
-          ? { ...cat, isSelected: !cat.isSelected }
-          : cat,
-      ),
+      prev.filter((cat) => cat.categoryId !== categoryId),
     );
   };
 
@@ -339,22 +337,8 @@ export default function CreateBudgetModal({
 
   const resetModal = () => {
     reset();
-    // Reset categories to all selected by default
-    if (categories && Object.values(categories).flat().length > 0) {
-      const allCategories = Object.values(categories).flat() as Category[];
-      const categoryAllocations: CategoryAllocation[] = allCategories.map(
-        (category) => ({
-          categoryId: category.id,
-          name: category.name,
-          group: category.group,
-          allocatedAmount: 0,
-          isSelected: true, // Default to selected
-        }),
-      );
-      setSelectedCategories(categoryAllocations);
-    } else {
-      setSelectedCategories([]);
-    }
+    // Reset categories to empty
+    setSelectedCategories([]);
     setIncomeEntries([
       {
         id: "1",
@@ -408,12 +392,12 @@ export default function CreateBudgetModal({
 
   const onSubmit = async (data: CreateBudgetFormData) => {
     try {
-      const categoryAllocations: Record<string, number> = {};
-      selectedCategories
-        .filter((cat) => cat.isSelected)
-        .forEach((cat) => {
-          categoryAllocations[cat.categoryId] = cat.allocatedAmount;
-        });
+      // Transform selectedCategories to the format expected by the API
+      const categoryAllocations = selectedCategories.map((cat) => ({
+        name: cat.name,
+        group: cat.group,
+        allocatedAmount: cat.allocatedAmount,
+      }));
 
       // Convert income entries to the format expected by the API
       const incomes = incomeEntries.map((entry) => ({
@@ -451,13 +435,20 @@ export default function CreateBudgetModal({
   };
 
   const isCategoriesStepValid = () => {
-    return selectedCategories.filter((c) => c.isSelected).length > 0;
+    // Allow users to proceed without categories
+    return true;
   };
 
   const isAllocationStepValid = () => {
-    const totalAllocated = selectedCategories
-      .filter((cat) => cat.isSelected)
-      .reduce((sum, cat) => sum + cat.allocatedAmount, 0);
+    // If no categories, allocation is always valid
+    if (selectedCategories.length === 0) {
+      return true;
+    }
+
+    const totalAllocated = selectedCategories.reduce(
+      (sum, cat) => sum + cat.allocatedAmount,
+      0,
+    );
 
     // Calculate adjusted total income
     const adjustedTotalIncome = incomeEntries.reduce((sum, entry) => {
@@ -497,8 +488,9 @@ export default function CreateBudgetModal({
               {currentStep === "basic" && "Set up your budget basics"}
               {currentStep === "income" && "Set up your income"}
               {currentStep === "categories" &&
-                "Select spending categories. You can also add, edit, or remove categories later from your budget settings."}
-              {currentStep === "allocation" && "Allocate funds to categories"}
+                "Create your own spending categories (optional). You can organize them by needs, wants, or investments."}
+              {currentStep === "allocation" &&
+                "Allocate funds to categories (optional)"}
             </p>
           </div>
           <button
@@ -556,10 +548,9 @@ export default function CreateBudgetModal({
 
                 {currentStep === "categories" && (
                   <CategoriesStep
-                    categories={categories}
-                    categoriesLoading={categoriesLoading}
                     selectedCategories={selectedCategories}
-                    onCategoryToggle={handleCategoryToggle}
+                    onAddCategory={handleAddCategory}
+                    onRemoveCategory={handleRemoveCategory}
                   />
                 )}
 

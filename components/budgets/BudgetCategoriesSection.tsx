@@ -92,6 +92,7 @@ export default function BudgetCategoriesSection({
           categoriesByGroup={categoriesByGroup}
           getGroupColor={getGroupColor}
           getGroupLabel={getGroupLabel}
+          onRefetch={onRefetch}
         />
       )}
     </div>
