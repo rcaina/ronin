@@ -1,4 +1,4 @@
-import type { Transaction, BudgetCategory, Budget } from "@prisma/client";
+import type { Transaction, BudgetCategory, Budget, Category } from "@prisma/client";
 import type { CreateTransactionSchema, UpdateTransactionSchema } from "@/lib/api-schemas/transactions";
 
 // Re-export schema types for convenience
@@ -16,12 +16,8 @@ export interface UpdateTransactionRequest extends Omit<UpdateTransactionSchema, 
 
 // Transaction with relations type
 export type TransactionWithRelations = Transaction & {
-  category?: BudgetCategory & {
-    category: {
-      id: string;
-      name: string;
-      group: string;
-    };
-  };
+  category: BudgetCategory & {
+    category: Category;
+  } | null;
   Budget?: Budget;
 }; 

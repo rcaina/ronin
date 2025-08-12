@@ -13,11 +13,6 @@ import {
 } from "lucide-react";
 import { useMainNav } from "@/components/ConditionalLayout";
 
-interface BudgetSideNavProps {
-  isCollapsed: boolean;
-  setIsCollapsed: (collapsed: boolean) => void;
-}
-
 interface BudgetNavItem {
   href: string;
   icon: React.ReactNode;

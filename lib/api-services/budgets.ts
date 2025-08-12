@@ -1,4 +1,4 @@
-import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category, type Budget, TransactionType, CategoryType } from "@prisma/client"
+import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category, type Budget, TransactionType, CategoryType, type Transaction } from "@prisma/client"
 import { HttpError } from "../errors"
 import { formatBudget, formatBudgetCategories } from "../db/converter"
 import type { PrismaClientTx } from "../prisma"
@@ -51,7 +51,14 @@ export interface UpdateBudgetData {
 export type BudgetCategories = (BudgetCategory & { 
   category: Category, 
   spentAmount: number,
-  transactions?: undefined 
+  transactions: Array<{
+    id: string;
+    name: string | null;
+    description: string | null;
+    amount: number;
+    transactionType: TransactionType;
+    createdAt: string;
+  }>;
 })[]
 
 export async function getBudgetById(
@@ -509,8 +516,12 @@ export const getBudgetCategories = async (
           deleted: null,
         },
         select: {
+          id: true,
+          name: true,
+          description: true,
           amount: true,
           transactionType: true,
+          createdAt: true,
         },
       },
     },
@@ -529,7 +540,7 @@ export const createBudgetCategory = async (
   budgetId: string,
   data: {
     categoryName: string;
-    group: "needs" | "wants" | "investment";
+    group: CategoryType;
     allocatedAmount: number;
   },
   user: User & { accountId: string }
@@ -547,14 +558,7 @@ export const createBudgetCategory = async (
     throw new HttpError("Budget not found", 404);
   }
 
-  // Convert group to CategoryType enum
-  const groupToCategoryType = {
-    needs: CategoryType.NEEDS,
-    wants: CategoryType.WANTS,
-    investment: CategoryType.INVESTMENT,
-  };
-
-  const categoryType = groupToCategoryType[data.group];
+  const categoryType = data.group;
 
     // Create the category template first
     const category = await tx.category.create({
@@ -636,6 +640,34 @@ export const updateBudgetCategory = async (
   }
   if (data.categoryId) {
     updateData.categoryId = data.categoryId;
+  }
+
+  // If updating group, we need to update the associated category template
+  if (data.group) {
+    const budgetCategory = await tx.budgetCategory.findFirst({
+      where: {
+        id: categoryId,
+        budgetId: budgetId,
+        deleted: null,
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    if (!budgetCategory) {
+      throw new HttpError("Budget category not found", 404);
+    }
+
+    // Update the category template group
+    await tx.category.update({
+      where: {
+        id: budgetCategory.categoryId,
+      },
+      data: {
+        group: data.group,
+      },
+    });
   }
 
   // If updating category name, update the associated category template
@@ -726,4 +758,24 @@ export const deleteBudgetCategory = async (
   });
 
   return budgetCategory;
-}
+};
+
+export const getBudgetTransactions = async (
+  tx: PrismaClient,
+  budgetId: string,
+): Promise<(Transaction & { category: (BudgetCategory & { category: Category }) | null, Budget: Budget })[]> => {
+  return await tx.transaction.findMany({
+    where: { budgetId: budgetId, deleted: null },
+    include: {
+      category: {
+        include:{
+          category: true,
+        }
+      },
+      Budget: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};

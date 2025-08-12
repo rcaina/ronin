@@ -17,7 +17,7 @@ export const formatBudget = (budget: Budget & { categories: (BudgetCategory & { 
   };
 };
 
-export const formatBudgetCategories = (budgetCategories: (BudgetCategory & { category: Category, transactions: { amount: number, transactionType: TransactionType }[] })[]) => {
+export const formatBudgetCategories = (budgetCategories: (BudgetCategory & { category: Category, transactions: { id: string; name: string | null; description: string | null; amount: number, transactionType: TransactionType; createdAt: Date }[] })[]) => {
   // Calculate spent amount for each budget category
   return budgetCategories.map(budgetCategory => ({
     ...budgetCategory,
@@ -30,6 +30,14 @@ export const formatBudgetCategories = (budgetCategories: (BudgetCategory & { cat
         return sum + (transaction.amount || 0);
       }
     }, 0) || 0,
-    transactions: undefined, // Remove transactions from response
+    // Keep transactions for UI display
+    transactions: budgetCategory.transactions.map(transaction => ({
+      id: transaction.id,
+      name: transaction.name,
+      description: transaction.description,
+      amount: transaction.amount,
+      transactionType: transaction.transactionType,
+      createdAt: transaction.createdAt.toISOString(),
+    })),
   }));
 };

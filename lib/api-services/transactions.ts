@@ -2,11 +2,10 @@ import {  type User, TransactionType } from "@prisma/client"
 import type { CreateTransactionSchema, UpdateTransactionSchema, CreateCardPaymentSchema } from "@/lib/api-schemas/transactions"
 import type { PrismaClientTx } from "../prisma"
 
-export async function getTransactions(
+export const getTransactions = async (
   tx: PrismaClientTx,
   accountId: string
-) {
-  return await tx.transaction.findMany({
+  ) =>  await tx.transaction.findMany({
     where: {
       accountId,
       deleted: null,
@@ -23,7 +22,6 @@ export async function getTransactions(
       createdAt: "desc",
     },
   })
-}
 
 export const createTransaction = async (
   tx: PrismaClientTx,
