@@ -554,6 +554,7 @@ const BudgetCardsPage = () => {
         <CardPaymentModal
           isOpen={showCardPaymentModal}
           onClose={() => setShowCardPaymentModal(false)}
+          budgetId={budgetId}
         />
       )}
     </div>

@@ -474,6 +474,7 @@ const BudgetDetailsPage = () => {
           isOpen={isCardPaymentOpen}
           onClose={() => setIsCardPaymentOpen(false)}
           onSuccess={handleCardPaymentSuccess}
+          budgetId={id as string}
         />
       )}
     </div>

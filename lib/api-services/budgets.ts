@@ -1,4 +1,4 @@
-import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category, type Budget, TransactionType, CategoryType, type Transaction, type Card, CardType } from "@prisma/client"
+import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category, type Budget, TransactionType, type CategoryType, type Transaction, type Card, CardType } from "@prisma/client"
 import { HttpError } from "../errors"
 import { formatBudget, formatBudgetCategories } from "../db/converter"
 import type { PrismaClientTx } from "../prisma"
