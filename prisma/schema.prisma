@@ -40,7 +40,6 @@ model AccountUser {
 
     @@index([accountId])
     @@index([userId])
-    @@map("account_users")
 }
 
 model User {
@@ -136,7 +135,6 @@ model Income {
     deleted     DateTime?
 
     @@index([id])
-    @@map("incomes")
 }
 
 model Category {
@@ -168,7 +166,6 @@ model BudgetCategory {
 
     @@index([id])
     @@index([deleted])
-    @@map("budget_categories")
 }
 
 model Card {
@@ -187,7 +184,6 @@ model Card {
     updatedAt     DateTime      @updatedAt
 
     @@index([id])
-    @@map("cards")
 }
 
 model Transaction {

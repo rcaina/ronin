@@ -17,7 +17,6 @@ import type {
   GroupColorFunction,
   GroupLabelFunction,
 } from "@/lib/types/budget";
-import type { GroupedCategories } from "@/lib/data-hooks/services/categories";
 import { CategoryType } from "@prisma/client";
 
 interface BudgetCategoriesGridViewProps {
@@ -167,10 +166,6 @@ export default function BudgetCategoriesGridView({
     if (draggedBudgetCategory.category.group === targetGroup) {
       return;
     }
-
-    // Find a category template in the target group with the same name
-    const targetGroupKey = targetGroup as keyof GroupedCategories;
-    const targetCategories = categories[targetGroupKey] || [];
 
     try {
       // Update the budget category to use the new category template

@@ -10,10 +10,7 @@ import {
 } from "@/lib/data-hooks/transactions/useTransactions";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import {
-  TrendingUp,
-  TrendingDown,
   DollarSign,
-  Calendar,
   Search,
   AlertCircle,
   Copy,
@@ -33,7 +30,6 @@ import InlineTransactionEdit from "@/components/transactions/InlineTransactionEd
 
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
-import StatsCard from "@/components/StatsCard";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { TransactionType } from "@prisma/client";
 
@@ -67,33 +63,6 @@ const BudgetTransactionsPage = () => {
     new Set(),
   );
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
-
-  // Calculate transaction statistics for this budget
-  const stats = useMemo(() => {
-    const totalTransactions = transactions.length;
-    const totalAmount =
-      transactions?.reduce((sum, t) => sum + t.amount, 0) ?? 0;
-    const averageAmount =
-      totalTransactions > 0 ? totalAmount / totalTransactions : 0;
-    const thisMonth = new Date().getMonth();
-    const thisYear = new Date().getFullYear();
-    const thisMonthTransactions = transactions.filter((t) => {
-      const date = new Date(t.createdAt);
-      return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
-    });
-    const thisMonthAmount = thisMonthTransactions?.reduce(
-      (sum, t) => sum + t.amount,
-      0,
-    );
-
-    return {
-      totalTransactions,
-      totalAmount,
-      averageAmount,
-      thisMonthTransactions: thisMonthTransactions.length,
-      thisMonthAmount,
-    };
-  }, [transactions]);
 
   // Filter and sort transactions
   const filteredAndSortedTransactions = useMemo(() => {
@@ -230,7 +199,7 @@ const BudgetTransactionsPage = () => {
   ) => {
     try {
       // Don't allow copying card payment transactions
-      if (transaction.transactionType === "CARD_PAYMENT") {
+      if (transaction.transactionType === TransactionType.CARD_PAYMENT) {
         toast.error("Card payment transactions cannot be copied.");
         return;
       }
@@ -257,7 +226,7 @@ const BudgetTransactionsPage = () => {
 
   const handleEditTransaction = (transaction: TransactionWithRelations) => {
     // Check if this is a card payment transaction
-    if (transaction.transactionType === "CARD_PAYMENT") {
+    if (transaction.transactionType === TransactionType.CARD_PAYMENT) {
       toast.error(
         "Card payment transactions cannot be edited. Please delete and recreate if needed.",
       );

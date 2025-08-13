@@ -56,39 +56,57 @@ const CardComponent = ({
           </div>
           <div className="flex items-center gap-2">
             <button
-              className="rounded-md p-1 opacity-0 transition-opacity hover:bg-white/20 group-hover:opacity-100"
+              className={`rounded-md p-1 transition-opacity ${
+                canEdit
+                  ? "opacity-0 hover:bg-white/20 group-hover:opacity-100"
+                  : "cursor-not-allowed opacity-50"
+              }`}
               onClick={(e) => {
                 e.stopPropagation();
-                onCopy?.(card);
+                if (canEdit) {
+                  onCopy?.(card);
+                }
               }}
-              title="Copy"
+              title={canEdit ? "Copy" : "Only owner can edit"}
+              disabled={!canEdit}
             >
               <CopyIcon className="h-4 w-4" />
             </button>
-            {canEdit && (
-              <>
-                <button
-                  className="rounded-md p-1 opacity-0 transition-opacity hover:bg-white/20 group-hover:opacity-100"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit?.(card);
-                  }}
-                  title="Edit"
-                >
-                  <Edit className="h-4 w-4" />
-                </button>
-                <button
-                  className="rounded-md p-1 text-red-300 opacity-0 transition-opacity hover:bg-white/20 hover:text-red-500 group-hover:opacity-100"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete?.(card);
-                  }}
-                  title="Delete card"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </>
-            )}
+
+            <button
+              className={`rounded-md p-1 transition-opacity ${
+                canEdit
+                  ? "opacity-0 hover:bg-white/20 group-hover:opacity-100"
+                  : "cursor-not-allowed opacity-50"
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (canEdit) {
+                  onEdit?.(card);
+                }
+              }}
+              title={canEdit ? "Edit" : "Only owner can edit"}
+              disabled={!canEdit}
+            >
+              <Edit className="h-4 w-4" />
+            </button>
+            <button
+              className={`rounded-md p-1 text-red-300 transition-opacity ${
+                canEdit
+                  ? "opacity-0 hover:bg-white/20 hover:text-red-500 group-hover:opacity-100"
+                  : "cursor-not-allowed opacity-50"
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (canEdit) {
+                  onDelete?.(card);
+                }
+              }}
+              title={canEdit ? "Delete card" : "Only owner can edit"}
+              disabled={!canEdit}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
           </div>
         </div>
 

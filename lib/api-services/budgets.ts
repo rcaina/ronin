@@ -1,4 +1,4 @@
-import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category, type Budget, TransactionType, CategoryType, type Transaction } from "@prisma/client"
+import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category, type Budget, TransactionType, CategoryType, type Transaction, type Card, CardType } from "@prisma/client"
 import { HttpError } from "../errors"
 import { formatBudget, formatBudgetCategories } from "../db/converter"
 import type { PrismaClientTx } from "../prisma"
@@ -779,3 +779,82 @@ export const getBudgetTransactions = async (
     },
   });
 };
+
+export const getBudgetCards = async (
+  tx: PrismaClient,
+  budgetId: string,
+): Promise<Card[]> => {
+  const cards = await tx.card.findMany({
+    where: {
+      budgetId: budgetId,
+      deleted: null,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+      transactions: {
+        where: {
+          deleted: null,
+          ...({
+            transactionType: {
+              not: TransactionType.CARD_PAYMENT
+            }
+          }),
+        },
+        select: {
+          amount: true,
+          transactionType: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Calculate amountSpent for each card by summing related transactions
+  const cardsWithAmountSpent = cards.map(card => {
+    const isCreditCard = card.cardType === CardType.CREDIT || card.cardType === CardType.BUSINESS_CREDIT;
+    
+    let amountSpent = 0;
+    if (isCreditCard) {
+      // For credit cards: handle regular transactions and card payments differently
+      amountSpent = card.transactions.reduce((sum, transaction) => {
+        if (transaction.transactionType === TransactionType.CARD_PAYMENT) {
+          // Card payments reduce the balance (positive amount = payment received)
+          return sum - transaction.amount; // Subtract payment amount (reduces balance)
+        } else if (transaction.transactionType === TransactionType.RETURN) {
+          // Returns reduce the balance (positive amount = refund received)
+          return sum - transaction.amount; // Subtract return amount (reduces balance)
+        } else {
+          // Regular transactions: positive = purchases (increase balance)
+          return sum + transaction.amount;
+        }
+      }, 0);
+    } else {
+      // For debit/cash cards: sum all amounts normally
+      amountSpent = card.transactions.reduce((sum, transaction) => {
+        if (transaction.transactionType === TransactionType.RETURN) {
+          // Returns reduce the balance (positive amount = refund received)
+          return sum - transaction.amount; // Subtract return amount (reduces balance)
+        } else {
+          // Regular transactions: positive = purchases (increase balance)
+          return sum + transaction.amount;
+        }
+      }, 0);
+    }
+    
+    return {
+      ...card,
+      amountSpent,
+      transactions: undefined, // Remove transactions from response
+    };
+  });
+
+  return cardsWithAmountSpent;
+}
+    

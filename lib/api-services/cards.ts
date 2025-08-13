@@ -179,12 +179,25 @@ export async function createCard(
   data: z.infer<typeof createCardSchema>,
   user: User & { accountId: string }
 ) {
+  // Verify that the requested userId belongs to the same account
+  const accountUser = await tx.accountUser.findFirst({
+    where: {
+      accountId: user.accountId,
+      userId: data.userId,
+    },
+  });
+
+  if (!accountUser) {
+    throw new HttpError("User not found in account", 400);
+  }
+
   return await tx.card.create({
     data: {
       name: data.name,
       cardType: data.cardType,
       spendingLimit: data.spendingLimit,
-      userId: user.id,
+      userId: data.userId,
+      budgetId: data.budgetId,
     },
   });
 }
@@ -193,18 +206,48 @@ export async function updateCard(
   tx: PrismaClientTx,
   id: string,
   data: z.infer<typeof updateCardSchema>,
-  userId: string
+  user: User & { accountId: string }
 ) {
+  // If we're changing the userId, verify the new user belongs to the same account
+  if (data.userId) {
+    const accountUser = await tx.accountUser.findFirst({
+      where: {
+        accountId: user.accountId,
+        userId: data.userId,
+      },
+    });
+    if (!accountUser) {
+      throw new HttpError("User not found in account", 400);
+    }
+  }
+
+  // Find the card first to get its current userId for the where clause
+  const existingCard = await tx.card.findFirst({
+    where: {
+      id,
+      deleted: null,
+    },
+    select: {
+      userId: true,
+    },
+  });
+
+  if (!existingCard) {
+    throw new HttpError("Card not found", 404);
+  }
+
   return await tx.card.update({
     where: {
       id,
-      userId,
+      userId: existingCard.userId, // Use the existing userId to find the card
       deleted: null,
     },
     data: {
       ...(data.name && { name: data.name }),
       ...(data.cardType && { cardType: data.cardType }),
       ...(data.spendingLimit !== undefined && { spendingLimit: data.spendingLimit }),
+      ...(data.budgetId && { budgetId: data.budgetId }),
+      ...(data.userId && { userId: data.userId }),
     },
   });
 }
