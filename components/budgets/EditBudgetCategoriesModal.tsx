@@ -327,10 +327,11 @@ export default function EditBudgetCategoriesModal({
           </Button>
           <Button
             onClick={handleSubmit}
+            isLoading={isSubmitting}
             disabled={isSubmitting}
             className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 hover:bg-accent disabled:opacity-50"
           >
-            {isSubmitting ? "Saving..." : "Save Changes"}
+            Save Changes
           </Button>
         </div>
       </div>

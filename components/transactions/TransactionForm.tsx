@@ -464,18 +464,14 @@ export default function TransactionForm({
           <Button onClick={onClose} disabled={isPending} variant="outline">
             Cancel
           </Button>
-          <Button type="submit" disabled={isPending} variant="primary">
-            {isPending ? (
-              <>
-                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                {isEditing ? "Updating..." : "Adding..."}
-              </>
-            ) : (
-              <>
-                <Check className="mr-2 h-4 w-4" />
-                {isEditing ? "Update Transaction" : "Add Transaction"}
-              </>
-            )}
+          <Button
+            type="submit"
+            disabled={isPending}
+            variant="primary"
+            isLoading={isPending}
+          >
+            <Check className="mr-2 h-4 w-4" />
+            {isEditing ? "Update Transaction" : "Add Transaction"}
           </Button>
         </div>
       </form>

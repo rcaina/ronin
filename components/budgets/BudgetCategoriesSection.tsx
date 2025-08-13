@@ -24,10 +24,8 @@ interface BudgetCategoriesSectionProps {
 export default function BudgetCategoriesSection({
   budget,
   budgetId,
-  categoriesByGroup,
   getGroupColor,
   getGroupLabel,
-  onRefetch,
 }: BudgetCategoriesSectionProps) {
   const [view, setView] = useState<BudgetCategoriesViewType>("grid");
 
@@ -78,21 +76,15 @@ export default function BudgetCategoriesSection({
 
       {view === "grid" ? (
         <BudgetCategoriesGridView
-          budget={budget}
           budgetId={budgetId}
-          categoriesByGroup={categoriesByGroup}
           getGroupColor={getGroupColor}
           getGroupLabel={getGroupLabel}
-          onRefetch={onRefetch}
         />
       ) : (
         <BudgetCategoriesListView
-          budget={budget}
           budgetId={budgetId}
-          categoriesByGroup={categoriesByGroup}
           getGroupColor={getGroupColor}
           getGroupLabel={getGroupLabel}
-          onRefetch={onRefetch}
         />
       )}
     </div>

@@ -7,7 +7,7 @@ import { useBudgetCards } from "@/lib/data-hooks/budgets/useBudgetCards";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useCreateCardPayment } from "@/lib/data-hooks/transactions/useTransactions";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
-import LoadingSpinner from "@/components/LoadingSpinner";
+
 import Button from "@/components/Button";
 import { CardType } from "@prisma/client";
 
@@ -280,6 +280,7 @@ export function CardPaymentModal({
             </Button>
             <Button
               type="submit"
+              isLoading={isSubmitting || createCardPaymentMutation.isPending}
               disabled={
                 isSubmitting ||
                 createCardPaymentMutation.isPending ||
@@ -290,13 +291,7 @@ export function CardPaymentModal({
               }
               className="flex-1"
             >
-              {isSubmitting || createCardPaymentMutation.isPending ? (
-                <LoadingSpinner message="" className="h-4" logoSize="sm" />
-              ) : editingTransaction ? (
-                "Update Payment"
-              ) : (
-                "Create Payment"
-              )}
+              {editingTransaction ? "Update Payment" : "Create Payment"}
             </Button>
           </div>
         </form>

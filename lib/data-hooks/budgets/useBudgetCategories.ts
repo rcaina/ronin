@@ -1,4 +1,4 @@
-import type { Budget, BudgetCategory, Category, CategoryType, Transaction } from "@prisma/client";
+import type { CategoryType } from "@prisma/client";
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 
@@ -8,9 +8,9 @@ export type BudgetCategoryWithCategory = {
   categoryId: string;
   allocatedAmount: number;
   spentAmount?: number;
-  createdAt: string;
-  updatedAt: string;
-  deleted: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  deleted: Date | null;
   category: {
     id: string;
     name: string;
@@ -22,7 +22,7 @@ export type BudgetCategoryWithCategory = {
     description: string | null;
     amount: number;
     transactionType: string;
-    createdAt: string;
+    createdAt: Date;
   }>;
 };
 

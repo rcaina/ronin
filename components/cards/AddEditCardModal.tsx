@@ -34,6 +34,7 @@ interface Card {
   deleted?: string;
   createdAt: string;
   updatedAt: string;
+  budgetId: string;
 }
 
 const cardSchema = z.object({
@@ -138,6 +139,7 @@ export default function AddEditCardModal({
         spendingLimit:
           data.spendingLimit === "" ? undefined : Number(data.spendingLimit),
         cardType: data.cardType as CardType,
+        budgetId: cardToEdit?.budgetId ?? "",
       };
 
       if (isEditing && cardToEdit) {
@@ -304,14 +306,12 @@ export default function AddEditCardModal({
             <Button variant="ghost" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting
-                ? isEditing
-                  ? "Updating..."
-                  : "Creating..."
-                : isEditing
-                  ? "Update"
-                  : "Create"}
+            <Button
+              type="submit"
+              isLoading={isSubmitting}
+              disabled={isSubmitting}
+            >
+              {isEditing ? "Update" : "Create"}
             </Button>
           </div>
         </form>
