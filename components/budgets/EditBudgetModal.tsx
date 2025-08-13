@@ -12,7 +12,6 @@ interface EditBudgetModalProps {
   isOpen: boolean;
   budget: BudgetWithRelations | null;
   onClose: () => void;
-  onSuccess: () => void;
 }
 
 interface EditBudgetFormData {
@@ -27,7 +26,6 @@ export default function EditBudgetModal({
   isOpen,
   budget,
   onClose,
-  onSuccess,
 }: EditBudgetModalProps) {
   const updateBudgetMutation = useUpdateBudget();
   const [formData, setFormData] = useState<EditBudgetFormData>({
@@ -80,7 +78,6 @@ export default function EditBudgetModal({
       });
 
       toast.success("Budget updated successfully!");
-      onSuccess();
       onClose();
     } catch (error) {
       console.error("Failed to update budget:", error);

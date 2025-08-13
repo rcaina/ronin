@@ -92,7 +92,9 @@ export const useUpdateBudget = () => {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateBudgetData }) => updateBudget(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Invalidate both the specific budget and the budgets list
+      void queryClient.invalidateQueries({ queryKey: ["budget", variables.id] });
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },
   });

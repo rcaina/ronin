@@ -14,14 +14,12 @@ import {
 import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
-import BudgetCategoriesSection from "@/components/budgets/BudgetCategoriesSection";
-import { BudgetTransactionsList } from "@/components/budgets/BudgetTransactionsList";
-import IncomeModal from "@/components/budgets/IncomeModal";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import { useState } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 import StatsCard from "@/components/StatsCard";
 import { TransactionType } from "@prisma/client";
+import IncomeModal from "@/components/budgets/IncomeModal";
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();
@@ -187,19 +185,7 @@ const BudgetDetailsPage = () => {
     }
   };
 
-  const handleTransactionSuccess = () => {
-    void refetch();
-  };
-
   const handleIncomeSuccess = () => {
-    void refetch();
-  };
-
-  const handleEditBudgetSuccess = () => {
-    void refetch();
-  };
-
-  const handleCardPaymentSuccess = () => {
     void refetch();
   };
 
@@ -637,7 +623,6 @@ const BudgetDetailsPage = () => {
           isOpen={isAddTransactionOpen}
           budgetId={id as string}
           onClose={() => setIsAddTransactionOpen(false)}
-          onSuccess={handleTransactionSuccess}
         />
       )}
       {isIncomeModalOpen && (
@@ -654,14 +639,12 @@ const BudgetDetailsPage = () => {
           isOpen={isEditBudgetOpen}
           budget={budget}
           onClose={() => setIsEditBudgetOpen(false)}
-          onSuccess={handleEditBudgetSuccess}
         />
       )}
       {isCardPaymentOpen && (
         <CardPaymentModal
           isOpen={isCardPaymentOpen}
           onClose={() => setIsCardPaymentOpen(false)}
-          onSuccess={handleCardPaymentSuccess}
           budgetId={id as string}
         />
       )}
