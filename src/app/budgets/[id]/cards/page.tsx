@@ -23,6 +23,7 @@ import Button from "@/components/Button";
 import { type Card, mapCardType, getCardColor } from "@/lib/utils/cards";
 import StatsCard from "@/components/StatsCard";
 import type { Card as PrismaCard } from "@prisma/client";
+import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 
 // Interface for budget cards with user information
 interface BudgetCard extends PrismaCard {
@@ -49,6 +50,7 @@ const BudgetCardsPage = () => {
   const params = useParams();
   const budgetId = params.id as string;
   const { data: session } = useSession();
+  const { data: budget } = useBudget(budgetId);
   const { data: apiCards, isLoading, error } = useBudgetCards(budgetId);
   const deleteCardMutation = useDeleteCard();
   const createCardMutation = useCreateCard();
@@ -267,12 +269,15 @@ const BudgetCardsPage = () => {
   return (
     <div className="flex h-screen flex-col bg-gray-50">
       <PageHeader
-        title="Budget Cards"
+        title={`${budget?.name ?? "Budget"} - Cards`}
         description="View and manage cards associated with this budget"
         action={{
           label: "Pay Credit Card",
           onClick: () => setShowCardPaymentModal(true),
           icon: <CreditCard className="h-4 w-4" />,
+        }}
+        backButton={{
+          onClick: () => router.back(),
         }}
       />
 

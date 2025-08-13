@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import { useState } from "react";
 import BudgetCategoriesGridView from "@/components/budgets/BudgetCategoriesGridView";
@@ -9,11 +9,14 @@ import BudgetCategoriesViewToggle, {
 } from "@/components/budgets/BudgetCategoriesViewToggle";
 import BudgetCategoriesListView from "@/components/budgets/BudgetCategoriesListView";
 import { CategoryType } from "@prisma/client";
+import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 
 const BudgetCategoriesPage = () => {
   const { id } = useParams();
   const budgetId = id as string;
+  const { data: budget } = useBudget(budgetId);
   const [view, setView] = useState<BudgetCategoriesViewType>("grid");
+  const router = useRouter();
 
   const getGroupColor = (group: CategoryType) => {
     switch (group) {
@@ -44,8 +47,11 @@ const BudgetCategoriesPage = () => {
   return (
     <div className="flex h-screen flex-col bg-gray-50">
       <PageHeader
-        title="Budget Categories"
+        title={`${budget?.name ?? "Budget"} - Categories`}
         description="Manage your budget categories"
+        backButton={{
+          onClick: () => router.back(),
+        }}
       />
 
       <div className="flex-1 overflow-hidden pt-16 sm:pt-24 lg:pt-0">

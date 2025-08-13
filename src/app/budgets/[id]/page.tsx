@@ -1,7 +1,7 @@
 "use client";
 
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   TrendingUp,
   TrendingDown,
@@ -25,6 +25,7 @@ import { TransactionType } from "@prisma/client";
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();
+  const router = useRouter();
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [isEditBudgetOpen, setIsEditBudgetOpen] = useState(false);
@@ -406,12 +407,14 @@ const BudgetDetailsPage = () => {
                 <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
                   Categories Summary
                 </h3>
-                <a
-                  href={`/budgets/${String(id)}/categories`}
+                <button
+                  onClick={() =>
+                    router.push(`/budgets/${String(id)}/categories`)
+                  }
                   className="text-xs font-medium text-blue-600 hover:text-blue-700 sm:text-sm"
                 >
                   View Details
-                </a>
+                </button>
               </div>
 
               <div className="space-y-4">
@@ -520,12 +523,14 @@ const BudgetDetailsPage = () => {
                 <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
                   Recent Transactions
                 </h3>
-                <a
-                  href={`/budgets/${String(id)}/transactions`}
+                <button
+                  onClick={() =>
+                    router.push(`/budgets/${String(id)}/transactions`)
+                  }
                   className="text-xs font-medium text-blue-600 hover:text-blue-700 sm:text-sm"
                 >
                   View All
-                </a>
+                </button>
               </div>
 
               <div className="space-y-3">
