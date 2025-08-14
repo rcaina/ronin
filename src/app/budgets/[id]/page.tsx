@@ -603,7 +603,7 @@ const BudgetDetailsPage = () => {
                           TransactionType.RETURN
                             ? "+"
                             : "-"}
-                          ${Math.abs(transaction.amount).toLocaleString()}
+                          ${Math.abs(transaction.amount).toFixed(2)}
                         </div>
                         <div className="text-xs capitalize text-gray-500">
                           {transaction.transactionType
@@ -619,7 +619,7 @@ const BudgetDetailsPage = () => {
           </div>
         </div>
       </div>
-      {isAddTransactionOpen && (
+      {isAddTransactionOpen && id && (
         <AddTransactionModal
           isOpen={isAddTransactionOpen}
           budgetId={id as string}

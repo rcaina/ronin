@@ -34,9 +34,10 @@ export interface UpdateCardRequest {
   userId?: string;
 }
 
-export const getCards = async (excludeCardPayments?: boolean): Promise<Card[]> => {
+export const getCards = async (excludeCardPayments?: boolean, budgetId?: string): Promise<Card[]> => {
   const params = new URLSearchParams();
   if (excludeCardPayments) params.append('excludeCardPayments', 'true');
+  if (budgetId) params.append('budgetId', budgetId);
   
   const url = params.toString() ? `/api/cards?${params.toString()}` : "/api/cards";
   const response = await fetch(url);

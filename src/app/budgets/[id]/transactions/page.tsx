@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 
 import PageHeader from "@/components/PageHeader";
-import AddItemButton from "@/components/AddItemButton";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import TransactionForm from "@/components/transactions/TransactionForm";
@@ -73,21 +72,30 @@ const BudgetTransactionsPage = () => {
   const filteredAndSortedTransactions = useMemo(() => {
     const filtered = transactions.filter((transaction) => {
       // Search term matching (including amount)
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch =
-        (transaction.name?.toLowerCase().includes(searchLower) ?? false) ||
-        (transaction.description?.toLowerCase().includes(searchLower) ??
-          false) ||
-        (transaction.category?.category.name
-          .toLowerCase()
-          .includes(searchLower) ??
-          false) ||
-        // Amount search - convert amount to string and search
-        Math.abs(transaction.amount)
-          .toString()
-          .includes(searchTerm.replace(/[^0-9.]/g, "")) ||
-        // Also search formatted amount (e.g., "100.50" matches "100.5")
-        new Intl.NumberFormat("en-US", {
+      const searchLower = searchTerm.toLowerCase().trim();
+
+      // If no search term, include all transactions
+      if (!searchLower) {
+        return true;
+      }
+
+      try {
+        const nameMatch =
+          transaction.name?.toLowerCase().includes(searchLower) ?? false;
+        const descriptionMatch =
+          transaction.description?.toLowerCase().includes(searchLower) ?? false;
+        const categoryMatch =
+          transaction.category?.category?.name
+            ?.toLowerCase()
+            .includes(searchLower) ?? false;
+
+        // Only search amounts if the search term contains numbers
+        const searchNumbers = searchLower.replace(/[^0-9.]/g, "");
+        const amountMatch = searchNumbers
+          ? Math.abs(transaction.amount).toString().includes(searchNumbers)
+          : false;
+
+        const formattedAmountMatch = new Intl.NumberFormat("en-US", {
           style: "currency",
           currency: "USD",
         })
@@ -95,18 +103,29 @@ const BudgetTransactionsPage = () => {
           .toLowerCase()
           .includes(searchLower);
 
-      // Category filter
-      const matchesCategory =
-        selectedCategory === "all" ||
-        transaction.category?.id === selectedCategory;
+        const matchesSearch =
+          nameMatch ||
+          descriptionMatch ||
+          categoryMatch ||
+          amountMatch ||
+          formattedAmountMatch;
 
-      // Card filter
-      const matchesCard =
-        selectedCard === "all" ||
-        (selectedCard === "no-card" && !transaction.cardId) ||
-        transaction.cardId === selectedCard;
+        // Category filter
+        const matchesCategory =
+          selectedCategory === "all" ||
+          transaction.category?.id === selectedCategory;
 
-      return matchesSearch && matchesCategory && matchesCard;
+        // Card filter
+        const matchesCard =
+          selectedCard === "all" ||
+          (selectedCard === "no-card" && !transaction.cardId) ||
+          transaction.cardId === selectedCard;
+
+        return matchesSearch && matchesCategory && matchesCard;
+      } catch (error) {
+        console.error("Error filtering transaction:", error, transaction);
+        return false;
+      }
     });
 
     // Sort transactions
@@ -146,7 +165,11 @@ const BudgetTransactionsPage = () => {
       { id: string; name: string; group: string }
     >();
     transactions.forEach((t) => {
-      if (t.category && !uniqueCategories.has(t.category.id)) {
+      if (
+        t.category &&
+        t.category.category &&
+        !uniqueCategories.has(t.category.id)
+      ) {
         uniqueCategories.set(t.category.id, {
           id: t.category.id,
           name: t.category.category.name,
@@ -394,6 +417,11 @@ const BudgetTransactionsPage = () => {
         backButton={{
           onClick: () => window.history.back(),
         }}
+        action={{
+          label: "Add Transaction",
+          onClick: () => setShowTransactionForm(true),
+          icon: <Plus className="h-4 w-4" />,
+        }}
       />
 
       <div className="flex-1 overflow-hidden pt-4 sm:pt-20 lg:pt-0">
@@ -497,19 +525,8 @@ const BudgetTransactionsPage = () => {
               </div>
             </div>
 
-            {/* Add Transaction Button or Form */}
-            {!showTransactionForm ? (
-              filteredAndSortedTransactions.length > 0 && (
-                <div className="mb-4 sm:mb-6">
-                  <AddItemButton
-                    onClick={() => setShowTransactionForm(true)}
-                    title="Add Transaction"
-                    description="Add a new transaction to this budget"
-                    variant="compact"
-                  />
-                </div>
-              )
-            ) : (
+            {/* Add Transaction Form */}
+            {showTransactionForm && (
               <div className="mb-4 sm:mb-6">
                 <TransactionForm
                   onClose={handleCloseTransactionForm}
@@ -729,15 +746,10 @@ const BudgetTransactionsPage = () => {
                         ? "Try adjusting your search or filter criteria"
                         : "Start adding transactions to see them here"}
                     </p>
-                    <Button
-                      onClick={() => setShowTransactionForm(true)}
-                      variant="primary"
-                      size="md"
-                      className="mt-4"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Transaction
-                    </Button>
+                    <p className="mt-4 text-sm text-gray-400">
+                      Use the &ldquo;Add Transaction&rdquo; button in the header
+                      to get started
+                    </p>
                   </div>
                 )}
               </div>
