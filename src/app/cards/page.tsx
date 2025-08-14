@@ -17,6 +17,7 @@ import {
   useCreateCard,
   useUpdateCard,
 } from "@/lib/data-hooks/cards/useCards";
+import { useActiveBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { type Card as ApiCard } from "@/lib/data-hooks/services/cards";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import type { CardType } from "@prisma/client";
@@ -37,6 +38,7 @@ const CardsPage = () => {
   const router = useRouter();
   const { data: session } = useSession();
   const { data: apiCards, isLoading, error } = useCards(false);
+  const { data: activeBudgets = [] } = useActiveBudgets();
   const deleteCardMutation = useDeleteCard();
   const createCardMutation = useCreateCard();
   const updateCardMutation = useUpdateCard();
@@ -97,6 +99,12 @@ const CardsPage = () => {
     userId: string;
   }) => {
     try {
+      // Get the first active budget ID, or throw an error if none exist
+      if (activeBudgets.length === 0) {
+        toast.error("No active budget found. Please create a budget first.");
+        return;
+      }
+
       const cardData = {
         ...data,
         spendingLimit:
@@ -104,6 +112,7 @@ const CardsPage = () => {
             ? undefined
             : Number(data.spendingLimit),
         cardType: data.cardType,
+        budgetId: activeBudgets[0]!.id,
       };
 
       if (cardToEdit) {
@@ -136,6 +145,12 @@ const CardsPage = () => {
 
   const handleCopyCard = async (card: Card) => {
     try {
+      // Get the first active budget ID, or throw an error if none exist
+      if (activeBudgets.length === 0) {
+        toast.error("No active budget found. Please create a budget first.");
+        return;
+      }
+
       const originalApiCard = apiCards?.find((c) => c.id === card.id);
       if (!originalApiCard) {
         console.error("Failed to load card data for copying");
@@ -149,6 +164,7 @@ const CardsPage = () => {
         cardType: originalApiCard.cardType,
         spendingLimit: originalApiCard.spendingLimit,
         userId: originalApiCard.userId,
+        budgetId: activeBudgets[0]!.id,
       };
 
       await createCardMutation.mutateAsync(copyData);
