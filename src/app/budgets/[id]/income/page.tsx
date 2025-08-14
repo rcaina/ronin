@@ -43,7 +43,9 @@ export default function IncomePage() {
 
   const { data: budget, isLoading, refetch } = useBudget(budgetId);
 
-  const incomes = budget?.incomes ?? [];
+  const incomes = useMemo(() => {
+    return budget?.incomes ?? [];
+  }, [budget]);
 
   // Filter incomes based on search query
   const filteredIncomes = useMemo(() => {
@@ -95,7 +97,7 @@ export default function IncomePage() {
 
       toast.success("Income deleted successfully!");
       void refetch();
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete income");
     } finally {
       setIsDeleteModalOpen(false);
