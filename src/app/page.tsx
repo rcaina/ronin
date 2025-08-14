@@ -84,7 +84,7 @@ export default function HomePage() {
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
-    .slice(0, 7);
+    .slice(0, 5);
 
   // Get budget status
   const getBudgetStatus = () => {
@@ -140,7 +140,6 @@ export default function HomePage() {
                   <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
                 }
                 iconColor="text-green-500"
-                hover={true}
               />
 
               <StatsCard
@@ -151,7 +150,6 @@ export default function HomePage() {
                   <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
                 }
                 iconColor="text-red-500"
-                hover={true}
               />
 
               <StatsCard
@@ -165,7 +163,6 @@ export default function HomePage() {
                 valueColor={
                   totalRemaining >= 0 ? "text-gray-900" : "text-red-600"
                 }
-                hover={true}
               />
 
               <StatsCard
@@ -176,7 +173,6 @@ export default function HomePage() {
                   <Target className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
                 }
                 iconColor="text-purple-500"
-                hover={true}
               />
             </div>
 
@@ -289,7 +285,7 @@ export default function HomePage() {
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-medium text-gray-900 sm:text-base">
-                              ${transaction.amount.toLocaleString()}
+                              ${Number(transaction.amount).toFixed(2)}
                             </p>
                           </div>
                         </div>

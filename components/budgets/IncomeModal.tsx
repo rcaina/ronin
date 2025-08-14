@@ -329,17 +329,8 @@ export default function IncomeModal({
                 variant="primary"
                 isLoading={isLoading}
               >
-                {isLoading ? (
-                  <>
-                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Check className="mr-2 h-4 w-4" />
-                    Save Changes
-                  </>
-                )}
+                <Check className="mr-2 h-4 w-4" />
+                Save Changes
               </Button>
             </div>
           </div>

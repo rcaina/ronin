@@ -37,7 +37,7 @@ export const PUT = withUser({
     }
 
     return await prisma.$transaction(async (tx) => {
-      const updatedCard = await updateCard(tx, cardId, validationResult.data, user.id);
+      const updatedCard = await updateCard(tx, cardId, validationResult.data, user);
       return NextResponse.json(updatedCard, { status: 200 });
     });
   }),

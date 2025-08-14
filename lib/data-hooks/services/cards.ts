@@ -23,12 +23,15 @@ export interface CreateCardRequest {
   name: string;
   cardType: CardType;
   spendingLimit?: number;
+  budgetId: string;
 }
 
 export interface UpdateCardRequest {
   name?: string;
   cardType?: CardType;
   spendingLimit?: number;
+  budgetId?: string;
+  userId?: string;
 }
 
 export const getCards = async (excludeCardPayments?: boolean): Promise<Card[]> => {

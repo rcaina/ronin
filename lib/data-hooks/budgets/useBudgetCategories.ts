@@ -1,3 +1,4 @@
+import type { CategoryType } from "@prisma/client";
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 
@@ -7,30 +8,43 @@ export type BudgetCategoryWithCategory = {
   categoryId: string;
   allocatedAmount: number;
   spentAmount?: number;
-  createdAt: string;
-  updatedAt: string;
-  deleted: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  deleted: Date | null;
   category: {
     id: string;
     name: string;
     group: string;
   };
+  transactions: Array<{
+    id: string;
+    name: string | null;
+    description: string | null;
+    amount: number;
+    transactionType: string;
+    createdAt: Date;
+  }>;
 };
 
-const getBudgetCategories = async (budgetId: string): Promise<BudgetCategoryWithCategory[]> => {
-  const response = await fetch(`/api/budgets/${budgetId}/categories`);
+const getBudgetCategories = async (budgetId: string, searchQuery?: string): Promise<BudgetCategoryWithCategory[]> => {
+  const url = new URL(`/api/budgets/${budgetId}/categories`, window.location.origin);
+  if (searchQuery?.trim()) {
+    url.searchParams.set('search', searchQuery.trim());
+  }
+  
+  const response = await fetch(url.toString());
   if (!response.ok) {
     throw new Error(`Failed to fetch budget categories: ${response.statusText}`);
   }
   return response.json() as Promise<BudgetCategoryWithCategory[]>;
 };
 
-export const useBudgetCategories = (budgetId: string) => {
+export const useBudgetCategories = (budgetId: string, searchQuery?: string) => {
   const { data: session } = useSession();
 
   const query = useQuery<BudgetCategoryWithCategory[]>({
-    queryKey: ["budgetCategories", budgetId],
-    queryFn: () => getBudgetCategories(budgetId),
+    queryKey: ["budgetCategories", budgetId, searchQuery],
+    queryFn: () => getBudgetCategories(budgetId, searchQuery),
     placeholderData: keepPreviousData,
     enabled: !!session && !!budgetId,
     staleTime: 2 * 60 * 1000,
@@ -41,7 +55,7 @@ export const useBudgetCategories = (budgetId: string) => {
 
 export interface CreateBudgetCategoryData {
   categoryName: string;
-  group: "needs" | "wants" | "investment";
+  group: CategoryType;
   allocatedAmount: number;
 }
 
@@ -69,6 +83,7 @@ export interface UpdateBudgetCategoryData {
   allocatedAmount?: number;
   categoryId?: string;
   categoryName?: string;
+  group?: CategoryType;
 }
 
 interface BudgetCategoryResponse {
@@ -132,8 +147,8 @@ export const useCreateBudgetCategory = () => {
       data: CreateBudgetCategoryData;
     }) => createBudgetCategory(budgetId, data),
     onSuccess: (_, { budgetId }) => {
-      // Invalidate and refetch the specific budget
-      void queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
+      // Invalidate and refetch the budget categories
+      void queryClient.invalidateQueries({ queryKey: ["budgetCategories", budgetId] });
       // Also invalidate the budgets list
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },
@@ -154,8 +169,8 @@ export const useUpdateBudgetCategory = () => {
       data: UpdateBudgetCategoryData;
     }) => updateBudgetCategory(budgetId, categoryId, data),
     onSuccess: (_, { budgetId }) => {
-      // Invalidate and refetch the specific budget
-      void queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
+      // Invalidate and refetch the budget categories
+      void queryClient.invalidateQueries({ queryKey: ["budgetCategories", budgetId] });
       // Also invalidate the budgets list
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },
@@ -174,8 +189,8 @@ export const useDeleteBudgetCategory = () => {
       categoryId: string;
     }) => deleteBudgetCategory(budgetId, categoryId),
     onSuccess: (_, { budgetId }) => {
-      // Invalidate and refetch the specific budget
-      void queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
+      // Invalidate and refetch the budget categories
+      void queryClient.invalidateQueries({ queryKey: ["budgetCategories", budgetId] });
       // Also invalidate the budgets list
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },

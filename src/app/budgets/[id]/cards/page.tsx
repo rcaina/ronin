@@ -1,9 +1,16 @@
 "use client";
 
-import { Plus, CreditCard, DollarSign, Shield } from "lucide-react";
+import {
+  Plus,
+  CreditCard,
+  DollarSign,
+  Shield,
+  AlertCircle,
+  Target,
+} from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/PageHeader";
 import { default as CardComponent } from "@/components/cards/Card";
@@ -12,18 +19,29 @@ import AddCardForm from "@/components/cards/AddCardForm";
 import AddItemButton from "@/components/AddItemButton";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import {
-  useCards,
   useDeleteCard,
   useCreateCard,
   useUpdateCard,
 } from "@/lib/data-hooks/cards/useCards";
-import { useActiveBudgets } from "@/lib/data-hooks/budgets/useBudgets";
-import { type Card as ApiCard } from "@/lib/data-hooks/services/cards";
+import { useBudgetCards } from "@/lib/data-hooks/budgets/useBudgetCards";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import type { CardType } from "@prisma/client";
+import { type CardType } from "@prisma/client";
 import Button from "@/components/Button";
-import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
+import { type Card, mapCardType, getCardColor } from "@/lib/utils/cards";
 import StatsCard from "@/components/StatsCard";
+import type { Card as PrismaCard } from "@prisma/client";
+import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
+
+// Interface for budget cards with user information
+interface BudgetCard extends PrismaCard {
+  user: {
+    id: string;
+    name: string;
+    firstName: string;
+    lastName: string;
+  };
+  amountSpent: number;
+}
 
 interface User {
   id: string;
@@ -34,24 +52,46 @@ interface User {
   role: string;
 }
 
-const CardsPage = () => {
+const BudgetCardsPage = () => {
   const router = useRouter();
+  const params = useParams();
+  const budgetId = params.id as string;
   const { data: session } = useSession();
-  const { data: apiCards, isLoading, error } = useCards(false);
-  const { data: activeBudgets = [] } = useActiveBudgets();
+  const {
+    data: budget,
+    isLoading: budgetLoading,
+    error: budgetError,
+  } = useBudget(budgetId);
+  const {
+    data: apiCards,
+    isLoading: cardsLoading,
+    error: cardsError,
+  } = useBudgetCards(budgetId);
   const deleteCardMutation = useDeleteCard();
   const createCardMutation = useCreateCard();
   const updateCardMutation = useUpdateCard();
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
   const [isAddingCard, setIsAddingCard] = useState(false);
-  const [cardToEdit, setCardToEdit] = useState<ApiCard | null>(null);
+  const [cardToEdit, setCardToEdit] = useState<BudgetCard | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [showCardPaymentModal, setShowCardPaymentModal] = useState(false);
 
-  // Map API cards to component cards
+  // Map Prisma cards to component cards
   const cards: Card[] = useMemo(() => {
-    return apiCards ? apiCards.map((apiCard) => mapApiCardToCard(apiCard)) : [];
+    if (!apiCards) return [];
+
+    return apiCards.map((prismaCard: BudgetCard) => ({
+      id: prismaCard.id,
+      name: prismaCard.name,
+      type: mapCardType(prismaCard.cardType),
+      amountSpent: prismaCard.amountSpent ?? 0,
+      spendingLimit: prismaCard.spendingLimit ?? undefined,
+      userId: prismaCard.userId,
+      user: prismaCard.user?.name ?? "Unknown User",
+      isActive: !prismaCard.deleted,
+      color: getCardColor(prismaCard.id),
+    }));
   }, [apiCards]);
 
   // Fetch users for the account
@@ -99,12 +139,6 @@ const CardsPage = () => {
     userId: string;
   }) => {
     try {
-      // Get the first active budget ID, or throw an error if none exist
-      if (activeBudgets.length === 0) {
-        toast.error("No active budget found. Please create a budget first.");
-        return;
-      }
-
       const cardData = {
         ...data,
         spendingLimit:
@@ -112,18 +146,24 @@ const CardsPage = () => {
             ? undefined
             : Number(data.spendingLimit),
         cardType: data.cardType,
-        budgetId: activeBudgets[0]!.id,
       };
 
       if (cardToEdit) {
         await updateCardMutation.mutateAsync({
           id: cardToEdit.id,
-          data: cardData,
+          data: {
+            ...cardData,
+            budgetId: budgetId, // Preserve the budgetId when updating
+          },
         });
         setCardToEdit(null);
         toast.success("Card updated successfully!");
       } else {
-        await createCardMutation.mutateAsync(cardData);
+        // Include budgetId when creating a new card
+        await createCardMutation.mutateAsync({
+          ...cardData,
+          budgetId: budgetId,
+        });
         setIsAddingCard(false);
         toast.success("Card created successfully!");
       }
@@ -145,12 +185,6 @@ const CardsPage = () => {
 
   const handleCopyCard = async (card: Card) => {
     try {
-      // Get the first active budget ID, or throw an error if none exist
-      if (activeBudgets.length === 0) {
-        toast.error("No active budget found. Please create a budget first.");
-        return;
-      }
-
       const originalApiCard = apiCards?.find((c) => c.id === card.id);
       if (!originalApiCard) {
         console.error("Failed to load card data for copying");
@@ -162,9 +196,9 @@ const CardsPage = () => {
       const copyData = {
         name: `${originalApiCard.name} Copy`,
         cardType: originalApiCard.cardType,
-        spendingLimit: originalApiCard.spendingLimit,
+        spendingLimit: originalApiCard.spendingLimit ?? undefined,
         userId: originalApiCard.userId,
-        budgetId: activeBudgets[0]!.id,
+        budgetId: budgetId, // Include budgetId for the copied card
       };
 
       await createCardMutation.mutateAsync(copyData);
@@ -231,16 +265,42 @@ const CardsPage = () => {
     return cards.filter((card) => card.type === "cash");
   }, [cards]);
 
-  if (isLoading) {
-    return <LoadingSpinner message="Loading cards..." />;
+  // Show loading state while either budget or cards are loading
+  if (budgetLoading || cardsLoading) {
+    return <LoadingSpinner message="Loading budget cards..." />;
   }
 
-  if (error) {
+  // Show error state if there's an error with budget or cards
+  if (budgetError || cardsError) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <span className="text-lg text-red-500">
-          {error instanceof Error ? error.message : "Failed to load cards"}
-        </span>
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="mb-4 text-red-500">
+            <AlertCircle className="mx-auto h-12 w-12" />
+          </div>
+          <div className="mb-2 text-lg text-red-600">
+            Error loading budget cards
+          </div>
+          <div className="text-sm text-gray-500">
+            {budgetError?.message ??
+              cardsError?.message ??
+              "An unexpected error occurred"}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show not found state if budget doesn't exist
+  if (!budget) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="mb-4 text-gray-400">
+            <Target className="mx-auto h-12 w-12" />
+          </div>
+          <div className="text-lg text-gray-600">Budget not found</div>
+        </div>
       </div>
     );
   }
@@ -248,12 +308,15 @@ const CardsPage = () => {
   return (
     <div className="flex h-screen flex-col bg-gray-50">
       <PageHeader
-        title="Cards"
-        description="View and manage credit and debit cards in your account"
+        title={`${budget?.name ?? "Budget"} - Cards`}
+        description="View and manage cards associated with this budget"
         action={{
           label: "Pay Credit Card",
           onClick: () => setShowCardPaymentModal(true),
           icon: <CreditCard className="h-4 w-4" />,
+        }}
+        backButton={{
+          onClick: () => router.back(),
         }}
       />
 
@@ -265,7 +328,7 @@ const CardsPage = () => {
               <StatsCard
                 title="Total Spent"
                 value={`$${totalSpent.toLocaleString()}`}
-                subtitle="Across all cards"
+                subtitle="Across budget cards"
                 icon={
                   <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
                 }
@@ -306,7 +369,7 @@ const CardsPage = () => {
             {/* Cards Grid */}
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-gray-900">
-                Account Cards
+                Budget Cards
               </h2>
             </div>
 
@@ -349,14 +412,27 @@ const CardsPage = () => {
                         onSubmit={handleSubmitCard}
                         onCancel={handleCancelEdit}
                         isLoading={updateCardMutation.isPending}
-                        cardToEdit={cardToEdit}
+                        cardToEdit={
+                          cardToEdit
+                            ? {
+                                id: cardToEdit.id,
+                                name: cardToEdit.name,
+                                cardType: cardToEdit.cardType,
+                                spendingLimit:
+                                  cardToEdit.spendingLimit ?? undefined,
+                                userId: cardToEdit.userId,
+                              }
+                            : undefined
+                        }
                         users={users}
                         loadingUsers={loadingUsers}
                         defaultValues={{
                           name: cardToEdit.name,
                           cardType: cardToEdit.cardType,
                           spendingLimit:
-                            cardToEdit.spendingLimit?.toString() ?? "",
+                            (
+                              cardToEdit.spendingLimit ?? undefined
+                            )?.toString() ?? "",
                           userId: cardToEdit.userId,
                         }}
                       />
@@ -388,14 +464,27 @@ const CardsPage = () => {
                         onSubmit={handleSubmitCard}
                         onCancel={handleCancelEdit}
                         isLoading={updateCardMutation.isPending}
-                        cardToEdit={cardToEdit}
+                        cardToEdit={
+                          cardToEdit
+                            ? {
+                                id: cardToEdit.id,
+                                name: cardToEdit.name,
+                                cardType: cardToEdit.cardType,
+                                spendingLimit:
+                                  cardToEdit.spendingLimit ?? undefined,
+                                userId: cardToEdit.userId,
+                              }
+                            : undefined
+                        }
                         users={users}
                         loadingUsers={loadingUsers}
                         defaultValues={{
                           name: cardToEdit.name,
                           cardType: cardToEdit.cardType,
                           spendingLimit:
-                            cardToEdit.spendingLimit?.toString() ?? "",
+                            (
+                              cardToEdit.spendingLimit ?? undefined
+                            )?.toString() ?? "",
                           userId: cardToEdit.userId,
                         }}
                       />
@@ -427,14 +516,27 @@ const CardsPage = () => {
                         onSubmit={handleSubmitCard}
                         onCancel={handleCancelEdit}
                         isLoading={updateCardMutation.isPending}
-                        cardToEdit={cardToEdit}
+                        cardToEdit={
+                          cardToEdit
+                            ? {
+                                id: cardToEdit.id,
+                                name: cardToEdit.name,
+                                cardType: cardToEdit.cardType,
+                                spendingLimit:
+                                  cardToEdit.spendingLimit ?? undefined,
+                                userId: cardToEdit.userId,
+                              }
+                            : undefined
+                        }
                         users={users}
                         loadingUsers={loadingUsers}
                         defaultValues={{
                           name: cardToEdit.name,
                           cardType: cardToEdit.cardType,
                           spendingLimit:
-                            cardToEdit.spendingLimit?.toString() ?? "",
+                            (
+                              cardToEdit.spendingLimit ?? undefined
+                            )?.toString() ?? "",
                           userId: cardToEdit.userId,
                         }}
                       />
@@ -460,10 +562,10 @@ const CardsPage = () => {
                   <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-white py-12">
                     <CreditCard className="mb-4 h-12 w-12 text-gray-400" />
                     <h3 className="mb-2 text-lg font-medium text-gray-900">
-                      No cards yet
+                      No budget cards yet
                     </h3>
                     <p className="mb-6 text-sm text-gray-500">
-                      Add your first credit or debit card to get started
+                      Add cards to this budget to get started
                     </p>
                     <Button onClick={handleAddCard} variant="primary">
                       <Plus className="h-4 w-4" />
@@ -496,10 +598,11 @@ const CardsPage = () => {
         <CardPaymentModal
           isOpen={showCardPaymentModal}
           onClose={() => setShowCardPaymentModal(false)}
+          budgetId={budgetId}
         />
       )}
     </div>
   );
 };
 
-export default CardsPage;
+export default BudgetCardsPage;

@@ -39,6 +39,7 @@ model AccountUser {
     user      User    @relation(fields: [userId], references: [id])
 
     @@index([accountId])
+    @@index([userId])
 }
 
 model User {
@@ -104,6 +105,7 @@ model Budget {
     categories   BudgetCategory[]
     transactions Transaction[]
     incomes      Income[]
+    cards        Card[]
 
     @@index([id])
     @@index([name])
@@ -172,6 +174,8 @@ model Card {
     cardType      CardType
     amountSpent   Float?
     spendingLimit Float?
+    budgetId      String?
+    budget        Budget?       @relation(fields: [budgetId], references: [id])
     userId        String
     user          User          @relation(fields: [userId], references: [id])
     transactions  Transaction[]

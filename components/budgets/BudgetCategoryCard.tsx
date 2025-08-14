@@ -5,17 +5,15 @@ import { toast } from "react-hot-toast";
 import {
   useUpdateBudgetCategory,
   useDeleteBudgetCategory,
+  type BudgetCategoryWithCategory,
 } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import { useState } from "react";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
-import type {
-  BudgetCategoryWithRelations,
-  GroupColorFunction,
-} from "@/lib/types/budget";
+import type { GroupColorFunction } from "@/lib/types/budget";
 import { TransactionType } from "@prisma/client";
 
 interface BudgetCategoryCardProps {
-  budgetCategory: BudgetCategoryWithRelations;
+  budgetCategory: BudgetCategoryWithCategory;
   budgetId: string;
   getGroupColor: GroupColorFunction;
 }

@@ -74,10 +74,16 @@ export const useCreateCardPayment = () => {
 
   return useMutation({
     mutationFn: (data: CreateCardPaymentSchema) => createCardPayment(data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       // Invalidate and refetch both transactions and cards
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
       void queryClient.invalidateQueries({ queryKey: ["cards"] });
+      
+      // If this card payment involves a budget, invalidate budget queries
+      if (variables.budgetId) {
+        void queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId] });
+        void queryClient.invalidateQueries({ queryKey: ["budgetCategories", variables.budgetId] });
+      }
     },
   });
 }; 

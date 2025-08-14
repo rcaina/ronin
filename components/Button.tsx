@@ -1,9 +1,11 @@
 import { type ButtonHTMLAttributes, forwardRef } from "react";
+import ButtonSpinner from "./ButtonSpinner";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "danger" | "outline" | "ghost";
   size?: "sm" | "md" | "lg";
   isLoading?: boolean;
+  spinnerSize?: "sm" | "md" | "lg";
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -13,6 +15,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       variant = "primary",
       size = "md",
       isLoading = false,
+      spinnerSize,
       children,
       disabled,
       ...props
@@ -51,7 +54,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {isLoading ? (
-          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          <ButtonSpinner size={spinnerSize ?? size} className="mr-2" />
         ) : null}
         {children}
       </button>

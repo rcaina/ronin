@@ -3,7 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, LogOut } from "lucide-react";
+import {
+  Menu,
+  X,
+  LogOut,
+  Target,
+  List,
+  TrendingUp,
+  DollarSign,
+} from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import roninLogo from "@/public/ronin_logo.jpg";
@@ -11,6 +19,12 @@ import roninLogo from "@/public/ronin_logo.jpg";
 interface NavItem {
   href: string;
   icon: string;
+  label: string;
+}
+
+interface BudgetNavItem {
+  href: string;
+  icon: React.ReactNode;
   label: string;
 }
 
@@ -26,6 +40,37 @@ export default function MobileHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { data: session } = useSession();
   const pathname = usePathname();
+
+  // Check if we're on a budget page and extract the budget ID
+  const isBudgetPage =
+    pathname.startsWith("/budgets/") && pathname !== "/budgets";
+  const budgetId = isBudgetPage ? pathname.split("/")[2] : null;
+
+  // Budget sub-menu items (same as BudgetLayout)
+  const budgetNavItems: BudgetNavItem[] = budgetId
+    ? [
+        {
+          href: `/budgets/${budgetId}`,
+          icon: <Target className="h-5 w-5" />,
+          label: "Overview",
+        },
+        {
+          href: `/budgets/${budgetId}/income`,
+          icon: <DollarSign className="h-5 w-5" />,
+          label: "Income",
+        },
+        {
+          href: `/budgets/${budgetId}/categories`,
+          icon: <List className="h-5 w-5" />,
+          label: "Categories",
+        },
+        {
+          href: `/budgets/${budgetId}/transactions`,
+          icon: <TrendingUp className="h-5 w-5" />,
+          label: "Transactions",
+        },
+      ]
+    : [];
 
   const handleSignOut = async () => {
     await signOut({
@@ -102,6 +147,7 @@ export default function MobileHeader() {
               {/* Navigation Items */}
               <nav className="flex-1 p-4">
                 <div className="space-y-2">
+                  {/* Main Navigation Items */}
                   {navItems.map((item) => (
                     <Link
                       key={item.href}
@@ -117,6 +163,31 @@ export default function MobileHeader() {
                       <span className="font-medium">{item.label}</span>
                     </Link>
                   ))}
+
+                  {/* Budget Sub-menu Items */}
+                  {isBudgetPage && budgetNavItems.length > 0 && (
+                    <>
+                      <div className="my-3 border-t border-gray-200" />
+                      <div className="mb-2 px-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Budget Navigation
+                      </div>
+                      {budgetNavItems.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={closeMenu}
+                          className={`flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
+                            pathname === item.href
+                              ? "bg-secondary/10 text-secondary"
+                              : "text-gray-700 hover:bg-gray-100"
+                          }`}
+                        >
+                          <span className="text-gray-600">{item.icon}</span>
+                          <span className="font-medium">{item.label}</span>
+                        </Link>
+                      ))}
+                    </>
+                  )}
                 </div>
               </nav>
 

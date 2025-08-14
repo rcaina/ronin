@@ -413,7 +413,6 @@ const BudgetsPage = () => {
                 <Target className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
               }
               iconColor="text-purple-500"
-              hover={true}
             />
 
             <StatsCard
@@ -424,7 +423,6 @@ const BudgetsPage = () => {
                 <TrendingUp className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
               }
               iconColor="text-green-500"
-              hover={true}
             />
 
             <StatsCard
@@ -435,7 +433,6 @@ const BudgetsPage = () => {
                 <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
               }
               iconColor="text-red-500"
-              hover={true}
             />
 
             <StatsCard
@@ -446,7 +443,6 @@ const BudgetsPage = () => {
                 <BarChart3 className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
               }
               iconColor="text-blue-500"
-              hover={true}
             />
           </div>
 

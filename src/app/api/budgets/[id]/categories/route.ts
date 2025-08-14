@@ -13,7 +13,11 @@ export const GET = withUser({
     const budgetId = validateBudgetId(id);
     await ensureBudgetOwnership(budgetId, user.accountId);
     
-    const budgetCategories = await getBudgetCategories(prisma, budgetId);
+    // Get search query from URL parameters
+    const { searchParams } = new URL(req.url);
+    const searchQuery = searchParams.get('search') ?? '';
+    
+    const budgetCategories = await getBudgetCategories(prisma, budgetId, searchQuery);
     return NextResponse.json(budgetCategories, { status: 200 });
   }),
 });

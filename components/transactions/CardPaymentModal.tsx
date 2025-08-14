@@ -3,10 +3,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { X } from "lucide-react";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
+import { useBudgetCards } from "@/lib/data-hooks/budgets/useBudgetCards";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useCreateCardPayment } from "@/lib/data-hooks/transactions/useTransactions";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
-import LoadingSpinner from "@/components/LoadingSpinner";
+
 import Button from "@/components/Button";
 import { CardType } from "@prisma/client";
 
@@ -16,6 +17,7 @@ interface CardPaymentModalProps {
   editingTransaction?: TransactionWithRelations | null;
   onSuccess?: () => void;
   currentCardId?: string; // Optional current card ID to pre-select
+  budgetId?: string;
 }
 
 export function CardPaymentModal({
@@ -24,8 +26,10 @@ export function CardPaymentModal({
   editingTransaction,
   onSuccess,
   currentCardId,
+  budgetId,
 }: CardPaymentModalProps) {
-  const { data: cards = [] } = useCards();
+  const { data: allCards = [] } = useCards();
+  const budgetCardsQuery = useBudgetCards(budgetId ?? "");
   const { data: budgets = [] } = useBudgets();
   const createCardPaymentMutation = useCreateCardPayment();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,6 +41,14 @@ export function CardPaymentModal({
     fromCardId: "",
     toCardId: "",
   });
+
+  // Use budget-specific cards if budgetId is provided, otherwise use all cards
+  const cards = useMemo(() => {
+    if (budgetId && budgetCardsQuery.data && budgetCardsQuery.data.length > 0) {
+      return budgetCardsQuery.data;
+    }
+    return allCards;
+  }, [budgetId, budgetCardsQuery.data, allCards]);
 
   // Memoize the current card lookup to avoid dependency array issues
   const currentCard = useMemo(() => {
@@ -63,16 +75,32 @@ export function CardPaymentModal({
       const isCredit =
         currentCardType === CardType.CREDIT ||
         currentCardType === CardType.BUSINESS_CREDIT;
+
       setFormData({
         name: "",
         description: "",
         amount: "",
-        budgetId: budgets[0]?.id ?? "",
+        budgetId: budgetId ?? "",
         fromCardId: isCredit ? "" : (currentCardId ?? ""),
         toCardId: isCredit ? (currentCardId ?? "") : "",
       });
     }
-  }, [editingTransaction, currentCardId, budgets, currentCardType]);
+  }, [editingTransaction, currentCardId, currentCardType, budgetId]);
+
+  // Set default budget when budgets are loaded and no budgetId is provided
+  useEffect(() => {
+    if (
+      !editingTransaction &&
+      !budgetId &&
+      budgets.length > 0 &&
+      !formData.budgetId
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        budgetId: budgets[0]?.id ?? "",
+      }));
+    }
+  }, [budgets, editingTransaction, budgetId, formData.budgetId]);
 
   if (!isOpen) return null;
 
@@ -180,24 +208,27 @@ export function CardPaymentModal({
             />
           </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Budget *
-            </label>
-            <select
-              value={formData.budgetId}
-              onChange={(e) => handleInputChange("budgetId", e.target.value)}
-              required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">Select a budget</option>
-              {budgets.map((budget) => (
-                <option key={budget.id} value={budget.id}>
-                  {budget.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!budgetId && !editingTransaction?.budgetId && (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Budget *
+              </label>
+
+              <select
+                value={formData.budgetId}
+                onChange={(e) => handleInputChange("budgetId", e.target.value)}
+                required
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">Select a budget</option>
+                {budgets.map((budget) => (
+                  <option key={budget.id} value={budget.id}>
+                    {budget.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -249,6 +280,7 @@ export function CardPaymentModal({
             </Button>
             <Button
               type="submit"
+              isLoading={isSubmitting || createCardPaymentMutation.isPending}
               disabled={
                 isSubmitting ||
                 createCardPaymentMutation.isPending ||
@@ -259,13 +291,7 @@ export function CardPaymentModal({
               }
               className="flex-1"
             >
-              {isSubmitting || createCardPaymentMutation.isPending ? (
-                <LoadingSpinner message="" className="h-4" logoSize="sm" />
-              ) : editingTransaction ? (
-                "Update Payment"
-              ) : (
-                "Create Payment"
-              )}
+              {editingTransaction ? "Update Payment" : "Create Payment"}
             </Button>
           </div>
         </form>

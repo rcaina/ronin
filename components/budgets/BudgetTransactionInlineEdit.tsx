@@ -274,18 +274,10 @@ export default function BudgetTransactionInlineEdit({
               disabled={isUpdating}
               variant="primary"
               size="sm"
+              isLoading={isUpdating}
             >
-              {isUpdating ? (
-                <>
-                  <div className="mr-1 h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Check className="mr-1 h-3 w-3" />
-                  Save
-                </>
-              )}
+              <Check className="mr-1 h-3 w-3" />
+              Save
             </Button>
           </div>
         </form>

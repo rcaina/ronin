@@ -1,4 +1,4 @@
-import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category, type Budget, TransactionType, CategoryType } from "@prisma/client"
+import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category, type Budget, TransactionType, type CategoryType, type Transaction, type Card, CardType } from "@prisma/client"
 import { HttpError } from "../errors"
 import { formatBudget, formatBudgetCategories } from "../db/converter"
 import type { PrismaClientTx } from "../prisma"
@@ -51,7 +51,14 @@ export interface UpdateBudgetData {
 export type BudgetCategories = (BudgetCategory & { 
   category: Category, 
   spentAmount: number,
-  transactions?: undefined 
+  transactions: Array<{
+    id: string;
+    name: string | null;
+    description: string | null;
+    amount: number;
+    transactionType: TransactionType;
+    createdAt: string;
+  }>;
 })[]
 
 export async function getBudgetById(
@@ -431,12 +438,31 @@ export async function duplicateBudget(
     },
     include: {
       incomes: {
-        where: { deleted: null }
+        where: { deleted: null },
+        select: {
+          amount: true,
+          source: true,
+          description: true,
+          isPlanned: true,
+          frequency: true,
+        }
       },
       categories: {
         where: { deleted: null },
-        include: {
+        select: {
+          allocatedAmount: true,
+          categoryId: true,
           category: true
+        }
+      },
+      cards: {
+        where: { deleted: null },
+        select: {
+          id: true,
+          name: true,
+          cardType: true,
+          spendingLimit: true,
+          userId: true,
         }
       }
     }
@@ -487,6 +513,17 @@ export async function duplicateBudget(
     });
   }
 
+  // Copy card payments
+  for (const card of originalBudget.cards) {
+    await tx.card.create({
+      data: {
+        ...card,
+        budgetId: newBudget.id,
+        amountSpent: 0
+      },
+    });
+  }
+
   return newBudget;
 }
 
@@ -496,11 +533,57 @@ export async function duplicateBudget(
 export const getBudgetCategories = async (
   tx: PrismaClientTx,
   budgetId: string,
+  searchQuery?: string,
 ): Promise<BudgetCategories> => {
   const budgetCategories = await tx.budgetCategory.findMany({
     where: {
       budgetId: budgetId,
       deleted: null,
+      ...(searchQuery?.trim() && {
+        OR: [
+          // Search in category name
+          {
+            category: {
+              name: {
+                contains: searchQuery.trim(),
+                mode: 'insensitive',
+              },
+            },
+          },
+          // Search in allocated amount (exact match for numbers)
+          ...(isNaN(Number(searchQuery)) ? [] : [{
+            allocatedAmount: Number(searchQuery),
+          }]),
+          // Search in transactions
+          {
+            transactions: {
+              some: {
+                deleted: null,
+                OR: [
+                  // Search in transaction name
+                  {
+                    name: {
+                      contains: searchQuery.trim(),
+                      mode: 'insensitive',
+                    },
+                  },
+                  // Search in transaction description
+                  {
+                    description: {
+                      contains: searchQuery.trim(),
+                      mode: 'insensitive',
+                    },
+                  },
+                  // Search in transaction amount (exact match for numbers)
+                  ...(isNaN(Number(searchQuery)) ? [] : [{
+                    amount: Number(searchQuery),
+                  }]),
+                ],
+              },
+            },
+          },
+        ],
+      }),
     },
     include: {
       category: true,
@@ -509,8 +592,12 @@ export const getBudgetCategories = async (
           deleted: null,
         },
         select: {
+          id: true,
+          name: true,
+          description: true,
           amount: true,
           transactionType: true,
+          createdAt: true,
         },
       },
     },
@@ -529,7 +616,7 @@ export const createBudgetCategory = async (
   budgetId: string,
   data: {
     categoryName: string;
-    group: "needs" | "wants" | "investment";
+    group: CategoryType;
     allocatedAmount: number;
   },
   user: User & { accountId: string }
@@ -547,14 +634,7 @@ export const createBudgetCategory = async (
     throw new HttpError("Budget not found", 404);
   }
 
-  // Convert group to CategoryType enum
-  const groupToCategoryType = {
-    needs: CategoryType.NEEDS,
-    wants: CategoryType.WANTS,
-    investment: CategoryType.INVESTMENT,
-  };
-
-  const categoryType = groupToCategoryType[data.group];
+  const categoryType = data.group;
 
     // Create the category template first
     const category = await tx.category.create({
@@ -636,6 +716,34 @@ export const updateBudgetCategory = async (
   }
   if (data.categoryId) {
     updateData.categoryId = data.categoryId;
+  }
+
+  // If updating group, we need to update the associated category template
+  if (data.group) {
+    const budgetCategory = await tx.budgetCategory.findFirst({
+      where: {
+        id: categoryId,
+        budgetId: budgetId,
+        deleted: null,
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    if (!budgetCategory) {
+      throw new HttpError("Budget category not found", 404);
+    }
+
+    // Update the category template group
+    await tx.category.update({
+      where: {
+        id: budgetCategory.categoryId,
+      },
+      data: {
+        group: data.group,
+      },
+    });
   }
 
   // If updating category name, update the associated category template
@@ -726,4 +834,103 @@ export const deleteBudgetCategory = async (
   });
 
   return budgetCategory;
+};
+
+export const getBudgetTransactions = async (
+  tx: PrismaClient,
+  budgetId: string,
+): Promise<(Transaction & { category: (BudgetCategory & { category: Category }) | null, Budget: Budget })[]> => {
+  return await tx.transaction.findMany({
+    where: { budgetId: budgetId, deleted: null },
+    include: {
+      category: {
+        include:{
+          category: true,
+        }
+      },
+      Budget: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
+
+export const getBudgetCards = async (
+  tx: PrismaClient,
+  budgetId: string,
+): Promise<Card[]> => {
+  const cards = await tx.card.findMany({
+    where: {
+      budgetId: budgetId,
+      deleted: null,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+      transactions: {
+        where: {
+          deleted: null,
+          ...({
+            transactionType: {
+              not: TransactionType.CARD_PAYMENT
+            }
+          }),
+        },
+        select: {
+          amount: true,
+          transactionType: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Calculate amountSpent for each card by summing related transactions
+  const cardsWithAmountSpent = cards.map(card => {
+    const isCreditCard = card.cardType === CardType.CREDIT || card.cardType === CardType.BUSINESS_CREDIT;
+    
+    let amountSpent = 0;
+    if (isCreditCard) {
+      // For credit cards: handle regular transactions and card payments differently
+      amountSpent = card.transactions.reduce((sum, transaction) => {
+        if (transaction.transactionType === TransactionType.CARD_PAYMENT) {
+          // Card payments reduce the balance (positive amount = payment received)
+          return sum - transaction.amount; // Subtract payment amount (reduces balance)
+        } else if (transaction.transactionType === TransactionType.RETURN) {
+          // Returns reduce the balance (positive amount = refund received)
+          return sum - transaction.amount; // Subtract return amount (reduces balance)
+        } else {
+          // Regular transactions: positive = purchases (increase balance)
+          return sum + transaction.amount;
+        }
+      }, 0);
+    } else {
+      // For debit/cash cards: sum all amounts normally
+      amountSpent = card.transactions.reduce((sum, transaction) => {
+        if (transaction.transactionType === TransactionType.RETURN) {
+          // Returns reduce the balance (positive amount = refund received)
+          return sum - transaction.amount; // Subtract return amount (reduces balance)
+        } else {
+          // Regular transactions: positive = purchases (increase balance)
+          return sum + transaction.amount;
+        }
+      }, 0);
+    }
+    
+    return {
+      ...card,
+      amountSpent,
+      transactions: undefined, // Remove transactions from response
+    };
+  });
+
+  return cardsWithAmountSpent;
 }
+    

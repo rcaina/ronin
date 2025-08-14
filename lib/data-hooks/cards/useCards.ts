@@ -22,9 +22,13 @@ export const useCreateCard = () => {
 
   return useMutation({
     mutationFn: (data: CreateCardRequest) => createCard(data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       // Invalidate and refetch cards
       void queryClient.invalidateQueries({ queryKey: ["cards"] });
+      // Also invalidate budget cards if budgetId is provided
+      if (variables.budgetId) {
+        void queryClient.invalidateQueries({ queryKey: ["budgetCards", variables.budgetId] });
+      }
     },
   });
 };
@@ -38,6 +42,8 @@ export const useUpdateCard = () => {
     onSuccess: () => {
       // Invalidate and refetch cards
       void queryClient.invalidateQueries({ queryKey: ["cards"] });
+      // Also invalidate all budget cards queries since we don't know which budget the card belongs to
+      void queryClient.invalidateQueries({ queryKey: ["budgetCards"] });
     },
   });
 };
@@ -50,6 +56,8 @@ export const useDeleteCard = () => {
     onSuccess: () => {
       // Invalidate and refetch cards
       void queryClient.invalidateQueries({ queryKey: ["cards"] });
+      // Also invalidate all budget cards queries since we don't know which budget the card belonged to
+      void queryClient.invalidateQueries({ queryKey: ["budgetCards"] });
     },
   });
 };

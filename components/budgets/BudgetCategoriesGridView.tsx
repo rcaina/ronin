@@ -1,43 +1,39 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "react-hot-toast";
 import BudgetCategoryCard from "./BudgetCategoryCard";
 import AddBudgetCategoryForm from "./AddBudgetCategoryForm";
 import {
+  useBudgetCategories,
   useCreateBudgetCategory,
   useUpdateBudgetCategory,
+  type BudgetCategoryWithCategory,
 } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import { useCategories } from "@/lib/data-hooks/categories/useCategories";
 import type {
-  BudgetWithRelations,
   CategoriesByGroup,
   GroupColorFunction,
   GroupLabelFunction,
-  BudgetCategoryWithRelations,
 } from "@/lib/types/budget";
-import type { GroupedCategories } from "@/lib/data-hooks/services/categories";
+import { CategoryType } from "@prisma/client";
 
 interface BudgetCategoriesGridViewProps {
-  budget: BudgetWithRelations;
   budgetId: string;
-  categoriesByGroup: CategoriesByGroup;
   getGroupColor: GroupColorFunction;
   getGroupLabel: GroupLabelFunction;
-  onRefetch: () => void;
+  budgetCategories?: BudgetCategoryWithCategory[];
 }
 
 export default function BudgetCategoriesGridView({
-  budget,
   budgetId,
-  categoriesByGroup,
   getGroupColor,
   getGroupLabel,
-  onRefetch,
+  budgetCategories: propBudgetCategories,
 }: BudgetCategoriesGridViewProps) {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
-  const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [activeGroup, setActiveGroup] = useState<CategoryType | null>(null);
   const [scrollShadows, setScrollShadows] = useState<Record<string, boolean>>(
     {},
   );
@@ -46,12 +42,27 @@ export default function BudgetCategoriesGridView({
   const updateBudgetCategoryMutation = useUpdateBudgetCategory();
   const scrollContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Define the three main category groups that should always be shown
-  const mainGroups = ["needs", "wants", "investment"];
+  // Use prop data if provided, otherwise fall back to hook data
+  const { data: hookBudgetCategories } = useBudgetCategories(budgetId);
+  const budgetCategories = propBudgetCategories ?? hookBudgetCategories;
+
+  // Define the three main category groups using the enum values
+  const mainGroups = Object.values(CategoryType);
+
+  const categoriesByGroup = useMemo(() => {
+    return budgetCategories?.reduce(
+      (acc, category: BudgetCategoryWithCategory) => {
+        const groupKey = category.category.group;
+        acc[groupKey] = [...(acc[groupKey] ?? []), category];
+        return acc;
+      },
+      {} as CategoriesByGroup,
+    );
+  }, [budgetCategories]);
 
   // Ensure all main groups are present in categoriesByGroup, even if empty
   const displayCategoriesByGroup = mainGroups.reduce((acc, group) => {
-    acc[group] = categoriesByGroup[group] ?? [];
+    acc[group] = categoriesByGroup?.[group] ?? [];
     return acc;
   }, {} as CategoriesByGroup);
 
@@ -83,9 +94,9 @@ export default function BudgetCategoriesGridView({
     });
 
     return () => resizeObserver.disconnect();
-  }, [budget?.categories]);
+  }, [budgetCategories]);
 
-  const handleStartAddCategory = (group: string) => {
+  const handleStartAddCategory = (group: CategoryType) => {
     setIsAddingCategory(true);
     setActiveGroup(group);
   };
@@ -104,13 +115,12 @@ export default function BudgetCategoriesGridView({
         budgetId,
         data: {
           categoryName: data.categoryName,
-          group: activeGroup as "needs" | "wants" | "investment",
+          group: activeGroup!,
           allocatedAmount: data.allocatedAmount,
         },
       });
 
       handleCancelAddCategory();
-      onRefetch();
       toast.success("Budget category added successfully!");
     } catch (error) {
       console.error("Failed to add budget category:", error);
@@ -139,7 +149,7 @@ export default function BudgetCategoriesGridView({
     );
   };
 
-  const handleDrop = async (e: React.DragEvent, targetGroup: string) => {
+  const handleDrop = async (e: React.DragEvent, targetGroup: CategoryType) => {
     e.preventDefault();
     e.currentTarget.classList.remove(
       "bg-gray-50",
@@ -152,27 +162,13 @@ export default function BudgetCategoriesGridView({
     if (!budgetCategoryId || !categories) return;
 
     // Find the budget category being dragged
-    const draggedBudgetCategory = (budget.categories ?? []).find(
-      (bc: BudgetCategoryWithRelations) => bc.id === budgetCategoryId,
+    const draggedBudgetCategory = (budgetCategories ?? []).find(
+      (bc: BudgetCategoryWithCategory) => bc.id === budgetCategoryId,
     );
     if (!draggedBudgetCategory?.category) return;
 
     // Don't allow dropping in the same group
-    if (draggedBudgetCategory.category.group.toLowerCase() === targetGroup) {
-      return;
-    }
-
-    // Find a category template in the target group with the same name
-    const targetGroupKey = targetGroup as keyof GroupedCategories;
-    const targetCategories = categories[targetGroupKey] || [];
-
-    const matchingCategory = targetCategories.find(
-      (cat) => cat.name === draggedBudgetCategory.category.name,
-    );
-
-    if (!matchingCategory) {
-      console.error("No matching category found in target group");
-      toast.error("No matching category found in target group");
+    if (draggedBudgetCategory.category.group === targetGroup) {
       return;
     }
 
@@ -182,10 +178,9 @@ export default function BudgetCategoriesGridView({
         budgetId,
         categoryId: budgetCategoryId,
         data: {
-          categoryId: matchingCategory.id,
+          group: targetGroup,
         },
       });
-      onRefetch();
       toast.success("Budget category moved successfully!");
     } catch (error) {
       console.error("Failed to move budget category:", error);
@@ -194,88 +189,93 @@ export default function BudgetCategoriesGridView({
   };
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {Object.entries(displayCategoriesByGroup).map(([group, categories]) => (
-        <div
-          key={group}
-          className="flex h-[400px] flex-col sm:h-[500px] md:h-[600px]"
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, group)}
-        >
-          <div className="mb-3 flex items-center justify-between sm:mb-4">
-            <div className="flex items-center">
-              <div
-                className={`h-3 w-3 rounded-full ${getGroupColor(group)} mr-2 sm:mr-3`}
-              ></div>
-              <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
-                {getGroupLabel(group)}
-              </h3>
-              <span className="ml-2 text-sm text-gray-500">
-                ({categories?.length ?? 0})
-              </span>
-            </div>
-            <div className="flex items-center">
-              <button
-                onClick={() => handleStartAddCategory(group)}
-                className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                title="Add category"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-          <div className="relative min-h-0 flex-1">
+    <div className="flex h-full w-full flex-col">
+      <div className="grid w-full grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+        {Object.entries(displayCategoriesByGroup).map(([group, categories]) => {
+          const groupType = group as CategoryType;
+          return (
             <div
-              ref={(el) => {
-                scrollContainerRefs.current[group] = el;
-              }}
-              className="scrollbar-hide absolute inset-0 space-y-4 overflow-y-auto pb-6"
+              key={group}
+              className="mb-8 flex min-h-[400px] flex-col sm:min-h-[500px] md:min-h-[600px]"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, groupType)}
             >
-              {/* Add Category Form - inline within column */}
-              {isAddingCategory && activeGroup === group && (
-                <AddBudgetCategoryForm
-                  onSubmit={handleSubmitAddCategory}
-                  onCancel={handleCancelAddCategory}
-                  isLoading={createBudgetCategoryMutation.isPending}
-                />
-              )}
-
-              {categories?.map(
-                (budgetCategory: BudgetCategoryWithRelations) => {
-                  // Skip if category relation is not loaded
-                  if (!budgetCategory.category) return null;
-
-                  return (
-                    <BudgetCategoryCard
-                      key={budgetCategory.id}
-                      budgetCategory={budgetCategory}
-                      budgetId={budgetId}
-                      getGroupColor={getGroupColor}
+              <div className="mb-3 flex items-center justify-between sm:mb-4">
+                <div className="flex items-center">
+                  <div
+                    className={`h-3 w-3 rounded-full ${getGroupColor(groupType)} mr-2 sm:mr-3`}
+                  ></div>
+                  <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
+                    {getGroupLabel(groupType)}
+                  </h3>
+                  <span className="ml-2 text-sm text-gray-500">
+                    ({categories?.length ?? 0})
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <button
+                    onClick={() => handleStartAddCategory(groupType)}
+                    className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    title="Add category"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="relative min-h-0 flex-1">
+                <div
+                  ref={(el) => {
+                    scrollContainerRefs.current[group] = el;
+                  }}
+                  className="scrollbar-hide h-full space-y-4 overflow-y-auto pb-6"
+                >
+                  {/* Add Category Form - inline within column */}
+                  {isAddingCategory && activeGroup === group && (
+                    <AddBudgetCategoryForm
+                      onSubmit={handleSubmitAddCategory}
+                      onCancel={handleCancelAddCategory}
+                      isLoading={createBudgetCategoryMutation.isPending}
                     />
-                  );
-                },
-              )}
+                  )}
 
-              {/* Show empty state message when no categories in this group */}
-              {(!categories || categories.length === 0) &&
-                !(isAddingCategory && activeGroup === group) && (
-                  <div className="flex h-32 items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50">
-                    <div className="text-center text-sm text-gray-500">
-                      <p>No categories yet</p>
-                      <p>Click the + button to add one</p>
-                    </div>
-                  </div>
+                  {categories?.map(
+                    (budgetCategory: BudgetCategoryWithCategory) => {
+                      // Skip if category relation is not loaded
+                      if (!budgetCategory.category) return null;
+
+                      return (
+                        <BudgetCategoryCard
+                          key={budgetCategory.id}
+                          budgetCategory={budgetCategory}
+                          budgetId={budgetId}
+                          getGroupColor={getGroupColor}
+                        />
+                      );
+                    },
+                  )}
+
+                  {/* Show empty state message when no categories in this group */}
+                  {(!categories || categories.length === 0) &&
+                    !(isAddingCategory && activeGroup === group) && (
+                      <div className="flex h-32 items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50">
+                        <div className="text-center text-sm text-gray-500">
+                          <p>No categories yet</p>
+                          <p>Click the + button to add one</p>
+                        </div>
+                      </div>
+                    )}
+                </div>
+
+                {/* Scroll Shadow Indicator */}
+                {scrollShadows[group] && (
+                  <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white/80 to-transparent" />
                 )}
+              </div>
             </div>
-
-            {/* Scroll Shadow Indicator */}
-            {scrollShadows[group] && (
-              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white/80 to-transparent" />
-            )}
-          </div>
-        </div>
-      ))}
+          );
+        })}
+      </div>
     </div>
   );
 }

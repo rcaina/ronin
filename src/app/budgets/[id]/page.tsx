@@ -1,7 +1,7 @@
 "use client";
 
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   TrendingUp,
   TrendingDown,
@@ -14,17 +14,16 @@ import {
 import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
-import BudgetCategoriesSection from "@/components/budgets/BudgetCategoriesSection";
-import { BudgetTransactionsList } from "@/components/budgets/BudgetTransactionsList";
-import IncomeModal from "@/components/budgets/IncomeModal";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import { useState } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 import StatsCard from "@/components/StatsCard";
 import { TransactionType } from "@prisma/client";
+import IncomeModal from "@/components/budgets/IncomeModal";
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();
+  const router = useRouter();
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [isEditBudgetOpen, setIsEditBudgetOpen] = useState(false);
@@ -186,19 +185,7 @@ const BudgetDetailsPage = () => {
     }
   };
 
-  const handleTransactionSuccess = () => {
-    void refetch();
-  };
-
   const handleIncomeSuccess = () => {
-    void refetch();
-  };
-
-  const handleEditBudgetSuccess = () => {
-    void refetch();
-  };
-
-  const handleCardPaymentSuccess = () => {
     void refetch();
   };
 
@@ -266,6 +253,7 @@ const BudgetDetailsPage = () => {
                     </div>
                   }
                   iconColor="text-green-500"
+                  hover={true}
                 />
               </div>
 
@@ -400,47 +388,234 @@ const BudgetDetailsPage = () => {
               </div>
             </div>
 
-            {/* Categories by Group */}
-            <BudgetCategoriesSection
-              budget={budget}
-              budgetId={id as string}
-              categoriesByGroup={categoriesByGroup}
-              getGroupColor={getGroupColor}
-              getGroupLabel={getGroupLabel}
-              onRefetch={refetch}
-            />
+            {/* Categories Summary */}
+            <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-8 sm:p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
+                  Categories Summary
+                </h3>
+                <button
+                  onClick={() =>
+                    router.push(`/budgets/${String(id)}/categories`)
+                  }
+                  className="text-xs font-medium text-blue-600 hover:text-blue-700 sm:text-sm"
+                >
+                  View Details
+                </button>
+              </div>
 
-            {/* All Transactions */}
-            <BudgetTransactionsList
-              transactions={[
-                // Regular transactions with categories
-                ...(budget.categories ?? [])
-                  .filter((budgetCategory) => budgetCategory.category)
-                  .flatMap((budgetCategory) =>
-                    (budgetCategory.transactions ?? []).map((transaction) => ({
-                      ...transaction,
-                      categoryName: budgetCategory.category.name,
-                      categoryGroup: budgetCategory.category.group,
-                      budgetId: budget.id,
-                      categoryId: budgetCategory.id,
-                    })),
-                  ),
-                // Uncategorized transactions
-                ...(budget.transactions ?? []).map((transaction) => ({
-                  ...transaction,
-                  categoryName: "Uncategorized",
-                  categoryGroup: "uncategorized",
-                  budgetId: budget.id,
-                  categoryId: "", // No category for uncategorized transactions
-                })),
-              ].sort(
-                (a, b) =>
-                  new Date(b.createdAt).getTime() -
-                  new Date(a.createdAt).getTime(),
-              )}
-              getGroupColor={getGroupColor}
-              onRefetch={refetch}
-            />
+              <div className="space-y-4">
+                {Object.entries(categoriesByGroup)
+                  .filter(([group]) => group !== "card_payment")
+                  .map(([group, categories]) => {
+                    if (!categories || categories.length === 0) return null;
+
+                    // Calculate totals for this group
+                    const totalAllocated = categories.reduce(
+                      (sum, cat) => sum + cat.allocatedAmount,
+                      0,
+                    );
+
+                    const totalSpent = categories.reduce((sum, cat) => {
+                      const categorySpent = (cat.transactions ?? []).reduce(
+                        (transactionTotal: number, transaction) => {
+                          if (
+                            transaction.transactionType ===
+                            TransactionType.RETURN
+                          ) {
+                            return transactionTotal - transaction.amount;
+                          } else {
+                            return transactionTotal + transaction.amount;
+                          }
+                        },
+                        0,
+                      );
+                      return sum + categorySpent;
+                    }, 0);
+
+                    const usagePercentage =
+                      totalAllocated > 0
+                        ? (totalSpent / totalAllocated) * 100
+                        : 0;
+
+                    // Count categories that are 100% used
+                    const fullyUsedCount = categories.filter((cat) => {
+                      const categorySpent = (cat.transactions ?? []).reduce(
+                        (transactionTotal: number, transaction) => {
+                          if (
+                            transaction.transactionType ===
+                            TransactionType.RETURN
+                          ) {
+                            return transactionTotal - transaction.amount;
+                          } else {
+                            return transactionTotal + transaction.amount;
+                          }
+                        },
+                        0,
+                      );
+                      const categoryPercentage =
+                        cat.allocatedAmount > 0
+                          ? (categorySpent / cat.allocatedAmount) * 100
+                          : 0;
+                      return categoryPercentage >= 100;
+                    }).length;
+
+                    return (
+                      <div key={group} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <div
+                              className={`h-3 w-3 rounded-full ${getGroupColor(group)}`}
+                            ></div>
+                            <span className="text-sm font-medium text-gray-900">
+                              {getGroupLabel(group)}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              ({fullyUsedCount}/{categories.length} fully used)
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-medium text-gray-900">
+                              ${totalSpent.toLocaleString()} / $
+                              {totalAllocated.toLocaleString()}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {usagePercentage.toFixed(1)}% used
+                            </div>
+                          </div>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-gray-200">
+                          <div
+                            className={`h-2 rounded-full transition-all duration-300 ${
+                              usagePercentage > 90
+                                ? "bg-red-500"
+                                : usagePercentage > 75
+                                  ? "bg-yellow-500"
+                                  : "bg-green-500"
+                            }`}
+                            style={{
+                              width: `${Math.min(usagePercentage, 100)}%`,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Recent Transactions Summary */}
+            <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-8 sm:p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
+                  Recent Transactions
+                </h3>
+                <button
+                  onClick={() =>
+                    router.push(`/budgets/${String(id)}/transactions`)
+                  }
+                  className="text-xs font-medium text-blue-600 hover:text-blue-700 sm:text-sm"
+                >
+                  View All
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {(() => {
+                  // Collect all transactions from all categories
+                  const allTransactions = (budget.categories ?? []).flatMap(
+                    (cat) =>
+                      (cat.transactions ?? []).map((transaction) => ({
+                        ...transaction,
+                        categoryName: cat.category.name,
+                        categoryGroup: cat.category.group,
+                      })),
+                  );
+
+                  if (allTransactions.length === 0) {
+                    return (
+                      <div className="py-6 text-center">
+                        <p className="text-sm text-gray-500">
+                          No transactions yet
+                        </p>
+                        <button
+                          onClick={() => setIsAddTransactionOpen(true)}
+                          className="mt-2 text-xs font-medium text-blue-600 hover:text-blue-700"
+                        >
+                          Add your first transaction
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  // Sort by date and take the 5 most recent
+                  const recentTransactions = [...allTransactions]
+                    .sort((a, b) => {
+                      const dateA = a.occurredAt
+                        ? new Date(a.occurredAt)
+                        : new Date(a.createdAt);
+                      const dateB = b.occurredAt
+                        ? new Date(b.occurredAt)
+                        : new Date(b.createdAt);
+                      return dateB.getTime() - dateA.getTime();
+                    })
+                    .slice(0, 5);
+
+                  return recentTransactions.map((transaction) => (
+                    <div
+                      key={transaction.id}
+                      className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-3"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-medium text-gray-900">
+                            {transaction.name ?? "Unnamed Transaction"}
+                          </span>
+                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
+                            {transaction.categoryName}
+                          </span>
+                        </div>
+                        {transaction.description && (
+                          <p className="mt-1 text-xs text-gray-500">
+                            {transaction.description}
+                          </p>
+                        )}
+                        <p className="mt-1 text-xs text-gray-400">
+                          {transaction.occurredAt
+                            ? new Date(
+                                transaction.occurredAt,
+                              ).toLocaleDateString()
+                            : new Date(
+                                transaction.createdAt,
+                              ).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div
+                          className={`text-sm font-semibold ${
+                            transaction.transactionType ===
+                            TransactionType.RETURN
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {transaction.transactionType ===
+                          TransactionType.RETURN
+                            ? "+"
+                            : "-"}
+                          ${Math.abs(transaction.amount).toLocaleString()}
+                        </div>
+                        <div className="text-xs capitalize text-gray-500">
+                          {transaction.transactionType
+                            .toLowerCase()
+                            .replace("_", " ")}
+                        </div>
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -449,7 +624,6 @@ const BudgetDetailsPage = () => {
           isOpen={isAddTransactionOpen}
           budgetId={id as string}
           onClose={() => setIsAddTransactionOpen(false)}
-          onSuccess={handleTransactionSuccess}
         />
       )}
       {isIncomeModalOpen && (
@@ -466,14 +640,13 @@ const BudgetDetailsPage = () => {
           isOpen={isEditBudgetOpen}
           budget={budget}
           onClose={() => setIsEditBudgetOpen(false)}
-          onSuccess={handleEditBudgetSuccess}
         />
       )}
       {isCardPaymentOpen && (
         <CardPaymentModal
           isOpen={isCardPaymentOpen}
           onClose={() => setIsCardPaymentOpen(false)}
-          onSuccess={handleCardPaymentSuccess}
+          budgetId={id as string}
         />
       )}
     </div>
