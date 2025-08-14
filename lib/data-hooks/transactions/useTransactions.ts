@@ -58,7 +58,7 @@ export const useDeleteTransaction = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, budgetId }: { id: string; budgetId?: string }) => deleteTransaction(id),
+    mutationFn: (data: { id: string; budgetId?: string }) => deleteTransaction(data.id),
     onSuccess: (_, variables) => {
       // Invalidate and refetch transactions
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
