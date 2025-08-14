@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -62,7 +62,7 @@ export default function TransactionForm({
   const { mutate: updateTransaction, isPending: isUpdating } =
     useUpdateTransaction();
   const { data: budgets = [] } = useBudgets();
-  const { data: cards = [] } = useCards();
+  const { data: cards = [] } = useCards(undefined, budgetId);
 
   const [selectedBudgetId, setSelectedBudgetId] = useState<string>("");
   const { data: budgetCategories = [] } = useBudgetCategories(selectedBudgetId);

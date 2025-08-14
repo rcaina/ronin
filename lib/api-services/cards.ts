@@ -10,6 +10,8 @@ export async function getCards(
   user: User & { accountId: string }
 ) {
   const excludeCardPayments = params.get('excludeCardPayments') === 'true';
+  const budgetId = params.get('budgetId');
+  
   // Get all users in the same account
   const accountUsers = await tx.accountUser.findMany({
     where: {
@@ -28,6 +30,7 @@ export async function getCards(
         in: userIds,
       },
       deleted: null,
+      ...(budgetId && { budgetId }),
     },
     include: {
       user: {

@@ -3,12 +3,12 @@ import { useSession } from "next-auth/react";
 import { getCards, getCard, getCardTransactions, createCard, updateCard, deleteCard, type Card as ApiCard, type CreateCardRequest, type UpdateCardRequest } from "../services/cards";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 
-export const useCards = (excludeCardPayments?: boolean) => {
+export const useCards = (excludeCardPayments?: boolean, budgetId?: string) => {
   const { data: session } = useSession();
 
   const query = useQuery<ApiCard[]>({
-    queryKey: ["cards", excludeCardPayments],
-    queryFn: () => getCards(excludeCardPayments),
+    queryKey: ["cards", excludeCardPayments, budgetId],
+    queryFn: () => getCards(excludeCardPayments, budgetId),
     placeholderData: keepPreviousData,
     enabled: !!session,
     staleTime: 2 * 60 * 1000, // 2 minutes
