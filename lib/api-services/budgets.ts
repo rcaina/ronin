@@ -445,6 +445,9 @@ export async function duplicateBudget(
         include: {
           category: true
         }
+      },
+      cards: {
+        where: { deleted: null }
       }
     }
   });
@@ -494,6 +497,16 @@ export async function duplicateBudget(
     });
   }
 
+  // Copy card payments
+  for (const card of originalBudget.cards) {
+    await tx.card.create({
+      data: {
+        ...card,
+        budgetId: newBudget.id,
+      },
+    });
+  }
+
   return newBudget;
 }
 
@@ -503,11 +516,57 @@ export async function duplicateBudget(
 export const getBudgetCategories = async (
   tx: PrismaClientTx,
   budgetId: string,
+  searchQuery?: string,
 ): Promise<BudgetCategories> => {
   const budgetCategories = await tx.budgetCategory.findMany({
     where: {
       budgetId: budgetId,
       deleted: null,
+      ...(searchQuery?.trim() && {
+        OR: [
+          // Search in category name
+          {
+            category: {
+              name: {
+                contains: searchQuery.trim(),
+                mode: 'insensitive',
+              },
+            },
+          },
+          // Search in allocated amount (exact match for numbers)
+          ...(isNaN(Number(searchQuery)) ? [] : [{
+            allocatedAmount: Number(searchQuery),
+          }]),
+          // Search in transactions
+          {
+            transactions: {
+              some: {
+                deleted: null,
+                OR: [
+                  // Search in transaction name
+                  {
+                    name: {
+                      contains: searchQuery.trim(),
+                      mode: 'insensitive',
+                    },
+                  },
+                  // Search in transaction description
+                  {
+                    description: {
+                      contains: searchQuery.trim(),
+                      mode: 'insensitive',
+                    },
+                  },
+                  // Search in transaction amount (exact match for numbers)
+                  ...(isNaN(Number(searchQuery)) ? [] : [{
+                    amount: Number(searchQuery),
+                  }]),
+                ],
+              },
+            },
+          },
+        ],
+      }),
     },
     include: {
       category: true,

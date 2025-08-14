@@ -23,12 +23,14 @@ interface BudgetCategoriesGridViewProps {
   budgetId: string;
   getGroupColor: GroupColorFunction;
   getGroupLabel: GroupLabelFunction;
+  budgetCategories?: BudgetCategoryWithCategory[];
 }
 
 export default function BudgetCategoriesGridView({
   budgetId,
   getGroupColor,
   getGroupLabel,
+  budgetCategories: propBudgetCategories,
 }: BudgetCategoriesGridViewProps) {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [activeGroup, setActiveGroup] = useState<CategoryType | null>(null);
@@ -39,7 +41,10 @@ export default function BudgetCategoriesGridView({
   const createBudgetCategoryMutation = useCreateBudgetCategory();
   const updateBudgetCategoryMutation = useUpdateBudgetCategory();
   const scrollContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const { data: budgetCategories } = useBudgetCategories(budgetId);
+
+  // Use prop data if provided, otherwise fall back to hook data
+  const { data: hookBudgetCategories } = useBudgetCategories(budgetId);
+  const budgetCategories = propBudgetCategories ?? hookBudgetCategories;
 
   // Define the three main category groups using the enum values
   const mainGroups = Object.values(CategoryType);

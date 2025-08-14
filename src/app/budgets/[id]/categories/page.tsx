@@ -8,15 +8,21 @@ import BudgetCategoriesViewToggle, {
   type BudgetCategoriesViewType,
 } from "@/components/budgets/BudgetCategoriesViewToggle";
 import BudgetCategoriesListView from "@/components/budgets/BudgetCategoriesListView";
+import BudgetCategoriesSearch from "@/components/budgets/BudgetCategoriesSearch";
 import { CategoryType } from "@prisma/client";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
+import { useBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategories";
 
 const BudgetCategoriesPage = () => {
   const { id } = useParams();
   const budgetId = id as string;
   const { data: budget } = useBudget(budgetId);
   const [view, setView] = useState<BudgetCategoriesViewType>("grid");
+  const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
+
+  // Use the search query in the hook
+  const { data: budgetCategories } = useBudgetCategories(budgetId, searchQuery);
 
   const getGroupColor = (group: CategoryType) => {
     switch (group) {
@@ -44,6 +50,10 @@ const BudgetCategoriesPage = () => {
     }
   };
 
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+  };
+
   return (
     <div className="flex h-screen flex-col bg-gray-50">
       <PageHeader
@@ -57,7 +67,13 @@ const BudgetCategoriesPage = () => {
       <div className="flex-1 overflow-hidden pt-16 sm:pt-24 lg:pt-0">
         <div className="h-full overflow-y-auto">
           <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex-1">
+                <BudgetCategoriesSearch
+                  onSearchChange={handleSearchChange}
+                  searchQuery={searchQuery}
+                />
+              </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4">
                 <BudgetCategoriesViewToggle
                   view={view}
@@ -71,12 +87,14 @@ const BudgetCategoriesPage = () => {
                 budgetId={budgetId}
                 getGroupColor={getGroupColor}
                 getGroupLabel={getGroupLabel}
+                budgetCategories={budgetCategories}
               />
             ) : (
               <BudgetCategoriesListView
                 budgetId={budgetId}
                 getGroupColor={getGroupColor}
                 getGroupLabel={getGroupLabel}
+                budgetCategories={budgetCategories}
               />
             )}
           </div>

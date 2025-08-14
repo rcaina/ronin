@@ -26,20 +26,25 @@ export type BudgetCategoryWithCategory = {
   }>;
 };
 
-const getBudgetCategories = async (budgetId: string): Promise<BudgetCategoryWithCategory[]> => {
-  const response = await fetch(`/api/budgets/${budgetId}/categories`);
+const getBudgetCategories = async (budgetId: string, searchQuery?: string): Promise<BudgetCategoryWithCategory[]> => {
+  const url = new URL(`/api/budgets/${budgetId}/categories`, window.location.origin);
+  if (searchQuery?.trim()) {
+    url.searchParams.set('search', searchQuery.trim());
+  }
+  
+  const response = await fetch(url.toString());
   if (!response.ok) {
     throw new Error(`Failed to fetch budget categories: ${response.statusText}`);
   }
   return response.json() as Promise<BudgetCategoryWithCategory[]>;
 };
 
-export const useBudgetCategories = (budgetId: string) => {
+export const useBudgetCategories = (budgetId: string, searchQuery?: string) => {
   const { data: session } = useSession();
 
   const query = useQuery<BudgetCategoryWithCategory[]>({
-    queryKey: ["budgetCategories", budgetId],
-    queryFn: () => getBudgetCategories(budgetId),
+    queryKey: ["budgetCategories", budgetId, searchQuery],
+    queryFn: () => getBudgetCategories(budgetId, searchQuery),
     placeholderData: keepPreviousData,
     enabled: !!session && !!budgetId,
     staleTime: 2 * 60 * 1000,

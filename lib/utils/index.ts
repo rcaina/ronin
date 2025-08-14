@@ -6,6 +6,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Re-export hooks
+export { useDebounce } from "./hooks";
+
 /**
  * Calculates the adjusted income amount based on income frequency and budget period
  * @param amount - The base income amount

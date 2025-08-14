@@ -20,12 +20,14 @@ interface BudgetCategoriesListViewProps {
   budgetId: string;
   getGroupColor: GroupColorFunction;
   getGroupLabel: GroupLabelFunction;
+  budgetCategories?: BudgetCategoryWithCategory[];
 }
 
 export default function BudgetCategoriesListView({
   budgetId,
   getGroupColor,
   getGroupLabel,
+  budgetCategories: propBudgetCategories,
 }: BudgetCategoriesListViewProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(),
@@ -37,7 +39,9 @@ export default function BudgetCategoriesListView({
   // Define the three main category groups using the enum values
   const mainGroups = Object.values(CategoryType);
 
-  const { data: budgetCategories } = useBudgetCategories(budgetId);
+  // Use prop data if provided, otherwise fall back to hook data
+  const { data: hookBudgetCategories } = useBudgetCategories(budgetId);
+  const budgetCategories = propBudgetCategories ?? hookBudgetCategories;
 
   // Ensure all main groups are present in categoriesByGroup, even if empty
   const displayCategoriesByGroup = mainGroups.reduce((acc, group) => {
