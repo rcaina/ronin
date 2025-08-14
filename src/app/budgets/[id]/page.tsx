@@ -253,6 +253,7 @@ const BudgetDetailsPage = () => {
                     </div>
                   }
                   iconColor="text-green-500"
+                  hover={true}
                 />
               </div>
 

@@ -12,17 +12,67 @@ import BudgetCategoriesSearch from "@/components/budgets/BudgetCategoriesSearch"
 import { CategoryType } from "@prisma/client";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategories";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { Target, AlertCircle } from "lucide-react";
 
 const BudgetCategoriesPage = () => {
   const { id } = useParams();
   const budgetId = id as string;
-  const { data: budget } = useBudget(budgetId);
+  const {
+    data: budget,
+    isLoading: budgetLoading,
+    error: budgetError,
+  } = useBudget(budgetId);
   const [view, setView] = useState<BudgetCategoriesViewType>("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
 
   // Use the search query in the hook
-  const { data: budgetCategories } = useBudgetCategories(budgetId, searchQuery);
+  const {
+    data: budgetCategories,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = useBudgetCategories(budgetId, searchQuery);
+
+  // Show loading state while either budget or categories are loading
+  if (budgetLoading || categoriesLoading) {
+    return <LoadingSpinner message="Loading budget categories..." />;
+  }
+
+  // Show error state if there's an error with budget or categories
+  if (budgetError || categoriesError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="mb-4 text-red-500">
+            <AlertCircle className="mx-auto h-12 w-12" />
+          </div>
+          <div className="mb-2 text-lg text-red-600">
+            Error loading budget categories
+          </div>
+          <div className="text-sm text-gray-500">
+            {budgetError?.message ??
+              categoriesError?.message ??
+              "An unexpected error occurred"}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show not found state if budget doesn't exist
+  if (!budget) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="mb-4 text-gray-400">
+            <Target className="mx-auto h-12 w-12" />
+          </div>
+          <div className="text-lg text-gray-600">Budget not found</div>
+        </div>
+      </div>
+    );
+  }
 
   const getGroupColor = (group: CategoryType) => {
     switch (group) {

@@ -8,6 +8,7 @@ import {
   List,
   CreditCard,
   TrendingUp,
+  DollarSign,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -35,6 +36,11 @@ export default function BudgetLayout({
       href: `/budgets/${id}`,
       icon: <Target className="h-5 w-5" />,
       label: "Overview",
+    },
+    {
+      href: `/budgets/${id}/income`,
+      icon: <DollarSign className="h-5 w-5" />,
+      label: "Income",
     },
     {
       href: `/budgets/${id}/categories`,

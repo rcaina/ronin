@@ -438,16 +438,32 @@ export async function duplicateBudget(
     },
     include: {
       incomes: {
-        where: { deleted: null }
+        where: { deleted: null },
+        select: {
+          amount: true,
+          source: true,
+          description: true,
+          isPlanned: true,
+          frequency: true,
+        }
       },
       categories: {
         where: { deleted: null },
-        include: {
+        select: {
+          allocatedAmount: true,
+          categoryId: true,
           category: true
         }
       },
       cards: {
-        where: { deleted: null }
+        where: { deleted: null },
+        select: {
+          id: true,
+          name: true,
+          cardType: true,
+          spendingLimit: true,
+          userId: true,
+        }
       }
     }
   });
@@ -503,6 +519,7 @@ export async function duplicateBudget(
       data: {
         ...card,
         budgetId: newBudget.id,
+        amountSpent: 0
       },
     });
   }

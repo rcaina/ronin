@@ -1,6 +1,13 @@
 "use client";
 
-import { Plus, CreditCard, DollarSign, Shield } from "lucide-react";
+import {
+  Plus,
+  CreditCard,
+  DollarSign,
+  Shield,
+  AlertCircle,
+  Target,
+} from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
@@ -50,8 +57,16 @@ const BudgetCardsPage = () => {
   const params = useParams();
   const budgetId = params.id as string;
   const { data: session } = useSession();
-  const { data: budget } = useBudget(budgetId);
-  const { data: apiCards, isLoading, error } = useBudgetCards(budgetId);
+  const {
+    data: budget,
+    isLoading: budgetLoading,
+    error: budgetError,
+  } = useBudget(budgetId);
+  const {
+    data: apiCards,
+    isLoading: cardsLoading,
+    error: cardsError,
+  } = useBudgetCards(budgetId);
   const deleteCardMutation = useDeleteCard();
   const createCardMutation = useCreateCard();
   const updateCardMutation = useUpdateCard();
@@ -250,18 +265,42 @@ const BudgetCardsPage = () => {
     return cards.filter((card) => card.type === "cash");
   }, [cards]);
 
-  if (isLoading) {
+  // Show loading state while either budget or cards are loading
+  if (budgetLoading || cardsLoading) {
     return <LoadingSpinner message="Loading budget cards..." />;
   }
 
-  if (error) {
+  // Show error state if there's an error with budget or cards
+  if (budgetError || cardsError) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <span className="text-lg text-red-500">
-          {error instanceof Error
-            ? error.message
-            : "Failed to load budget cards"}
-        </span>
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="mb-4 text-red-500">
+            <AlertCircle className="mx-auto h-12 w-12" />
+          </div>
+          <div className="mb-2 text-lg text-red-600">
+            Error loading budget cards
+          </div>
+          <div className="text-sm text-gray-500">
+            {budgetError?.message ??
+              cardsError?.message ??
+              "An unexpected error occurred"}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show not found state if budget doesn't exist
+  if (!budget) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="mb-4 text-gray-400">
+            <Target className="mx-auto h-12 w-12" />
+          </div>
+          <div className="text-lg text-gray-600">Budget not found</div>
+        </div>
       </div>
     );
   }

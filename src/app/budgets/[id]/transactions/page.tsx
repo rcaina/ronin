@@ -19,6 +19,7 @@ import {
   Plus,
   Info,
   Filter,
+  Target,
 } from "lucide-react";
 
 import PageHeader from "@/components/PageHeader";
@@ -39,11 +40,15 @@ const BudgetTransactionsPage = () => {
 
   const {
     data: transactions = [],
-    isLoading,
-    error,
+    isLoading: transactionsLoading,
+    error: transactionsError,
   } = useBudgetTransactions(budgetId);
   const { data: cards = [] } = useCards();
-  const { data: budget } = useBudget(budgetId);
+  const {
+    data: budget,
+    isLoading: budgetLoading,
+    error: budgetError,
+  } = useBudget(budgetId);
   const deleteTransactionMutation = useDeleteTransaction();
   const createTransactionMutation = useCreateTransaction();
 
@@ -341,11 +346,13 @@ const BudgetTransactionsPage = () => {
   const hasActiveFilters =
     searchTerm || selectedCategory !== "all" || selectedCard !== "all";
 
-  if (isLoading) {
+  // Show loading state while either budget or transactions are loading
+  if (budgetLoading || transactionsLoading) {
     return <LoadingSpinner message="Loading budget transactions..." />;
   }
 
-  if (error) {
+  // Show error state if there's an error with budget or transactions
+  if (budgetError || transactionsError) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -355,7 +362,25 @@ const BudgetTransactionsPage = () => {
           <div className="mb-2 text-lg text-red-600">
             Error loading budget transactions
           </div>
-          <div className="text-sm text-gray-500">{error.message}</div>
+          <div className="text-sm text-gray-500">
+            {budgetError?.message ??
+              transactionsError?.message ??
+              "An unexpected error occurred"}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show not found state if budget doesn't exist
+  if (!budget) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="mb-4 text-gray-400">
+            <Target className="mx-auto h-12 w-12" />
+          </div>
+          <div className="text-lg text-gray-600">Budget not found</div>
         </div>
       </div>
     );

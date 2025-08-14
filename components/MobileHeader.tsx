@@ -9,8 +9,8 @@ import {
   LogOut,
   Target,
   List,
-  CreditCard,
   TrendingUp,
+  DollarSign,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
@@ -55,6 +55,11 @@ export default function MobileHeader() {
           label: "Overview",
         },
         {
+          href: `/budgets/${budgetId}/income`,
+          icon: <DollarSign className="h-5 w-5" />,
+          label: "Income",
+        },
+        {
           href: `/budgets/${budgetId}/categories`,
           icon: <List className="h-5 w-5" />,
           label: "Categories",
@@ -63,11 +68,6 @@ export default function MobileHeader() {
           href: `/budgets/${budgetId}/transactions`,
           icon: <TrendingUp className="h-5 w-5" />,
           label: "Transactions",
-        },
-        {
-          href: `/budgets/${budgetId}/cards`,
-          icon: <CreditCard className="h-5 w-5" />,
-          label: "Cards",
         },
       ]
     : [];
