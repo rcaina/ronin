@@ -26,8 +26,9 @@ export const useCreateTransaction = () => {
     onSuccess: (_, variables) => {
       // Invalidate and refetch transactions
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      // Invalidate and refetch budget data to update category spending amounts
+      // Invalidate and refetch budget transactions for the specific budget
       if (variables.budgetId) {
+        void queryClient.invalidateQueries({ queryKey: ["budgetTransactions", variables.budgetId] });
         void queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId] });
         void queryClient.invalidateQueries({ queryKey: ["budgetCategories", variables.budgetId] });
       }
@@ -43,8 +44,9 @@ export const useUpdateTransaction = () => {
     onSuccess: (_, variables) => {
       // Invalidate and refetch transactions
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      // Invalidate and refetch budget data to update category spending amounts
+      // Invalidate and refetch budget transactions for the specific budget
       if (variables.data.budgetId) {
+        void queryClient.invalidateQueries({ queryKey: ["budgetTransactions", variables.data.budgetId] });
         void queryClient.invalidateQueries({ queryKey: ["budget", variables.data.budgetId] });
         void queryClient.invalidateQueries({ queryKey: ["budgetCategories", variables.data.budgetId] });
       }
@@ -60,8 +62,9 @@ export const useDeleteTransaction = () => {
     onSuccess: (_, variables) => {
       // Invalidate and refetch transactions
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      // Invalidate and refetch budget data to update category spending amounts
+      // Invalidate and refetch budget transactions for the specific budget
       if (variables.budgetId) {
+        void queryClient.invalidateQueries({ queryKey: ["budgetTransactions", variables.budgetId] });
         void queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId] });
         void queryClient.invalidateQueries({ queryKey: ["budgetCategories", variables.budgetId] });
       }
@@ -81,6 +84,7 @@ export const useCreateCardPayment = () => {
       
       // If this card payment involves a budget, invalidate budget queries
       if (variables.budgetId) {
+        void queryClient.invalidateQueries({ queryKey: ["budgetTransactions", variables.budgetId] });
         void queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId] });
         void queryClient.invalidateQueries({ queryKey: ["budgetCategories", variables.budgetId] });
       }
