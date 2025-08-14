@@ -608,7 +608,21 @@ export const getBudgetCategories = async (
     },
   });
 
-  return formatBudgetCategories(budgetCategories);
+  const formattedCategories = formatBudgetCategories(budgetCategories);
+  
+  // Sort categories: incomplete first, completed last, then alphabetically within each group
+  return formattedCategories.sort((a, b) => {
+    const aIsCompleted = a.spentAmount >= a.allocatedAmount;
+    const bIsCompleted = b.spentAmount >= b.allocatedAmount;
+    
+    // If completion status is different, incomplete comes first
+    if (aIsCompleted !== bIsCompleted) {
+      return aIsCompleted ? 1 : -1;
+    }
+    
+    // If completion status is the same, sort alphabetically by category name
+    return a.category.name.localeCompare(b.category.name);
+  });
 }
 
 export const createBudgetCategory = async (

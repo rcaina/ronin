@@ -13,7 +13,14 @@ import { CategoryType } from "@prisma/client";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { Target, AlertCircle } from "lucide-react";
+import StatsCard from "@/components/StatsCard";
+import {
+  Target,
+  AlertCircle,
+  TrendingUp,
+  TrendingDown,
+  CheckCircle,
+} from "lucide-react";
 
 const BudgetCategoriesPage = () => {
   const { id } = useParams();
@@ -33,6 +40,56 @@ const BudgetCategoriesPage = () => {
     isLoading: categoriesLoading,
     error: categoriesError,
   } = useBudgetCategories(budgetId, searchQuery);
+
+  // Calculate allocation statistics
+  const totalIncome =
+    budget?.incomes?.reduce((sum, income) => sum + income.amount, 0) ?? 0;
+  const totalAllocated =
+    budget?.categories?.reduce((sum, cat) => sum + cat.allocatedAmount, 0) ?? 0;
+  const allocationDifference = totalIncome - totalAllocated;
+
+  // Calculate category statistics
+  const totalCategories = budget?.categories?.length ?? 0;
+  const completedCategories =
+    budget?.categories?.filter((cat) => {
+      const totalSpent =
+        cat.transactions?.reduce(
+          (sum, transaction) => sum + transaction.amount,
+          0,
+        ) ?? 0;
+      return totalSpent >= cat.allocatedAmount;
+    }).length ?? 0;
+
+  // Determine allocation status
+  const getAllocationStatus = () => {
+    if (allocationDifference > 0) {
+      return {
+        value: `$${allocationDifference.toFixed(2)}`,
+        subtitle: "left to allocate",
+        icon: <TrendingUp className="h-4 w-4" />,
+        iconColor: "text-blue-500",
+        valueColor: "text-blue-600",
+      };
+    } else if (allocationDifference === 0) {
+      return {
+        value: "100%",
+        subtitle: "allocated",
+        icon: <CheckCircle className="h-4 w-4" />,
+        iconColor: "text-green-500",
+        valueColor: "text-green-600",
+      };
+    } else {
+      return {
+        value: `$${Math.abs(allocationDifference).toFixed(2)}`,
+        subtitle: "over allocated",
+        icon: <TrendingDown className="h-4 w-4" />,
+        iconColor: "text-red-500",
+        valueColor: "text-red-600",
+      };
+    }
+  };
+
+  const allocationStatus = getAllocationStatus();
 
   // Show loading state while either budget or categories are loading
   if (budgetLoading || categoriesLoading) {
@@ -117,6 +174,34 @@ const BudgetCategoriesPage = () => {
       <div className="flex-1 overflow-hidden pt-16 sm:pt-24 lg:pt-0">
         <div className="h-full overflow-y-auto">
           <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
+            {/* Stats Cards */}
+            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <StatsCard
+                title="Allocation Status"
+                value={allocationStatus.value}
+                subtitle={allocationStatus.subtitle}
+                icon={allocationStatus.icon}
+                iconColor={allocationStatus.iconColor}
+                valueColor={allocationStatus.valueColor}
+              />
+              <StatsCard
+                title="Completed Categories"
+                value={completedCategories}
+                subtitle={`of ${totalCategories} total`}
+                icon={<CheckCircle className="h-4 w-4" />}
+                iconColor="text-green-500"
+                valueColor="text-green-600"
+              />
+              <StatsCard
+                title="Total Categories"
+                value={totalCategories}
+                subtitle="Budget categories"
+                icon={<Target className="h-4 w-4" />}
+                iconColor="text-purple-500"
+                valueColor="text-purple-600"
+              />
+            </div>
+
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex-1">
                 <BudgetCategoriesSearch
