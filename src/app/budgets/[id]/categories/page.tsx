@@ -20,6 +20,7 @@ import {
   TrendingUp,
   TrendingDown,
   CheckCircle,
+  DollarSign,
 } from "lucide-react";
 
 const BudgetCategoriesPage = () => {
@@ -162,7 +163,7 @@ const BudgetCategoriesPage = () => {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
+    <div className="mobile-overflow-hidden flex h-screen flex-col bg-gray-50">
       <PageHeader
         title={`${budget?.name ?? "Budget"} - Categories`}
         description="Manage your budget categories"
@@ -171,11 +172,11 @@ const BudgetCategoriesPage = () => {
         }}
       />
 
-      <div className="flex-1 overflow-hidden pt-16 sm:pt-24 lg:pt-0">
-        <div className="h-full overflow-y-auto">
+      <div className="flex-1 pb-24 pt-4 sm:pt-20 lg:pt-0">
+        <div className="mobile-overflow-y-auto h-full">
           <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
             {/* Stats Cards */}
-            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
               <StatsCard
                 title="Allocation Status"
                 value={allocationStatus.value}
@@ -200,9 +201,17 @@ const BudgetCategoriesPage = () => {
                 iconColor="text-purple-500"
                 valueColor="text-purple-600"
               />
+              <StatsCard
+                title="Total Income"
+                value={`$${totalIncome.toLocaleString()}`}
+                subtitle="Available to allocate"
+                icon={<DollarSign className="h-4 w-4" />}
+                iconColor="text-green-500"
+                valueColor="text-green-600"
+              />
             </div>
 
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex-1">
                 <BudgetCategoriesSearch
                   onSearchChange={handleSearchChange}

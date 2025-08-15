@@ -194,11 +194,11 @@ export default function BudgetCategoryCard({
             )}
             <span
               className={`rounded-full px-2 py-1 text-xs font-medium ${
-                categoryPercentage > 90
-                  ? "bg-red-100 text-red-800"
-                  : categoryPercentage > 75
-                    ? "bg-yellow-100 text-yellow-800"
-                    : "bg-green-100 text-green-800"
+                categoryPercentage === 100
+                  ? "bg-green-100 text-green-800"
+                  : categoryPercentage > 100
+                    ? "bg-red-100 text-red-800"
+                    : "bg-yellow-100 text-yellow-800"
               }`}
             >
               {categoryPercentage.toFixed(0)}%
@@ -251,14 +251,14 @@ export default function BudgetCategoryCard({
           <div className="h-2 w-full rounded-full bg-gray-200">
             <div
               className={`h-2 rounded-full transition-all duration-300 ${
-                categoryPercentage > 90
-                  ? "bg-red-500"
-                  : categoryPercentage > 75
-                    ? "bg-yellow-500"
-                    : "bg-green-500"
+                categoryPercentage === 100
+                  ? "bg-green-500"
+                  : categoryPercentage > 100
+                    ? "bg-red-500"
+                    : "bg-secondary"
               }`}
               style={{
-                width: `${Math.min(categoryPercentage, 100)}%`,
+                width: `${categoryPercentage > 100 ? 100 : categoryPercentage}%`,
               }}
             ></div>
           </div>

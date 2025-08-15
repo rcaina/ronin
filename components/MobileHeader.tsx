@@ -9,8 +9,9 @@ import {
   LogOut,
   Target,
   List,
-  TrendingUp,
   DollarSign,
+  CreditCard,
+  Receipt,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
@@ -32,7 +33,6 @@ const navItems: NavItem[] = [
   { href: "/", icon: "📊", label: "Overview" },
   { href: "/budgets", icon: "💰", label: "Budget" },
   { href: "/transactions", icon: "🧾", label: "Transactions" },
-  { href: "/cards", icon: "💳", label: "Cards" },
   { href: "/settings", icon: "⚙️", label: "Settings" },
 ];
 
@@ -66,8 +66,13 @@ export default function MobileHeader() {
         },
         {
           href: `/budgets/${budgetId}/transactions`,
-          icon: <TrendingUp className="h-5 w-5" />,
+          icon: <Receipt className="h-5 w-5" />,
           label: "Transactions",
+        },
+        {
+          href: `/budgets/${budgetId}/cards`,
+          icon: <CreditCard className="h-5 w-5" />,
+          label: "Cards",
         },
       ]
     : [];
