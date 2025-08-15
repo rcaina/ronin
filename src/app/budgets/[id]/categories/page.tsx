@@ -63,15 +63,10 @@ const BudgetCategoriesPage = () => {
 
   // Determine allocation status
   const getAllocationStatus = () => {
-    if (allocationDifference > 0) {
-      return {
-        value: `$${allocationDifference.toFixed(2)}`,
-        subtitle: "left to allocate",
-        icon: <TrendingUp className="h-4 w-4" />,
-        iconColor: "text-blue-500",
-        valueColor: "text-blue-600",
-      };
-    } else if (allocationDifference === 0) {
+    // Add a small tolerance for floating point precision issues
+    const tolerance = 0.01; // $0.01 tolerance
+
+    if (Math.abs(allocationDifference) <= tolerance) {
       return {
         value: "100%",
         subtitle: "allocated",
@@ -79,9 +74,22 @@ const BudgetCategoriesPage = () => {
         iconColor: "text-green-500",
         valueColor: "text-green-600",
       };
-    } else {
+    } else if (allocationDifference > tolerance) {
       return {
-        value: `$${Math.abs(allocationDifference).toFixed(2)}`,
+        value: `$${allocationDifference.toFixed(2)}`,
+        subtitle: "left to allocate",
+        icon: <TrendingUp className="h-4 w-4" />,
+        iconColor: "text-blue-500",
+        valueColor: "text-blue-600",
+      };
+    } else {
+      // When over allocated, show the percentage over 100%
+      const overAllocationPercentage = (
+        (totalAllocated / totalIncome) *
+        100
+      ).toFixed(1);
+      return {
+        value: `${overAllocationPercentage}%`,
         subtitle: "over allocated",
         icon: <TrendingDown className="h-4 w-4" />,
         iconColor: "text-red-500",
