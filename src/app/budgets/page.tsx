@@ -390,7 +390,7 @@ const BudgetsPage = () => {
   ];
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
+    <div className="mobile-overflow-hidden flex h-screen flex-col bg-gray-50">
       <PageHeader
         title="Budgets"
         description="Manage your financial budgets and track spending"
@@ -401,373 +401,375 @@ const BudgetsPage = () => {
         }}
       />
 
-      <div className="flex-1 overflow-x-hidden pt-16 sm:pt-20 lg:pt-0">
-        <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
-          {/* Budget Statistics Cards */}
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-            <StatsCard
-              title="Active Budgets"
-              value={budgetStats.activeBudgetsCount}
-              subtitle={`${budgetStats.totalBudgets} total budgets`}
-              icon={
-                <Target className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-purple-500"
-            />
+      <div className="flex-1 pt-16 sm:pt-20 lg:pt-0">
+        <div className="mobile-overflow-y-auto h-full">
+          <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
+            {/* Budget Statistics Cards */}
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
+              <StatsCard
+                title="Active Budgets"
+                value={budgetStats.activeBudgetsCount}
+                subtitle={`${budgetStats.totalBudgets} total budgets`}
+                icon={
+                  <Target className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
+                }
+                iconColor="text-purple-500"
+              />
 
-            <StatsCard
-              title="Total Income"
-              value={`$${budgetStats.totalIncome.toLocaleString()}`}
-              subtitle="Active budgets only"
-              icon={
-                <TrendingUp className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-green-500"
-            />
+              <StatsCard
+                title="Total Income"
+                value={`$${budgetStats.totalIncome.toLocaleString()}`}
+                subtitle="Active budgets only"
+                icon={
+                  <TrendingUp className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
+                }
+                iconColor="text-green-500"
+              />
 
-            <StatsCard
-              title="Total Spent"
-              value={`$${budgetStats.totalSpent.toLocaleString()}`}
-              subtitle={`${budgetStats.overallSpendingPercentage.toFixed(1)}% of budget`}
-              icon={
-                <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-red-500"
-            />
+              <StatsCard
+                title="Total Spent"
+                value={`$${budgetStats.totalSpent.toLocaleString()}`}
+                subtitle={`${budgetStats.overallSpendingPercentage.toFixed(1)}% of budget`}
+                icon={
+                  <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
+                }
+                iconColor="text-red-500"
+              />
 
-            <StatsCard
-              title="Health Score"
-              value={`${budgetStats.averageHealthScore.toFixed(0)}%`}
-              subtitle="Average score"
-              icon={
-                <BarChart3 className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-blue-500"
-            />
-          </div>
-
-          {/* Budget Progress */}
-          <div className="mb-6 rounded-xl border bg-white p-4 shadow-sm sm:mb-8 sm:p-6">
-            <div className="mb-4 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
-              <h2 className="text-base font-semibold text-gray-900 sm:text-lg">
-                Overall Budget Progress
-              </h2>
-              <div className="flex items-center space-x-2">
-                <span className="text-xs text-gray-500 sm:text-sm">
-                  {budgetStats.totalRemaining >= 0
-                    ? "Remaining:"
-                    : "Over budget:"}
-                </span>
-                <span
-                  className={`text-sm font-semibold ${
-                    budgetStats.totalRemaining >= 0
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  ${Math.abs(budgetStats.totalRemaining).toLocaleString()}
-                </span>
-              </div>
+              <StatsCard
+                title="Health Score"
+                value={`${budgetStats.averageHealthScore.toFixed(0)}%`}
+                subtitle="Average score"
+                icon={
+                  <BarChart3 className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
+                }
+                iconColor="text-blue-500"
+              />
             </div>
-            <div className="h-2 w-full rounded-full bg-gray-200 sm:h-3">
-              <div
-                className={`h-2 rounded-full transition-all duration-300 sm:h-3 ${
-                  budgetStats.overallSpendingPercentage > 90
-                    ? "bg-red-500"
-                    : budgetStats.overallSpendingPercentage > 75
-                      ? "bg-yellow-500"
-                      : "bg-green-500"
-                }`}
-                style={{
-                  width: `${Math.min(budgetStats.overallSpendingPercentage, 100)}%`,
-                }}
-              ></div>
-            </div>
-          </div>
 
-          {/* Budget Tabs */}
-          <div className="mb-6">
-            <div className="border-b border-gray-200">
-              <nav className="-mb-px flex space-x-8">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`whitespace-nowrap border-b-2 px-1 py-2 text-sm font-medium ${
-                      activeTab === tab.id
-                        ? "border-yellow-500 text-yellow-600"
-                        : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+            {/* Budget Progress */}
+            <div className="mb-6 rounded-xl border bg-white p-4 shadow-sm sm:mb-8 sm:p-6">
+              <div className="mb-4 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+                <h2 className="text-base font-semibold text-gray-900 sm:text-lg">
+                  Overall Budget Progress
+                </h2>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-gray-500 sm:text-sm">
+                    {budgetStats.totalRemaining >= 0
+                      ? "Remaining:"
+                      : "Over budget:"}
+                  </span>
+                  <span
+                    className={`text-sm font-semibold ${
+                      budgetStats.totalRemaining >= 0
+                        ? "text-green-600"
+                        : "text-red-600"
                     }`}
                   >
-                    {tab.label}
-                    <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-900">
-                      {tab.count}
-                    </span>
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </div>
-
-          {/* Budgets List */}
-          <div className="grid gap-4 sm:gap-6">
-            {currentBudgets.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 rounded-xl border bg-white p-8 text-center shadow-sm">
-                <div className="text-gray-400">
-                  <Target className="mx-auto h-12 w-12" />
+                    ${Math.abs(budgetStats.totalRemaining).toLocaleString()}
+                  </span>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  No {activeTab} budgets
-                </h3>
-                <p className="text-sm text-gray-500">
-                  {activeTab === "active"
-                    ? "Create your first budget to get started"
-                    : `No ${activeTab} budgets found`}
-                </p>
-                {activeTab === "active" && (
-                  <Button onClick={() => setIsCreateModalOpen(true)}>
-                    Create Budget
-                  </Button>
-                )}
               </div>
-            ) : (
-              currentBudgets?.map((budget: BudgetWithRelations) => {
-                const budgetStatus = getBudgetStatus(budget);
-                const categorySummary = getCategorySummary(budget);
-                const totalBudgetIncome = calculateTotalIncome(budget);
-                const totalBudgetSpent = (budget.categories ?? []).reduce(
-                  (sum: number, category) => {
-                    return (
-                      sum +
-                      (category.transactions ?? []).reduce(
-                        (transactionSum: number, transaction) => {
-                          if (
-                            transaction.transactionType ===
-                            TransactionType.RETURN
-                          ) {
-                            // Returns reduce spending (positive amount = refund received)
-                            return transactionSum - transaction.amount;
-                          } else {
-                            // Regular transactions: positive = purchases (increase spending)
-                            return transactionSum + transaction.amount;
-                          }
-                        },
-                        0,
-                      )
-                    );
-                  },
-                  0,
-                );
-                const budgetRemaining = totalBudgetIncome - totalBudgetSpent;
-                const spendingPercentage =
-                  totalBudgetIncome > 0
-                    ? (totalBudgetSpent / totalBudgetIncome) * 100
-                    : 0;
+              <div className="h-2 w-full rounded-full bg-gray-200 sm:h-3">
+                <div
+                  className={`h-2 rounded-full transition-all duration-300 sm:h-3 ${
+                    budgetStats.overallSpendingPercentage > 90
+                      ? "bg-red-500"
+                      : budgetStats.overallSpendingPercentage > 75
+                        ? "bg-yellow-500"
+                        : "bg-green-500"
+                  }`}
+                  style={{
+                    width: `${Math.min(budgetStats.overallSpendingPercentage, 100)}%`,
+                  }}
+                ></div>
+              </div>
+            </div>
 
-                const healthScore = getBudgetHealthScore(budget.id);
-                const healthScoreColor = getHealthScoreColor(healthScore);
-                const healthScoreLabel = getHealthScoreLabel(healthScore);
+            {/* Budget Tabs */}
+            <div className="mb-6">
+              <div className="border-b border-gray-200">
+                <nav className="-mb-px flex space-x-8">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`whitespace-nowrap border-b-2 px-1 py-2 text-sm font-medium ${
+                        activeTab === tab.id
+                          ? "border-yellow-500 text-yellow-600"
+                          : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                      }`}
+                    >
+                      {tab.label}
+                      <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-900">
+                        {tab.count}
+                      </span>
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            </div>
 
-                // Calculate days remaining in budget period
-                const now = new Date();
-                const endDate = new Date(budget.endAt);
-                const daysRemaining = Math.ceil(
-                  (endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-                );
-                const isOverdue = daysRemaining < 0;
+            {/* Budgets List */}
+            <div className="grid gap-4 pb-8 sm:gap-6">
+              {currentBudgets.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 rounded-xl border bg-white p-8 text-center shadow-sm">
+                  <div className="text-gray-400">
+                    <Target className="mx-auto h-12 w-12" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    No {activeTab} budgets
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {activeTab === "active"
+                      ? "Create your first budget to get started"
+                      : `No ${activeTab} budgets found`}
+                  </p>
+                  {activeTab === "active" && (
+                    <Button onClick={() => setIsCreateModalOpen(true)}>
+                      Create Budget
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                currentBudgets?.map((budget: BudgetWithRelations) => {
+                  const budgetStatus = getBudgetStatus(budget);
+                  const categorySummary = getCategorySummary(budget);
+                  const totalBudgetIncome = calculateTotalIncome(budget);
+                  const totalBudgetSpent = (budget.categories ?? []).reduce(
+                    (sum: number, category) => {
+                      return (
+                        sum +
+                        (category.transactions ?? []).reduce(
+                          (transactionSum: number, transaction) => {
+                            if (
+                              transaction.transactionType ===
+                              TransactionType.RETURN
+                            ) {
+                              // Returns reduce spending (positive amount = refund received)
+                              return transactionSum - transaction.amount;
+                            } else {
+                              // Regular transactions: positive = purchases (increase spending)
+                              return transactionSum + transaction.amount;
+                            }
+                          },
+                          0,
+                        )
+                      );
+                    },
+                    0,
+                  );
+                  const budgetRemaining = totalBudgetIncome - totalBudgetSpent;
+                  const spendingPercentage =
+                    totalBudgetIncome > 0
+                      ? (totalBudgetSpent / totalBudgetIncome) * 100
+                      : 0;
 
-                return (
-                  <div
-                    key={budget.id}
-                    className={`cursor-pointer rounded-xl border bg-white p-4 shadow-sm transition-all duration-200 hover:bg-black/5 hover:shadow-xl sm:p-6 ${budgetStatus.border}`}
-                    onClick={() => router.push(`/budgets/${budget.id}`)}
-                  >
-                    <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-start">
-                      <div className="flex-1">
-                        <div className="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
-                          <h3 className="text-lg font-bold text-gray-900 sm:text-xl">
-                            {budget.name}
-                          </h3>
-                          <span
-                            className={`rounded-full px-2 py-1 text-xs font-medium ${budgetStatus.bg} ${budgetStatus.color}`}
-                          >
-                            {budgetStatus.status === "over"
-                              ? "Over Budget"
-                              : budgetStatus.status === "warning"
-                                ? "Warning"
-                                : "On Track"}
-                          </span>
-                          <span
-                            className={`rounded-full bg-gray-100 px-2 py-1 text-xs font-medium ${healthScoreColor}`}
-                          >
-                            {healthScoreLabel} ({healthScore}%)
-                          </span>
-                          {/* Action Icons */}
-                          <div className="ml-auto flex items-center space-x-1">
-                            {activeTab === "active" && (
-                              <>
+                  const healthScore = getBudgetHealthScore(budget.id);
+                  const healthScoreColor = getHealthScoreColor(healthScore);
+                  const healthScoreLabel = getHealthScoreLabel(healthScore);
+
+                  // Calculate days remaining in budget period
+                  const now = new Date();
+                  const endDate = new Date(budget.endAt);
+                  const daysRemaining = Math.ceil(
+                    (endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+                  );
+                  const isOverdue = daysRemaining < 0;
+
+                  return (
+                    <div
+                      key={budget.id}
+                      className={`cursor-pointer rounded-xl border bg-white p-4 shadow-sm transition-all duration-200 hover:bg-black/5 hover:shadow-xl sm:p-6 ${budgetStatus.border}`}
+                      onClick={() => router.push(`/budgets/${budget.id}`)}
+                    >
+                      <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-start">
+                        <div className="flex-1">
+                          <div className="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
+                            <h3 className="text-lg font-bold text-gray-900 sm:text-xl">
+                              {budget.name}
+                            </h3>
+                            <span
+                              className={`rounded-full px-2 py-1 text-xs font-medium ${budgetStatus.bg} ${budgetStatus.color}`}
+                            >
+                              {budgetStatus.status === "over"
+                                ? "Over Budget"
+                                : budgetStatus.status === "warning"
+                                  ? "Warning"
+                                  : "On Track"}
+                            </span>
+                            <span
+                              className={`rounded-full bg-gray-100 px-2 py-1 text-xs font-medium ${healthScoreColor}`}
+                            >
+                              {healthScoreLabel} ({healthScore}%)
+                            </span>
+                            {/* Action Icons */}
+                            <div className="ml-auto flex items-center space-x-1">
+                              {activeTab === "active" && (
+                                <>
+                                  <button
+                                    onClick={async (e: MouseEvent) => {
+                                      e.stopPropagation();
+                                      await handleMarkCompleted(budget);
+                                    }}
+                                    className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-green-600"
+                                    title="Mark as Completed"
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={async (e: MouseEvent) => {
+                                      e.stopPropagation();
+                                      await handleMarkArchived(budget);
+                                    }}
+                                    className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-yellow-600"
+                                    title="Archive"
+                                  >
+                                    <Archive className="h-4 w-4" />
+                                  </button>
+                                </>
+                              )}
+                              {(activeTab === "completed" ||
+                                activeTab === "archived") && (
                                 <button
                                   onClick={async (e: MouseEvent) => {
                                     e.stopPropagation();
-                                    await handleMarkCompleted(budget);
+                                    await handleReactivate(budget);
                                   }}
-                                  className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-green-600"
-                                  title="Mark as Completed"
+                                  className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-purple-600"
+                                  title="Reactivate"
                                 >
-                                  <CheckCircle className="h-4 w-4" />
+                                  <RotateCcw className="h-4 w-4" />
                                 </button>
-                                <button
-                                  onClick={async (e: MouseEvent) => {
-                                    e.stopPropagation();
-                                    await handleMarkArchived(budget);
-                                  }}
-                                  className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-yellow-600"
-                                  title="Archive"
-                                >
-                                  <Archive className="h-4 w-4" />
-                                </button>
-                              </>
-                            )}
-                            {(activeTab === "completed" ||
-                              activeTab === "archived") && (
+                              )}
                               <button
                                 onClick={async (e: MouseEvent) => {
                                   e.stopPropagation();
-                                  await handleReactivate(budget);
+                                  await handleDuplicateBudget(budget);
                                 }}
-                                className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-purple-600"
-                                title="Reactivate"
+                                className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-blue-600"
+                                title="Duplicate"
                               >
-                                <RotateCcw className="h-4 w-4" />
+                                <Copy className="h-4 w-4" />
                               </button>
+                              <button
+                                onClick={(e: MouseEvent) => {
+                                  e.stopPropagation();
+                                  handleDeleteBudget(budget);
+                                }}
+                                className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-red-600"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-gray-500 sm:gap-4 sm:text-sm">
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                              <span>{budget.period.replace("_", " ")}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Target className="h-3 w-3 sm:h-4 sm:w-4" />
+                              <span>{budget.strategy.replace("_", " ")}</span>
+                            </div>
+                            {activeTab === "active" && (
+                              <div className="flex items-center space-x-1">
+                                <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                                <span
+                                  className={
+                                    isOverdue ? "font-medium text-red-600" : ""
+                                  }
+                                >
+                                  {isOverdue
+                                    ? `${Math.abs(daysRemaining)} days overdue`
+                                    : `${daysRemaining} days left`}
+                                </span>
+                              </div>
                             )}
-                            <button
-                              onClick={async (e: MouseEvent) => {
-                                e.stopPropagation();
-                                await handleDuplicateBudget(budget);
-                              }}
-                              className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-blue-600"
-                              title="Duplicate"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={(e: MouseEvent) => {
-                                e.stopPropagation();
-                                handleDeleteBudget(budget);
-                              }}
-                              className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-red-600"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            <span>
+                              Created{" "}
+                              {new Date(budget.createdAt).toLocaleDateString()}
+                            </span>
                           </div>
                         </div>
+                        <div className="text-right">
+                          <div className="text-xl font-bold text-gray-900 sm:text-2xl">
+                            ${totalBudgetIncome.toLocaleString()}
+                          </div>
+                          <div className="text-xs text-gray-500 sm:text-sm">
+                            Total Budget
+                          </div>
+                        </div>
+                      </div>
 
-                        <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-gray-500 sm:gap-4 sm:text-sm">
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-                            <span>{budget.period.replace("_", " ")}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Target className="h-3 w-3 sm:h-4 sm:w-4" />
-                            <span>{budget.strategy.replace("_", " ")}</span>
-                          </div>
-                          {activeTab === "active" && (
-                            <div className="flex items-center space-x-1">
-                              <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-                              <span
-                                className={
-                                  isOverdue ? "font-medium text-red-600" : ""
-                                }
-                              >
-                                {isOverdue
-                                  ? `${Math.abs(daysRemaining)} days overdue`
-                                  : `${daysRemaining} days left`}
-                              </span>
-                            </div>
-                          )}
-                          <span>
-                            Created{" "}
-                            {new Date(budget.createdAt).toLocaleDateString()}
+                      {/* Progress Bar */}
+                      <div className="mb-4">
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-xs text-gray-500 sm:text-sm">
+                            Progress
+                          </span>
+                          <span className="text-xs text-gray-500 sm:text-sm">
+                            {spendingPercentage.toFixed(1)}% used
                           </span>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xl font-bold text-gray-900 sm:text-2xl">
-                          ${totalBudgetIncome.toLocaleString()}
+                        <div className="h-2 w-full rounded-full bg-gray-200">
+                          <div
+                            className={`h-2 rounded-full transition-all duration-300 ${
+                              spendingPercentage > 90
+                                ? "bg-red-500"
+                                : spendingPercentage > 75
+                                  ? "bg-yellow-500"
+                                  : "bg-green-500"
+                            }`}
+                            style={{
+                              width: `${Math.min(spendingPercentage, 100)}%`,
+                            }}
+                          ></div>
                         </div>
-                        <div className="text-xs text-gray-500 sm:text-sm">
-                          Total Budget
-                        </div>
                       </div>
-                    </div>
 
-                    {/* Progress Bar */}
-                    <div className="mb-4">
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="text-xs text-gray-500 sm:text-sm">
-                          Progress
-                        </span>
-                        <span className="text-xs text-gray-500 sm:text-sm">
-                          {spendingPercentage.toFixed(1)}% used
-                        </span>
-                      </div>
-                      <div className="h-2 w-full rounded-full bg-gray-200">
-                        <div
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            spendingPercentage > 90
-                              ? "bg-red-500"
-                              : spendingPercentage > 75
-                                ? "bg-yellow-500"
-                                : "bg-green-500"
-                          }`}
-                          style={{
-                            width: `${Math.min(spendingPercentage, 100)}%`,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    {/* Budget Summary */}
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div>
-                        <div className="text-lg font-bold text-gray-900 sm:text-xl">
-                          ${totalBudgetSpent.toLocaleString()}
+                      {/* Budget Summary */}
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <div className="text-lg font-bold text-gray-900 sm:text-xl">
+                            ${totalBudgetSpent.toLocaleString()}
+                          </div>
+                          <div className="text-xs text-gray-500 sm:text-sm">
+                            Spent
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500 sm:text-sm">
-                          Spent
+                        <div>
+                          <div
+                            className={`text-lg font-bold sm:text-xl ${
+                              budgetRemaining >= 0
+                                ? "text-gray-900"
+                                : "text-red-600"
+                            }`}
+                          >
+                            ${Math.abs(budgetRemaining).toLocaleString()}
+                          </div>
+                          <div className="text-xs text-gray-500 sm:text-sm">
+                            {budgetRemaining >= 0 ? "Remaining" : "Over Budget"}
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <div
-                          className={`text-lg font-bold sm:text-xl ${
-                            budgetRemaining >= 0
-                              ? "text-gray-900"
-                              : "text-red-600"
-                          }`}
-                        >
-                          ${Math.abs(budgetRemaining).toLocaleString()}
-                        </div>
-                        <div className="text-xs text-gray-500 sm:text-sm">
-                          {budgetRemaining >= 0 ? "Remaining" : "Over Budget"}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-lg font-bold text-gray-900 sm:text-xl">
-                          {categorySummary.needs +
-                            categorySummary.wants +
-                            categorySummary.investments}
-                        </div>
-                        <div className="text-xs text-gray-500 sm:text-sm">
-                          Categories
+                        <div>
+                          <div className="text-lg font-bold text-gray-900 sm:text-xl">
+                            {categorySummary.needs +
+                              categorySummary.wants +
+                              categorySummary.investments}
+                          </div>
+                          <div className="text-xs text-gray-500 sm:text-sm">
+                            Categories
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
-            )}
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
       </div>

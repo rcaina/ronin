@@ -147,7 +147,7 @@ export default function IncomePage() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
+    <div className="mobile-overflow-hidden flex h-screen flex-col bg-gray-50">
       <PageHeader
         title={`${budget?.name ?? "Budget"} - Income Sources`}
         description="Manage income sources for this budget"
@@ -161,7 +161,7 @@ export default function IncomePage() {
         }}
       />
 
-      <div className="flex-1 overflow-hidden pt-4 sm:pt-20 lg:pt-0">
+      <div className="flex-1 pt-16 sm:pt-20 lg:pt-0">
         <div className="h-full overflow-y-auto">
           <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
             {/* Search and Filters */}
@@ -179,21 +179,27 @@ export default function IncomePage() {
               </div>
 
               {/* Total Income Summary */}
-              <div className="rounded-lg border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-6">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-green-100 p-3">
-                    <DollarSign className="h-6 w-6 text-green-600" />
+              <div className="rounded-xl border-0 bg-gradient-to-br from-green-500 via-emerald-500 to-green-600 p-6 shadow-lg sm:p-8">
+                <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:text-left">
+                  <div className="rounded-full bg-white/20 p-3 backdrop-blur-sm sm:p-4">
+                    <DollarSign className="h-6 w-6 text-white sm:h-8 sm:w-8" />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-green-900">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-white/90 sm:text-xl">
                       Total Income
                     </h3>
-                    <p className="text-2xl font-bold text-green-700">
+                    <p className="text-2xl font-bold text-white sm:text-4xl">
                       {formatCurrency(totalIncome)}
                     </p>
-                    <p className="text-sm text-green-600">
+                    <p className="text-sm text-white/80 sm:text-base">
                       Adjusted for {budget.period.toLowerCase()} budget period
                     </p>
+                  </div>
+                  <div className="hidden rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm sm:block">
+                    <span className="text-sm font-medium text-white">
+                      {budget.period.charAt(0).toUpperCase() +
+                        budget.period.slice(1).toLowerCase()}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -202,7 +208,7 @@ export default function IncomePage() {
             {/* Income List */}
             <div className="mt-4 rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
                   Income Sources ({filteredIncomes.length})
                 </h3>
               </div>
@@ -240,42 +246,62 @@ export default function IncomePage() {
                     return (
                       <div
                         key={income.id}
-                        className="group rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+                        className="group rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-md sm:p-6"
                       >
-                        <div className="flex items-start justify-between">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="flex-1">
-                            <div className="mb-2 flex items-center gap-3">
-                              <h4 className="text-lg font-semibold text-gray-900">
-                                {income.source ?? "Unnamed Source"}
-                              </h4>
-                              {income.isPlanned && (
-                                <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-                                  Planned
-                                </span>
-                              )}
+                            <div className="mb-2 flex flex-wrap items-start justify-between gap-2 sm:gap-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h4 className="text-base font-semibold text-gray-900 sm:text-lg">
+                                  {income.source ?? "Unnamed Source"}
+                                </h4>
+                                {income.isPlanned && (
+                                  <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                                    Planned
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Action Icons - Top right on mobile, right side on desktop */}
+                              <div className="flex items-center space-x-2 opacity-100 transition-opacity sm:hidden">
+                                <button
+                                  onClick={() => setIsIncomeModalOpen(true)}
+                                  className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                                  title="Edit income source"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteIncome(income)}
+                                  className="rounded-lg p-2 text-red-300 transition-colors hover:bg-gray-100 hover:text-red-600"
+                                  title="Delete income source"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
                             </div>
 
                             {income.description && (
-                              <p className="mb-3 text-gray-600">
+                              <p className="mb-3 text-sm text-gray-600 sm:text-base">
                                 {income.description}
                               </p>
                             )}
 
-                            <div className="flex items-center gap-6 text-sm text-gray-500">
-                              <div className="flex items-center gap-1">
+                            <div className="flex flex-col gap-3 text-sm text-gray-500 sm:flex-row sm:items-center sm:gap-6">
+                              <div className="flex items-center gap-2">
                                 <DollarSign className="h-4 w-4" />
                                 <span className="font-medium text-gray-900">
                                   {formatCurrency(income.amount)}
                                 </span>
                                 <span>
-                                  per{" "}
+                                  /{" "}
                                   {getFrequencyLabel(
                                     income.frequency,
                                   ).toLowerCase()}
                                 </span>
                               </div>
 
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4" />
                                 <span>
                                   Adjusted: {formatCurrency(adjustedAmount)}
@@ -283,7 +309,7 @@ export default function IncomePage() {
                               </div>
 
                               {income.receivedAt && (
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-2">
                                   <Clock className="h-4 w-4" />
                                   <span>
                                     {new Date(
@@ -295,8 +321,8 @@ export default function IncomePage() {
                             </div>
                           </div>
 
-                          {/* Action Icons - Always visible on mobile, hover on desktop */}
-                          <div className="flex items-center space-x-1 opacity-100 transition-opacity sm:space-x-2 sm:opacity-0 sm:group-hover:opacity-100">
+                          {/* Action Icons - Desktop only, hidden on mobile */}
+                          <div className="hidden items-center justify-end space-x-2 opacity-0 transition-opacity group-hover:opacity-100 sm:flex">
                             <button
                               onClick={() => setIsIncomeModalOpen(true)}
                               className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"

@@ -223,7 +223,7 @@ const BudgetDetailsPage = () => {
         ]}
       />
 
-      <div className="flex-1 overflow-hidden pt-16 sm:pt-24 lg:pt-0">
+      <div className="flex-1 pt-16 sm:pt-24 lg:pt-0">
         <div className="h-full overflow-y-auto">
           <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
             {/* Budget Overview Cards */}
@@ -487,11 +487,11 @@ const BudgetDetailsPage = () => {
                         <div className="h-2 w-full rounded-full bg-gray-200">
                           <div
                             className={`h-2 rounded-full transition-all duration-300 ${
-                              usagePercentage > 90
-                                ? "bg-red-500"
-                                : usagePercentage > 75
-                                  ? "bg-yellow-500"
-                                  : "bg-green-500"
+                              usagePercentage === 100
+                                ? "bg-green-500"
+                                : usagePercentage > 100
+                                  ? "bg-red-500"
+                                  : "bg-secondary"
                             }`}
                             style={{
                               width: `${Math.min(usagePercentage, 100)}%`,
@@ -596,13 +596,13 @@ const BudgetDetailsPage = () => {
                             transaction.transactionType ===
                             TransactionType.RETURN
                               ? "text-green-600"
-                              : "text-red-600"
+                              : ""
                           }`}
                         >
                           {transaction.transactionType ===
                           TransactionType.RETURN
                             ? "+"
-                            : "-"}
+                            : ""}
                           ${Math.abs(transaction.amount).toFixed(2)}
                         </div>
                         <div className="text-xs capitalize text-gray-500">

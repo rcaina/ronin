@@ -320,7 +320,7 @@ const BudgetCardsPage = () => {
         }}
       />
 
-      <div className="flex-1 overflow-hidden pt-16 sm:pt-20 lg:pt-0">
+      <div className="flex-1 pt-20 sm:pt-20 lg:pt-0">
         <div className="h-full overflow-y-auto">
           <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
             {/* Overview Stats */}

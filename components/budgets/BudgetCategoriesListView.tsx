@@ -196,14 +196,14 @@ export default function BudgetCategoriesListView({
                               <div className="h-2 w-full rounded-full bg-gray-200">
                                 <div
                                   className={`h-2 rounded-full transition-all duration-300 ${
-                                    percentage > 90
-                                      ? "bg-red-500"
-                                      : percentage > 75
-                                        ? "bg-yellow-500"
-                                        : "bg-green-500"
+                                    percentage === 100
+                                      ? "bg-green-500"
+                                      : percentage > 100
+                                        ? "bg-red-500"
+                                        : "bg-secondary"
                                   }`}
                                   style={{
-                                    width: `${Math.min(percentage, 100)}%`,
+                                    width: `${percentage > 100 ? 100 : percentage}%`,
                                   }}
                                 ></div>
                               </div>
