@@ -151,6 +151,8 @@ export const useCreateBudgetCategory = () => {
       void queryClient.invalidateQueries({ queryKey: ["budgetCategories", budgetId] });
       // Also invalidate the budgets list
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      // Invalidate the specific budget to refresh the main page
+      void queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
     },
   });
 };
@@ -173,6 +175,8 @@ export const useUpdateBudgetCategory = () => {
       void queryClient.invalidateQueries({ queryKey: ["budgetCategories", budgetId] });
       // Also invalidate the budgets list
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      // Invalidate the specific budget to refresh the main page
+      void queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
     },
   });
 };
@@ -193,6 +197,8 @@ export const useDeleteBudgetCategory = () => {
       void queryClient.invalidateQueries({ queryKey: ["budgetCategories", budgetId] });
       // Also invalidate the budgets list
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      // Invalidate the specific budget to refresh the main page
+      void queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
     },
   });
 }; 

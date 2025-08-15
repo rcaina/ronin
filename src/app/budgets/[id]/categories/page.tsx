@@ -80,8 +80,13 @@ const BudgetCategoriesPage = () => {
         valueColor: "text-green-600",
       };
     } else {
+      // When over allocated, show the percentage over 100%
+      const overAllocationPercentage = (
+        (totalAllocated / totalIncome) *
+        100
+      ).toFixed(1);
       return {
-        value: `$${Math.abs(allocationDifference).toFixed(2)}`,
+        value: `${overAllocationPercentage}%`,
         subtitle: "over allocated",
         icon: <TrendingDown className="h-4 w-4" />,
         iconColor: "text-red-500",

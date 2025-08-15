@@ -28,6 +28,8 @@ export const useCreateCard = () => {
       // Also invalidate budget cards if budgetId is provided
       if (variables.budgetId) {
         void queryClient.invalidateQueries({ queryKey: ["budgetCards", variables.budgetId] });
+        // Invalidate the specific budget to refresh budget pages
+        void queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId] });
       }
     },
   });
@@ -44,6 +46,8 @@ export const useUpdateCard = () => {
       void queryClient.invalidateQueries({ queryKey: ["cards"] });
       // Also invalidate all budget cards queries since we don't know which budget the card belongs to
       void queryClient.invalidateQueries({ queryKey: ["budgetCards"] });
+      // Invalidate all budget queries since card updates could affect any budget
+      void queryClient.invalidateQueries({ queryKey: ["budget"] });
     },
   });
 };
@@ -58,6 +62,8 @@ export const useDeleteCard = () => {
       void queryClient.invalidateQueries({ queryKey: ["cards"] });
       // Also invalidate all budget cards queries since we don't know which budget the card belonged to
       void queryClient.invalidateQueries({ queryKey: ["budgetCards"] });
+      // Invalidate all budget queries since card deletions could affect any budget
+      void queryClient.invalidateQueries({ queryKey: ["budget"] });
     },
   });
 };
