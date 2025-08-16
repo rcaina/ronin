@@ -52,7 +52,7 @@ export default function InlineTransactionEdit({
 }: InlineTransactionEditProps) {
   const { mutate: updateTransaction, isPending: isUpdating } =
     useUpdateTransaction();
-  const { data: cards = [] } = useCards();
+  const { data: cards = [] } = useCards(undefined, transaction.budgetId);
   const { data: budgets = [] } = useBudgets();
 
   const {

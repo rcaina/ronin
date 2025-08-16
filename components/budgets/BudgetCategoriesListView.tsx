@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, Info, Plus } from "lucide-react";
 import { toast } from "react-hot-toast";
 import AddBudgetCategoryForm from "./AddBudgetCategoryForm";
@@ -29,6 +30,7 @@ export default function BudgetCategoriesListView({
   getGroupLabel,
   budgetCategories: propBudgetCategories,
 }: BudgetCategoriesListViewProps) {
+  const router = useRouter();
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(),
   );
@@ -93,6 +95,10 @@ export default function BudgetCategoriesListView({
       console.error("Failed to add budget category:", error);
       toast.error("Failed to add budget category. Please try again.");
     }
+  };
+
+  const handleViewAllTransactions = (categoryId: string) => {
+    router.push(`/budgets/${budgetId}/transactions?category=${categoryId}`);
   };
 
   return (
@@ -192,6 +198,18 @@ export default function BudgetCategoriesListView({
                                   {budgetCategory.allocatedAmount.toLocaleString()}
                                 </span>
                                 <span>Spent: ${spent.toLocaleString()}</span>
+                                <span
+                                  className={
+                                    budgetCategory.allocatedAmount - spent >= 0
+                                      ? "text-gray-500"
+                                      : "text-red-500"
+                                  }
+                                >
+                                  Remaining: $
+                                  {(
+                                    budgetCategory.allocatedAmount - spent
+                                  ).toLocaleString()}
+                                </span>
                               </div>
                               <div className="h-2 w-full rounded-full bg-gray-200">
                                 <div
@@ -247,39 +265,55 @@ export default function BudgetCategoriesListView({
                             No transactions in this category
                           </div>
                         ) : (
-                          transactions.map((transaction) => (
-                            <div
-                              key={transaction.id}
-                              className="flex items-center justify-between rounded-lg border border-blue-100 bg-blue-50 p-2 sm:p-3"
-                            >
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center space-x-2">
-                                  <p className="truncate font-medium text-gray-900">
-                                    {transaction.name ?? "Unnamed transaction"}
-                                  </p>
-                                  {transaction.description && (
-                                    <div className="group relative flex-shrink-0">
-                                      <Info className="h-4 w-4 cursor-help text-gray-400" />
-                                      <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                                        {transaction.description}
-                                        <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                          <>
+                            {transactions.slice(0, 3).map((transaction) => (
+                              <div
+                                key={transaction.id}
+                                className="flex items-center justify-between rounded-lg border border-blue-100 bg-blue-50 p-2 sm:p-3"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center space-x-2">
+                                    <p className="truncate font-medium text-gray-900">
+                                      {transaction.name ??
+                                        "Unnamed transaction"}
+                                    </p>
+                                    {transaction.description && (
+                                      <div className="group relative flex-shrink-0">
+                                        <Info className="h-4 w-4 cursor-help text-gray-400" />
+                                        <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                          {transaction.description}
+                                          <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                                        </div>
                                       </div>
-                                    </div>
-                                  )}
+                                    )}
+                                  </div>
+                                  <p className="truncate text-sm text-gray-500">
+                                    {new Date(
+                                      transaction.createdAt,
+                                    ).toLocaleDateString()}
+                                  </p>
                                 </div>
-                                <p className="truncate text-sm text-gray-500">
-                                  {new Date(
-                                    transaction.createdAt,
-                                  ).toLocaleDateString()}
-                                </p>
+                                <div className="ml-2 flex-shrink-0 text-right">
+                                  <p className="font-medium text-gray-900">
+                                    ${transaction.amount.toLocaleString()}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="ml-2 flex-shrink-0 text-right">
-                                <p className="font-medium text-gray-900">
-                                  ${transaction.amount.toLocaleString()}
-                                </p>
-                              </div>
-                            </div>
-                          ))
+                            ))}
+                            {transactions.length > 3 && (
+                              <button
+                                onClick={() =>
+                                  handleViewAllTransactions(
+                                    budgetCategory.category.id,
+                                  )
+                                }
+                                className="w-full cursor-pointer rounded-lg border border-blue-200 bg-blue-50 py-2 text-center text-xs text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-800 hover:underline"
+                                title={`View all ${transactions.length} transactions for ${budgetCategory.category.name}`}
+                              >
+                                +{transactions.length - 3} more transactions
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     )}

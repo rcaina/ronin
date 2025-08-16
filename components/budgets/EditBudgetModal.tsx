@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Calendar, Target, TrendingUp } from "lucide-react";
+import { X, Target, TrendingUp } from "lucide-react";
 import { useUpdateBudget } from "@/lib/data-hooks/budgets/useBudgets";
 import { toast } from "react-hot-toast";
 import type { BudgetWithRelations } from "@/lib/types/budget";
@@ -39,13 +39,16 @@ export default function EditBudgetModal({
 
   // Initialize form data when budget changes
   useEffect(() => {
-    if (budget && budget.startAt && budget.endAt) {
+    if (budget) {
+      const startDate = new Date(budget.startAt).toISOString().slice(0, 10);
+      const endDate = new Date(budget.endAt).toISOString().slice(0, 10);
+
       setFormData({
         name: budget.name,
         strategy: budget.strategy,
         period: budget.period,
-        startAt: new Date(budget.startAt).toISOString().split("T")[0] ?? "",
-        endAt: new Date(budget.endAt).toISOString().split("T")[0] ?? "",
+        startAt: startDate,
+        endAt: endDate,
       });
     }
   }, [budget]);
@@ -235,10 +238,11 @@ export default function EditBudgetModal({
                   id="startAt"
                   value={formData.startAt}
                   onChange={(e) => handleInputChange("startAt", e.target.value)}
-                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="block w-full cursor-pointer rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   required
+                  min="1900-01-01"
+                  max="2100-12-31"
                 />
-                <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
             </div>
 
@@ -255,10 +259,11 @@ export default function EditBudgetModal({
                   id="endAt"
                   value={formData.endAt}
                   onChange={(e) => handleInputChange("endAt", e.target.value)}
-                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="block w-full cursor-pointer rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   required
+                  min="1900-01-01"
+                  max="2100-12-31"
                 />
-                <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
             </div>
           </div>

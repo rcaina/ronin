@@ -14,7 +14,7 @@ export const GET = withUser({
     await ensureCardAccountOwnership(cardId, user.accountId);
     
     return await prisma.$transaction(async (tx) => {
-      const card = await getCardById(tx, cardId, user.id);
+      const card = await getCardById(tx, cardId, user.accountId);
       return NextResponse.json(card, { status: 200 });
     });
   }),

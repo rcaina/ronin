@@ -1,6 +1,7 @@
 "use client";
 
 import { Edit, Trash2, GripVertical } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import {
   useUpdateBudgetCategory,
@@ -22,6 +23,7 @@ export default function BudgetCategoryCard({
   budgetCategory,
   budgetId,
 }: BudgetCategoryCardProps) {
+  const router = useRouter();
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
     null,
   );
@@ -113,6 +115,12 @@ export default function BudgetCategoryCard({
 
   const handleCancelDelete = () => {
     setCategoryToDelete(null);
+  };
+
+  const handleViewAllTransactions = () => {
+    router.push(
+      `/budgets/${budgetId}/transactions?category=${budgetCategory.category.id}`,
+    );
   };
 
   return (
@@ -294,9 +302,16 @@ export default function BudgetCategoryCard({
                   </div>
                 ))}
                 {budgetCategory.transactions.length > 3 && (
-                  <p className="text-center text-xs text-gray-500">
-                    +{budgetCategory.transactions.length - 3} more transactions
-                  </p>
+                  <div className="text-center">
+                    <button
+                      onClick={handleViewAllTransactions}
+                      className="cursor-pointer text-center text-xs text-blue-600 transition-colors hover:text-blue-800 hover:underline"
+                      title={`View all ${budgetCategory.transactions.length} transactions for ${budgetCategory.category.name}`}
+                    >
+                      +{budgetCategory.transactions.length - 3} more
+                      transactions
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

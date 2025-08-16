@@ -17,7 +17,7 @@ interface PageHeaderProps {
     label: string;
     onClick: () => void;
     icon?: ReactNode;
-    variant?: "primary" | "secondary";
+    variant?: "primary" | "secondary" | "danger";
   }>;
 }
 

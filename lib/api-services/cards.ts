@@ -104,13 +104,20 @@ export async function getCards(
 export async function getCardById(
   tx: PrismaClientTx,
   id: string,
-  userId: string
+  accountId: string
 ) {
   const card = await tx.card.findFirst({
     where: {
       id,
-      userId,
       deleted: null,
+      user:{
+        accountUsers: {
+          some: {
+            accountId: accountId,
+          },
+        },
+        deleted: null,
+      },
     },
     include: {
       user: {

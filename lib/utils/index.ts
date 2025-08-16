@@ -75,3 +75,31 @@ export const getCategoryGroupColor = (group: CategoryType) => {
       return "bg-gray-100 text-gray-800 border-gray-200";
   }
 };
+
+export function formatDateUTC(dateString: string): string {
+  if (!dateString) return "";
+
+  // Handle both ISO date strings and simple date strings
+  let year: number, month: number, day: number;
+
+  if (dateString.includes("T")) {
+    // ISO date string - extract date part
+    const datePart = dateString.split("T")[0] ?? "";
+    [year, month, day] = datePart.split("-").map(Number) as [number, number, number];
+  } else {
+    // Simple date string (YYYY-MM-DD)
+    [year, month, day] = dateString.split("-").map(Number) as [number, number, number];
+  }
+
+  if (!year || !month || !day) return "";
+
+  // Create UTC date to avoid timezone issues
+  const utcDate = new Date(Date.UTC(year, month - 1, day));
+
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(utcDate);
+}

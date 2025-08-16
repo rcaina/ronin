@@ -8,6 +8,7 @@ interface CardProps {
   onDelete?: (card: Card) => void;
   canEdit?: boolean;
   onClick?: (card: Card) => void;
+  general?: boolean;
 }
 
 const getCardTypeIcon = (type: string) => {
@@ -39,6 +40,7 @@ const CardComponent = ({
   onDelete,
   canEdit = true,
   onClick,
+  general = false,
 }: CardProps) => {
   return (
     <div
@@ -110,30 +112,34 @@ const CardComponent = ({
           </div>
         </div>
 
-        {/* Card Name */}
-        <div className="mb-4">
-          <div className="text-sm text-white/80">Card Name</div>
-          <div className="text-lg font-semibold">{card.name}</div>
-        </div>
-
         {/* Card Details */}
         <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm text-white/80">Owner</div>
-            <div className="font-semibold">{card.user}</div>
-          </div>
+          <div className="text-sm text-white/80">Owner</div>
+          <div className="font-semibold">{card.user}</div>
         </div>
       </div>
 
       {/* Card Info */}
       <div className="p-6">
-        <div className="mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">{card.name}</h3>
+          {/* Status Badge */}
+          <div className="flex items-center justify-between">
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                card.isActive
+                  ? "bg-green-100 text-green-800"
+                  : "bg-gray-100 text-gray-800"
+              }`}
+            >
+              {card.isActive ? "Active" : "Inactive"}
+            </span>
+          </div>
         </div>
 
         {/* Balance and Limit */}
         <div className="space-y-3">
-          <div>
+          <div className="space-y-1">
             {card.spendingLimit && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">Limit</span>
@@ -142,13 +148,15 @@ const CardComponent = ({
                 </span>
               </div>
             )}
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">Spent</span>
-              <span className="font-semibold text-red-500">
-                ${card.amountSpent.toFixed(2)}
-              </span>
-            </div>
-            {card.spendingLimit && (
+            {!general && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Spent</span>
+                <span className="font-semibold text-red-500">
+                  ${card.amountSpent.toFixed(2)}
+                </span>
+              </div>
+            )}
+            {card.spendingLimit && !general && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">Available</span>
                 <span
@@ -165,7 +173,7 @@ const CardComponent = ({
           </div>
 
           {/* Utilization Bar */}
-          {card.spendingLimit && (
+          {card.spendingLimit && !general && (
             <div>
               <div className="mb-1 flex items-center justify-between text-xs">
                 <span className="text-gray-500">Utilization</span>
@@ -212,19 +220,6 @@ const CardComponent = ({
               </div>
             </div>
           )}
-
-          {/* Status Badge */}
-          <div className="flex items-center justify-between">
-            <span
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                card.isActive
-                  ? "bg-green-100 text-green-800"
-                  : "bg-gray-100 text-gray-800"
-              }`}
-            >
-              {card.isActive ? "Active" : "Inactive"}
-            </span>
-          </div>
         </div>
       </div>
     </div>

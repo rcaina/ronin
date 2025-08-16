@@ -9,7 +9,6 @@ import PageHeader from "@/components/PageHeader";
 import { default as CardComponent } from "@/components/cards/Card";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import AddCardForm from "@/components/cards/AddCardForm";
-import AddItemButton from "@/components/AddItemButton";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import {
   useCards,
@@ -43,7 +42,7 @@ const CardsPage = () => {
   const createCardMutation = useCreateCard();
   const updateCardMutation = useUpdateCard();
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
-  const [isAddingCard, setIsAddingCard] = useState(false);
+  const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [cardToEdit, setCardToEdit] = useState<ApiCard | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -80,12 +79,12 @@ const CardsPage = () => {
   }, [session]);
 
   const handleAddCard = () => {
-    setIsAddingCard(true);
+    setShowAddCardModal(true);
     setCardToEdit(null);
   };
 
   const handleCancelAdd = () => {
-    setIsAddingCard(false);
+    setShowAddCardModal(false);
   };
 
   const handleCancelEdit = () => {
@@ -124,7 +123,7 @@ const CardsPage = () => {
         toast.success("Card updated successfully!");
       } else {
         await createCardMutation.mutateAsync(cardData);
-        setIsAddingCard(false);
+        setShowAddCardModal(false);
         toast.success("Card created successfully!");
       }
     } catch (err) {
@@ -204,7 +203,9 @@ const CardsPage = () => {
   const { totalSpent, totalLimit, activeCards, creditCards } = useMemo(() => {
     const totalSpent = cards.reduce((sum, card) => sum + card.amountSpent, 0);
     const totalLimit = cards
-      .filter((card) => card.spendingLimit)
+      .filter(
+        (card) => card.type === "credit" || card.type === "business_credit",
+      )
       .reduce((sum, card) => sum + (card.spendingLimit ?? 0), 0);
     const activeCards = cards.filter((card) => card.isActive).length;
     const creditCards = cards.filter(
@@ -250,11 +251,19 @@ const CardsPage = () => {
       <PageHeader
         title="Cards"
         description="View and manage credit and debit cards in your account"
-        action={{
-          label: "Pay Credit Card",
-          onClick: () => setShowCardPaymentModal(true),
-          icon: <CreditCard className="h-4 w-4" />,
-        }}
+        actions={[
+          {
+            label: "Add Card",
+            onClick: handleAddCard,
+            icon: <Plus className="h-4 w-4" />,
+            variant: "primary",
+          },
+          {
+            label: "Pay Credit Card",
+            onClick: () => setShowCardPaymentModal(true),
+            icon: <CreditCard className="h-4 w-4" />,
+          },
+        ]}
       />
 
       <div className="flex-1 overflow-hidden pt-16 sm:pt-20 lg:pt-0">
@@ -311,32 +320,6 @@ const CardsPage = () => {
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {/* Add New Card Form */}
-              {isAddingCard && !cardToEdit && (
-                <AddCardForm
-                  onSubmit={handleSubmitCard}
-                  onCancel={handleCancelAdd}
-                  isLoading={createCardMutation.isPending}
-                  users={users}
-                  loadingUsers={loadingUsers}
-                  defaultValues={{
-                    userId:
-                      users.length === 1
-                        ? (users[0]?.id ?? "")
-                        : (session?.user?.id ?? ""),
-                  }}
-                />
-              )}
-
-              {/* Add New Card Button (always visible) */}
-              {!isAddingCard && cards.length !== 0 && (
-                <AddItemButton
-                  onClick={handleAddCard}
-                  title="Add Card"
-                  description="Add a new credit or debit card"
-                />
-              )}
-
               {/* Credit Cards Section */}
               {creditCardsArray.length > 0 &&
                 creditCardsArray.map((card) => {
@@ -349,7 +332,13 @@ const CardsPage = () => {
                         onSubmit={handleSubmitCard}
                         onCancel={handleCancelEdit}
                         isLoading={updateCardMutation.isPending}
-                        cardToEdit={cardToEdit}
+                        cardToEdit={{
+                          id: cardToEdit.id,
+                          name: cardToEdit.name,
+                          cardType: cardToEdit.cardType,
+                          spendingLimit: cardToEdit.spendingLimit,
+                          userId: cardToEdit.userId,
+                        }}
                         users={users}
                         loadingUsers={loadingUsers}
                         defaultValues={{
@@ -372,6 +361,7 @@ const CardsPage = () => {
                       onDelete={handleDeleteCard}
                       onClick={handleCardClick}
                       canEdit={card.userId === session?.user?.id}
+                      general={true}
                     />
                   );
                 })}
@@ -388,7 +378,13 @@ const CardsPage = () => {
                         onSubmit={handleSubmitCard}
                         onCancel={handleCancelEdit}
                         isLoading={updateCardMutation.isPending}
-                        cardToEdit={cardToEdit}
+                        cardToEdit={{
+                          id: cardToEdit.id,
+                          name: cardToEdit.name,
+                          cardType: cardToEdit.cardType,
+                          spendingLimit: cardToEdit.spendingLimit,
+                          userId: cardToEdit.userId,
+                        }}
                         users={users}
                         loadingUsers={loadingUsers}
                         defaultValues={{
@@ -411,6 +407,7 @@ const CardsPage = () => {
                       onDelete={handleDeleteCard}
                       onClick={handleCardClick}
                       canEdit={card.userId === session?.user?.id}
+                      general={true}
                     />
                   );
                 })}
@@ -427,7 +424,13 @@ const CardsPage = () => {
                         onSubmit={handleSubmitCard}
                         onCancel={handleCancelEdit}
                         isLoading={updateCardMutation.isPending}
-                        cardToEdit={cardToEdit}
+                        cardToEdit={{
+                          id: cardToEdit.id,
+                          name: cardToEdit.name,
+                          cardType: cardToEdit.cardType,
+                          spendingLimit: cardToEdit.spendingLimit,
+                          userId: cardToEdit.userId,
+                        }}
                         users={users}
                         loadingUsers={loadingUsers}
                         defaultValues={{
@@ -450,12 +453,13 @@ const CardsPage = () => {
                       onDelete={handleDeleteCard}
                       onClick={handleCardClick}
                       canEdit={card.userId === session?.user?.id}
+                      general={true}
                     />
                   );
                 })}
 
-              {/* Empty State - only show if no cards and not adding */}
-              {cards.length === 0 && !isAddingCard && (
+              {/* Empty State - only show if no cards */}
+              {cards.length === 0 && (
                 <div className="col-span-full text-center">
                   <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-white py-12">
                     <CreditCard className="mb-4 h-12 w-12 text-gray-400" />
@@ -476,6 +480,33 @@ const CardsPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Add Card Modal */}
+      {showAddCardModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+          onClick={handleCancelAdd}
+        >
+          <div
+            className="w-full max-w-md transform transition-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <AddCardForm
+              onSubmit={handleSubmitCard}
+              onCancel={handleCancelAdd}
+              isLoading={createCardMutation.isPending}
+              users={users}
+              loadingUsers={loadingUsers}
+              defaultValues={{
+                userId:
+                  users.length === 1
+                    ? (users[0]?.id ?? "")
+                    : (session?.user?.id ?? ""),
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {cardToDelete && (
