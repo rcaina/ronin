@@ -61,6 +61,28 @@ const BudgetCategoriesPage = () => {
       return totalSpent >= cat.allocatedAmount;
     }).length ?? 0;
 
+  // Calculate categories over budget and total amount over
+  const categoriesOverBudget =
+    budget?.categories?.filter((cat) => {
+      const totalSpent =
+        cat.transactions?.reduce(
+          (sum, transaction) => sum + transaction.amount,
+          0,
+        ) ?? 0;
+      return totalSpent > cat.allocatedAmount;
+    }).length ?? 0;
+
+  const totalOverBudget =
+    budget?.categories?.reduce((sum, cat) => {
+      const totalSpent =
+        cat.transactions?.reduce(
+          (sum, transaction) => sum + transaction.amount,
+          0,
+        ) ?? 0;
+      const overAmount = Math.max(0, totalSpent - cat.allocatedAmount);
+      return sum + overAmount;
+    }, 0) ?? 0;
+
   // Determine allocation status
   const getAllocationStatus = () => {
     // Add a small tolerance for floating point precision issues
@@ -202,12 +224,26 @@ const BudgetCategoriesPage = () => {
                 valueColor="text-green-600"
               />
               <StatsCard
-                title="Total Categories"
-                value={totalCategories}
-                subtitle="Budget categories"
-                icon={<Target className="h-4 w-4" />}
-                iconColor="text-purple-500"
-                valueColor="text-purple-600"
+                title="Categories Over Budget"
+                value={categoriesOverBudget}
+                subtitle={
+                  categoriesOverBudget > 0
+                    ? `$${totalOverBudget.toFixed(2)} over`
+                    : "All within budget"
+                }
+                icon={
+                  categoriesOverBudget > 0 ? (
+                    <AlertCircle className="h-4 w-4" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4" />
+                  )
+                }
+                iconColor={
+                  categoriesOverBudget > 0 ? "text-red-500" : "text-green-500"
+                }
+                valueColor={
+                  categoriesOverBudget > 0 ? "text-red-600" : "text-green-600"
+                }
               />
               <StatsCard
                 title="Total Income"

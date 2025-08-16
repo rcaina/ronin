@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useState, useMemo, useEffect } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useBudgetTransactions } from "@/lib/data-hooks/budgets/useBudgetTransactions";
 import {
@@ -36,6 +36,7 @@ import { TransactionType } from "@prisma/client";
 const BudgetTransactionsPage = () => {
   const params = useParams();
   const budgetId = params.id as string;
+  const searchParams = useSearchParams();
 
   const {
     data: transactions = [],
@@ -71,49 +72,49 @@ const BudgetTransactionsPage = () => {
   // Filter and sort transactions
   const filteredAndSortedTransactions = useMemo(() => {
     const filtered = transactions.filter((transaction) => {
-      // Search term matching (including amount)
-      const searchLower = searchTerm.toLowerCase().trim();
-
-      // If no search term, include all transactions
-      if (!searchLower) {
-        return true;
-      }
-
       try {
-        const nameMatch =
-          transaction.name?.toLowerCase().includes(searchLower) ?? false;
-        const descriptionMatch =
-          transaction.description?.toLowerCase().includes(searchLower) ?? false;
-        const categoryMatch =
-          transaction.category?.category?.name
-            ?.toLowerCase()
-            .includes(searchLower) ?? false;
+        // Search term matching (including amount)
+        const searchLower = searchTerm.toLowerCase().trim();
+        let matchesSearch = true; // Default to true if no search term
 
-        // Only search amounts if the search term contains numbers
-        const searchNumbers = searchLower.replace(/[^0-9.]/g, "");
-        const amountMatch = searchNumbers
-          ? Math.abs(transaction.amount).toString().includes(searchNumbers)
-          : false;
+        if (searchLower) {
+          const nameMatch =
+            transaction.name?.toLowerCase().includes(searchLower) ?? false;
+          const descriptionMatch =
+            transaction.description?.toLowerCase().includes(searchLower) ??
+            false;
+          const categoryMatch =
+            transaction.category?.category?.name
+              ?.toLowerCase()
+              .includes(searchLower) ?? false;
 
-        const formattedAmountMatch = new Intl.NumberFormat("en-US", {
-          style: "currency",
-          currency: "USD",
-        })
-          .format(transaction.amount)
-          .toLowerCase()
-          .includes(searchLower);
+          // Only search amounts if the search term contains numbers
+          const searchNumbers = searchLower.replace(/[^0-9.]/g, "");
+          const amountMatch = searchNumbers
+            ? Math.abs(transaction.amount).toString().includes(searchNumbers)
+            : false;
 
-        const matchesSearch =
-          nameMatch ||
-          descriptionMatch ||
-          categoryMatch ||
-          amountMatch ||
-          formattedAmountMatch;
+          const formattedAmountMatch = new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "USD",
+          })
+            .format(transaction.amount)
+            .toLowerCase()
+            .includes(searchLower);
+
+          matchesSearch =
+            nameMatch ||
+            descriptionMatch ||
+            categoryMatch ||
+            amountMatch ||
+            formattedAmountMatch;
+        }
 
         // Category filter
         const matchesCategory =
           selectedCategory === "all" ||
-          transaction.category?.id === selectedCategory;
+          transaction.category?.id === selectedCategory ||
+          transaction.category?.category.id === selectedCategory;
 
         // Card filter
         const matchesCard =
@@ -162,7 +163,7 @@ const BudgetTransactionsPage = () => {
   const categories = useMemo(() => {
     const uniqueCategories = new Map<
       string,
-      { id: string; name: string; group: string }
+      { id: string; name: string; group: string; actualCategoryId: string }
     >();
     transactions.forEach((t) => {
       if (
@@ -174,6 +175,7 @@ const BudgetTransactionsPage = () => {
           id: t.category.id,
           name: t.category.category.name,
           group: t.category.category.group,
+          actualCategoryId: t.category.category.id,
         });
       }
     });
@@ -181,6 +183,23 @@ const BudgetTransactionsPage = () => {
       a.name.localeCompare(b.name),
     );
   }, [transactions]);
+
+  // Handle URL parameters for initial filtering
+  useEffect(() => {
+    const categoryParam = searchParams.get("category");
+
+    if (categoryParam && categoryParam !== "all" && categories.length > 0) {
+      // Check if the category exists in our categories list (check both budget category ID and actual category ID)
+      const categoryExists = categories.some(
+        (cat) =>
+          cat.id === categoryParam || cat.actualCategoryId === categoryParam,
+      );
+
+      if (categoryExists) {
+        setSelectedCategory(categoryParam);
+      }
+    }
+  }, [searchParams, categories]);
 
   // Get unique cards for filter
   const availableCards = useMemo(() => {
@@ -413,7 +432,11 @@ const BudgetTransactionsPage = () => {
     <div className="mobile-overflow-hidden flex h-screen flex-col bg-gray-50">
       <PageHeader
         title={`${budget?.name ?? "Budget"} - Transactions`}
-        description="Track and manage transactions for this budget"
+        description={
+          selectedCategory !== "all"
+            ? `Showing transactions for ${categories.find((c) => c.actualCategoryId === selectedCategory)?.name ?? "selected category"}`
+            : "Track and manage transactions for this budget"
+        }
         backButton={{
           onClick: () => window.history.back(),
         }}
@@ -462,17 +485,32 @@ const BudgetTransactionsPage = () => {
                 {/* Filter Row: Categories, Cards, and Sort */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">
-                      Category
-                    </label>
+                    <div className="mb-1 flex items-center space-x-2">
+                      <label className="block text-xs font-medium text-gray-700">
+                        Category
+                      </label>
+                      {selectedCategory !== "all" && (
+                        <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                          Filtered
+                        </span>
+                      )}
+                    </div>
                     <select
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      title={
+                        selectedCategory !== "all"
+                          ? `Viewing transactions for ${categories.find((c) => c.actualCategoryId === selectedCategory)?.name ?? "selected category"}`
+                          : "Select a category to filter transactions"
+                      }
                     >
                       <option value="all">All Categories</option>
                       {categories.map((category) => (
-                        <option key={category.id} value={category.id}>
+                        <option
+                          key={category.id}
+                          value={category.actualCategoryId}
+                        >
                           {category.name}
                         </option>
                       ))}

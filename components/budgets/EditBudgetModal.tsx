@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Calendar, Target, TrendingUp } from "lucide-react";
+import { X, Target, TrendingUp } from "lucide-react";
 import { useUpdateBudget } from "@/lib/data-hooks/budgets/useBudgets";
 import { toast } from "react-hot-toast";
 import type { BudgetWithRelations } from "@/lib/types/budget";
