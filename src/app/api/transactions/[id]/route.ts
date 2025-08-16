@@ -5,13 +5,13 @@ import { deleteTransaction, updateTransaction } from "@/lib/api-services/transac
 import { updateTransactionSchema } from "@/lib/api-schemas/transactions";
 import { type User } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
-import { ensureTransactionOwnership, validateTransactionId } from "@/lib/utils/auth";
+import { ensureTransactionAccountOwnership, validateTransactionId } from "@/lib/utils/auth";
 
 export const PUT = withUser({
   PUT: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
     const { id } = await context.params;
     const transactionId = validateTransactionId(id);
-    await ensureTransactionOwnership(transactionId, user.id);
+    await ensureTransactionAccountOwnership(transactionId, user.accountId);
     
     const body = await req.json() as unknown;
     const validationResult = updateTransactionSchema.safeParse(body);

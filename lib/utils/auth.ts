@@ -114,11 +114,12 @@ export const ensureCardUserOwnership = async (id: string, userId: string): Promi
   }
 };
 
-export const ensureTransactionOwnership = async (id: string, userId: string): Promise<void> => {
+export const ensureTransactionAccountOwnership = async (id: string, accountId: string): Promise<void> => {
   const transaction = await prisma.transaction.findUnique({
     where: {
       id,
-      userId,
+      accountId,
+      deleted: null,
     },
   });
 
