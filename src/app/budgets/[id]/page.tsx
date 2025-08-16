@@ -9,7 +9,6 @@ import {
   Target,
   Plus,
   EditIcon,
-  Calendar,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -20,6 +19,7 @@ import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 import StatsCard from "@/components/StatsCard";
 import { TransactionType } from "@prisma/client";
 import IncomeModal from "@/components/budgets/IncomeModal";
+import { formatDateUTC } from "@/lib/utils";
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();
@@ -100,13 +100,41 @@ const BudgetDetailsPage = () => {
   const spendingPercentage =
     totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
 
-  // Calculate days remaining
-  const today = new Date();
-  const endDate = new Date(budget.endAt);
-  const daysRemaining = Math.ceil(
-    (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  const isBudgetExpired = daysRemaining < 0;
+  // Get budget status display
+  const getBudgetStatusDisplay = () => {
+    switch (budget.status) {
+      case "ACTIVE":
+        return {
+          status: "Active",
+          color: "text-green-600",
+          bg: "bg-green-50",
+          subtitle: "Budget is active",
+        };
+      case "COMPLETED":
+        return {
+          status: "Completed",
+          color: "text-blue-600",
+          bg: "bg-blue-50",
+          subtitle: "Budget period finished",
+        };
+      case "ARCHIVED":
+        return {
+          status: "Archived",
+          color: "text-gray-600",
+          bg: "bg-gray-50",
+          subtitle: "Budget is archived",
+        };
+      default:
+        return {
+          status: "Unknown",
+          color: "text-gray-600",
+          bg: "bg-gray-50",
+          subtitle: "Status unknown",
+        };
+    }
+  };
+
+  const budgetStatusDisplay = getBudgetStatusDisplay();
 
   // Group categories by type and sort by usage percentage
   const categoriesByGroup = (budget.categories ?? []).reduce(
@@ -281,28 +309,20 @@ const BudgetDetailsPage = () => {
               />
 
               <StatsCard
-                title="Days Remaining"
-                value={
-                  isBudgetExpired ? Math.abs(daysRemaining) : daysRemaining
-                }
-                subtitle={
-                  isBudgetExpired
-                    ? "Days expired"
-                    : daysRemaining <= 7
-                      ? "Ending soon"
-                      : "Days left"
-                }
+                title="Status"
+                value={budgetStatusDisplay.status}
+                subtitle={budgetStatusDisplay.subtitle}
                 icon={
-                  <Calendar className="h-4 w-4 text-orange-500 sm:h-5 sm:w-5" />
+                  <div
+                    className={`h-4 w-4 rounded-full ${budgetStatusDisplay.bg} sm:h-5 sm:w-5`}
+                  >
+                    <div
+                      className={`h-2 w-2 rounded-full ${budgetStatusDisplay.color.replace("text-", "bg-")} m-1 sm:m-1 sm:h-3 sm:w-3`}
+                    ></div>
+                  </div>
                 }
-                iconColor="text-orange-500"
-                valueColor={
-                  isBudgetExpired
-                    ? "text-red-600"
-                    : daysRemaining <= 7
-                      ? "text-orange-600"
-                      : "text-gray-900"
-                }
+                iconColor={budgetStatusDisplay.color}
+                valueColor={budgetStatusDisplay.color}
               />
             </div>
 
@@ -366,11 +386,7 @@ const BudgetDetailsPage = () => {
                     Start Date:
                   </span>
                   <p className="text-sm font-medium sm:text-base">
-                    {new Date(budget.startAt).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    {formatDateUTC(new Date(budget.startAt).toISOString())}
                   </p>
                 </div>
                 <div>
@@ -378,11 +394,7 @@ const BudgetDetailsPage = () => {
                     End Date:
                   </span>
                   <p className="text-sm font-medium sm:text-base">
-                    {new Date(budget.endAt).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    {formatDateUTC(new Date(budget.endAt).toISOString())}
                   </p>
                 </div>
               </div>
