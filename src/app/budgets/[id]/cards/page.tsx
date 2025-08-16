@@ -232,13 +232,17 @@ const BudgetCardsPage = () => {
   };
 
   const handleCardClick = (card: Card) => {
-    router.push(`/cards/${card.id}`);
+    router.push(`/budgets/${budgetId}/cards/${card.id}`);
   };
 
   const { totalSpent, totalLimit, activeCards, creditCards } = useMemo(() => {
     const totalSpent = cards.reduce((sum, card) => sum + card.amountSpent, 0);
     const totalLimit = cards
-      .filter((card) => card.spendingLimit)
+      .filter(
+        (card) =>
+          card.spendingLimit &&
+          (card.type === "credit" || card.type === "business_credit"),
+      )
       .reduce((sum, card) => sum + (card.spendingLimit ?? 0), 0);
     const activeCards = cards.filter((card) => card.isActive).length;
     const creditCards = cards.filter(
