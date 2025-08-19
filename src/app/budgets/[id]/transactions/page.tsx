@@ -429,7 +429,7 @@ const BudgetTransactionsPage = () => {
   }
 
   return (
-    <div className="mobile-overflow-hidden flex h-screen flex-col bg-gray-50">
+    <div className="flex h-screen flex-col bg-gray-50">
       <PageHeader
         title={`${budget?.name ?? "Budget"} - Transactions`}
         description={
@@ -447,9 +447,9 @@ const BudgetTransactionsPage = () => {
         }}
       />
 
-      <div className="flex-1 pt-16 sm:pt-20 lg:pt-0">
-        <div className="mobile-overflow-y-auto h-full">
-          <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
+      <div className="flex-1 overflow-hidden pt-16 sm:pt-20 lg:pt-0">
+        <div className="h-full overflow-y-auto">
+          <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
             {/* Filters and Search */}
             <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-6 sm:p-4 lg:p-6">
               <div className="mb-4 flex items-center justify-between">

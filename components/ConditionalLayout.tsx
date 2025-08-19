@@ -23,6 +23,24 @@ export const useMainNav = () => {
   return context;
 };
 
+// Create context for budget navigation state
+interface BudgetNavContextType {
+  isBudgetNavCollapsed: boolean;
+  setIsBudgetNavCollapsed: (collapsed: boolean) => void;
+}
+
+const BudgetNavContext = createContext<BudgetNavContextType | undefined>(
+  undefined,
+);
+
+export const useBudgetNav = () => {
+  const context = useContext(BudgetNavContext);
+  if (context === undefined) {
+    throw new Error("useBudgetNav must be used within a BudgetNavProvider");
+  }
+  return context;
+};
+
 // Pages that don't require authentication
 const PUBLIC_PAGES = ["/sign-in", "/sign-up"];
 
@@ -38,6 +56,7 @@ export default function ConditionalLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isBudgetNavCollapsed, setIsBudgetNavCollapsed] = useState(false);
 
   // Auto-collapse main nav when entering budget pages
   useEffect(() => {
@@ -46,6 +65,13 @@ export default function ConditionalLayout({
     } else if (pathname === "/budgets") {
       // Keep main nav open on the budgets list page
       setIsCollapsed(false);
+    }
+  }, [pathname]);
+
+  // Reset budget nav state when leaving budget pages
+  useEffect(() => {
+    if (!pathname.startsWith("/budgets/") || pathname === "/budgets") {
+      setIsBudgetNavCollapsed(false);
     }
   }, [pathname]);
 
@@ -76,6 +102,10 @@ export default function ConditionalLayout({
       return <main className="max-h-screen">{children}</main>;
     }
 
+    // Check if we're on a budget page
+    const isBudgetPage =
+      pathname.startsWith("/budgets/") && pathname !== "/budgets";
+
     return (
       <MainNavContext.Provider
         value={{
@@ -83,27 +113,44 @@ export default function ConditionalLayout({
           setIsMainNavCollapsed: setIsCollapsed,
         }}
       >
-        <main className="bg-gray/90 flex text-black">
-          {/* Mobile Header - only visible on mobile */}
-          <MobileHeader />
+        <BudgetNavContext.Provider
+          value={{
+            isBudgetNavCollapsed: isBudgetNavCollapsed,
+            setIsBudgetNavCollapsed: setIsBudgetNavCollapsed,
+          }}
+        >
+          <main className="bg-gray/90 flex text-black">
+            {/* Mobile Header - only visible on mobile */}
+            <MobileHeader />
 
-          {/* Desktop Side Navigation - hidden on mobile */}
-          <div className="hidden lg:block">
-            <SideNav
-              isCollapsed={isCollapsed}
-              setIsCollapsed={setIsCollapsed}
-            />
-          </div>
+            {/* Desktop Side Navigation - hidden on mobile */}
+            <div className="hidden lg:block">
+              <SideNav
+                isCollapsed={isCollapsed}
+                setIsCollapsed={setIsCollapsed}
+              />
+            </div>
 
-          {/* Main Content Area */}
-          <div
-            className={`flex-1 transition-all duration-300 ${
-              isCollapsed ? "lg:ml-20 lg:mr-4" : "lg:ml-72 lg:mr-8"
-            } pt-32 lg:pt-0`}
-          >
-            {children}
-          </div>
-        </main>
+            {/* Main Content Area */}
+            <div
+              className={`flex-1 transition-all duration-300 ${
+                isBudgetPage
+                  ? isCollapsed
+                    ? isBudgetNavCollapsed
+                      ? "lg:ml-20"
+                      : "lg:ml-20"
+                    : isBudgetNavCollapsed
+                      ? "lg:ml-72"
+                      : "lg:ml-72"
+                  : isCollapsed
+                    ? "lg:ml-20"
+                    : "lg:ml-64"
+              } pt-32 lg:pt-0`}
+            >
+              {children}
+            </div>
+          </main>
+        </BudgetNavContext.Provider>
       </MainNavContext.Provider>
     );
   }
