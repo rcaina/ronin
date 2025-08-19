@@ -99,7 +99,7 @@ const SettingsPage = () => {
       />
 
       <div className="flex-1 overflow-auto">
-        <div className="mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
             {/* Sidebar Navigation */}
             <div className="lg:col-span-1">

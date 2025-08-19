@@ -193,7 +193,7 @@ const BudgetCategoriesPage = () => {
   };
 
   return (
-    <div className="mobile-overflow-hidden flex h-screen flex-col bg-gray-50">
+    <div className="flex h-screen flex-col bg-gray-50">
       <PageHeader
         title={`${budget?.name ?? "Budget"} - Categories`}
         description="Manage your budget categories"
@@ -202,9 +202,9 @@ const BudgetCategoriesPage = () => {
         }}
       />
 
-      <div className="flex-1 pb-24 pt-4 sm:pt-20 lg:pt-0">
-        <div className="mobile-overflow-y-auto h-full">
-          <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto">
+          <div className="mx-auto w-full px-2 py-4 pt-8 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
             {/* Stats Cards */}
             <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
               <StatsCard

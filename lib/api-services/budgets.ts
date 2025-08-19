@@ -891,11 +891,6 @@ export const getBudgetCards = async (
       transactions: {
         where: {
           deleted: null,
-          ...({
-            transactionType: {
-              not: TransactionType.CARD_PAYMENT
-            }
-          }),
         },
         select: {
           amount: true,

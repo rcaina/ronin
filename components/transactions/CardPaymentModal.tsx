@@ -243,7 +243,7 @@ export function CardPaymentModal({
               <option value="">Select source card</option>
               {debitCards.map((card) => (
                 <option key={card.id} value={card.id}>
-                  {card.name} ({card.cardType})
+                  {card.name} ({card.cardType}) - {card.user.name}
                 </option>
               ))}
             </select>
@@ -262,7 +262,7 @@ export function CardPaymentModal({
               <option value="">Select destination card</option>
               {creditCards.map((card) => (
                 <option key={card.id} value={card.id}>
-                  {card.name} ({card.cardType})
+                  {card.name} ({card.cardType}) - {card.user.name}
                 </option>
               ))}
             </select>
