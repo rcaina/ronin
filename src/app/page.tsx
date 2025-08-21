@@ -202,11 +202,11 @@ export default function HomePage() {
                 <div className="h-2 w-full rounded-full bg-gray-200 sm:h-3">
                   <div
                     className={`h-2 rounded-full transition-all duration-300 sm:h-3 ${
-                      spendingPercentage > 90
-                        ? "bg-red-500"
-                        : spendingPercentage > 75
-                          ? "bg-yellow-500"
-                          : "bg-green-500"
+                      spendingPercentage === 100
+                        ? "bg-green-500"
+                        : spendingPercentage > 100
+                          ? "bg-red-500"
+                          : "bg-yellow-500"
                     }`}
                     style={{ width: `${Math.min(spendingPercentage, 100)}%` }}
                   ></div>

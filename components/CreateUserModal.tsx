@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, UserIcon } from "lucide-react";
+import { X, UserIcon, Eye, EyeOff } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useCreateUser } from "@/lib/data-hooks/useCreateUser";
 import { type CreateUserRequest } from "@/lib/data-hooks/services/auth";
@@ -21,6 +21,7 @@ interface CreateUserModalProps {
 
 const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
   const [createdUser, setCreatedUser] = useState<CreatedUser | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     createUser,
@@ -144,19 +145,32 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
                 <label className="block text-sm font-medium text-gray-700">
                   Password
                 </label>
-                <input
-                  type="password"
-                  value={createUserForm.password}
-                  onChange={(e) =>
-                    setCreateUserForm({
-                      ...createUserForm,
-                      password: e.target.value,
-                    })
-                  }
-                  required
-                  minLength={6}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
+                <div className="relative mt-1">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={createUserForm.password}
+                    onChange={(e) =>
+                      setCreateUserForm({
+                        ...createUserForm,
+                        password: e.target.value,
+                      })
+                    }
+                    required
+                    minLength={6}
+                    className="block w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 

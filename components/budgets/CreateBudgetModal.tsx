@@ -8,7 +8,7 @@ import { X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useCreateBudget } from "@/lib/data-hooks/budgets/useBudgets";
 import { StrategyType, PeriodType, type CategoryType } from "@prisma/client";
-import { calculateAdjustedIncome } from "@/lib/utils";
+import { calculateAdjustedIncome, calculateEndDate } from "@/lib/utils";
 
 // Import components
 import BudgetStepsSidebar from "./BudgetStepsSidebar";
@@ -114,50 +114,6 @@ const createBudgetSchema = z
       path: ["endAt"],
     },
   );
-
-// Utility functions for smart date calculation
-const calculateEndDate = (startDate: Date, period: PeriodType): Date => {
-  const date = new Date(startDate);
-
-  switch (period) {
-    case PeriodType.WEEKLY:
-      // Find the end of the week (Sunday)
-      const dayOfWeek = date.getDay();
-      const daysToAdd = 6 - dayOfWeek;
-      date.setDate(date.getDate() + daysToAdd);
-      return date;
-
-    case PeriodType.MONTHLY:
-      // Find the last day of the current month
-      const year = date.getFullYear();
-      const month = date.getMonth();
-      // Create a date for the first day of the next month, then subtract 1 day
-      const firstDayNextMonth = new Date(year, month + 1, 1);
-      const lastDay = new Date(firstDayNextMonth);
-      lastDay.setDate(lastDay.getDate() - 1);
-      return lastDay;
-
-    case PeriodType.QUARTERLY:
-      // Calculate 3 months after the start date
-      const quarterlyEndDate = new Date(startDate);
-      quarterlyEndDate.setMonth(quarterlyEndDate.getMonth() + 3);
-      // Subtract 1 day to get the day before the 3-month mark
-      quarterlyEndDate.setDate(quarterlyEndDate.getDate());
-      return quarterlyEndDate;
-
-    case PeriodType.YEARLY:
-      // Find the last day of the current year
-      date.setMonth(11, 31); // December 31st
-      return date;
-
-    case PeriodType.ONE_TIME:
-      // For one-time, return the same date (user will manually set end date)
-      return date;
-
-    default:
-      return date;
-  }
-};
 
 const formatDateForInput = (date: Date): string => {
   // Handle timezone issues by using local date methods
@@ -539,7 +495,6 @@ export default function CreateBudgetModal({
                 {currentStep === "income" && (
                   <IncomeStep
                     incomeEntries={incomeEntries}
-                    budgetPeriod={watch("period")}
                     onAddIncomeEntry={addIncomeEntry}
                     onRemoveIncomeEntry={removeIncomeEntry}
                     onUpdateIncomeEntry={updateIncomeEntry}

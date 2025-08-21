@@ -339,11 +339,11 @@ const BudgetDetailsPage = () => {
               <div className="h-2 w-full rounded-full bg-gray-200 sm:h-3">
                 <div
                   className={`h-2 rounded-full transition-all duration-300 sm:h-3 ${
-                    spendingPercentage > 90
-                      ? "bg-red-500"
-                      : spendingPercentage > 75
-                        ? "bg-yellow-500"
-                        : "bg-green-500"
+                    spendingPercentage === 100
+                      ? "bg-green-500"
+                      : spendingPercentage > 100
+                        ? "bg-red-500"
+                        : "bg-yellow-500"
                   }`}
                   style={{ width: `${Math.min(spendingPercentage, 100)}%` }}
                 ></div>
@@ -594,12 +594,12 @@ const BudgetDetailsPage = () => {
                         )}
                         <p className="mt-1 text-xs text-gray-400">
                           {transaction.occurredAt
-                            ? new Date(
-                                transaction.occurredAt,
-                              ).toLocaleDateString()
-                            : new Date(
-                                transaction.createdAt,
-                              ).toLocaleDateString()}
+                            ? formatDateUTC(
+                                new Date(transaction.occurredAt).toISOString(),
+                              )
+                            : formatDateUTC(
+                                new Date(transaction.createdAt).toISOString(),
+                              )}
                         </p>
                       </div>
                       <div className="text-right">

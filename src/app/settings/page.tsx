@@ -8,13 +8,9 @@ import CreateUserModal from "@/components/CreateUserModal";
 import {
   User as UserIcon,
   Shield,
-  Trash2,
   Edit,
   Save,
   X,
-  Eye,
-  EyeOff,
-  AlertTriangle,
   Users,
   Plus,
   Home,
@@ -27,8 +23,6 @@ const SettingsPage = () => {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
 
   // Form states
@@ -36,12 +30,6 @@ const SettingsPage = () => {
     name: session?.user?.name ?? "",
     email: session?.user?.email ?? "",
     bio: "",
-  });
-
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
   });
 
   const [preferences, setPreferences] = useState({
@@ -71,20 +59,6 @@ const SettingsPage = () => {
   const handleProfileSave = () => {
     // TODO: Implement profile update logic
     setIsEditingProfile(false);
-  };
-
-  const handlePasswordChange = () => {
-    // TODO: Implement password change logic
-    setPasswordForm({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
-  };
-
-  const handleDeleteAccount = () => {
-    // TODO: Implement account deletion logic
-    setIsDeletingAccount(false);
   };
 
   const handleSignOut = async () => {
@@ -132,17 +106,8 @@ const SettingsPage = () => {
                   <div className="p-6">
                     <div className="mb-6 flex items-center justify-between">
                       <h2 className="text-xl font-semibold text-gray-900">
-                        Profile Information
+                        Profile
                       </h2>
-                      {!isEditingProfile && (
-                        <button
-                          onClick={() => setIsEditingProfile(true)}
-                          className="inline-flex items-center rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-accent"
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit Profile
-                        </button>
-                      )}
                     </div>
 
                     {isEditingProfile ? (
@@ -195,7 +160,7 @@ const SettingsPage = () => {
                             className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                           />
                         </div>
-                        <div className="flex space-x-3">
+                        <div className="flex justify-end space-x-3">
                           <button
                             onClick={handleProfileSave}
                             className="inline-flex items-center rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-accent"
@@ -213,47 +178,65 @@ const SettingsPage = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Full Name
-                          </label>
-                          <p className="mt-1 text-sm text-gray-900">
-                            {profileForm.name}
-                          </p>
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                        <div className="mb-6 flex items-center justify-between">
+                          <h2 className="text-xl font-semibold text-gray-900">
+                            Profile Information
+                          </h2>
+                          {!isEditingProfile && (
+                            <button
+                              onClick={() => setIsEditingProfile(true)}
+                              className="inline-flex items-center rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-accent"
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit Profile
+                            </button>
+                          )}
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Email
-                          </label>
-                          <p className="mt-1 text-sm text-gray-900">
-                            {profileForm.email}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Bio
-                          </label>
-                          <p className="mt-1 text-sm text-gray-900">
-                            {profileForm.bio || "No bio added yet."}
-                          </p>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Full Name
+                            </label>
+                            <p className="mt-1 text-sm text-gray-900">
+                              {profileForm.name}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Email
+                            </label>
+                            <p className="mt-1 text-sm text-gray-900">
+                              {profileForm.email}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Bio
+                            </label>
+                            <p className="mt-1 text-sm text-gray-900">
+                              {profileForm.bio || "No bio added yet."}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
 
                     {/* Back to Welcome Section */}
                     <div className="mt-8 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                      <h3 className="mb-2 text-lg font-medium text-gray-900">
-                        Getting Started
-                      </h3>
-                      <p className="mb-4 text-sm text-gray-600">
+                      <div className="mb-4 flex items-center justify-between">
+                        <h3 className="text-lg font-medium text-gray-900">
+                          Getting Started
+                        </h3>
+                        <Button onClick={() => router.push("/welcome")}>
+                          <Home className="mr-2 h-4 w-4" />
+                          Back to Welcome Page
+                        </Button>
+                      </div>
+                      <p className="text-sm text-gray-600">
                         Need help setting up your account? Return to the welcome
                         page to access setup options.
                       </p>
-                      <Button onClick={() => router.push("/welcome")}>
-                        <Home className="mr-2 h-4 w-4" />
-                        Back to Welcome Page
-                      </Button>
                     </div>
                   </div>
                 )}
@@ -266,111 +249,76 @@ const SettingsPage = () => {
                     </h2>
 
                     <div className="space-y-6">
-                      {/* Change Password */}
-                      <div className="rounded-lg border border-gray-200 p-4">
-                        <h3 className="mb-4 text-lg font-medium text-gray-900">
-                          Change Password
-                        </h3>
-                        <div className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Current Password
-                            </label>
-                            <div className="relative mt-1">
-                              <input
-                                type={showPassword ? "text" : "password"}
-                                value={passwordForm.currentPassword}
-                                onChange={(e) =>
-                                  setPasswordForm({
-                                    ...passwordForm,
-                                    currentPassword: e.target.value,
-                                  })
-                                }
-                                className="block w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute inset-y-0 right-0 flex items-center pr-3"
-                              >
-                                {showPassword ? (
-                                  <EyeOff className="h-4 w-4 text-gray-400" />
-                                ) : (
-                                  <Eye className="h-4 w-4 text-gray-400" />
-                                )}
-                              </button>
+                      {/* Change Password - Coming Soon */}
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                        <div className="mb-4 flex items-center justify-between">
+                          <h3 className="text-lg font-medium text-gray-900">
+                            Change Password
+                          </h3>
+                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                            Coming Soon
+                          </span>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <div className="flex-shrink-0">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
+                              <span className="text-sm font-medium text-blue-600">
+                                🔒
+                              </span>
                             </div>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              New Password
-                            </label>
-                            <input
-                              type="password"
-                              value={passwordForm.newPassword}
-                              onChange={(e) =>
-                                setPasswordForm({
-                                  ...passwordForm,
-                                  newPassword: e.target.value,
-                                })
-                              }
-                              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            />
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-600">
+                              We&apos;re working on bringing you secure password
+                              management. This feature will allow you to update
+                              your password with enhanced security measures.
+                            </p>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Confirm New Password
-                            </label>
-                            <input
-                              type="password"
-                              value={passwordForm.confirmPassword}
-                              onChange={(e) =>
-                                setPasswordForm({
-                                  ...passwordForm,
-                                  confirmPassword: e.target.value,
-                                })
-                              }
-                              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            />
-                          </div>
-                          <button
-                            onClick={handlePasswordChange}
-                            className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-accent"
-                          >
-                            Update Password
-                          </button>
                         </div>
                       </div>
 
                       {/* Sign Out */}
                       <div className="rounded-lg border border-gray-200 p-4">
-                        <h3 className="mb-4 text-lg font-medium text-gray-900">
-                          Session Management
-                        </h3>
-                        <button
-                          onClick={handleSignOut}
-                          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700"
-                        >
-                          Sign Out
-                        </button>
+                        <div className="mb-4 flex items-center justify-between">
+                          <h3 className="text-lg font-medium text-gray-900">
+                            Session Management
+                          </h3>
+                          <button
+                            onClick={handleSignOut}
+                            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700"
+                          >
+                            Sign Out
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Delete Account */}
-                      <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                        <h3 className="mb-4 text-lg font-medium text-red-900">
-                          Delete Account
-                        </h3>
-                        <p className="mb-4 text-sm text-red-700">
-                          This action cannot be undone. This will permanently
-                          delete your account and remove all your data.
-                        </p>
-                        <button
-                          onClick={() => setIsDeletingAccount(true)}
-                          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700"
-                        >
-                          <Trash2 className="mr-2 inline h-4 w-4" />
-                          Delete Account
-                        </button>
+                      {/* Delete Account - Coming Soon */}
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                        <div className="mb-4 flex items-center justify-between">
+                          <h3 className="text-lg font-medium text-gray-900">
+                            Delete Account
+                          </h3>
+                          <span className="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800">
+                            Coming Soon
+                          </span>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <div className="flex-shrink-0">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100">
+                              <span className="text-sm font-medium text-orange-600">
+                                ⚠️
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-600">
+                              Account deletion functionality is currently under
+                              development. When available, you&apos;ll be able
+                              to permanently remove your account and all
+                              associated data with proper confirmation steps.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -589,7 +537,7 @@ const SettingsPage = () => {
       )}
 
       {/* Delete Account Confirmation Modal */}
-      {isDeletingAccount && (
+      {/* {isDeletingAccount && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="mx-4 max-w-md rounded-lg bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-center">
@@ -618,7 +566,7 @@ const SettingsPage = () => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 };

@@ -6,12 +6,9 @@ import {
   Target,
   List,
   CreditCard,
-  TrendingUp,
   DollarSign,
   PanelLeftClose,
   PanelLeftOpen,
-  Receipt,
-  ReceiptIcon,
   ReceiptText,
 } from "lucide-react";
 import { useMainNav, useBudgetNav } from "@/components/ConditionalLayout";
