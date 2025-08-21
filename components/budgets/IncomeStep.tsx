@@ -1,15 +1,12 @@
 "use client";
 
 import { Plus, X } from "lucide-react";
-import { PeriodType } from "@prisma/client";
 import type { IncomeEntry } from "./types";
 import { useState, useEffect } from "react";
-import { calculateAdjustedIncome } from "@/lib/utils";
 import Button from "../Button";
 
 interface IncomeStepProps {
   incomeEntries: IncomeEntry[];
-  budgetPeriod: PeriodType;
   onAddIncomeEntry: () => void;
   onRemoveIncomeEntry: (id: string) => void;
   onUpdateIncomeEntry: (
@@ -21,7 +18,6 @@ interface IncomeStepProps {
 
 export default function IncomeStep({
   incomeEntries,
-  budgetPeriod,
   onAddIncomeEntry,
   onRemoveIncomeEntry,
   onUpdateIncomeEntry,
@@ -49,16 +45,6 @@ export default function IncomeStep({
     0,
   );
 
-  // Calculate adjusted total income based on frequency and budget period
-  const adjustedTotalIncome = incomeEntries.reduce((sum, entry) => {
-    const adjustedAmount = calculateAdjustedIncome(
-      entry.amount,
-      entry.frequency,
-      budgetPeriod,
-    );
-    return sum + adjustedAmount;
-  }, 0);
-
   const handleAmountChange = (entryId: string, value: string) => {
     // Allow empty, numbers, decimals, and leading zeros
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
@@ -73,10 +59,31 @@ export default function IncomeStep({
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <Button onClick={onAddIncomeEntry} variant="outline">
-          <Plus className="h-5 w-5" />
-          <span>Add Another Income Source</span>
-        </Button>
+        <div className="flex items-center justify-between">
+          {totalIncome > 0 && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span className="font-medium text-blue-700">
+                    Total Income:
+                  </span>
+                  <span className="font-semibold text-blue-900">
+                    ${totalIncome.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+          <Button
+            onClick={onAddIncomeEntry}
+            variant="outline"
+            type="button"
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Income Source</span>
+          </Button>
+        </div>
 
         {incomeEntries.map((entry, index) => (
           <div key={entry.id} className="rounded-lg border p-4">
@@ -145,73 +152,9 @@ export default function IncomeStep({
                 placeholder="Additional details about this income..."
               />
             </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Income Frequency
-                </label>
-                <select
-                  value={entry.frequency}
-                  onChange={(e) =>
-                    onUpdateIncomeEntry(
-                      entry.id,
-                      "frequency",
-                      e.target.value as PeriodType,
-                    )
-                  }
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
-                >
-                  <option value={PeriodType.WEEKLY}>Weekly</option>
-                  <option value={PeriodType.MONTHLY}>Monthly</option>
-                  <option value={PeriodType.QUARTERLY}>Quarterly</option>
-                  <option value={PeriodType.YEARLY}>Yearly</option>
-                  <option value={PeriodType.ONE_TIME}>One Time</option>
-                </select>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  checked={entry.isPlanned}
-                  onChange={(e) =>
-                    onUpdateIncomeEntry(entry.id, "isPlanned", e.target.checked)
-                  }
-                  className="h-4 w-4 rounded border-gray-300 text-secondary focus:ring-secondary"
-                />
-                <label className="text-sm font-medium text-gray-700">
-                  This is planned income
-                </label>
-              </div>
-            </div>
           </div>
         ))}
       </div>
-
-      {totalIncome > 0 && (
-        <div className="rounded-lg bg-blue-50 p-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-medium text-blue-700">
-                Raw Total Income:
-              </span>
-              <span className="font-semibold text-blue-900">
-                ${totalIncome.toLocaleString()}
-              </span>
-            </div>
-            {adjustedTotalIncome !== totalIncome && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-blue-700">
-                  Adjusted for {budgetPeriod.toLowerCase()} budget:
-                </span>
-                <span className="font-semibold text-blue-900">
-                  ${adjustedTotalIncome.toLocaleString()}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
