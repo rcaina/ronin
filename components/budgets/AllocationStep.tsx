@@ -3,7 +3,11 @@
 import { DollarSign, ShoppingBag, TrendingUp, Target } from "lucide-react";
 import { CategoryType, type PeriodType } from "@prisma/client";
 import type { CategoryAllocation } from "./types";
-import { calculateAdjustedIncome, getCategoryGroupColor } from "@/lib/utils";
+import {
+  calculateAdjustedIncome,
+  getCategoryGroupColor,
+  sumMonetaryValues,
+} from "@/lib/utils";
 
 interface IncomeEntry {
   id: string;
@@ -50,9 +54,8 @@ export default function AllocationStep({
     return sum + adjustedAmount;
   }, 0);
 
-  const totalAllocated = selectedCategories.reduce(
-    (sum, cat) => sum + cat.allocatedAmount,
-    0,
+  const totalAllocated = sumMonetaryValues(
+    selectedCategories.map((cat) => cat.allocatedAmount),
   );
 
   const allocationRemaining = totalIncome - totalAllocated;

@@ -22,6 +22,7 @@ import {
   CheckCircle,
   DollarSign,
 } from "lucide-react";
+import { isMonetaryEqual } from "@/lib/utils";
 
 const BudgetCategoriesPage = () => {
   const { id } = useParams();
@@ -62,7 +63,7 @@ const BudgetCategoriesPage = () => {
     }).length ?? 0;
 
   // Calculate categories over budget and total amount over
-  const categoriesOverBudget =
+  const overBudgetCategories =
     budget?.categories?.filter((cat) => {
       const totalSpent =
         cat.transactions?.reduce(
@@ -70,7 +71,9 @@ const BudgetCategoriesPage = () => {
           0,
         ) ?? 0;
       return totalSpent > cat.allocatedAmount;
-    }).length ?? 0;
+    }) ?? [];
+
+  const categoriesOverBudget = overBudgetCategories.length;
 
   const totalOverBudget =
     budget?.categories?.reduce((sum, cat) => {
@@ -83,12 +86,26 @@ const BudgetCategoriesPage = () => {
       return sum + overAmount;
     }, 0) ?? 0;
 
+  // Format category names for over budget display
+  const getOverBudgetSubtitle = () => {
+    if (categoriesOverBudget === 0) {
+      return "All within budget";
+    }
+
+    if (categoriesOverBudget === 1) {
+      return `$${totalOverBudget.toFixed(2)} over - ${overBudgetCategories[0]?.category.name}`;
+    }
+
+    const othersCount = categoriesOverBudget - 1;
+    return `$${totalOverBudget.toFixed(2)} over - ${overBudgetCategories[0]?.category.name} plus ${othersCount} others`;
+  };
+
   // Determine allocation status
   const getAllocationStatus = () => {
-    // Add a small tolerance for floating point precision issues
+    // Use the new monetary comparison function with a small tolerance
     const tolerance = 0.01; // $0.01 tolerance
 
-    if (Math.abs(allocationDifference) <= tolerance) {
+    if (isMonetaryEqual(totalAllocated, totalIncome, tolerance)) {
       return {
         value: "100%",
         subtitle: "allocated",
@@ -139,9 +156,11 @@ const BudgetCategoriesPage = () => {
             Error loading budget categories
           </div>
           <div className="text-sm text-gray-500">
-            {budgetError?.message ??
-              categoriesError?.message ??
-              "An unexpected error occurred"}
+            {budgetError && "message" in budgetError
+              ? budgetError.message
+              : categoriesError && "message" in categoriesError
+                ? categoriesError.message
+                : "An unexpected error occurred"}
           </div>
         </div>
       </div>
@@ -226,11 +245,7 @@ const BudgetCategoriesPage = () => {
               <StatsCard
                 title="Categories Over Budget"
                 value={categoriesOverBudget}
-                subtitle={
-                  categoriesOverBudget > 0
-                    ? `$${totalOverBudget.toFixed(2)} over`
-                    : "All within budget"
-                }
+                subtitle={getOverBudgetSubtitle()}
                 icon={
                   categoriesOverBudget > 0 ? (
                     <AlertCircle className="h-4 w-4" />
