@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { CategoryType, type PeriodType } from "@prisma/client";
 import type { CategoryAllocation } from "./types";
-import { calculateAdjustedIncome } from "@/lib/utils";
+import { calculateAdjustedIncome, sumMonetaryValues } from "@/lib/utils";
 
 interface IncomeEntry {
   id: string;
@@ -88,9 +88,8 @@ export default function PercentageAllocationStep({
   };
 
   // Calculate total allocated amount
-  const totalAllocated = selectedCategories.reduce(
-    (sum, cat) => sum + cat.allocatedAmount,
-    0,
+  const totalAllocated = sumMonetaryValues(
+    selectedCategories.map((cat) => cat.allocatedAmount),
   );
 
   const allocationRemaining = totalIncome - totalAllocated;
@@ -132,9 +131,8 @@ export default function PercentageAllocationStep({
             const categoryType = group as CategoryType;
             const percentage = PERCENTAGE_RULE[categoryType];
             const recommendedGroupTotal = totalIncome * percentage;
-            const groupAllocated = categories.reduce(
-              (sum, cat) => sum + cat.allocatedAmount,
-              0,
+            const groupAllocated = sumMonetaryValues(
+              categories.map((cat) => cat.allocatedAmount),
             );
             const isOverBudget = groupAllocated > recommendedGroupTotal;
 

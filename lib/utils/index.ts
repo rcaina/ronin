@@ -10,6 +10,36 @@ export function cn(...inputs: ClassValue[]) {
 export { useDebounce } from "./hooks";
 
 /**
+ * Rounds a number to 2 decimal places to avoid floating-point precision issues
+ * @param value - The number to round
+ * @returns The rounded number
+ */
+export function roundToCents(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+/**
+ * Compares two monetary values with a tolerance for floating-point precision issues
+ * @param a - First value
+ * @param b - Second value
+ * @param tolerance - Tolerance in cents (default: 0.01)
+ * @returns True if values are equal within tolerance
+ */
+export function isMonetaryEqual(a: number, b: number, tolerance = 0.01): boolean {
+  return Math.abs(a - b) <= tolerance;
+}
+
+/**
+ * Safely adds monetary values to avoid floating-point precision issues
+ * @param values - Array of values to sum
+ * @returns The rounded sum
+ */
+export function sumMonetaryValues(values: number[]): number {
+  const sum = values.reduce((acc, val) => acc + val, 0);
+  return roundToCents(sum);
+}
+
+/**
  * Calculates the adjusted income amount based on income frequency and budget period
  * @param amount - The base income amount
  * @param incomeFrequency - The frequency of the income (weekly, monthly, etc.)
@@ -23,12 +53,12 @@ export function calculateAdjustedIncome(
 ): number {
   // If frequencies match, return the original amount
   if (incomeFrequency === budgetPeriod) {
-    return amount;
+    return roundToCents(amount);
   }
 
   // Handle ONE_TIME income - it's a one-time payment regardless of budget period
   if (incomeFrequency === PeriodType.ONE_TIME) {
-    return amount;
+    return roundToCents(amount);
   }
 
   // Convert everything to a common base (weeks) for calculation
@@ -54,14 +84,16 @@ export function calculateAdjustedIncome(
 
   // If income frequency is longer than budget period, calculate how many times it occurs
   if (incomeWeeks > budgetWeeks) {
-    return (amount / incomeWeeks) * budgetWeeks;
+    const result = (amount / incomeWeeks) * budgetWeeks;
+    return roundToCents(result);
   }
 
   // If income frequency is shorter than budget period, calculate how many times it occurs
   // Round up to ensure users get the full amount for partial periods
   const multiplier = budgetWeeks / incomeWeeks;
-  return Math.ceil(multiplier) * amount;
-} 
+  const result = Math.ceil(multiplier) * amount;
+  return roundToCents(result);
+}
 
 export const getCategoryGroupColor = (group: CategoryType) => {
   switch (group) {
