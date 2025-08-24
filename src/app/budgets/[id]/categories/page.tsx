@@ -17,10 +17,9 @@ import StatsCard from "@/components/StatsCard";
 import {
   Target,
   AlertCircle,
-  TrendingUp,
-  TrendingDown,
   CheckCircle,
   DollarSign,
+  HandCoins,
 } from "lucide-react";
 import { isMonetaryEqual } from "@/lib/utils";
 
@@ -117,20 +116,19 @@ const BudgetCategoriesPage = () => {
       return {
         value: `$${allocationDifference.toFixed(2)}`,
         subtitle: "left to allocate",
-        icon: <TrendingUp className="h-4 w-4" />,
+        icon: <HandCoins className="h-4 w-4" />,
         iconColor: "text-blue-500",
         valueColor: "text-blue-600",
       };
     } else {
       // When over allocated, show the percentage over 100%
-      const overAllocationPercentage = (
-        (totalAllocated / totalIncome) *
-        100
-      ).toFixed(1);
+      const overAllocationPercentage = (totalAllocated - totalIncome).toFixed(
+        2,
+      );
       return {
-        value: `${overAllocationPercentage}%`,
+        value: `$${overAllocationPercentage}`,
         subtitle: "over allocated",
-        icon: <TrendingDown className="h-4 w-4" />,
+        icon: <AlertCircle className="h-4 w-4" />,
         iconColor: "text-red-500",
         valueColor: "text-red-600",
       };
