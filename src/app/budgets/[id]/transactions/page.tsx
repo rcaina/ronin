@@ -184,23 +184,6 @@ const BudgetTransactionsPage = () => {
     );
   }, [transactions]);
 
-  // Handle URL parameters for initial filtering
-  useEffect(() => {
-    const categoryParam = searchParams.get("category");
-
-    if (categoryParam && categoryParam !== "all" && categories.length > 0) {
-      // Check if the category exists in our categories list (check both budget category ID and actual category ID)
-      const categoryExists = categories.some(
-        (cat) =>
-          cat.id === categoryParam || cat.actualCategoryId === categoryParam,
-      );
-
-      if (categoryExists) {
-        setSelectedCategory(categoryParam);
-      }
-    }
-  }, [searchParams, categories]);
-
   // Get unique cards for filter
   const availableCards = useMemo(() => {
     const cardSet = new Set<string>();
@@ -218,6 +201,33 @@ const BudgetTransactionsPage = () => {
       }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
   }, [transactions, cards]);
+
+  // Handle URL parameters for initial filtering
+  useEffect(() => {
+    const categoryParam = searchParams.get("category");
+    const cardParam = searchParams.get("card");
+
+    if (categoryParam && categoryParam !== "all" && categories.length > 0) {
+      // Check if the category exists in our categories list (check both budget category ID and actual category ID)
+      const categoryExists = categories.some(
+        (cat) =>
+          cat.id === categoryParam || cat.actualCategoryId === categoryParam,
+      );
+
+      if (categoryExists) {
+        setSelectedCategory(categoryParam);
+      }
+    }
+
+    if (cardParam && cardParam !== "all") {
+      // Check if the card exists in our available cards list
+      const cardExists = availableCards.some((card) => card.id === cardParam);
+
+      if (cardExists) {
+        setSelectedCard(cardParam);
+      }
+    }
+  }, [searchParams, categories, availableCards]);
 
   const getGroupColor = (group: string) => {
     switch (group.toLowerCase()) {

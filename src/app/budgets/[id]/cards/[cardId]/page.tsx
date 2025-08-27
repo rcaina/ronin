@@ -558,7 +558,9 @@ const CardDetailsPage = () => {
                   <div className="text-center">
                     <Button
                       onClick={() =>
-                        router.push(`/transactions?card=${cardId}`)
+                        router.push(
+                          `/budgets/${params.id}/transactions?card=${cardId}`,
+                        )
                       }
                       variant="secondary"
                     >
