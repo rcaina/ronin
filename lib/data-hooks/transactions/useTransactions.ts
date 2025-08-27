@@ -31,6 +31,8 @@ export const useCreateTransaction = () => {
         void queryClient.invalidateQueries({ queryKey: ["budgetTransactions", variables.budgetId] });
         void queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId] });
         void queryClient.invalidateQueries({ queryKey: ["budgetCategories", variables.budgetId] });
+        // Also invalidate budget cards for this budget
+        void queryClient.invalidateQueries({ queryKey: ["budgetCards", variables.budgetId] });
       }
     },
   });
@@ -49,6 +51,8 @@ export const useUpdateTransaction = () => {
         void queryClient.invalidateQueries({ queryKey: ["budgetTransactions", variables.data.budgetId] });
         void queryClient.invalidateQueries({ queryKey: ["budget", variables.data.budgetId] });
         void queryClient.invalidateQueries({ queryKey: ["budgetCategories", variables.data.budgetId] });
+        // Also invalidate budget cards for this budget
+        void queryClient.invalidateQueries({ queryKey: ["budgetCards", variables.data.budgetId] });
       }
     },
   });
@@ -67,6 +71,8 @@ export const useDeleteTransaction = () => {
         void queryClient.invalidateQueries({ queryKey: ["budgetTransactions", variables.budgetId] });
         void queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId] });
         void queryClient.invalidateQueries({ queryKey: ["budgetCategories", variables.budgetId] });
+        // Also invalidate budget cards for this budget
+        void queryClient.invalidateQueries({ queryKey: ["budgetCards", variables.budgetId] });
       }
     },
   });
@@ -87,6 +93,8 @@ export const useCreateCardPayment = () => {
         void queryClient.invalidateQueries({ queryKey: ["budgetTransactions", variables.budgetId] });
         void queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId] });
         void queryClient.invalidateQueries({ queryKey: ["budgetCategories", variables.budgetId] });
+        // Also invalidate budget cards for this budget
+        void queryClient.invalidateQueries({ queryKey: ["budgetCards", variables.budgetId] });
       }
     },
   });
