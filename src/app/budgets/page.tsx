@@ -269,25 +269,26 @@ const BudgetsPage = () => {
       },
       0,
     );
+
     const percentage =
       totalBudgetIncome > 0 ? (totalBudgetSpent / totalBudgetIncome) * 100 : 0;
 
-    if (percentage > 90)
+    if (percentage > 100)
       return {
         status: "over",
         color: "text-red-600",
         bg: "bg-red-50",
         border: "border-red-200",
       };
-    if (percentage > 75)
+    if (percentage < 100)
       return {
-        status: "warning",
+        status: "progress",
         color: "text-yellow-600",
         bg: "bg-yellow-50",
         border: "border-yellow-200",
       };
     return {
-      status: "good",
+      status: "complete",
       color: "text-green-600",
       bg: "bg-green-50",
       border: "border-green-200",
@@ -594,9 +595,9 @@ const BudgetsPage = () => {
                             >
                               {budgetStatus.status === "over"
                                 ? "Over Budget"
-                                : budgetStatus.status === "warning"
-                                  ? "Warning"
-                                  : "On Track"}
+                                : budgetStatus.status === "progress"
+                                  ? "In Progress"
+                                  : "Complete"}
                             </span>
                             <span
                               className={`rounded-full bg-gray-100 px-2 py-1 text-xs font-medium ${healthScoreColor}`}

@@ -88,22 +88,22 @@ export default function HomePage() {
 
   // Get budget status
   const getBudgetStatus = () => {
-    if (spendingPercentage > 90)
+    if (spendingPercentage > 100)
       return {
         status: "over",
         color: "text-red-600",
         bg: "bg-red-50",
         border: "border-red-200",
       };
-    if (spendingPercentage > 75)
+    if (spendingPercentage < 100)
       return {
-        status: "warning",
+        status: "progress",
         color: "text-yellow-600",
         bg: "bg-yellow-50",
         border: "border-yellow-200",
       };
     return {
-      status: "good",
+      status: "complete",
       color: "text-green-600",
       bg: "bg-green-50",
       border: "border-green-200",
@@ -187,9 +187,9 @@ export default function HomePage() {
                 >
                   {budgetStatus.status === "over"
                     ? "Over Budget"
-                    : budgetStatus.status === "warning"
-                      ? "Warning"
-                      : "On Track"}
+                    : budgetStatus.status === "progress"
+                      ? "In Progress"
+                      : "Complete"}
                 </span>
               </div>
               <div className="mb-4">
