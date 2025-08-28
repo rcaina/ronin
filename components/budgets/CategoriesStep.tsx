@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { CategoryType } from "@prisma/client";
 import type { CategoryAllocation } from "./types";
-import { getCategoryGroupColor } from "@/lib/utils";
+import { getCategoryBadgeColor } from "@/lib/utils";
 
 interface CategoriesStepProps {
   selectedCategories: CategoryAllocation[];
@@ -195,7 +195,7 @@ export default function CategoriesStep({
                     {category.name}
                   </div>
                   <span
-                    className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${getCategoryGroupColor(
+                    className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${getCategoryBadgeColor(
                       category.group,
                     )}`}
                   >

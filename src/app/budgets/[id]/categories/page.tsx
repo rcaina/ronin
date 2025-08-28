@@ -9,7 +9,7 @@ import BudgetCategoriesViewToggle, {
 } from "@/components/budgets/BudgetCategoriesViewToggle";
 import BudgetCategoriesListView from "@/components/budgets/BudgetCategoriesListView";
 import BudgetCategoriesSearch from "@/components/budgets/BudgetCategoriesSearch";
-import { CategoryType } from "@prisma/client";
+import { CategoryType, TransactionType } from "@prisma/client";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -20,6 +20,7 @@ import {
   CheckCircle,
   DollarSign,
   HandCoins,
+  Info,
 } from "lucide-react";
 import { isMonetaryEqual } from "@/lib/utils";
 
@@ -54,10 +55,15 @@ const BudgetCategoriesPage = () => {
   const completedCategories =
     budget?.categories?.filter((cat) => {
       const totalSpent =
-        cat.transactions?.reduce(
-          (sum, transaction) => sum + transaction.amount,
-          0,
-        ) ?? 0;
+        cat.transactions?.reduce((sum, transaction) => {
+          if (transaction.transactionType === TransactionType.RETURN) {
+            // Returns reduce spending (positive amount = refund received)
+            return sum - transaction.amount;
+          } else {
+            // Regular transactions: positive = purchases (increase spending)
+            return sum + transaction.amount;
+          }
+        }, 0) ?? 0;
       return totalSpent >= cat.allocatedAmount;
     }).length ?? 0;
 
@@ -65,10 +71,15 @@ const BudgetCategoriesPage = () => {
   const overBudgetCategories =
     budget?.categories?.filter((cat) => {
       const totalSpent =
-        cat.transactions?.reduce(
-          (sum, transaction) => sum + transaction.amount,
-          0,
-        ) ?? 0;
+        cat.transactions?.reduce((sum, transaction) => {
+          if (transaction.transactionType === TransactionType.RETURN) {
+            // Returns reduce spending (positive amount = refund received)
+            return sum - transaction.amount;
+          } else {
+            // Regular transactions: positive = purchases (increase spending)
+            return sum + transaction.amount;
+          }
+        }, 0) ?? 0;
       return totalSpent > cat.allocatedAmount;
     }) ?? [];
 
@@ -77,10 +88,15 @@ const BudgetCategoriesPage = () => {
   const totalOverBudget =
     budget?.categories?.reduce((sum, cat) => {
       const totalSpent =
-        cat.transactions?.reduce(
-          (sum, transaction) => sum + transaction.amount,
-          0,
-        ) ?? 0;
+        cat.transactions?.reduce((sum, transaction) => {
+          if (transaction.transactionType === TransactionType.RETURN) {
+            // Returns reduce spending (positive amount = refund received)
+            return sum - transaction.amount;
+          } else {
+            // Regular transactions: positive = purchases (increase spending)
+            return sum + transaction.amount;
+          }
+        }, 0) ?? 0;
       const overAmount = Math.max(0, totalSpent - cat.allocatedAmount);
       return sum + overAmount;
     }, 0) ?? 0;
@@ -88,15 +104,32 @@ const BudgetCategoriesPage = () => {
   // Format category names for over budget display
   const getOverBudgetSubtitle = () => {
     if (categoriesOverBudget === 0) {
-      return "All within budget";
+      return { text: "All within budget", tooltip: null };
     }
 
     if (categoriesOverBudget === 1) {
-      return `$${totalOverBudget.toFixed(2)} over - ${overBudgetCategories[0]?.category.name}`;
+      return {
+        text: `$${totalOverBudget.toFixed(2)} over - ${overBudgetCategories[0]?.category.name}`,
+        tooltip: null,
+      };
     }
 
     const othersCount = categoriesOverBudget - 1;
-    return `$${totalOverBudget.toFixed(2)} over - ${overBudgetCategories[0]?.category.name} plus ${othersCount} others`;
+    return {
+      text: `$${totalOverBudget.toFixed(2)} over - ${overBudgetCategories[0]?.category.name} plus ${othersCount} others`,
+      tooltip: overBudgetCategories.map((cat) => ({
+        name: cat.category.name,
+        amount:
+          cat.transactions?.reduce((sum, transaction) => {
+            if (transaction.transactionType === TransactionType.RETURN) {
+              return sum - transaction.amount;
+            } else {
+              return sum + transaction.amount;
+            }
+          }, 0) ?? 0,
+        allocated: cat.allocatedAmount,
+      })),
+    };
   };
 
   // Determine allocation status
@@ -240,24 +273,52 @@ const BudgetCategoriesPage = () => {
                 iconColor="text-green-500"
                 valueColor="text-green-600"
               />
-              <StatsCard
-                title="Categories Over Budget"
-                value={categoriesOverBudget}
-                subtitle={getOverBudgetSubtitle()}
-                icon={
-                  categoriesOverBudget > 0 ? (
-                    <AlertCircle className="h-4 w-4" />
-                  ) : (
-                    <CheckCircle className="h-4 w-4" />
-                  )
-                }
-                iconColor={
-                  categoriesOverBudget > 0 ? "text-red-500" : "text-green-500"
-                }
-                valueColor={
-                  categoriesOverBudget > 0 ? "text-red-600" : "text-green-600"
-                }
-              />
+              <div className="group relative">
+                <StatsCard
+                  title="Categories Over Budget"
+                  value={categoriesOverBudget}
+                  subtitle={getOverBudgetSubtitle().text}
+                  icon={
+                    categoriesOverBudget > 0 ? (
+                      <AlertCircle className="h-4 w-4" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4" />
+                    )
+                  }
+                  iconColor={
+                    categoriesOverBudget > 0 ? "text-red-500" : "text-green-500"
+                  }
+                  valueColor={
+                    categoriesOverBudget > 0 ? "text-red-600" : "text-green-600"
+                  }
+                />
+
+                {/* Tooltip for over budget categories */}
+                {getOverBudgetSubtitle().tooltip && (
+                  <div className="absolute left-1/2 top-full z-10 mt-2 min-w-[200px] -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 shadow-lg transition-opacity duration-200 group-hover:opacity-100">
+                    <div className="mb-2 flex items-center gap-2">
+                      <Info className="h-4 w-4 text-blue-300" />
+                      <span className="font-medium">
+                        Categories Over Budget:
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      {getOverBudgetSubtitle().tooltip!.map((cat, index) => (
+                        <div
+                          key={index}
+                          className="flex justify-between gap-4 text-xs"
+                        >
+                          <span className="text-gray-200">{cat.name}</span>
+                          <span className="text-red-300">
+                            ${(cat.amount - cat.allocated).toFixed(2)} over
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="absolute bottom-full left-1/2 h-0 w-0 -translate-x-1/2 transform border-b-4 border-l-4 border-r-4 border-transparent border-b-gray-900"></div>
+                  </div>
+                )}
+              </div>
               <StatsCard
                 title="Total Income"
                 value={`$${totalIncome.toLocaleString()}`}

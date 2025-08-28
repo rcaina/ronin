@@ -95,16 +95,47 @@ export function calculateAdjustedIncome(
   return roundToCents(result);
 }
 
-export const getCategoryGroupColor = (group: CategoryType) => {
+/**
+ * Get consistent color for category groups across the application
+ * @param group - The category group type (optional)
+ * @returns Tailwind CSS class for the group color
+ */
+export const getGroupColor = (group?: CategoryType) => {
+  if (!group) {
+    return "bg-black text-white";
+  }
+  
   switch (group) {
     case CategoryType.NEEDS:
-      return "bg-red-100 text-red-800 border-red-200";
+      return "bg-blue-500";
     case CategoryType.WANTS:
-      return "bg-blue-100 text-blue-800 border-blue-200";
+      return "bg-purple-500";
     case CategoryType.INVESTMENT:
-      return "bg-green-100 text-green-800 border-green-200";
+      return "bg-green-500";
     default:
-      return "bg-gray-100 text-gray-800 border-gray-200";
+      return "bg-gray-500";
+  }
+};
+
+/**
+ * Get consistent badge colors for category groups across the application
+ * @param group - The category group type (optional)
+ * @returns Tailwind CSS classes for the badge styling
+ */
+export const getCategoryBadgeColor = (group?: CategoryType) => {
+  if (!group) {
+    return "bg-black text-white";
+  }
+  
+  switch (group) {
+    case CategoryType.NEEDS:
+      return "bg-blue-100 text-blue-800";
+    case CategoryType.WANTS:
+      return "bg-purple-100 text-purple-600";
+    case CategoryType.INVESTMENT:
+      return "bg-green-100 text-green-800";
+    default:
+      return "bg-gray-100 text-gray-800";
   }
 };
 

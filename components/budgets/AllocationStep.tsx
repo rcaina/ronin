@@ -5,7 +5,7 @@ import { CategoryType, type PeriodType } from "@prisma/client";
 import type { CategoryAllocation } from "./types";
 import {
   calculateAdjustedIncome,
-  getCategoryGroupColor,
+  getCategoryBadgeColor,
   sumMonetaryValues,
 } from "@/lib/utils";
 
@@ -87,7 +87,7 @@ export default function AllocationStep({
                 {getCategoryGroupIcon(category.group)}
                 <div className="font-medium text-gray-900">{category.name}</div>
                 <div
-                  className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${getCategoryGroupColor(
+                  className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${getCategoryBadgeColor(
                     category.group,
                   )}`}
                 >
