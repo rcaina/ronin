@@ -33,6 +33,7 @@ import InlineTransactionEdit from "@/components/transactions/InlineTransactionEd
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
 import StatsCard from "@/components/StatsCard";
+import { getGroupColor, getCategoryBadgeColor } from "@/lib/utils";
 
 const TransactionsPage = () => {
   const { data: transactions = [], isLoading, error } = useTransactions();
@@ -204,21 +205,6 @@ const TransactionsPage = () => {
       }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
   }, [transactions, cards]);
-
-  const getGroupColor = (group: string) => {
-    switch (group.toLowerCase()) {
-      case "needs":
-        return "bg-blue-500";
-      case "wants":
-        return "bg-purple-500";
-      case "investment":
-        return "bg-green-500";
-      case "card_payment":
-        return "bg-black";
-      default:
-        return "bg-gray-500";
-    }
-  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -672,7 +658,7 @@ const TransactionsPage = () => {
                     return (
                       <div
                         key={transaction.id}
-                        className="group flex items-center justify-between px-3 py-3 hover:bg-gray-50 sm:px-6 sm:py-4"
+                        className="group flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-3 hover:bg-gray-100 sm:p-4"
                       >
                         <div className="flex min-w-0 flex-1 items-center space-x-3 sm:space-x-4">
                           <input
@@ -684,24 +670,27 @@ const TransactionsPage = () => {
                             disabled={isEditing}
                             className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
                           />
-                          <div
-                            className={`h-3 w-3 flex-shrink-0 rounded-full ${
-                              transaction.transactionType === "RETURN"
-                                ? "bg-green-500"
-                                : transaction.transactionType === "CARD_PAYMENT"
-                                  ? getGroupColor("card_payment")
-                                  : transaction.category
-                                    ? getGroupColor(
-                                        transaction.category.category.group,
-                                      )
-                                    : "bg-gray-500"
-                            }`}
-                          />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center space-x-2">
-                              <h4 className="truncate font-medium text-gray-900">
+                              <span className="text-sm font-medium text-gray-900">
                                 {transaction.name ?? "Unnamed transaction"}
-                              </h4>
+                              </span>
+                              <span
+                                className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                  transaction.transactionType === "CARD_PAYMENT"
+                                    ? "bg-black text-white"
+                                    : transaction.category?.category
+                                      ? getCategoryBadgeColor(
+                                          transaction.category.category.group,
+                                        )
+                                      : getCategoryBadgeColor()
+                                }`}
+                              >
+                                {transaction.transactionType === "CARD_PAYMENT"
+                                  ? "Card Payment"
+                                  : (transaction.category?.category.name ??
+                                    "No Category")}
+                              </span>
                               {transaction.description && (
                                 <div className="group relative flex-shrink-0">
                                   <Info className="h-4 w-4 cursor-help text-gray-400" />
@@ -712,12 +701,16 @@ const TransactionsPage = () => {
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center space-x-2 text-sm text-gray-500">
-                              <span className="truncate">
-                                {transaction.transactionType === "CARD_PAYMENT"
-                                  ? "Card Payment"
-                                  : (transaction.category?.category.name ??
-                                    "No Category")}
+                            {transaction.description && (
+                              <p className="mt-1 text-xs text-gray-500">
+                                {transaction.description}
+                              </p>
+                            )}
+                            <div className="mt-1 flex items-center space-x-2 text-xs text-gray-400">
+                              <span>
+                                {new Date(
+                                  transaction.createdAt,
+                                ).toLocaleDateString()}
                               </span>
                               {transaction.Budget && (
                                 <>
@@ -761,7 +754,7 @@ const TransactionsPage = () => {
 
                           <div className="text-right">
                             <div
-                              className={`font-medium ${
+                              className={`text-sm font-semibold ${
                                 transaction.transactionType === "RETURN"
                                   ? "text-green-600" // Return transactions in green
                                   : transaction.transactionType ===
@@ -774,12 +767,15 @@ const TransactionsPage = () => {
                                       : "text-gray-900"
                               }`}
                             >
-                              {formatCurrency(transaction.amount)}
+                              {transaction.transactionType === "RETURN"
+                                ? "+"
+                                : ""}
+                              {formatCurrency(Math.abs(transaction.amount))}
                             </div>
-                            <div className="text-xs text-gray-500 sm:text-sm">
-                              {new Date(
-                                transaction.createdAt,
-                              ).toLocaleDateString()}
+                            <div className="text-xs capitalize text-gray-500">
+                              {transaction.transactionType
+                                .toLowerCase()
+                                .replace("_", " ")}
                             </div>
                           </div>
                         </div>

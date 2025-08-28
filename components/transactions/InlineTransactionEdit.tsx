@@ -18,6 +18,7 @@ import type {
 } from "@/lib/types/transaction";
 import type { Card } from "@/lib/data-hooks/services/cards";
 import Button from "../Button";
+import { CategoryType } from "@prisma/client";
 
 // Validation schema
 const transactionSchema = z.object({
@@ -40,7 +41,7 @@ interface InlineTransactionEditProps {
   transaction: TransactionWithRelations;
   onCancel: () => void;
   onSuccess: () => void;
-  getGroupColor: (group: string) => string;
+  getGroupColor: (group: CategoryType) => string;
   formatCurrency: (amount: number) => string;
 }
 
@@ -118,7 +119,7 @@ export default function InlineTransactionEdit({
     <div className="group flex items-center justify-between bg-blue-50 px-3 py-3 sm:px-6 sm:py-4">
       <div className="flex min-w-0 flex-1 items-center space-x-3 sm:space-x-4">
         <div
-          className={`h-3 w-3 flex-shrink-0 rounded-full ${getGroupColor(transaction.category?.category.group ?? "regular")}`}
+          className={`h-3 w-3 flex-shrink-0 rounded-full ${getGroupColor(transaction.category?.category.group ?? CategoryType.NEEDS)}`}
         />
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 space-y-3">

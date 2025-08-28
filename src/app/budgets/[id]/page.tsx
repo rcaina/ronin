@@ -9,6 +9,7 @@ import {
   Target,
   Plus,
   EditIcon,
+  Info,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -17,9 +18,13 @@ import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import { useState } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 import StatsCard from "@/components/StatsCard";
-import { TransactionType } from "@prisma/client";
+import { type CategoryType, TransactionType } from "@prisma/client";
 import IncomeModal from "@/components/budgets/IncomeModal";
-import { formatDateUTC } from "@/lib/utils";
+import {
+  formatDateUTC,
+  getCategoryBadgeColor,
+  getGroupColor,
+} from "@/lib/utils";
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();
@@ -184,21 +189,6 @@ const BudgetDetailsPage = () => {
       });
     }
   });
-
-  const getGroupColor = (group: string) => {
-    switch (group) {
-      case "needs":
-        return "bg-blue-500";
-      case "wants":
-        return "bg-purple-500";
-      case "investment":
-        return "bg-green-500";
-      case "card_payment":
-        return "bg-black";
-      default:
-        return "bg-gray-500";
-    }
-  };
 
   const getGroupLabel = (group: string) => {
     switch (group) {
@@ -477,7 +467,7 @@ const BudgetDetailsPage = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
                             <div
-                              className={`h-3 w-3 rounded-full ${getGroupColor(group)}`}
+                              className={`h-3 w-3 rounded-full ${getGroupColor(group as CategoryType)}`}
                             ></div>
                             <span className="text-sm font-medium text-gray-900">
                               {getGroupLabel(group)}
@@ -583,15 +573,33 @@ const BudgetDetailsPage = () => {
                           <span className="text-sm font-medium text-gray-900">
                             {transaction.name ?? "Unnamed Transaction"}
                           </span>
-                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
-                            {transaction.categoryName}
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                              transaction.transactionType ===
+                              TransactionType.CARD_PAYMENT
+                                ? "bg-gray-200 text-gray-500"
+                                : transaction.categoryName
+                                  ? getCategoryBadgeColor(
+                                      transaction.categoryGroup,
+                                    )
+                                  : getCategoryBadgeColor()
+                            }`}
+                          >
+                            {transaction.transactionType ===
+                            TransactionType.CARD_PAYMENT
+                              ? "Card Payment"
+                              : (transaction.categoryName ?? "No Category")}
                           </span>
+                          {transaction.description && (
+                            <div className="group relative flex-shrink-0">
+                              <Info className="h-4 w-4 cursor-help text-gray-400" />
+                              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                {transaction.description}
+                                <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        {transaction.description && (
-                          <p className="mt-1 text-xs text-gray-500">
-                            {transaction.description}
-                          </p>
-                        )}
                         <p className="mt-1 text-xs text-gray-400">
                           {transaction.occurredAt
                             ? formatDateUTC(
