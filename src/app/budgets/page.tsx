@@ -37,6 +37,7 @@ import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import StatsCard from "@/components/StatsCard";
 import { CategoryType, TransactionType } from "@prisma/client";
 import Button from "@/components/Button";
+import { roundToCents } from "@/lib/utils";
 
 type TabType = "active" | "completed" | "archived";
 
@@ -198,8 +199,9 @@ const BudgetsPage = () => {
           ),
         0,
       );
-      const percentage =
-        budgetIncome > 0 ? (budgetSpent / budgetIncome) * 100 : 0;
+      const percentage = roundToCents(
+        budgetIncome > 0 ? (budgetSpent / budgetIncome) * 100 : 0,
+      );
 
       // Health score: 100 = perfect, 0 = terrible
       let healthScore = 100;
@@ -249,8 +251,8 @@ const BudgetsPage = () => {
 
   const getBudgetStatus = (budget: BudgetWithRelations) => {
     const totalBudgetIncome = calculateTotalIncome(budget);
-    const totalBudgetSpent = (budget.categories ?? []).reduce(
-      (sum: number, category) => {
+    const totalBudgetSpent = roundToCents(
+      (budget.categories ?? []).reduce((sum: number, category) => {
         return (
           sum +
           (category.transactions ?? []).reduce(
@@ -266,12 +268,12 @@ const BudgetsPage = () => {
             0,
           )
         );
-      },
-      0,
+      }, 0),
     );
 
-    const percentage =
-      totalBudgetIncome > 0 ? (totalBudgetSpent / totalBudgetIncome) * 100 : 0;
+    const percentage = roundToCents(
+      totalBudgetIncome > 0 ? (totalBudgetSpent / totalBudgetIncome) * 100 : 0,
+    );
 
     if (percentage > 100)
       return {

@@ -19,6 +19,7 @@ import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import StatsCard from "@/components/StatsCard";
 import { TransactionType } from "@prisma/client";
+import { roundToCents } from "@/lib/utils";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -38,41 +39,46 @@ export default function HomePage() {
   const totalBudgets = budgets.length;
   const activeBudgets = budgets.filter((budget) => !budget.deleted).length;
 
-  const totalIncome = budgets.reduce((sum, budget) => {
-    return (
-      sum +
-      (budget.incomes ?? []).reduce((incomeSum, income) => {
-        return incomeSum + income.amount;
-      }, 0)
-    );
-  }, 0);
+  const totalIncome = roundToCents(
+    budgets.reduce((sum, budget) => {
+      return (
+        sum +
+        (budget.incomes ?? []).reduce((incomeSum, income) => {
+          return incomeSum + income.amount;
+        }, 0)
+      );
+    }, 0),
+  );
 
-  const totalSpent = budgets.reduce((sum, budget) => {
-    return (
-      sum +
-      (budget.categories ?? []).reduce((categorySum, category) => {
-        return (
-          categorySum +
-          (category.transactions ?? []).reduce(
-            (transactionSum, transaction) => {
-              if (transaction.transactionType === TransactionType.RETURN) {
-                // Returns reduce spending (positive amount = refund received)
-                return transactionSum - transaction.amount;
-              } else {
-                // Regular transactions: positive = purchases (increase spending)
-                return transactionSum + transaction.amount;
-              }
-            },
-            0,
-          )
-        );
-      }, 0)
-    );
-  }, 0);
+  const totalSpent = roundToCents(
+    budgets.reduce((sum, budget) => {
+      return (
+        sum +
+        (budget.categories ?? []).reduce((categorySum, category) => {
+          return (
+            categorySum +
+            (category.transactions ?? []).reduce(
+              (transactionSum, transaction) => {
+                if (transaction.transactionType === TransactionType.RETURN) {
+                  // Returns reduce spending (positive amount = refund received)
+                  return transactionSum - transaction.amount;
+                } else {
+                  // Regular transactions: positive = purchases (increase spending)
+                  return transactionSum + transaction.amount;
+                }
+              },
+              0,
+            )
+          );
+        }, 0)
+      );
+    }, 0),
+  );
 
-  const totalRemaining = totalIncome - totalSpent;
-  const spendingPercentage =
-    totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
+  const totalRemaining = roundToCents(totalIncome - totalSpent);
+  const spendingPercentage = roundToCents(
+    totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0,
+  );
 
   // Get recent transactions (last 5, excluding card payments)
   const recentTransactions = transactions

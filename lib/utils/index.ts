@@ -19,17 +19,6 @@ export function roundToCents(value: number): number {
 }
 
 /**
- * Compares two monetary values with a tolerance for floating-point precision issues
- * @param a - First value
- * @param b - Second value
- * @param tolerance - Tolerance in cents (default: 0.01)
- * @returns True if values are equal within tolerance
- */
-export function isMonetaryEqual(a: number, b: number, tolerance = 0.01): boolean {
-  return Math.abs(a - b) <= tolerance;
-}
-
-/**
  * Safely adds monetary values to avoid floating-point precision issues
  * @param values - Array of values to sum
  * @returns The rounded sum
