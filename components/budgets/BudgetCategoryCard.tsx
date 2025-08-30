@@ -12,6 +12,7 @@ import { useState } from "react";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import type { GroupColorFunction } from "@/lib/types/budget";
 import { TransactionType } from "@prisma/client";
+import { roundToCents } from "@/lib/utils";
 
 interface BudgetCategoryCardProps {
   budgetCategory: BudgetCategoryWithCategory;
@@ -37,8 +38,8 @@ export default function BudgetCategoryCard({
   const updateBudgetCategoryMutation = useUpdateBudgetCategory();
   const deleteBudgetCategoryMutation = useDeleteBudgetCategory();
 
-  const categorySpent = (budgetCategory.transactions ?? []).reduce(
-    (acc, transaction) => {
+  const categorySpent = roundToCents(
+    (budgetCategory.transactions ?? []).reduce((acc, transaction) => {
       if (transaction.transactionType === TransactionType.RETURN) {
         // Returns reduce spending (positive amount = refund received)
         return acc - transaction.amount;
@@ -46,13 +47,14 @@ export default function BudgetCategoryCard({
         // Regular transactions: positive = purchases (increase spending)
         return acc + transaction.amount;
       }
-    },
-    0,
+    }, 0),
   );
-  const categoryRemaining = budgetCategory.allocatedAmount - categorySpent;
+  const categoryRemaining = roundToCents(
+    budgetCategory.allocatedAmount - categorySpent,
+  );
   const categoryPercentage =
     budgetCategory.allocatedAmount > 0
-      ? (categorySpent / budgetCategory.allocatedAmount) * 100
+      ? roundToCents((categorySpent / budgetCategory.allocatedAmount) * 100)
       : 0;
 
   const handleStartEditCategory = () => {

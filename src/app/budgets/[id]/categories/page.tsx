@@ -22,7 +22,7 @@ import {
   HandCoins,
   Info,
 } from "lucide-react";
-import { isMonetaryEqual } from "@/lib/utils";
+import { roundToCents } from "@/lib/utils";
 
 const BudgetCategoriesPage = () => {
   const { id } = useParams();
@@ -54,7 +54,7 @@ const BudgetCategoriesPage = () => {
   const totalCategories = budget?.categories?.length ?? 0;
   const completedCategories =
     budget?.categories?.filter((cat) => {
-      const totalSpent =
+      const totalSpent = roundToCents(
         cat.transactions?.reduce((sum, transaction) => {
           if (transaction.transactionType === TransactionType.RETURN) {
             // Returns reduce spending (positive amount = refund received)
@@ -63,14 +63,15 @@ const BudgetCategoriesPage = () => {
             // Regular transactions: positive = purchases (increase spending)
             return sum + transaction.amount;
           }
-        }, 0) ?? 0;
+        }, 0) ?? 0,
+      );
       return totalSpent >= cat.allocatedAmount;
     }).length ?? 0;
 
   // Calculate categories over budget and total amount over
   const overBudgetCategories =
     budget?.categories?.filter((cat) => {
-      const totalSpent =
+      const totalSpent = roundToCents(
         cat.transactions?.reduce((sum, transaction) => {
           if (transaction.transactionType === TransactionType.RETURN) {
             // Returns reduce spending (positive amount = refund received)
@@ -79,27 +80,28 @@ const BudgetCategoriesPage = () => {
             // Regular transactions: positive = purchases (increase spending)
             return sum + transaction.amount;
           }
-        }, 0) ?? 0;
+        }, 0) ?? 0,
+      );
       return totalSpent > cat.allocatedAmount;
     }) ?? [];
 
   const categoriesOverBudget = overBudgetCategories.length;
 
-  const totalOverBudget =
+  const totalOverBudget = roundToCents(
     budget?.categories?.reduce((sum, cat) => {
-      const totalSpent =
+      const totalSpent = roundToCents(
         cat.transactions?.reduce((sum, transaction) => {
           if (transaction.transactionType === TransactionType.RETURN) {
-            // Returns reduce spending (positive amount = refund received)
             return sum - transaction.amount;
           } else {
-            // Regular transactions: positive = purchases (increase spending)
             return sum + transaction.amount;
           }
-        }, 0) ?? 0;
+        }, 0) ?? 0,
+      );
       const overAmount = Math.max(0, totalSpent - cat.allocatedAmount);
       return sum + overAmount;
-    }, 0) ?? 0;
+    }, 0) ?? 0,
+  );
 
   // Format category names for over budget display
   const getOverBudgetSubtitle = () => {
@@ -119,7 +121,7 @@ const BudgetCategoriesPage = () => {
       text: `$${totalOverBudget.toFixed(2)} over - ${overBudgetCategories[0]?.category.name} plus ${othersCount} others`,
       tooltip: overBudgetCategories.map((cat) => ({
         name: cat.category.name,
-        amount:
+        amount: roundToCents(
           cat.transactions?.reduce((sum, transaction) => {
             if (transaction.transactionType === TransactionType.RETURN) {
               return sum - transaction.amount;
@@ -127,6 +129,7 @@ const BudgetCategoriesPage = () => {
               return sum + transaction.amount;
             }
           }, 0) ?? 0,
+        ),
         allocated: cat.allocatedAmount,
       })),
     };
@@ -134,10 +137,7 @@ const BudgetCategoriesPage = () => {
 
   // Determine allocation status
   const getAllocationStatus = () => {
-    // Use the new monetary comparison function with a small tolerance
-    const tolerance = 0.01; // $0.01 tolerance
-
-    if (isMonetaryEqual(totalAllocated, totalIncome, tolerance)) {
+    if (totalAllocated === totalIncome) {
       return {
         value: "100%",
         subtitle: "allocated",
@@ -145,7 +145,7 @@ const BudgetCategoriesPage = () => {
         iconColor: "text-green-500",
         valueColor: "text-green-600",
       };
-    } else if (allocationDifference > tolerance) {
+    } else if (allocationDifference > 0) {
       return {
         value: `$${allocationDifference.toFixed(2)}`,
         subtitle: "left to allocate",

@@ -16,6 +16,7 @@ import type {
   GroupLabelFunction,
 } from "@/lib/types/budget";
 import { TransactionType, CategoryType } from "@prisma/client";
+import { roundToCents } from "@/lib/utils";
 
 interface BudgetCategoriesListViewProps {
   budgetId: string;
@@ -149,8 +150,8 @@ export default function BudgetCategoriesListView({
 
                 const isExpanded = expandedCategories.has(budgetCategory.id);
                 const transactions = budgetCategory.transactions ?? [];
-                const spent = transactions.reduce(
-                  (sum: number, transaction) => {
+                const spent = roundToCents(
+                  transactions.reduce((sum: number, transaction) => {
                     if (
                       transaction.transactionType === TransactionType.RETURN
                     ) {
@@ -160,13 +161,13 @@ export default function BudgetCategoriesListView({
                       // Regular transactions: positive = purchases (increase spending)
                       return sum + transaction.amount;
                     }
-                  },
-                  0,
+                  }, 0),
                 );
-                const percentage =
+                const percentage = roundToCents(
                   budgetCategory.allocatedAmount > 0
                     ? (spent / budgetCategory.allocatedAmount) * 100
-                    : 0;
+                    : 0,
+                );
 
                 return (
                   <div key={budgetCategory.id} className="space-y-2">

@@ -24,6 +24,7 @@ import {
   formatDateUTC,
   getCategoryBadgeColor,
   getGroupColor,
+  roundToCents,
 } from "@/lib/utils";
 
 const BudgetDetailsPage = () => {
@@ -413,52 +414,62 @@ const BudgetDetailsPage = () => {
                     if (!categories || categories.length === 0) return null;
 
                     // Calculate totals for this group
-                    const totalAllocated = categories.reduce(
-                      (sum, cat) => sum + cat.allocatedAmount,
-                      0,
+                    const totalAllocated = roundToCents(
+                      categories.reduce(
+                        (sum, cat) => sum + cat.allocatedAmount,
+                        0,
+                      ),
                     );
 
-                    const totalSpent = categories.reduce((sum, cat) => {
-                      const categorySpent = (cat.transactions ?? []).reduce(
-                        (transactionTotal: number, transaction) => {
-                          if (
-                            transaction.transactionType ===
-                            TransactionType.RETURN
-                          ) {
-                            return transactionTotal - transaction.amount;
-                          } else {
-                            return transactionTotal + transaction.amount;
-                          }
-                        },
-                        0,
-                      );
-                      return sum + categorySpent;
-                    }, 0);
+                    const totalSpent = roundToCents(
+                      categories.reduce((sum, cat) => {
+                        const categorySpent = roundToCents(
+                          (cat.transactions ?? []).reduce(
+                            (transactionTotal: number, transaction) => {
+                              if (
+                                transaction.transactionType ===
+                                TransactionType.RETURN
+                              ) {
+                                return transactionTotal - transaction.amount;
+                              } else {
+                                return transactionTotal + transaction.amount;
+                              }
+                            },
+                            0,
+                          ),
+                        );
+                        return sum + categorySpent;
+                      }, 0),
+                    );
 
-                    const usagePercentage =
+                    const usagePercentage = roundToCents(
                       totalAllocated > 0
                         ? (totalSpent / totalAllocated) * 100
-                        : 0;
+                        : 0,
+                    );
 
                     // Count categories that are 100% used
                     const fullyUsedCount = categories.filter((cat) => {
-                      const categorySpent = (cat.transactions ?? []).reduce(
-                        (transactionTotal: number, transaction) => {
-                          if (
-                            transaction.transactionType ===
-                            TransactionType.RETURN
-                          ) {
-                            return transactionTotal - transaction.amount;
-                          } else {
-                            return transactionTotal + transaction.amount;
-                          }
-                        },
-                        0,
+                      const categorySpent = roundToCents(
+                        (cat.transactions ?? []).reduce(
+                          (transactionTotal: number, transaction) => {
+                            if (
+                              transaction.transactionType ===
+                              TransactionType.RETURN
+                            ) {
+                              return transactionTotal - transaction.amount;
+                            } else {
+                              return transactionTotal + transaction.amount;
+                            }
+                          },
+                          0,
+                        ),
                       );
-                      const categoryPercentage =
+                      const categoryPercentage = roundToCents(
                         cat.allocatedAmount > 0
                           ? (categorySpent / cat.allocatedAmount) * 100
-                          : 0;
+                          : 0,
+                      );
                       return categoryPercentage >= 100;
                     }).length;
 
@@ -496,7 +507,7 @@ const BudgetDetailsPage = () => {
                                   : "bg-secondary"
                             }`}
                             style={{
-                              width: `${Math.min(usagePercentage, 100)}%`,
+                              width: `${usagePercentage > 100 ? 100 : usagePercentage}%`,
                             }}
                           ></div>
                         </div>
