@@ -25,7 +25,7 @@ import {
 import PageHeader from "@/components/PageHeader";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import TransactionForm from "@/components/transactions/TransactionForm";
+import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
 
 import type { TransactionWithRelations } from "@/lib/types/transaction";
@@ -58,7 +58,7 @@ const BudgetTransactionsPage = () => {
   const [selectedCard, setSelectedCard] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"date" | "amount" | "name">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
 
   const [editingTransactionId, setEditingTransactionId] = useState<
     string | null
@@ -303,12 +303,12 @@ const BudgetTransactionsPage = () => {
     setTransactionToDelete(null);
   };
 
-  const handleCloseTransactionForm = () => {
-    setShowTransactionForm(false);
+  const handleCloseAddTransactionModal = () => {
+    setShowAddTransactionModal(false);
   };
 
   const handleTransactionSuccess = () => {
-    // Form will stay open for adding multiple transactions
+    // Modal will stay open for adding multiple transactions
     // User can manually close it when done
   };
 
@@ -438,7 +438,7 @@ const BudgetTransactionsPage = () => {
         }}
         action={{
           label: "Add Transaction",
-          onClick: () => setShowTransactionForm(true),
+          onClick: () => setShowAddTransactionModal(true),
           icon: <Plus className="h-4 w-4" />,
         }}
       />
@@ -559,16 +559,13 @@ const BudgetTransactionsPage = () => {
               </div>
             </div>
 
-            {/* Add Transaction Form */}
-            {showTransactionForm && (
-              <div className="mb-4 sm:mb-6">
-                <TransactionForm
-                  onClose={handleCloseTransactionForm}
-                  onSuccess={handleTransactionSuccess}
-                  budgetId={budgetId}
-                />
-              </div>
-            )}
+            {/* Add Transaction Modal */}
+            <AddTransactionModal
+              isOpen={showAddTransactionModal}
+              onClose={handleCloseAddTransactionModal}
+              onSuccess={handleTransactionSuccess}
+              budgetId={budgetId}
+            />
 
             {/* Bulk Actions Bar */}
             {selectedTransactions.size > 0 && (
