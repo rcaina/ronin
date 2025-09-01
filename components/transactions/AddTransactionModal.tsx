@@ -3,7 +3,7 @@
 import TransactionForm from "./TransactionForm";
 
 interface AddTransactionModalProps {
-  budgetId: string;
+  budgetId?: string; // Optional budget ID to pre-select
   cardId?: string; // Optional card ID to pre-select
   onSuccess?: () => void;
   isOpen: boolean;

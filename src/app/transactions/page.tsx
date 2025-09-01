@@ -27,7 +27,7 @@ import PageHeader from "@/components/PageHeader";
 import AddItemButton from "@/components/AddItemButton";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import TransactionForm from "@/components/transactions/TransactionForm";
+import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
 
 import type { TransactionWithRelations } from "@/lib/types/transaction";
@@ -47,7 +47,7 @@ const TransactionsPage = () => {
   const [selectedCard, setSelectedCard] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"date" | "amount" | "name">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
 
   const [editingTransactionId, setEditingTransactionId] = useState<
     string | null
@@ -279,12 +279,12 @@ const TransactionsPage = () => {
     setTransactionToDelete(null);
   };
 
-  const handleCloseTransactionForm = () => {
-    setShowTransactionForm(false);
+  const handleCloseAddTransactionModal = () => {
+    setShowAddTransactionModal(false);
   };
 
   const handleTransactionSuccess = () => {
-    // Form will stay open for adding multiple transactions
+    // Modal will stay open for adding multiple transactions
     // User can manually close it when done
   };
 
@@ -389,6 +389,11 @@ const TransactionsPage = () => {
       <PageHeader
         title="Transactions"
         description="Track and manage your financial transactions"
+        action={{
+          label: "Add Transaction",
+          onClick: () => setShowAddTransactionModal(true),
+          icon: <Plus className="h-4 w-4" />,
+        }}
       />
 
       <div className="flex-1 overflow-hidden pt-4 sm:pt-20 lg:pt-0">
@@ -554,26 +559,24 @@ const TransactionsPage = () => {
               </div>
             </div>
 
-            {/* Add Transaction Button or Form */}
-            {!showTransactionForm ? (
-              filteredAndSortedTransactions.length > 0 && (
-                <div className="mb-4 sm:mb-6">
-                  <AddItemButton
-                    onClick={() => setShowTransactionForm(true)}
-                    title="Add Transaction"
-                    description="Add a new transaction to your records"
-                    variant="compact"
-                  />
-                </div>
-              )
-            ) : (
+            {/* Add Transaction Button */}
+            {/* {filteredAndSortedTransactions.length > 0 && (
               <div className="mb-4 sm:mb-6">
-                <TransactionForm
-                  onClose={handleCloseTransactionForm}
-                  onSuccess={handleTransactionSuccess}
+                <AddItemButton
+                  onClick={() => setShowAddTransactionModal(true)}
+                  title="Add Transaction"
+                  description="Add a new transaction to your records"
+                  variant="compact"
                 />
               </div>
-            )}
+            )} */}
+
+            {/* Add Transaction Modal */}
+            <AddTransactionModal
+              isOpen={showAddTransactionModal}
+              onClose={handleCloseAddTransactionModal}
+              onSuccess={handleTransactionSuccess}
+            />
 
             {/* Bulk Actions Bar */}
             {selectedTransactions.size > 0 && (
@@ -802,7 +805,7 @@ const TransactionsPage = () => {
                         : "Start adding transactions to see them here"}
                     </p>
                     <Button
-                      onClick={() => setShowTransactionForm(true)}
+                      onClick={() => setShowAddTransactionModal(true)}
                       variant="primary"
                       size="md"
                       className="mt-4"
