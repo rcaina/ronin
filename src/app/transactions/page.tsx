@@ -24,7 +24,6 @@ import {
   Filter,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import AddItemButton from "@/components/AddItemButton";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
