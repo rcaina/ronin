@@ -529,16 +529,20 @@ const CardDetailsPage = () => {
                           <p
                             className={`font-semibold ${
                               transaction.transactionType ===
-                              TransactionType.CARD_PAYMENT
-                                ? "text-red-600" // Always red for card payments
+                                TransactionType.CARD_PAYMENT ||
+                              transaction.transactionType ===
+                                TransactionType.RETURN
+                                ? "text-red-600" // Always red for card payments and returns
                                 : transaction.amount >= 0
                                   ? "text-green-600"
                                   : "text-red-600"
                             }`}
                           >
                             {transaction.transactionType ===
-                            TransactionType.CARD_PAYMENT
-                              ? "-$" // Always negative for card payments
+                              TransactionType.CARD_PAYMENT ||
+                            transaction.transactionType ===
+                              TransactionType.RETURN
+                              ? "-$" // Always negative for card payments and returns
                               : transaction.amount >= 0
                                 ? "+$"
                                 : "$"}

@@ -72,6 +72,7 @@ export async function updateTransaction(
       cardId: data.cardId && data.cardId.trim() !== "" ? data.cardId : null,
       createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
       occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
+      transactionType: data.transactionType,
     },
     include: {
       category: {

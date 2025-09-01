@@ -14,6 +14,7 @@ import { useCards } from "@/lib/data-hooks/cards/useCards";
 import type { UpdateTransactionRequest } from "@/lib/types/transaction";
 import type { Card } from "@/lib/data-hooks/services/cards";
 import Button from "../Button";
+import { TransactionType } from "@prisma/client";
 
 // Validation schema
 const transactionSchema = z.object({
@@ -36,6 +37,7 @@ interface BudgetTransaction {
   name: string | null;
   description?: string | null;
   amount: number;
+  transactionType: TransactionType;
   budgetId: string;
   categoryId: string;
   cardId?: string | null;
@@ -78,7 +80,7 @@ export default function BudgetTransactionInlineEdit({
       amount: Math.abs(transaction.amount).toString(),
       categoryId: transaction.categoryId,
       cardId: transaction.cardId ?? "",
-      isReturn: transaction.amount < 0,
+      isReturn: transaction.transactionType === TransactionType.RETURN,
       occurredAt: transaction.occurredAt
         ? transaction.occurredAt instanceof Date
           ? transaction.occurredAt.toISOString().split("T")[0]
@@ -88,10 +90,8 @@ export default function BudgetTransactionInlineEdit({
   });
 
   const onSubmit = (data: TransactionFormData) => {
-    // Convert amount to negative if it's a return/refund
-    const amount = data.isReturn
-      ? -Math.abs(parseFloat(data.amount))
-      : Math.abs(parseFloat(data.amount));
+    // Always use positive amount, use transactionType to indicate returns
+    const amount = Math.abs(parseFloat(data.amount));
 
     const updateData: UpdateTransactionRequest = {
       name: data.name ?? undefined,
@@ -101,6 +101,9 @@ export default function BudgetTransactionInlineEdit({
       categoryId: data.categoryId,
       cardId: data.cardId ?? undefined,
       occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
+      transactionType: data.isReturn
+        ? TransactionType.RETURN
+        : TransactionType.REGULAR,
     };
 
     updateTransaction(

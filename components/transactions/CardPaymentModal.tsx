@@ -111,7 +111,7 @@ export function CardPaymentModal({
     try {
       await createCardPaymentMutation.mutateAsync({
         ...formData,
-        amount: parseFloat(formData.amount),
+        amount: Math.abs(parseFloat(formData.amount)),
       });
 
       // Reset form and close modal
