@@ -48,7 +48,7 @@ const BudgetCategoriesPage = () => {
     budget?.incomes?.reduce((sum, income) => sum + income.amount, 0) ?? 0;
   const totalAllocated =
     budget?.categories?.reduce((sum, cat) => sum + cat.allocatedAmount, 0) ?? 0;
-  const allocationDifference = totalIncome - totalAllocated;
+  const allocationDifference = (totalIncome - totalAllocated).toFixed(2);
 
   // Calculate category statistics
   const totalCategories = budget?.categories?.length ?? 0;
@@ -137,7 +137,7 @@ const BudgetCategoriesPage = () => {
 
   // Determine allocation status
   const getAllocationStatus = () => {
-    if (totalAllocated === totalIncome) {
+    if (totalAllocated.toFixed(2) === totalIncome.toFixed(2)) {
       return {
         value: "100%",
         subtitle: "allocated",
@@ -145,21 +145,19 @@ const BudgetCategoriesPage = () => {
         iconColor: "text-green-500",
         valueColor: "text-green-600",
       };
-    } else if (allocationDifference > 0) {
+    } else if (parseFloat(allocationDifference) > 0) {
       return {
-        value: `$${allocationDifference.toFixed(2)}`,
+        value: `$${allocationDifference}`,
         subtitle: "left to allocate",
         icon: <HandCoins className="h-4 w-4" />,
         iconColor: "text-blue-500",
         valueColor: "text-blue-600",
       };
     } else {
-      // When over allocated, show the percentage over 100%
-      const overAllocationPercentage = (totalAllocated - totalIncome).toFixed(
-        2,
-      );
+      // When over allocated, show the amount over allocated
+      const overAllocationAmount = (totalAllocated - totalIncome).toFixed(2);
       return {
-        value: `$${overAllocationPercentage}`,
+        value: `$${overAllocationAmount}`,
         subtitle: "over allocated",
         icon: <AlertCircle className="h-4 w-4" />,
         iconColor: "text-red-500",
