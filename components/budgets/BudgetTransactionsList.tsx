@@ -81,7 +81,7 @@ interface Transaction {
   categoryId: string;
   cardId?: string | null;
   occurredAt?: Date | null;
-  transactionType?: string;
+  transactionType: TransactionType;
 }
 
 interface BudgetTransactionsListProps {
@@ -121,7 +121,7 @@ export const BudgetTransactionsList = ({
       const copyData = {
         name: transaction.name ? `${transaction.name} Copy` : undefined,
         description: transaction.description ?? undefined,
-        amount: transaction.amount,
+        amount: Math.abs(transaction.amount),
         budgetId: transaction.budgetId,
         categoryId: transaction.categoryId,
         cardId: transaction.cardId ?? undefined,

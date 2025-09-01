@@ -143,7 +143,7 @@ export default function TransactionForm({
       const updateData: UpdateTransactionRequest = {
         name: data.name ?? undefined,
         description: data.description ?? undefined,
-        amount: parseFloat(data.amount),
+        amount: Math.abs(parseFloat(data.amount)),
         budgetId: data.budgetId,
         categoryId: data.categoryId,
         cardId: data.cardId ?? undefined,
@@ -171,7 +171,7 @@ export default function TransactionForm({
       const transactionData: CreateTransactionRequest = {
         name: data.name ?? undefined,
         description: data.description ?? undefined,
-        amount: parseFloat(data.amount),
+        amount: Math.abs(parseFloat(data.amount)),
         budgetId: data.budgetId,
         categoryId: data.categoryId ?? undefined,
         cardId: data.cardId ?? undefined,

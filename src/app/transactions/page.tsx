@@ -227,7 +227,7 @@ const TransactionsPage = () => {
       const copyData = {
         name: transaction.name ? `${transaction.name} Copy` : undefined,
         description: transaction.description ?? undefined,
-        amount: transaction.amount,
+        amount: Math.abs(transaction.amount),
         budgetId: transaction.budgetId ?? "",
         categoryId: transaction.categoryId ?? undefined,
         cardId: transaction.cardId ?? undefined,

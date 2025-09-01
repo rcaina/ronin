@@ -458,7 +458,6 @@ export async function duplicateBudget(
       cards: {
         where: { deleted: null },
         select: {
-          id: true,
           name: true,
           cardType: true,
           spendingLimit: true,
@@ -513,7 +512,7 @@ export async function duplicateBudget(
     });
   }
 
-  // Copy card payments
+  // Copy cards from original budget to new budget
   for (const card of originalBudget.cards) {
     await tx.card.create({
       data: {
