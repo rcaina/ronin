@@ -242,7 +242,15 @@ const CardDetailsPage = () => {
         //capitilize first letter
         description={`${card.cardType.toLowerCase().replace("_", " ")} card details`}
         backButton={{
-          onClick: () => router.push(`/budgets/${params.id}/cards`),
+          onClick: () => {
+            // Use a more reliable navigation method for mobile
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              // Fallback to budget cards list if no history
+              router.push(`/budgets/${cardId}/cards`);
+            }
+          },
         }}
         actions={[
           ...(isCardOwner

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useBudgetTransactions } from "@/lib/data-hooks/budgets/useBudgetTransactions";
 import {
@@ -36,6 +36,7 @@ import { getGroupColor, getCategoryBadgeColor } from "@/lib/utils";
 
 const BudgetTransactionsPage = () => {
   const params = useParams();
+  const router = useRouter();
   const budgetId = params.id as string;
   const searchParams = useSearchParams();
 
@@ -434,7 +435,15 @@ const BudgetTransactionsPage = () => {
             : "Track and manage transactions for this budget"
         }
         backButton={{
-          onClick: () => window.history.back(),
+          onClick: () => {
+            // Use a more reliable navigation method for mobile
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              // Fallback to budget overview if no history
+              router.push(`/budgets/${budgetId}`);
+            }
+          },
         }}
         action={{
           label: "Add Transaction",

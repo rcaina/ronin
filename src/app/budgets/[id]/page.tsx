@@ -220,7 +220,15 @@ const BudgetDetailsPage = () => {
           day: "numeric",
         })}`}
         backButton={{
-          onClick: () => window.history.back(),
+          onClick: () => {
+            // Use a more reliable navigation method for mobile
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              // Fallback to budgets list if no history
+              router.push("/budgets");
+            }
+          },
         }}
         actions={[
           {

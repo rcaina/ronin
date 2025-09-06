@@ -157,7 +157,15 @@ export default function IncomePage() {
           icon: <Plus className="h-4 w-4" />,
         }}
         backButton={{
-          onClick: () => router.back(),
+          onClick: () => {
+            // Use a more reliable navigation method for mobile
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              // Fallback to programmatic navigation if no history
+              router.push("/budgets");
+            }
+          },
         }}
       />
 
