@@ -678,9 +678,6 @@ const BudgetTransactionsPage = () => {
                       <span>Select All</span>
                     </label>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Transactions
-                  </h3>
                 </div>
               </div>
 
