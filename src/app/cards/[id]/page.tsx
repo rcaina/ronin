@@ -185,7 +185,15 @@ const CardDetailsPage = () => {
         title={card.name}
         description={`${card.cardType.toLowerCase().replace("_", " ")} card details`}
         backButton={{
-          onClick: () => router.push("/cards"),
+          onClick: () => {
+            // Use a more reliable navigation method for mobile
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              // Fallback to cards list if no history
+              router.push("/cards");
+            }
+          },
         }}
         actions={[
           {

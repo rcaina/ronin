@@ -246,7 +246,15 @@ const BudgetCategoriesPage = () => {
         title={`${budget?.name ?? "Budget"} - Categories`}
         description="Manage your budget categories"
         backButton={{
-          onClick: () => router.back(),
+          onClick: () => {
+            // Use a more reliable navigation method for mobile
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              // Fallback to programmatic navigation if no history
+              router.push(`/budgets/${budgetId}`);
+            }
+          },
         }}
       />
 
