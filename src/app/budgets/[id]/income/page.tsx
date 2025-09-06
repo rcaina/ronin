@@ -20,6 +20,7 @@ import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Button from "@/components/Button";
 import IncomeModal from "@/components/budgets/IncomeModal";
+import InlineIncomeEdit from "@/components/budgets/InlineIncomeEdit";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 
 interface Income {
@@ -40,6 +41,8 @@ export default function IncomePage() {
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [incomeToDelete, setIncomeToDelete] = useState<Income | null>(null);
+  const [incomeToEdit, setIncomeToEdit] = useState<Income | null>(null);
+  const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
 
   const { data: budget, isLoading, refetch } = useBudget(budgetId);
 
@@ -78,6 +81,24 @@ export default function IncomePage() {
   const handleDeleteIncome = async (income: Income) => {
     setIncomeToDelete(income);
     setIsDeleteModalOpen(true);
+  };
+
+  const handleEditIncome = (income: Income) => {
+    setEditingIncomeId(income.id);
+  };
+
+  const handleAddIncome = () => {
+    setIncomeToEdit(null);
+    setIsIncomeModalOpen(true);
+  };
+
+  const handleInlineEditCancel = () => {
+    setEditingIncomeId(null);
+  };
+
+  const handleInlineEditSuccess = () => {
+    setEditingIncomeId(null);
+    void refetch();
   };
 
   const confirmDeleteIncome = async () => {
@@ -153,7 +174,7 @@ export default function IncomePage() {
         description="Manage income sources for this budget"
         action={{
           label: "Add Income Source",
-          onClick: () => setIsIncomeModalOpen(true),
+          onClick: handleAddIncome,
           icon: <Plus className="h-4 w-4" />,
         }}
         backButton={{
@@ -233,10 +254,7 @@ export default function IncomePage() {
                       : "Get started by adding your first income source."}
                   </p>
                   {!searchQuery && (
-                    <Button
-                      onClick={() => setIsIncomeModalOpen(true)}
-                      className="mt-4"
-                    >
+                    <Button onClick={handleAddIncome} className="mt-4">
                       <Plus className="mr-2 h-4 w-4" />
                       Add Income Source
                     </Button>
@@ -250,6 +268,21 @@ export default function IncomePage() {
                       income.frequency,
                       budget.period,
                     );
+
+                    // Check if this income is being edited
+                    const isEditing = editingIncomeId === income.id;
+
+                    if (isEditing) {
+                      return (
+                        <InlineIncomeEdit
+                          key={income.id}
+                          income={income}
+                          budgetId={budgetId}
+                          onCancel={handleInlineEditCancel}
+                          onSuccess={handleInlineEditSuccess}
+                        />
+                      );
+                    }
 
                     return (
                       <div
@@ -273,7 +306,7 @@ export default function IncomePage() {
                               {/* Action Icons - Top right on mobile, right side on desktop */}
                               <div className="flex items-center space-x-2 opacity-100 transition-opacity sm:hidden">
                                 <button
-                                  onClick={() => setIsIncomeModalOpen(true)}
+                                  onClick={() => handleEditIncome(income)}
                                   className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
                                   title="Edit income source"
                                 >
@@ -332,7 +365,7 @@ export default function IncomePage() {
                           {/* Action Icons - Desktop only, hidden on mobile */}
                           <div className="hidden items-center justify-end space-x-2 opacity-0 transition-opacity group-hover:opacity-100 sm:flex">
                             <button
-                              onClick={() => setIsIncomeModalOpen(true)}
+                              onClick={() => handleEditIncome(income)}
                               className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
                               title="Edit income source"
                             >
@@ -361,11 +394,15 @@ export default function IncomePage() {
       <IncomeModal
         isOpen={isIncomeModalOpen}
         budgetId={budgetId}
-        incomes={incomes}
-        onClose={() => setIsIncomeModalOpen(false)}
+        income={incomeToEdit ?? undefined}
+        onClose={() => {
+          setIsIncomeModalOpen(false);
+          setIncomeToEdit(null);
+        }}
         onSuccess={() => {
           void refetch();
           setIsIncomeModalOpen(false);
+          setIncomeToEdit(null);
         }}
       />
 
