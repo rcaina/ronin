@@ -20,6 +20,8 @@ import {
   Info,
   Filter,
   Target,
+  Receipt,
+  TrendingDown,
 } from "lucide-react";
 
 import PageHeader from "@/components/PageHeader";
@@ -27,6 +29,7 @@ import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
+import StatsCard from "@/components/StatsCard";
 
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
@@ -385,6 +388,25 @@ const BudgetTransactionsPage = () => {
   const hasActiveFilters =
     searchTerm || selectedCategory !== "all" || selectedCard !== "all";
 
+  // Calculate total spent from filtered transactions
+  const totalSpent = useMemo(() => {
+    return filteredAndSortedTransactions.reduce((total, transaction) => {
+      // Only count expenses (negative amounts) and returns (positive amounts)
+      // Card payments are excluded from spending calculations
+      if (transaction.transactionType === TransactionType.CARD_PAYMENT) {
+        return total;
+      }
+
+      // For returns, subtract the amount (since it's positive, we subtract to reduce total spent)
+      if (transaction.transactionType === TransactionType.RETURN) {
+        return total - Math.abs(transaction.amount);
+      }
+
+      // For regular transactions, add the absolute value (since expenses are negative)
+      return total + Math.abs(transaction.amount);
+    }, 0);
+  }, [filteredAndSortedTransactions]);
+
   // Show loading state while either budget or transactions are loading
   if (budgetLoading || transactionsLoading) {
     return <LoadingSpinner message="Loading budget transactions..." />;
@@ -455,6 +477,31 @@ const BudgetTransactionsPage = () => {
       <div className="flex-1 overflow-hidden pt-16 sm:pt-20 lg:pt-0">
         <div className="h-full overflow-y-auto">
           <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
+            {/* Stats Cards */}
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:mb-6 sm:grid-cols-2 lg:gap-4">
+              <StatsCard
+                title="Transactions"
+                value={filteredAndSortedTransactions.length}
+                subtitle={
+                  hasActiveFilters ? "Filtered results" : "Total transactions"
+                }
+                icon={<Receipt className="h-4 w-4" />}
+                iconColor="text-blue-500"
+                valueColor="text-blue-600"
+              />
+              <StatsCard
+                title="Total Spent"
+                value={formatCurrency(totalSpent)}
+                subtitle={
+                  hasActiveFilters
+                    ? "From filtered transactions"
+                    : "All transactions"
+                }
+                icon={<TrendingDown className="h-4 w-4" />}
+                iconColor="text-green-500"
+                valueColor="text-green-600"
+              />
+            </div>
             {/* Filters and Search */}
             <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-6 sm:p-4 lg:p-6">
               <div className="mb-4 flex items-center justify-between">
@@ -632,7 +679,7 @@ const BudgetTransactionsPage = () => {
                     </label>
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900">
-                    Transactions ({filteredAndSortedTransactions.length})
+                    Transactions
                   </h3>
                 </div>
               </div>
