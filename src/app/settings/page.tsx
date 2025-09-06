@@ -161,20 +161,17 @@ const SettingsPage = () => {
                           />
                         </div>
                         <div className="flex justify-end space-x-3">
-                          <button
-                            onClick={handleProfileSave}
-                            className="inline-flex items-center rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-accent"
-                          >
-                            <Save className="mr-2 h-4 w-4" />
-                            Save Changes
-                          </button>
-                          <button
+                          <Button
+                            variant="outline"
                             onClick={() => setIsEditingProfile(false)}
-                            className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
                           >
                             <X className="mr-2 h-4 w-4" />
                             Cancel
-                          </button>
+                          </Button>
+                          <Button onClick={handleProfileSave}>
+                            <Save className="mr-2 h-4 w-4" />
+                            Save Changes
+                          </Button>
                         </div>
                       </div>
                     ) : (
