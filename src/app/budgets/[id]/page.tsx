@@ -342,7 +342,7 @@ const BudgetDetailsPage = () => {
                       ? "bg-green-500"
                       : spendingPercentage > 100
                         ? "bg-red-500"
-                        : "bg-yellow-500"
+                        : "bg-secondary"
                   }`}
                   style={{ width: `${Math.min(spendingPercentage, 100)}%` }}
                 ></div>
