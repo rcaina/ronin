@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, Info, Plus } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Info,
+  Plus,
+  ArrowRight,
+} from "lucide-react";
 import { toast } from "react-hot-toast";
 import AddBudgetCategoryForm from "./AddBudgetCategoryForm";
 import {
@@ -301,19 +307,20 @@ export default function BudgetCategoriesListView({
                                 </div>
                               </div>
                             ))}
-                            {transactions.length > 3 && (
+                            <div className="flex justify-end">
                               <button
                                 onClick={() =>
                                   handleViewAllTransactions(
                                     budgetCategory.category.id,
                                   )
                                 }
-                                className="w-full cursor-pointer rounded-lg border border-blue-200 bg-blue-50 py-2 text-center text-xs text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-800 hover:underline"
+                                className="flex items-center space-x-1 text-xs text-blue-600 transition-colors hover:text-blue-800 hover:underline"
                                 title={`View all ${transactions.length} transactions for ${budgetCategory.category.name}`}
                               >
-                                +{transactions.length - 3} more transactions
+                                <span>View all transactions</span>
+                                <ArrowRight className="h-3 w-3" />
                               </button>
-                            )}
+                            </div>
                           </>
                         )}
                       </div>
