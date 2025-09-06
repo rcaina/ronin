@@ -285,9 +285,9 @@ const BudgetsPage = () => {
     if (percentage < 100)
       return {
         status: "progress",
-        color: "text-yellow-600",
-        bg: "bg-yellow-50",
-        border: "border-yellow-200",
+        color: "text-white",
+        bg: "bg-secondary",
+        border: "border-secondary",
       };
     return {
       status: "complete",
@@ -324,14 +324,6 @@ const BudgetsPage = () => {
     if (score >= 60) return "text-yellow-600";
     if (score >= 40) return "text-orange-600";
     return "text-red-600";
-  };
-
-  const getHealthScoreLabel = (score: number) => {
-    if (score >= 80) return "Excellent";
-    if (score >= 60) return "Good";
-    if (score >= 40) return "Fair";
-    if (score >= 20) return "Poor";
-    return "Critical";
   };
 
   const handleDuplicateBudget = async (budget: BudgetWithRelations) => {
@@ -449,45 +441,6 @@ const BudgetsPage = () => {
             />
           </div>
 
-          {/* Budget Progress */}
-          <div className="mb-6 rounded-xl border bg-white p-4 shadow-sm sm:mb-8 sm:p-6">
-            <div className="mb-4 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
-              <h2 className="text-base font-semibold text-gray-900 sm:text-lg">
-                Overall Budget Progress
-              </h2>
-              <div className="flex items-center space-x-2">
-                <span className="text-xs text-gray-500 sm:text-sm">
-                  {budgetStats.totalRemaining >= 0
-                    ? "Remaining:"
-                    : "Over budget:"}
-                </span>
-                <span
-                  className={`text-sm font-semibold ${
-                    budgetStats.totalRemaining >= 0
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  ${Math.abs(budgetStats.totalRemaining).toLocaleString()}
-                </span>
-              </div>
-            </div>
-            <div className="h-2 w-full rounded-full bg-gray-200 sm:h-3">
-              <div
-                className={`h-2 rounded-full transition-all duration-300 sm:h-3 ${
-                  budgetStats.overallSpendingPercentage === 100
-                    ? "bg-green-500"
-                    : budgetStats.overallSpendingPercentage > 100
-                      ? "bg-red-500"
-                      : "bg-yellow-500"
-                }`}
-                style={{
-                  width: `${Math.min(budgetStats.overallSpendingPercentage, 100)}%`,
-                }}
-              ></div>
-            </div>
-          </div>
-
           {/* Budget Tabs */}
           <div className="mb-6">
             <div className="border-b border-gray-200">
@@ -498,7 +451,7 @@ const BudgetsPage = () => {
                     onClick={() => setActiveTab(tab.id)}
                     className={`whitespace-nowrap border-b-2 px-1 py-2 text-sm font-medium ${
                       activeTab === tab.id
-                        ? "border-yellow-500 text-yellow-600"
+                        ? "border-secondary text-secondary"
                         : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                     }`}
                   >
@@ -569,7 +522,6 @@ const BudgetsPage = () => {
 
                 const healthScore = getBudgetHealthScore(budget.id);
                 const healthScoreColor = getHealthScoreColor(healthScore);
-                const healthScoreLabel = getHealthScoreLabel(healthScore);
 
                 // Calculate days remaining in budget period
                 const now = new Date();
@@ -600,11 +552,6 @@ const BudgetsPage = () => {
                                 ? "In Progress"
                                 : "Complete"}
                           </span>
-                          <span
-                            className={`rounded-full bg-gray-100 px-2 py-1 text-xs font-medium ${healthScoreColor}`}
-                          >
-                            {healthScoreLabel} ({healthScore}%)
-                          </span>
                           {/* Action Icons */}
                           <div className="ml-auto flex items-center space-x-1">
                             {activeTab === "active" && (
@@ -624,7 +571,7 @@ const BudgetsPage = () => {
                                     e.stopPropagation();
                                     await handleMarkArchived(budget);
                                   }}
-                                  className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-yellow-600"
+                                  className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-secondary"
                                   title="Archive"
                                 >
                                   <Archive className="h-4 w-4" />
@@ -723,7 +670,7 @@ const BudgetsPage = () => {
                               ? "bg-green-500"
                               : spendingPercentage > 100
                                 ? "bg-red-500"
-                                : "bg-yellow-500"
+                                : "bg-secondary"
                           }`}
                           style={{
                             width: `${Math.min(spendingPercentage, 100)}%`,

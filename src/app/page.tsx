@@ -92,32 +92,6 @@ export default function HomePage() {
     )
     .slice(0, 5);
 
-  // Get budget status
-  const getBudgetStatus = () => {
-    if (spendingPercentage > 100)
-      return {
-        status: "over",
-        color: "text-red-600",
-        bg: "bg-red-50",
-        border: "border-red-200",
-      };
-    if (spendingPercentage < 100)
-      return {
-        status: "progress",
-        color: "text-yellow-600",
-        bg: "bg-yellow-50",
-        border: "border-yellow-200",
-      };
-    return {
-      status: "complete",
-      color: "text-green-600",
-      bg: "bg-green-50",
-      border: "border-green-200",
-    };
-  };
-
-  const budgetStatus = getBudgetStatus();
-
   // Get the most recent budget for the quick action
   const mostRecentBudget = budgets
     .filter((budget) => !budget.deleted)
@@ -182,70 +156,6 @@ export default function HomePage() {
               />
             </div>
 
-            {/* Budget Progress */}
-            <div className="mb-6 rounded-xl border bg-white p-4 shadow-sm sm:mb-8 sm:p-6">
-              <div className="mb-4 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
-                <h2 className="text-base font-semibold text-gray-900 sm:text-lg">
-                  Overall Budget Progress
-                </h2>
-                <span
-                  className={`rounded-full px-2 py-1 text-xs font-medium sm:px-3 sm:text-sm ${budgetStatus.bg} ${budgetStatus.color}`}
-                >
-                  {budgetStatus.status === "over"
-                    ? "Over Budget"
-                    : budgetStatus.status === "progress"
-                      ? "In Progress"
-                      : "Complete"}
-                </span>
-              </div>
-              <div className="mb-4">
-                <div className="mb-2 flex items-center justify-between text-xs sm:text-sm">
-                  <span className="text-gray-500">Spending Progress</span>
-                  <span className="font-medium">
-                    {spendingPercentage.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-gray-200 sm:h-3">
-                  <div
-                    className={`h-2 rounded-full transition-all duration-300 sm:h-3 ${
-                      spendingPercentage === 100
-                        ? "bg-green-500"
-                        : spendingPercentage > 100
-                          ? "bg-red-500"
-                          : "bg-yellow-500"
-                    }`}
-                    style={{ width: `${Math.min(spendingPercentage, 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center sm:gap-4">
-                <div>
-                  <div className="text-sm font-semibold text-gray-900 sm:text-lg">
-                    ${totalIncome.toLocaleString()}
-                  </div>
-                  <div className="text-xs text-gray-500 sm:text-sm">
-                    Budgeted
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-gray-900 sm:text-lg">
-                    ${totalSpent.toLocaleString()}
-                  </div>
-                  <div className="text-xs text-gray-500 sm:text-sm">Spent</div>
-                </div>
-                <div>
-                  <div
-                    className={`text-sm font-semibold sm:text-lg ${totalRemaining >= 0 ? "text-gray-900" : "text-red-600"}`}
-                  >
-                    ${totalRemaining.toLocaleString()}
-                  </div>
-                  <div className="text-xs text-gray-500 sm:text-sm">
-                    Remaining
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
               {/* Recent Activity */}
@@ -257,7 +167,7 @@ export default function HomePage() {
                     </h2>
                     <Link
                       href="/transactions"
-                      className="flex items-center space-x-1 text-xs text-secondary hover:text-yellow-300 sm:text-sm"
+                      className="flex items-center space-x-1 text-xs text-secondary hover:text-primary sm:text-sm"
                     >
                       <span>View All</span>
                       <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
