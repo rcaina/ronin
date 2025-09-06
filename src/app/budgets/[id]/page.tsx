@@ -669,7 +669,6 @@ const BudgetDetailsPage = () => {
         <IncomeModal
           isOpen={isIncomeModalOpen}
           budgetId={id as string}
-          incomes={budget.incomes ?? []}
           onClose={() => setIsIncomeModalOpen(false)}
           onSuccess={handleIncomeSuccess}
         />
