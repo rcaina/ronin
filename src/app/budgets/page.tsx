@@ -312,20 +312,6 @@ const BudgetsPage = () => {
     return { needs, wants, investments };
   };
 
-  const getBudgetHealthScore = (budgetId: string) => {
-    const score = budgetStats.budgetHealthScores.find(
-      (s) => s.budgetId === budgetId,
-    );
-    return score?.healthScore ?? 0;
-  };
-
-  const getHealthScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    if (score >= 40) return "text-orange-600";
-    return "text-red-600";
-  };
-
   const handleDuplicateBudget = async (budget: BudgetWithRelations) => {
     try {
       await duplicateBudgetMutation.mutateAsync(budget.id);
@@ -519,9 +505,6 @@ const BudgetsPage = () => {
                   totalBudgetIncome > 0
                     ? (totalBudgetSpent / totalBudgetIncome) * 100
                     : 0;
-
-                const healthScore = getBudgetHealthScore(budget.id);
-                const healthScoreColor = getHealthScoreColor(healthScore);
 
                 // Calculate days remaining in budget period
                 const now = new Date();

@@ -303,18 +303,15 @@ export default function BudgetCategoryCard({
                     </span>
                   </div>
                 ))}
-                {budgetCategory.transactions.length > 3 && (
-                  <div className="text-center">
-                    <button
-                      onClick={handleViewAllTransactions}
-                      className="cursor-pointer text-center text-xs text-blue-600 transition-colors hover:text-blue-800 hover:underline"
-                      title={`View all ${budgetCategory.transactions.length} transactions for ${budgetCategory.category.name}`}
-                    >
-                      +{budgetCategory.transactions.length - 3} more
-                      transactions
-                    </button>
-                  </div>
-                )}
+                <div className="text-center">
+                  <button
+                    onClick={handleViewAllTransactions}
+                    className="cursor-pointer text-center text-xs text-blue-600 transition-colors hover:text-blue-800 hover:underline"
+                    title={`View all ${budgetCategory.transactions.length} transactions for ${budgetCategory.category.name}`}
+                  >
+                    View all transactions
+                  </button>
+                </div>
               </div>
             </div>
           )}

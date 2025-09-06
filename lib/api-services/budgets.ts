@@ -598,6 +598,9 @@ export const getBudgetCategories = async (
           transactionType: true,
           createdAt: true,
         },
+        orderBy: {
+          createdAt: 'desc',
+        },
       },
     },
     orderBy: {
