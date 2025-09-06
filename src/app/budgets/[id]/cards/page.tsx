@@ -89,7 +89,7 @@ const BudgetCardsPage = () => {
       userId: prismaCard.userId,
       user: prismaCard.user?.name ?? "Unknown User",
       isActive: !prismaCard.deleted,
-      color: getCardColor(prismaCard.id),
+      color: getCardColor(prismaCard.userId),
     }));
   }, [apiCards]);
 

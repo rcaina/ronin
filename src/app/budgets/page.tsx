@@ -437,7 +437,11 @@ const BudgetsPage = () => {
                     onClick={() => setActiveTab(tab.id)}
                     className={`whitespace-nowrap border-b-2 px-1 py-2 text-sm font-medium ${
                       activeTab === tab.id
-                        ? "border-secondary text-secondary"
+                        ? activeTab === "active"
+                          ? "border-secondary text-secondary"
+                          : activeTab === "completed"
+                            ? "border-green-600 text-green-600"
+                            : "border-red-600 text-red-600"
                         : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                     }`}
                   >
@@ -514,10 +518,17 @@ const BudgetsPage = () => {
                 );
                 const isOverdue = daysRemaining < 0;
 
+                // Determine border color based on active tab
+                const getCardBorder = () => {
+                  if (activeTab === "completed") return "border-green-500";
+                  if (activeTab === "archived") return "border-red-500";
+                  return budgetStatus.border; // Use original logic for active tab
+                };
+
                 return (
                   <div
                     key={budget.id}
-                    className={`cursor-pointer rounded-xl border bg-white p-4 shadow-sm transition-all duration-200 hover:bg-black/5 hover:shadow-xl sm:p-6 ${budgetStatus.border}`}
+                    className={`cursor-pointer rounded-xl border bg-white p-4 shadow-sm transition-all duration-200 hover:bg-black/5 hover:shadow-xl sm:p-6 ${getCardBorder()}`}
                     onClick={() => router.push(`/budgets/${budget.id}`)}
                   >
                     <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-start">

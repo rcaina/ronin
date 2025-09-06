@@ -127,7 +127,13 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
 
             {/* Profile popup */}
             {showProfilePopup && (
-              <div className="absolute bottom-full left-0 mb-2 w-full rounded-lg bg-white/95 p-2 shadow-lg backdrop-blur-sm">
+              <div
+                className={`absolute bottom-full mb-2 rounded-lg bg-white/95 p-2 shadow-lg backdrop-blur-sm ${
+                  isCollapsed
+                    ? "left-0 w-64 border border-gray-300" // Fixed width when collapsed, positioned to the left
+                    : "left-0 w-full" // Full width when expanded
+                }`}
+              >
                 <div className="mb-2 border-b border-gray-200 pb-2">
                   <div className="text-sm font-medium text-gray-900">
                     {session?.user?.name ?? "User"}

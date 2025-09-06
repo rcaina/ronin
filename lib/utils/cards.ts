@@ -31,17 +31,17 @@ export const cardColors = [
 ];
 
 /**
- * Generates a consistent color for a card based on its ID
- * @param cardId - The unique identifier for the card
+ * Generates a consistent color for a card based on its user ID
+ * @param userId - The unique identifier for the user who owns the card
  * @returns A Tailwind CSS gradient class
  */
-export const getCardColor = (cardId: string): string => {
-  if (!cardId) {
+export const getCardColor = (userId: string): string => {
+  if (!userId) {
     return cardColors[0] ?? "bg-gradient-to-br from-blue-600 to-purple-600"; // Default to first color if no ID
   }
   
-  // Use the card ID to generate a consistent index
-  const hash = cardId.split('').reduce((acc, char) => {
+  // Use the user ID to generate a consistent index
+  const hash = userId.split('').reduce((acc, char) => {
     return char.charCodeAt(0) + ((acc << 5) - acc);
   }, 0);
   const index = Math.abs(hash) % cardColors.length;
@@ -76,7 +76,7 @@ export const mapCardType = (cardType: string): "credit" | "debit" | "business_cr
 
 // Utility function to map API card to component card
 export const mapApiCardToCard = (apiCard: ApiCard): Card => {
-    const cardColor = getCardColor(apiCard.id ?? "");
+    const cardColor = getCardColor(apiCard.userId);
     
     return {
       id: apiCard.id ?? "",
