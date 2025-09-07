@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import CreateUserModal from "@/components/CreateUserModal";
 import DeleteAccountModal from "@/components/DeleteAccountModal";
+import LeaveAccountModal from "@/components/DeactivateAccountModal";
 import {
   User as UserIcon,
   Shield,
@@ -16,6 +17,7 @@ import {
   Plus,
   Home,
   Trash2,
+  LogOut,
 } from "lucide-react";
 import Button from "@/components/Button";
 import { Role } from "@prisma/client";
@@ -28,6 +30,7 @@ const SettingsPage = () => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [showLeaveAccountModal, setShowLeaveAccountModal] = useState(false);
   const updateProfileMutation = useUpdateProfile();
 
   // Form states
@@ -376,38 +379,74 @@ const SettingsPage = () => {
                         </div>
                       </div>
 
-                      {/* Delete Account */}
-                      <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                        <div className="mb-4 flex items-center justify-between">
-                          <h3 className="text-lg font-medium text-gray-900">
-                            Delete Account
-                          </h3>
-                          <button
-                            onClick={() => setShowDeleteAccountModal(true)}
-                            className="inline-flex items-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Account
-                          </button>
-                        </div>
-                        <div className="flex items-start space-x-3">
-                          <div className="flex-shrink-0">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
-                              <span className="text-sm font-medium text-red-600">
-                                ⚠️
-                              </span>
+                      {/* Delete Account / Leave Account */}
+                      {session?.user?.role === Role.ADMIN ? (
+                        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                          <div className="mb-4 flex items-center justify-between">
+                            <h3 className="text-lg font-medium text-gray-900">
+                              Delete Account
+                            </h3>
+                            <button
+                              onClick={() => setShowDeleteAccountModal(true)}
+                              className="inline-flex items-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete Account
+                            </button>
+                          </div>
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
+                                <span className="text-sm font-medium text-red-600">
+                                  ⚠️
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-600">
+                                Permanently delete your account and all
+                                associated data. This action cannot be undone
+                                and will remove all your budgets, transactions,
+                                categories, and other data.
+                              </p>
                             </div>
                           </div>
-                          <div className="flex-1">
-                            <p className="text-sm text-gray-600">
-                              Permanently delete your account and all associated
-                              data. This action cannot be undone and will remove
-                              all your budgets, transactions, categories, and
-                              other data.
-                            </p>
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                          <div className="mb-4 flex items-center justify-between">
+                            <h3 className="text-lg font-medium text-gray-900">
+                              Deactivate Account
+                            </h3>
+                            <button
+                              onClick={() => setShowLeaveAccountModal(true)}
+                              className="inline-flex items-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700"
+                            >
+                              <LogOut className="mr-2 h-4 w-4" />
+                              Deactivate Account
+                            </button>
+                          </div>
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
+                                <span className="text-sm font-medium text-red-600">
+                                  ⚠️
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-600">
+                                Remove your access from this account. This
+                                action cannot be undone and will deactivate your
+                                user profile and prevent you from logging in.
+                                Your personal data (transactions, cards, income)
+                                will be preserved for account history, while the
+                                account and other users remain.
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -629,6 +668,14 @@ const SettingsPage = () => {
         <DeleteAccountModal
           isOpen={showDeleteAccountModal}
           onClose={() => setShowDeleteAccountModal(false)}
+        />
+      )}
+
+      {/* Leave Account Modal */}
+      {showLeaveAccountModal && (
+        <LeaveAccountModal
+          isOpen={showLeaveAccountModal}
+          onClose={() => setShowLeaveAccountModal(false)}
         />
       )}
     </div>
