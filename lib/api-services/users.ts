@@ -102,7 +102,11 @@ export async function deleteUserAccount(
   const account = await tx.account.findUnique({
     where: { id: user.accountId },
     include: {
-      users: true,
+      users: {
+        include: {
+          user: true,
+        },
+      },
     },
   });
 
@@ -117,11 +121,12 @@ export async function deleteUserAccount(
     throw new Error('Invalid password');
   }
 
-  // Check if this is the only user in the account
+  // Check if this is the only active user in the account
   const isAdmin = user.role === Role.ADMIN;
+  const activeUsersCount = account.users.filter(au => au.user.deleted === null).length;
 
-  if (isAdmin) {
-    // If this is the only user, delete the entire account and all related data
+  if (isAdmin && activeUsersCount === 1) {
+    // If this is the only active user and they're admin, delete the entire account and all related data
     await tx.transaction.deleteMany({
       where: { accountId: user.accountId },
     });
@@ -158,22 +163,7 @@ export async function deleteUserAccount(
       where: { id: user.id },
     });
   } else {
-    // If there are other users, only delete this user's data
-    // Delete user's transactions
-    await tx.transaction.deleteMany({
-      where: { userId: user.id },
-    });
-
-    // Delete user's income
-    await tx.income.deleteMany({
-      where: { userId: user.id },
-    });
-
-    // Delete user's cards
-    await tx.card.deleteMany({
-      where: { userId: user.id },
-    });
-
+    // If there are other users or this is not an admin, deactivate the user but preserve their data
     // Remove user from account
     await tx.accountUser.deleteMany({
       where: {
@@ -182,15 +172,22 @@ export async function deleteUserAccount(
       },
     });
 
-    // Delete the user
-    await tx.user.delete({
+    // Deactivate the user instead of deleting them
+    await tx.user.update({
       where: { id: user.id },
+      data: {
+        deleted: new Date(),
+        email: null, // Remove email to prevent re-login
+        password: null, // Remove password for security
+      },
     });
   }
 
   return {
-    message: 'Account deleted successfully',
-    deletedEntireAccount: isAdmin,
+    message: isAdmin && activeUsersCount === 1 
+      ? 'Account deleted successfully' 
+      : 'User deactivated successfully',
+    deletedEntireAccount: isAdmin && activeUsersCount === 1,
   };
 }
 
