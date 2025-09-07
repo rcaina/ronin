@@ -4,9 +4,11 @@ import { useState, useMemo } from "react";
 import { toast } from "react-hot-toast";
 import {
   useTransactions,
+  useAllTransactions,
   useDeleteTransaction,
   useCreateTransaction,
 } from "@/lib/data-hooks/transactions/useTransactions";
+import Pagination from "@/components/Pagination";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import {
@@ -35,7 +37,21 @@ import StatsCard from "@/components/StatsCard";
 import { getGroupColor, getCategoryBadgeColor } from "@/lib/utils";
 
 const TransactionsPage = () => {
-  const { data: transactions = [], isLoading, error } = useTransactions();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const {
+    data: transactionsData,
+    isLoading,
+    error,
+  } = useTransactions(currentPage, pageSize);
+  const transactions = useMemo(
+    () => transactionsData?.transactions ?? [],
+    [transactionsData?.transactions],
+  );
+  const pagination = transactionsData?.pagination;
+
+  // Get all transactions for stats calculation
+  const { data: allTransactions = [] } = useAllTransactions();
   const { data: budgets = [] } = useBudgets();
   const { data: cards = [] } = useCards();
   const deleteTransactionMutation = useDeleteTransaction();
@@ -44,6 +60,8 @@ const TransactionsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedBudget, setSelectedBudget] = useState<string>("all");
   const [selectedCard, setSelectedCard] = useState<string>("all");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   const [sortBy, setSortBy] = useState<"date" | "amount" | "name">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
@@ -58,16 +76,87 @@ const TransactionsPage = () => {
   );
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
 
-  // Calculate transaction statistics
+  // Calculate transaction statistics from all transactions with applied filters
   const stats = useMemo(() => {
-    const totalTransactions = transactions.length;
+    // Apply the same filters to all transactions for stats calculation
+    const filteredTransactions = allTransactions.filter((transaction) => {
+      // Search term matching (including amount)
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch =
+        (transaction.name?.toLowerCase().includes(searchLower) ?? false) ||
+        (transaction.description?.toLowerCase().includes(searchLower) ??
+          false) ||
+        (transaction.category?.category.name
+          .toLowerCase()
+          .includes(searchLower) ??
+          false) ||
+        // Amount search - convert amount to string and search
+        Math.abs(transaction.amount)
+          .toString()
+          .includes(searchTerm.replace(/[^0-9.]/g, "")) ||
+        // Also search formatted amount (e.g., "100.50" matches "100.5")
+        new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+        })
+          .format(transaction.amount)
+          .toLowerCase()
+          .includes(searchLower);
+
+      // Category filter
+      const matchesCategory =
+        selectedCategory === "all" ||
+        transaction.category?.id === selectedCategory;
+
+      // Budget filter
+      const matchesBudget =
+        selectedBudget === "all" ||
+        transaction.Budget?.id === selectedBudget ||
+        (selectedBudget === "no-budget" && !transaction.Budget);
+
+      // Card filter
+      const matchesCard =
+        selectedCard === "all" ||
+        (selectedCard === "no-card" && !transaction.cardId) ||
+        transaction.cardId === selectedCard;
+
+      // Date range filter
+      const matchesDateRange = (() => {
+        if (!startDate && !endDate) return true;
+
+        const transactionDate = transaction.occurredAt
+          ? new Date(transaction.occurredAt)
+          : new Date(transaction.createdAt);
+        const start = startDate ? new Date(startDate) : null;
+        const end = endDate ? new Date(endDate) : null;
+
+        if (start && end) {
+          return transactionDate >= start && transactionDate <= end;
+        } else if (start) {
+          return transactionDate >= start;
+        } else if (end) {
+          return transactionDate <= end;
+        }
+        return true;
+      })();
+
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesBudget &&
+        matchesCard &&
+        matchesDateRange
+      );
+    });
+
+    const totalTransactions = filteredTransactions.length;
     const totalAmount =
-      transactions?.reduce((sum, t) => sum + t.amount, 0) ?? 0;
+      filteredTransactions?.reduce((sum, t) => sum + t.amount, 0) ?? 0;
     const averageAmount =
       totalTransactions > 0 ? totalAmount / totalTransactions : 0;
     const thisMonth = new Date().getMonth();
     const thisYear = new Date().getFullYear();
-    const thisMonthTransactions = transactions.filter((t) => {
+    const thisMonthTransactions = filteredTransactions.filter((t) => {
       const date = new Date(t.createdAt);
       return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
     });
@@ -83,7 +172,15 @@ const TransactionsPage = () => {
       thisMonthTransactions: thisMonthTransactions.length,
       thisMonthAmount,
     };
-  }, [transactions]);
+  }, [
+    allTransactions,
+    searchTerm,
+    selectedCategory,
+    selectedBudget,
+    selectedCard,
+    startDate,
+    endDate,
+  ]);
 
   // Filter and sort transactions
   const filteredAndSortedTransactions = useMemo(() => {
@@ -128,7 +225,33 @@ const TransactionsPage = () => {
         (selectedCard === "no-card" && !transaction.cardId) ||
         transaction.cardId === selectedCard;
 
-      return matchesSearch && matchesCategory && matchesBudget && matchesCard;
+      // Date range filter
+      const matchesDateRange = (() => {
+        if (!startDate && !endDate) return true;
+
+        const transactionDate = transaction.occurredAt
+          ? new Date(transaction.occurredAt)
+          : new Date(transaction.createdAt);
+        const start = startDate ? new Date(startDate) : null;
+        const end = endDate ? new Date(endDate) : null;
+
+        if (start && end) {
+          return transactionDate >= start && transactionDate <= end;
+        } else if (start) {
+          return transactionDate >= start;
+        } else if (end) {
+          return transactionDate <= end;
+        }
+        return true;
+      })();
+
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesBudget &&
+        matchesCard &&
+        matchesDateRange
+      );
     });
 
     // Sort transactions
@@ -158,17 +281,19 @@ const TransactionsPage = () => {
     selectedCategory,
     selectedBudget,
     selectedCard,
+    startDate,
+    endDate,
     sortBy,
     sortOrder,
   ]);
 
-  // Get unique categories for filter
+  // Get unique categories for filter from all transactions
   const categories = useMemo(() => {
     const uniqueCategories = new Map<
       string,
       { id: string; name: string; group: string }
     >();
-    transactions.forEach((t) => {
+    allTransactions.forEach((t) => {
       if (t.category && !uniqueCategories.has(t.category.id)) {
         uniqueCategories.set(t.category.id, {
           id: t.category.id,
@@ -180,17 +305,17 @@ const TransactionsPage = () => {
     return Array.from(uniqueCategories.values()).sort((a, b) =>
       a.name.localeCompare(b.name),
     );
-  }, [transactions]);
+  }, [allTransactions]);
 
   // Get unique budgets for filter
   const availableBudgets = useMemo(() => {
     return budgets.sort((a, b) => a.name.localeCompare(b.name));
   }, [budgets]);
 
-  // Get unique cards for filter
+  // Get unique cards for filter from all transactions
   const availableCards = useMemo(() => {
     const cardSet = new Set<string>();
-    transactions.forEach((t) => {
+    allTransactions.forEach((t) => {
       if (t.cardId) {
         cardSet.add(t.cardId);
       }
@@ -203,7 +328,7 @@ const TransactionsPage = () => {
         displayName: `${card.name} - ${card.user.name}`,
       }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
-  }, [transactions, cards]);
+  }, [allTransactions, cards]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -354,6 +479,39 @@ const TransactionsPage = () => {
     setSelectedCategory("all");
     setSelectedBudget("all");
     setSelectedCard("all");
+    setStartDate("");
+    setEndDate("");
+    setCurrentPage(1); // Reset to first page when clearing filters
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Reset to first page when filters change
+  const handleFilterChange = (filterType: string, value: string) => {
+    setCurrentPage(1);
+    switch (filterType) {
+      case "search":
+        setSearchTerm(value);
+        break;
+      case "category":
+        setSelectedCategory(value);
+        break;
+      case "budget":
+        setSelectedBudget(value);
+        break;
+      case "card":
+        setSelectedCard(value);
+        break;
+      case "startDate":
+        setStartDate(value);
+        break;
+      case "endDate":
+        setEndDate(value);
+        break;
+    }
   };
 
   // Check if any filters are active
@@ -361,7 +519,9 @@ const TransactionsPage = () => {
     searchTerm ||
     selectedCategory !== "all" ||
     selectedBudget !== "all" ||
-    selectedCard !== "all";
+    selectedCard !== "all" ||
+    startDate ||
+    endDate;
 
   if (isLoading) {
     return <LoadingSpinner message="Loading transactions..." />;
@@ -468,67 +628,41 @@ const TransactionsPage = () => {
                     type="text"
                     placeholder="Search transactions, amounts, descriptions..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("search", e.target.value)
+                    }
                     className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
-                {/* Filter Row 1: Categories and Budgets */}
+                {/* Filter Row 1: Date Range */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-gray-700">
-                      Category
+                      Start Date
                     </label>
-                    <select
-                      value={selectedCategory}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) =>
+                        handleFilterChange("startDate", e.target.value)
+                      }
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="all">All Categories</option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
 
                   <div>
                     <label className="mb-1 block text-xs font-medium text-gray-700">
-                      Budget
+                      End Date
                     </label>
-                    <select
-                      value={selectedBudget}
-                      onChange={(e) => setSelectedBudget(e.target.value)}
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) =>
+                        handleFilterChange("endDate", e.target.value)
+                      }
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="all">All Budgets</option>
-                      <option value="no-budget">No Budget</option>
-                      {availableBudgets.map((budget) => (
-                        <option key={budget.id} value={budget.id}>
-                          {budget.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">
-                      Card
-                    </label>
-                    <select
-                      value={selectedCard}
-                      onChange={(e) => setSelectedCard(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="all">All Cards</option>
-                      <option value="no-card">No Card</option>
-                      {availableCards.map((card) => (
-                        <option key={card.id} value={card.id}>
-                          {card.displayName}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
 
                   <div>
@@ -554,21 +688,93 @@ const TransactionsPage = () => {
                       <option value="name-desc">Name (Z-A)</option>
                     </select>
                   </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">
+                      Per Page
+                    </label>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(parseInt(e.target.value));
+                        setCurrentPage(1); // Reset to first page when changing page size
+                      }}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="10">10 per page</option>
+                      <option value="20">20 per page</option>
+                      <option value="50">50 per page</option>
+                      <option value="100">100 per page</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Filter Row 2: Categories and Budgets */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">
+                      Category
+                    </label>
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) =>
+                        handleFilterChange("category", e.target.value)
+                      }
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="all">All Categories</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">
+                      Budget
+                    </label>
+                    <select
+                      value={selectedBudget}
+                      onChange={(e) =>
+                        handleFilterChange("budget", e.target.value)
+                      }
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="all">All Budgets</option>
+                      <option value="no-budget">No Budget</option>
+                      {availableBudgets.map((budget) => (
+                        <option key={budget.id} value={budget.id}>
+                          {budget.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">
+                      Card
+                    </label>
+                    <select
+                      value={selectedCard}
+                      onChange={(e) =>
+                        handleFilterChange("card", e.target.value)
+                      }
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="all">All Cards</option>
+                      <option value="no-card">No Card</option>
+                      {availableCards.map((card) => (
+                        <option key={card.id} value={card.id}>
+                          {card.displayName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* Add Transaction Button */}
-            {/* {filteredAndSortedTransactions.length > 0 && (
-              <div className="mb-4 sm:mb-6">
-                <AddItemButton
-                  onClick={() => setShowAddTransactionModal(true)}
-                  title="Add Transaction"
-                  description="Add a new transaction to your records"
-                  variant="compact"
-                />
-              </div>
-            )} */}
 
             {/* Add Transaction Modal */}
             <AddTransactionModal
@@ -632,9 +838,6 @@ const TransactionsPage = () => {
                       <span>Select All</span>
                     </label>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Transactions ({filteredAndSortedTransactions.length})
-                  </h3>
                 </div>
               </div>
 
@@ -711,7 +914,8 @@ const TransactionsPage = () => {
                             <div className="mt-1 flex items-center space-x-2 text-xs text-gray-400">
                               <span>
                                 {new Date(
-                                  transaction.createdAt,
+                                  transaction.occurredAt ??
+                                    transaction.createdAt,
                                 ).toLocaleDateString()}
                               </span>
                               {transaction.Budget && (
@@ -788,18 +992,12 @@ const TransactionsPage = () => {
                   <div className="px-3 py-12 text-center sm:px-6">
                     <DollarSign className="mx-auto mb-4 h-12 w-12 text-gray-300" />
                     <h3 className="mb-2 text-lg font-medium text-gray-900">
-                      {searchTerm ||
-                      selectedCategory !== "all" ||
-                      selectedBudget !== "all" ||
-                      selectedCard !== "all"
+                      {hasActiveFilters
                         ? "No matching transactions"
                         : "No transactions yet"}
                     </h3>
                     <p className="text-gray-500">
-                      {searchTerm ||
-                      selectedCategory !== "all" ||
-                      selectedBudget !== "all" ||
-                      selectedCard !== "all"
+                      {hasActiveFilters
                         ? "Try adjusting your search or filter criteria"
                         : "Start adding transactions to see them here"}
                     </p>
@@ -816,6 +1014,21 @@ const TransactionsPage = () => {
                 )}
               </div>
             </div>
+
+            {/* Pagination */}
+            {pagination && pagination.totalPages > 1 && (
+              <div className="mt-6 rounded-xl border bg-white p-4 shadow-sm">
+                <Pagination
+                  currentPage={pagination.page}
+                  totalPages={pagination.totalPages}
+                  onPageChange={handlePageChange}
+                  hasNextPage={pagination.hasNextPage}
+                  hasPreviousPage={pagination.hasPreviousPage}
+                  totalCount={pagination.totalCount}
+                  limit={pagination.limit}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
