@@ -93,4 +93,26 @@ export const createUser = async (data: CreateUserRequest): Promise<CreateUserRes
   }
 
   return response.json() as Promise<CreateUserResponse>;
+};
+
+export interface DeleteAccountResponse {
+  message: string;
+  deletedEntireAccount: boolean;
+}
+
+export const deleteAccount = async (password: string): Promise<DeleteAccountResponse> => {
+  const response = await fetch("/api/users/delete-account", {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ password }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json() as { error?: string };
+    throw new Error(errorData.error ?? "Failed to delete account");
+  }
+
+  return response.json() as Promise<DeleteAccountResponse>;
 }; 

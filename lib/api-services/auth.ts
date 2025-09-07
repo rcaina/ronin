@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client"
+import { Role, } from "@prisma/client"
 import type { PrismaClientTx } from "../prisma"
 import bcrypt from "bcryptjs"
 import { isEmailAllowed } from "../utils/auth"

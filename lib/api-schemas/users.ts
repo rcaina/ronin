@@ -9,4 +9,11 @@ export const createUserSchema = z.object({
   role: z.enum(Object.values(Role) as [string, ...string[]]).default(Role.MEMBER),
 })
 
-export type CreateUserSchema = z.infer<typeof createUserSchema> 
+export const updateProfileSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters").optional(),
+  email: z.string().email("Invalid email address").optional(),
+  phone: z.string().optional(),
+})
+
+export type CreateUserSchema = z.infer<typeof createUserSchema>
+export type UpdateProfileSchema = z.infer<typeof updateProfileSchema> 
