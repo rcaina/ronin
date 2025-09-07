@@ -11,6 +11,7 @@ declare module "next-auth" {
     email: string | null;
     name: string;
     role: Role;
+    phone: string | null;
     accountId: string;
     emailVerified: Date | null;
     deleted: boolean;
@@ -33,6 +34,7 @@ declare module "next-auth/jwt" {
     role: Role;
     accountId: string;
     emailVerified: Date | null;
+    phone: string | null;
     deleted: boolean;
     hasBudget: boolean;
   }

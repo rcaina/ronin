@@ -21,6 +21,7 @@ declare module "next-auth" {
       email: string | null;
       name: string;
       role: Role;
+      phone: string | null;
       accountId: string;
       emailVerified: Date | null;
       deleted: boolean;
@@ -35,6 +36,7 @@ declare module "next-auth/jwt" {
     email: string | null;
     name: string;
     role: Role;
+    phone: string | null;
     accountId: string;
     emailVerified: Date | null;
     deleted: boolean;
@@ -118,6 +120,7 @@ export const authConfig = {
           email: user.email,
           name: user.name,
           role: user.role,
+          phone: user.phone,
           accountId: account.id,
           emailVerified: user.emailVerified,
           deleted: user.deleted !== null,
@@ -155,6 +158,7 @@ export const authConfig = {
         token.role = user.role;
         token.accountId = user.accountId;
         token.emailVerified = user.emailVerified;
+        token.phone = user.phone;
         token.deleted = user.deleted;
         token.hasBudget = user.hasBudget;
       }
@@ -186,6 +190,7 @@ export const authConfig = {
         session.user.role = token.role;
         session.user.accountId = token.accountId;
         session.user.emailVerified = token.emailVerified;
+        session.user.phone = token.phone;
         session.user.deleted = token.deleted;
         session.user.hasBudget = token.hasBudget;
       }

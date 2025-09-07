@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import CreateUserModal from "@/components/CreateUserModal";
+import DeleteAccountModal from "@/components/DeleteAccountModal";
 import {
   User as UserIcon,
   Shield,
@@ -14,9 +15,11 @@ import {
   Users,
   Plus,
   Home,
+  Trash2,
 } from "lucide-react";
 import Button from "@/components/Button";
 import { Role } from "@prisma/client";
+import { useUpdateProfile } from "@/lib/data-hooks/users/useUser";
 
 const SettingsPage = () => {
   const { data: session } = useSession();
@@ -24,13 +27,30 @@ const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const updateProfileMutation = useUpdateProfile();
 
   // Form states
   const [profileForm, setProfileForm] = useState({
     name: session?.user?.name ?? "",
     email: session?.user?.email ?? "",
+    role: session?.user?.role ?? "",
+    phone: session?.user?.phone ?? "",
     bio: "",
   });
+
+  // Update form when session changes
+  useEffect(() => {
+    if (session?.user) {
+      setProfileForm({
+        name: session.user.name ?? "",
+        email: session.user.email ?? "",
+        role: session.user.role ?? "",
+        phone: session.user.phone ?? "",
+        bio: "",
+      });
+    }
+  }, [session]);
 
   const [preferences, setPreferences] = useState({
     theme: "light",
@@ -56,9 +76,18 @@ const SettingsPage = () => {
     tabs.push({ id: "users", label: "Users", icon: Users });
   }
 
-  const handleProfileSave = () => {
-    // TODO: Implement profile update logic
-    setIsEditingProfile(false);
+  const handleProfileSave = async () => {
+    try {
+      await updateProfileMutation.mutateAsync({
+        name: profileForm.name,
+        email: profileForm.email,
+        phone: profileForm.phone,
+      });
+      setIsEditingProfile(false);
+    } catch (error) {
+      // Error is handled by the mutation
+      console.error("Failed to update profile:", error);
+    }
   };
 
   const handleSignOut = async () => {
@@ -111,39 +140,60 @@ const SettingsPage = () => {
                     </div>
 
                     {isEditingProfile ? (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Full Name
-                          </label>
-                          <input
-                            type="text"
-                            value={profileForm.name}
-                            onChange={(e) =>
-                              setProfileForm({
-                                ...profileForm,
-                                name: e.target.value,
-                              })
-                            }
-                            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          />
+                      <div className="space-y-6">
+                        {/* 2x2 Grid for Name, Email, and Phone */}
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Full Name
+                            </label>
+                            <input
+                              type="text"
+                              value={profileForm.name}
+                              onChange={(e) =>
+                                setProfileForm({
+                                  ...profileForm,
+                                  name: e.target.value,
+                                })
+                              }
+                              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Email
+                            </label>
+                            <input
+                              type="email"
+                              value={profileForm.email}
+                              onChange={(e) =>
+                                setProfileForm({
+                                  ...profileForm,
+                                  email: e.target.value,
+                                })
+                              }
+                              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Phone
+                            </label>
+                            <input
+                              type="tel"
+                              value={profileForm.phone}
+                              onChange={(e) =>
+                                setProfileForm({
+                                  ...profileForm,
+                                  phone: e.target.value,
+                                })
+                              }
+                              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Email
-                          </label>
-                          <input
-                            type="email"
-                            value={profileForm.email}
-                            onChange={(e) =>
-                              setProfileForm({
-                                ...profileForm,
-                                email: e.target.value,
-                              })
-                            }
-                            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          />
-                        </div>
+
+                        {/* Bio field taking full width */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700">
                             Bio
@@ -160,17 +210,33 @@ const SettingsPage = () => {
                             className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                           />
                         </div>
+
+                        {/* Error message */}
+                        {updateProfileMutation.error && (
+                          <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                            <p className="text-sm text-red-600">
+                              {updateProfileMutation.error.message}
+                            </p>
+                          </div>
+                        )}
+
                         <div className="flex justify-end space-x-3">
                           <Button
                             variant="outline"
                             onClick={() => setIsEditingProfile(false)}
+                            disabled={updateProfileMutation.isPending}
                           >
                             <X className="mr-2 h-4 w-4" />
                             Cancel
                           </Button>
-                          <Button onClick={handleProfileSave}>
+                          <Button
+                            onClick={handleProfileSave}
+                            disabled={updateProfileMutation.isPending}
+                          >
                             <Save className="mr-2 h-4 w-4" />
-                            Save Changes
+                            {updateProfileMutation.isPending
+                              ? "Saving..."
+                              : "Save Changes"}
                           </Button>
                         </div>
                       </div>
@@ -190,23 +256,44 @@ const SettingsPage = () => {
                             </button>
                           )}
                         </div>
-                        <div className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Full Name
-                            </label>
-                            <p className="mt-1 text-sm text-gray-900">
-                              {profileForm.name}
-                            </p>
+                        <div className="space-y-6">
+                          {/* 2x2 Grid for Name, Email, Role */}
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">
+                                Full Name
+                              </label>
+                              <p className="mt-1 text-sm text-gray-900">
+                                {profileForm.name}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">
+                                Email
+                              </label>
+                              <p className="mt-1 text-sm text-gray-900">
+                                {profileForm.email}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">
+                                Role
+                              </label>
+                              <p className="mt-1 text-sm text-gray-900">
+                                {profileForm.role}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">
+                                Phone
+                              </label>
+                              <p className="mt-1 text-sm text-gray-900">
+                                {profileForm.phone}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Email
-                            </label>
-                            <p className="mt-1 text-sm text-gray-900">
-                              {profileForm.email}
-                            </p>
-                          </div>
+
+                          {/* Bio field taking full width */}
                           <div>
                             <label className="block text-sm font-medium text-gray-700">
                               Bio
@@ -282,37 +369,41 @@ const SettingsPage = () => {
                           </h3>
                           <button
                             onClick={handleSignOut}
-                            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700"
+                            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-black/60"
                           >
                             Sign Out
                           </button>
                         </div>
                       </div>
 
-                      {/* Delete Account - Coming Soon */}
-                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                      {/* Delete Account */}
+                      <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                         <div className="mb-4 flex items-center justify-between">
                           <h3 className="text-lg font-medium text-gray-900">
                             Delete Account
                           </h3>
-                          <span className="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800">
-                            Coming Soon
-                          </span>
+                          <button
+                            onClick={() => setShowDeleteAccountModal(true)}
+                            className="inline-flex items-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Account
+                          </button>
                         </div>
                         <div className="flex items-start space-x-3">
                           <div className="flex-shrink-0">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100">
-                              <span className="text-sm font-medium text-orange-600">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
+                              <span className="text-sm font-medium text-red-600">
                                 ⚠️
                               </span>
                             </div>
                           </div>
                           <div className="flex-1">
                             <p className="text-sm text-gray-600">
-                              Account deletion functionality is currently under
-                              development. When available, you&apos;ll be able
-                              to permanently remove your account and all
-                              associated data with proper confirmation steps.
+                              Permanently delete your account and all associated
+                              data. This action cannot be undone and will remove
+                              all your budgets, transactions, categories, and
+                              other data.
                             </p>
                           </div>
                         </div>
@@ -533,37 +624,13 @@ const SettingsPage = () => {
         />
       )}
 
-      {/* Delete Account Confirmation Modal */}
-      {/* {isDeletingAccount && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="mx-4 max-w-md rounded-lg bg-white p-6 shadow-xl">
-            <div className="mb-4 flex items-center">
-              <AlertTriangle className="mr-3 h-6 w-6 text-red-500" />
-              <h3 className="text-lg font-medium text-gray-900">
-                Delete Account
-              </h3>
-            </div>
-            <p className="mb-6 text-sm text-gray-500">
-              Are you sure you want to delete your account? This action cannot
-              be undone and will permanently remove all your data.
-            </p>
-            <div className="flex space-x-3">
-              <button
-                onClick={handleDeleteAccount}
-                className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700"
-              >
-                Delete Account
-              </button>
-              <button
-                onClick={() => setIsDeletingAccount(false)}
-                className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )} */}
+      {/* Delete Account Modal */}
+      {showDeleteAccountModal && (
+        <DeleteAccountModal
+          isOpen={showDeleteAccountModal}
+          onClose={() => setShowDeleteAccountModal(false)}
+        />
+      )}
     </div>
   );
 };

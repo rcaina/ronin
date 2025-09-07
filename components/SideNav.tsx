@@ -144,7 +144,7 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
                 </div>
                 <button
                   onClick={handleSignOut}
-                  className="flex w-full items-center gap-2 rounded px-2 py-1 text-sm text-red-600 hover:bg-red-50"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1 text-sm hover:text-black/60"
                 >
                   <LogOut className="h-4 w-4" />
                   Sign Out

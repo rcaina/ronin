@@ -317,7 +317,7 @@ const BudgetsPage = () => {
   ];
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50 pt-16">
+    <div className="flex h-screen flex-col bg-gray-50 pt-16 sm:pt-8 lg:pt-0">
       <PageHeader
         title="Budgets"
         description="Manage your financial budgets and track spending"
