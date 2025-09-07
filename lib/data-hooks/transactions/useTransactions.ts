@@ -4,12 +4,41 @@ import { getTransactions, createTransaction, updateTransaction, deleteTransactio
 import type { CreateTransactionRequest, UpdateTransactionRequest, TransactionWithRelations } from "@/lib/types/transaction";
 import type { CreateCardPaymentSchema } from "@/lib/api-schemas/transactions";
 
-export const useTransactions = () => {
+export const useTransactions = (page = 1, limit = 20) => {
+  const { data: session } = useSession();
+
+  const query = useQuery<{
+    transactions: TransactionWithRelations[];
+    pagination: {
+      page: number;
+      limit: number;
+      totalCount: number;
+      totalPages: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+  }>({
+    queryKey: ["transactions", page, limit],
+    queryFn: () => getTransactions(page, limit),
+    placeholderData: keepPreviousData,
+    enabled: !!session,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  return query;
+};
+
+// Hook for getting all transactions (used in dashboard)
+export const useAllTransactions = () => {
   const { data: session } = useSession();
 
   const query = useQuery<TransactionWithRelations[]>({
-    queryKey: ["transactions"],
-    queryFn: () => getTransactions(),
+    queryKey: ["allTransactions"],
+    queryFn: async () => {
+      // Get all transactions by requesting a large page size
+      const response = await getTransactions(1, 10000);
+      return response.transactions;
+    },
     placeholderData: keepPreviousData,
     enabled: !!session,
     staleTime: 2 * 60 * 1000,

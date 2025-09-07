@@ -8,10 +8,25 @@ import type { User } from "@prisma/client";
 
 export const GET = withUser({
   GET: withUserErrorHandling(async (req: NextRequest, _context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
-    return await prisma.$transaction(async (tx) => {
-      const transactions = await getTransactions(tx, user.accountId);
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get('page') ?? '1');
+    const limit = parseInt(searchParams.get('limit') ?? '20');
+    const offset = (page - 1) * limit;
 
-      return NextResponse.json(transactions, { status: 200 })
+    return await prisma.$transaction(async (tx) => {
+      const { transactions, totalCount } = await getTransactions(tx, user.accountId, { page, limit, offset });
+
+      return NextResponse.json({
+        transactions,
+        pagination: {
+          page,
+          limit,
+          totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+          hasNextPage: page < Math.ceil(totalCount / limit),
+          hasPreviousPage: page > 1,
+        }
+      }, { status: 200 })
     });
   }),
 });

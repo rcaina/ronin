@@ -16,8 +16,39 @@ interface CardPaymentResponse {
   errors?: Array<{ message: string }>;
 }
 
-export const getTransactions = async (): Promise<TransactionWithRelations[]> => 
-  fetch("/api/transactions").then((res) => res.json()) as Promise<TransactionWithRelations[]>;
+export const getTransactions = async (page = 1, limit = 20): Promise<{
+  transactions: TransactionWithRelations[];
+  pagination: {
+    page: number;
+    limit: number;
+    totalCount: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}> => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+  
+  const response = await fetch(`/api/transactions?${params}`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch transactions");
+  }
+  
+  return response.json() as Promise<{
+    transactions: TransactionWithRelations[];
+    pagination: {
+      page: number;
+      limit: number;
+      totalCount: number;
+      totalPages: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+  }>;
+};
 
 export const createTransaction = async (data: CreateTransactionRequest): Promise<TransactionWithRelations> => {
   // // Convert Date objects to ISO strings for API

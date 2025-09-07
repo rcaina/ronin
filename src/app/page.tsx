@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
-import { useTransactions } from "@/lib/data-hooks/transactions/useTransactions";
+import { useAllTransactions } from "@/lib/data-hooks/transactions/useTransactions";
 import {
   TrendingUp,
   TrendingDown,
@@ -29,7 +29,7 @@ export default function HomePage() {
     true,
   ); // Exclude card payments for calculations
   const { data: transactions = [], isLoading: transactionsLoading } =
-    useTransactions();
+    useAllTransactions();
 
   if (status === "loading" || budgetsLoading || transactionsLoading) {
     return <LoadingSpinner message="Loading your financial overview..." />;

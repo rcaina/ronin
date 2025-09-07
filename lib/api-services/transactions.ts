@@ -4,24 +4,50 @@ import type { PrismaClientTx } from "../prisma"
 
 export const getTransactions = async (
   tx: PrismaClientTx,
-  accountId: string
-  ) =>  await tx.transaction.findMany({
-    where: {
-      accountId,
-      deleted: null,
-    },
-    include: {
-      category: {
-        include: {
-          category: true,
-        },
+  accountId: string,
+  pagination?: { page: number; limit: number; offset: number }
+) => {
+  const where = {
+    accountId,
+    deleted: null,
+  };
+
+  const include = {
+    category: {
+      include: {
+        category: true,
       },
-      Budget: true,
     },
-    orderBy: {
-      createdAt: "desc",
-    },
-  })
+    Budget: true,
+  };
+
+  const orderBy = {
+    createdAt: "desc" as const,
+  };
+
+  if (pagination) {
+    const [transactions, totalCount] = await Promise.all([
+      tx.transaction.findMany({
+        where,
+        include,
+        orderBy,
+        skip: pagination.offset,
+        take: pagination.limit,
+      }),
+      tx.transaction.count({ where }),
+    ]);
+
+    return { transactions, totalCount };
+  } else {
+    // For backward compatibility, return all transactions
+    const transactions = await tx.transaction.findMany({
+      where,
+      include,
+      orderBy,
+    });
+    return { transactions, totalCount: transactions.length };
+  }
+}
 
 export const createTransaction = async (
   tx: PrismaClientTx,
