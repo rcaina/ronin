@@ -363,7 +363,7 @@ const BudgetDetailsPage = () => {
                   <EditIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                 </button>
               </div>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
+              <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 <div>
                   <span className="text-xs text-gray-500 sm:text-sm">
                     Strategy:

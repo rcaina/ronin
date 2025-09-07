@@ -13,7 +13,6 @@ import {
   Plus,
   TrendingUp,
   TrendingDown,
-  BarChart3,
   CheckCircle,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -179,55 +178,6 @@ const BudgetsPage = () => {
     // Calculate average daily spending for active budgets
     const averageDailySpending = recentSpending / 7;
 
-    // Calculate budget health metrics for active budgets
-    const budgetHealthScores = activeBudgets.map((budget) => {
-      const budgetIncome = calculateTotalIncome(budget);
-      const budgetSpent = (budget.categories ?? []).reduce(
-        (sum, category) =>
-          sum +
-          (category.transactions ?? []).reduce(
-            (transactionSum, transaction) => {
-              if (transaction.transactionType === TransactionType.RETURN) {
-                // Returns reduce spending (positive amount = refund received)
-                return transactionSum - transaction.amount;
-              } else {
-                // Regular transactions: positive = purchases (increase spending)
-                return transactionSum + transaction.amount;
-              }
-            },
-            0,
-          ),
-        0,
-      );
-      const percentage = roundToCents(
-        budgetIncome > 0 ? (budgetSpent / budgetIncome) * 100 : 0,
-      );
-
-      // Health score: 100 = perfect, 0 = terrible
-      let healthScore = 100;
-      if (percentage > 100) healthScore = 0;
-      else if (percentage > 90) healthScore = 20;
-      else if (percentage > 75) healthScore = 60;
-      else if (percentage > 50) healthScore = 80;
-
-      return { budgetId: budget.id, healthScore, percentage };
-    });
-
-    const averageHealthScore =
-      budgetHealthScores.length > 0
-        ? budgetHealthScores.reduce(
-            (sum, score) => sum + score.healthScore,
-            0,
-          ) / budgetHealthScores.length
-        : 0;
-
-    // Find most and least healthy budgets
-    const sortedByHealth = [...budgetHealthScores].sort(
-      (a, b) => b.healthScore - a.healthScore,
-    );
-    const healthiestBudget = sortedByHealth[0];
-    const leastHealthyBudget = sortedByHealth[sortedByHealth.length - 1];
-
     return {
       totalBudgets,
       activeBudgetsCount,
@@ -238,10 +188,6 @@ const BudgetsPage = () => {
       spendingByGroup,
       recentSpending,
       averageDailySpending,
-      averageHealthScore,
-      healthiestBudget,
-      leastHealthyBudget,
-      budgetHealthScores,
     };
   }, [activeBudgets, completedBudgets, archivedBudgets]);
 
@@ -371,7 +317,7 @@ const BudgetsPage = () => {
   ];
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
+    <div className="flex h-screen flex-col bg-gray-50 pt-16">
       <PageHeader
         title="Budgets"
         description="Manage your financial budgets and track spending"
@@ -417,13 +363,13 @@ const BudgetsPage = () => {
             />
 
             <StatsCard
-              title="Health Score"
-              value={`${budgetStats.averageHealthScore.toFixed(0)}%`}
-              subtitle="Average score"
+              title="Completed Budgets"
+              value={completedBudgets.length}
+              subtitle="Successfully finished"
               icon={
-                <BarChart3 className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
+                <CheckCircle className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
               }
-              iconColor="text-blue-500"
+              iconColor="text-green-500"
             />
           </div>
 
