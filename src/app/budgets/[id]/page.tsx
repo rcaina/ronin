@@ -20,6 +20,7 @@ import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 import StatsCard from "@/components/StatsCard";
 import { type CategoryType, TransactionType } from "@prisma/client";
 import IncomeModal from "@/components/budgets/IncomeModal";
+import BudgetPageNavigation from "@/components/budgets/BudgetPageNavigation";
 import {
   formatDateUTC,
   getCategoryBadgeColor,
@@ -250,7 +251,9 @@ const BudgetDetailsPage = () => {
         ]}
       />
 
-      <div className="flex-1 overflow-hidden pt-16 sm:pt-20 lg:pt-0">
+      <BudgetPageNavigation />
+
+      <div className="flex-1 overflow-hidden pt-16 lg:pt-0">
         <div className="h-full overflow-y-auto">
           <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
             {/* Budget Overview Cards */}

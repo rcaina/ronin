@@ -14,6 +14,7 @@ import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import StatsCard from "@/components/StatsCard";
+import BudgetPageNavigation from "@/components/budgets/BudgetPageNavigation";
 import {
   Target,
   AlertCircle,
@@ -258,11 +259,13 @@ const BudgetCategoriesPage = () => {
         }}
       />
 
-      <div className="flex-1 overflow-hidden">
+      <BudgetPageNavigation />
+
+      <div className="flex-1 overflow-hidden pt-4 lg:pt-0">
         <div className="h-full overflow-y-auto">
-          <div className="mx-auto w-full px-2 py-4 pt-8 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
+          <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
             {/* Stats Cards */}
-            <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
               <StatsCard
                 title="Allocation Status"
                 value={allocationStatus.value}

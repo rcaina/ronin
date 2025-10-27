@@ -17,7 +17,7 @@ interface PageHeaderProps {
     label: string;
     onClick: () => void;
     icon?: ReactNode;
-    variant?: "primary" | "secondary" | "danger";
+    variant?: "primary" | "secondary" | "danger" | "outline" | "ghost";
   }>;
 }
 
@@ -53,7 +53,7 @@ const PageHeader = ({
             </div>
           </div>
           {(action ?? actions) && (
-            <div className="flex w-full flex-row gap-2 sm:w-auto sm:gap-3">
+            <div className="flex w-full flex-row items-center justify-end gap-2 sm:w-auto sm:gap-3">
               {action && (
                 <Button
                   onClick={action.onClick}
@@ -69,12 +69,14 @@ const PageHeader = ({
                   key={index}
                   onClick={actionItem.onClick}
                   variant={actionItem.variant ?? "secondary"}
-                  className="w-full sm:w-auto"
+                  className="w-auto shrink-0 sm:w-auto"
                 >
                   {actionItem.icon && (
-                    <span className="mr-2">{actionItem.icon}</span>
+                    <span className={actionItem.label ? "sm:mr-2" : ""}>
+                      {actionItem.icon}
+                    </span>
                   )}
-                  {actionItem.label}
+                  <span className="hidden sm:inline">{actionItem.label}</span>
                 </Button>
               ))}
             </div>

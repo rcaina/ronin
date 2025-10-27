@@ -30,6 +30,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
 import StatsCard from "@/components/StatsCard";
+import BudgetPageNavigation from "@/components/budgets/BudgetPageNavigation";
 
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
@@ -474,11 +475,13 @@ const BudgetTransactionsPage = () => {
         }}
       />
 
-      <div className="flex-1 overflow-hidden pt-16 sm:pt-20 lg:pt-0">
+      <BudgetPageNavigation />
+
+      <div className="flex-1 overflow-hidden pt-16 lg:pt-0">
         <div className="h-full overflow-y-auto">
           <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
             {/* Stats Cards */}
-            <div className="mb-4 grid grid-cols-1 gap-3 sm:mb-6 sm:grid-cols-2 lg:gap-4">
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
               <StatsCard
                 title="Transactions"
                 value={filteredAndSortedTransactions.length}

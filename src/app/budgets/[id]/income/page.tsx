@@ -22,6 +22,7 @@ import Button from "@/components/Button";
 import IncomeModal from "@/components/budgets/IncomeModal";
 import InlineIncomeEdit from "@/components/budgets/InlineIncomeEdit";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import BudgetPageNavigation from "@/components/budgets/BudgetPageNavigation";
 
 interface Income {
   id: string;
@@ -190,7 +191,9 @@ export default function IncomePage() {
         }}
       />
 
-      <div className="flex-1 overflow-hidden pt-16 sm:pt-20 lg:pt-0">
+      <BudgetPageNavigation />
+
+      <div className="flex-1 overflow-hidden pt-16 lg:pt-0">
         <div className="h-full overflow-y-auto">
           <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
             {/* Search and Filters */}
