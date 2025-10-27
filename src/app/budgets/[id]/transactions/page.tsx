@@ -21,6 +21,7 @@ import {
   Target,
   Receipt,
   TrendingDown,
+  Plus,
 } from "lucide-react";
 
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
@@ -34,6 +35,7 @@ import Button from "@/components/Button";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { TransactionType } from "@prisma/client";
 import { getGroupColor, getCategoryBadgeColor } from "@/lib/utils";
+import { useBudgetHeader } from "../BudgetHeaderContext";
 
 const BudgetTransactionsPage = () => {
   const params = useParams();
@@ -53,6 +55,7 @@ const BudgetTransactionsPage = () => {
   } = useBudget(budgetId);
   const deleteTransactionMutation = useDeleteTransaction();
   const createTransactionMutation = useCreateTransaction();
+  const { setActions } = useBudgetHeader();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -70,6 +73,18 @@ const BudgetTransactionsPage = () => {
     new Set(),
   );
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+
+  // Register header actions
+  useEffect(() => {
+    setActions([
+      {
+        icon: <Plus className="h-4 w-4" />,
+        label: "Add Transaction",
+        onClick: () => setShowAddTransactionModal(true),
+        variant: "primary" as const,
+      },
+    ]);
+  }, [setActions]);
 
   // Filter and sort transactions
   const filteredAndSortedTransactions = useMemo(() => {

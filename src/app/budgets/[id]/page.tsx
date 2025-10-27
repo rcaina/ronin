@@ -9,11 +9,12 @@ import {
   Target,
   EditIcon,
   Info,
+  Plus,
 } from "lucide-react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 import StatsCard from "@/components/StatsCard";
 import { type CategoryType, TransactionType } from "@prisma/client";
@@ -24,6 +25,7 @@ import {
   getGroupColor,
   roundToCents,
 } from "@/lib/utils";
+import { useBudgetHeader } from "./BudgetHeaderContext";
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();
@@ -38,6 +40,25 @@ const BudgetDetailsPage = () => {
     error,
     refetch,
   } = useBudget(id as string, true); // Exclude card payments for calculations
+  const { setActions } = useBudgetHeader();
+
+  // Register header actions
+  useEffect(() => {
+    setActions([
+      {
+        icon: <Plus className="h-4 w-4" />,
+        label: "Add Transaction",
+        onClick: () => setIsAddTransactionOpen(true),
+        variant: "primary" as const,
+      },
+      {
+        icon: <DollarSign className="h-4 w-4" />,
+        label: "Pay Credit Card",
+        onClick: () => setIsCardPaymentOpen(true),
+        variant: "secondary" as const,
+      },
+    ]);
+  }, [setActions]);
 
   if (isLoading) {
     return <LoadingSpinner message="Loading budget..." />;
