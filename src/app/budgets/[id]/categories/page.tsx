@@ -118,7 +118,7 @@ const BudgetCategoriesPage = () => {
 
     const othersCount = categoriesOverBudget - 1;
     return {
-      text: `$${totalOverBudget.toFixed(2)} over - ${overBudgetCategories[0]?.category.name} plus ${othersCount} others`,
+      text: `$${totalOverBudget.toFixed(2)} over ${othersCount} categories`,
       tooltip: overBudgetCategories.map((cat) => ({
         name: cat.category.name,
         amount: roundToCents(

@@ -61,6 +61,7 @@ const CardDetailsPage = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [showCardPaymentModal, setShowCardPaymentModal] = useState(false);
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
 
   // Form state for editing
   const [editFormData, setEditFormData] = useState({
@@ -517,7 +518,10 @@ const CardDetailsPage = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {transactions.slice(0, 10).map((transaction) => (
+                {(showAllTransactions
+                  ? transactions
+                  : transactions.slice(0, 10)
+                ).map((transaction) => (
                   <div
                     key={transaction.id}
                     className="flex items-center justify-between rounded-lg border bg-white p-4 shadow-sm"
@@ -570,13 +574,13 @@ const CardDetailsPage = () => {
                   <div className="text-center">
                     <Button
                       onClick={() =>
-                        router.push(
-                          `/budgets/${params.id}/transactions?card=${cardId}`,
-                        )
+                        setShowAllTransactions(!showAllTransactions)
                       }
                       variant="secondary"
                     >
-                      View All Transactions
+                      {showAllTransactions
+                        ? "Show Less"
+                        : "View All Transactions"}
                     </Button>
                   </div>
                 )}
