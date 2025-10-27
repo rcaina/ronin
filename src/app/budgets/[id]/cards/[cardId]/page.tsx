@@ -61,6 +61,7 @@ const CardDetailsPage = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [showCardPaymentModal, setShowCardPaymentModal] = useState(false);
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
 
   // Form state for editing
   const [editFormData, setEditFormData] = useState({
@@ -273,6 +274,7 @@ const CardDetailsPage = () => {
                         label: "Pay Credit Card",
                         onClick: handleOpenCardPaymentModal,
                         icon: <CreditCard className="h-4 w-4" />,
+                        variant: "outline" as const,
                       },
                     ]
                   : []),
@@ -281,307 +283,314 @@ const CardDetailsPage = () => {
         ]}
       />
 
-      <div className="flex-1 overflow-auto">
-        <div className="mx-auto px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
-          {/* Card Stats */}
-          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-            <StatsCard
-              title="Total Spent"
-              value={`$${totalSpent.toLocaleString()}`}
-              subtitle="All time"
-              icon={
-                <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-green-500"
-            />
+      <div className="flex-1 overflow-hidden pt-16 lg:pt-0">
+        <div className="h-full overflow-y-auto">
+          <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
+            {/* Card Stats */}
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
+              <StatsCard
+                title="Total Spent"
+                value={`$${totalSpent.toLocaleString()}`}
+                subtitle="All time"
+                icon={
+                  <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
+                }
+                iconColor="text-green-500"
+              />
 
-            {mappedCard.spendingLimit && (
-              <>
-                <StatsCard
-                  title="Available Credit"
-                  value={`$${availableCredit.toLocaleString()}`}
-                  subtitle={`${utilizationRate.toFixed(1)}% utilized`}
-                  icon={
-                    <CreditCard className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
-                  }
-                  iconColor="text-blue-500"
-                />
+              {mappedCard.spendingLimit && (
+                <>
+                  <StatsCard
+                    title="Available Credit"
+                    value={`$${availableCredit.toLocaleString()}`}
+                    subtitle={`${utilizationRate.toFixed(1)}% utilized`}
+                    icon={
+                      <CreditCard className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
+                    }
+                    iconColor="text-blue-500"
+                  />
 
-                <StatsCard
-                  title="Credit Limit"
-                  value={`$${mappedCard.spendingLimit.toLocaleString()}`}
-                  subtitle="Total limit"
-                  icon={
-                    <CreditCard className="h-4 w-4 text-indigo-500 sm:h-5 sm:w-5" />
-                  }
-                  iconColor="text-indigo-500"
-                />
-              </>
-            )}
-
-            <StatsCard
-              title="Transactions"
-              value={transactions.length}
-              subtitle="Total transactions"
-              icon={
-                <Calendar className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-purple-500"
-            />
-          </div>
-
-          {/* Card Info */}
-          <div className="mb-6 rounded-xl border bg-white p-4 shadow-sm">
-            <h3 className="mb-4 flex items-center justify-between">
-              <span className="text-lg font-semibold text-gray-900">
-                Card Information
-              </span>
-              {isCardOwner && (
-                <button
-                  onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                    e.stopPropagation();
-                    handleEditCard();
-                  }}
-                  title="Edit"
-                  className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-primary"
-                >
-                  <Edit className="h-4 w-4" />
-                </button>
+                  <StatsCard
+                    title="Credit Limit"
+                    value={`$${mappedCard.spendingLimit.toLocaleString()}`}
+                    subtitle="Total limit"
+                    icon={
+                      <CreditCard className="h-4 w-4 text-indigo-500 sm:h-5 sm:w-5" />
+                    }
+                    iconColor="text-indigo-500"
+                  />
+                </>
               )}
-            </h3>
 
-            {isEditing && isCardOwner ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Card Name
-                    </label>
-                    <input
-                      type="text"
-                      value={editFormData.name}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      placeholder="Enter card name"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Card Type
-                    </label>
-                    <select
-                      value={editFormData.cardType}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          cardType: e.target.value as CardType,
-                        }))
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value={CardType.CASH}>Cash</option>
-                      <option value={CardType.DEBIT}>Debit</option>
-                      <option value={CardType.CREDIT}>Credit</option>
-                      <option value={CardType.BUSINESS_DEBIT}>
-                        Business Debit
-                      </option>
-                      <option value={CardType.BUSINESS_CREDIT}>
-                        Business Credit
-                      </option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Spending Limit
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={editFormData.spendingLimit}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          spendingLimit: e.target.value,
-                        }))
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      placeholder="Enter spending limit"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Owner
-                    </label>
-                    <select
-                      value={editFormData.userId}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          userId: e.target.value,
-                        }))
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                      {users.map((user) => (
-                        <option key={user.id} value={user.id}>
-                          {user.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button
-                    onClick={handleCancelEdit}
-                    variant="secondary"
-                    size="sm"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      void handleSubmitCard(editFormData);
-                    }}
-                    variant="primary"
-                    size="sm"
-                    isLoading={updateCardMutation.isPending}
-                  >
-                    Save Changes
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="flex items-center gap-3">
-                  <CreditCard className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Type</p>
-                    <p className="text-sm capitalize text-gray-500">
-                      {card.cardType.toLowerCase().replace("_", " ")}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <User className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Owner</p>
-                    <p className="text-sm text-gray-500">{card.user.name}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Created</p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(card.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Transactions Section */}
-          <div className="mb-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Recent Transactions
-              </h2>
+              <StatsCard
+                title="Transactions"
+                value={transactions.length}
+                subtitle="Total transactions"
+                icon={
+                  <Calendar className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
+                }
+                iconColor="text-purple-500"
+              />
             </div>
 
-            {transactionsLoading ? (
-              <LoadingSpinner message="Loading transactions..." />
-            ) : transactions.length === 0 ? (
-              <div className="rounded-xl border-2 border-dashed border-gray-300 bg-white py-12 text-center">
-                <Calendar className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-                <h3 className="mb-2 text-lg font-medium text-gray-900">
-                  No transactions yet
-                </h3>
-                <p className="mb-6 text-sm text-gray-500">
-                  Add your first transaction to this card to get started
-                </p>
+            {/* Card Info */}
+            <div className="mb-6 rounded-xl border bg-white p-4 shadow-sm">
+              <h3 className="mb-4 flex items-center justify-between">
+                <span className="text-lg font-semibold text-gray-900">
+                  Card Information
+                </span>
                 {isCardOwner && (
-                  <Button
-                    onClick={handleOpenAddTransactionModal}
-                    variant="primary"
+                  <button
+                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                      e.stopPropagation();
+                      handleEditCard();
+                    }}
+                    title="Edit"
+                    className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-primary"
                   >
-                    <Plus className="h-4 w-4" />
-                    Add Transaction
-                  </Button>
+                    <Edit className="h-4 w-4" />
+                  </button>
                 )}
+              </h3>
+
+              {isEditing && isCardOwner ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Card Name
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.name}
+                        onChange={(e) =>
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="Enter card name"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Card Type
+                      </label>
+                      <select
+                        value={editFormData.cardType}
+                        onChange={(e) =>
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            cardType: e.target.value as CardType,
+                          }))
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      >
+                        <option value={CardType.CASH}>Cash</option>
+                        <option value={CardType.DEBIT}>Debit</option>
+                        <option value={CardType.CREDIT}>Credit</option>
+                        <option value={CardType.BUSINESS_DEBIT}>
+                          Business Debit
+                        </option>
+                        <option value={CardType.BUSINESS_CREDIT}>
+                          Business Credit
+                        </option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Spending Limit
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editFormData.spendingLimit}
+                        onChange={(e) =>
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            spendingLimit: e.target.value,
+                          }))
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="Enter spending limit"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Owner
+                      </label>
+                      <select
+                        value={editFormData.userId}
+                        onChange={(e) =>
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            userId: e.target.value,
+                          }))
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      >
+                        {users.map((user) => (
+                          <option key={user.id} value={user.id}>
+                            {user.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button
+                      onClick={handleCancelEdit}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        void handleSubmitCard(editFormData);
+                      }}
+                      variant="primary"
+                      size="sm"
+                      isLoading={updateCardMutation.isPending}
+                    >
+                      Save Changes
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="flex items-center gap-3">
+                    <CreditCard className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Type</p>
+                      <p className="text-sm capitalize text-gray-500">
+                        {card.cardType.toLowerCase().replace("_", " ")}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <User className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Owner</p>
+                      <p className="text-sm text-gray-500">{card.user.name}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        Created
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(card.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Transactions Section */}
+            <div className="mb-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Recent Transactions
+                </h2>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {transactions.slice(0, 10).map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center justify-between rounded-lg border bg-white p-4 shadow-sm"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900">
-                            {transaction.name ?? "Unnamed Transaction"}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {transaction.category?.category?.name ??
-                              "Uncategorized"}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p
-                            className={`font-semibold ${
-                              transaction.transactionType ===
+
+              {transactionsLoading ? (
+                <LoadingSpinner message="Loading transactions..." />
+              ) : transactions.length === 0 ? (
+                <div className="rounded-xl border-2 border-dashed border-gray-300 bg-white py-12 text-center">
+                  <Calendar className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+                  <h3 className="mb-2 text-lg font-medium text-gray-900">
+                    No transactions yet
+                  </h3>
+                  <p className="mb-6 text-sm text-gray-500">
+                    Add your first transaction to this card to get started
+                  </p>
+                  {isCardOwner && (
+                    <Button
+                      onClick={handleOpenAddTransactionModal}
+                      variant="primary"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Transaction
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {(showAllTransactions
+                    ? transactions
+                    : transactions.slice(0, 10)
+                  ).map((transaction) => (
+                    <div
+                      key={transaction.id}
+                      className="flex items-center justify-between rounded-lg border bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">
+                              {transaction.name ?? "Unnamed Transaction"}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {transaction.category?.category?.name ??
+                                "Uncategorized"}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p
+                              className={`font-semibold ${
+                                transaction.transactionType ===
+                                  TransactionType.CARD_PAYMENT ||
+                                transaction.transactionType ===
+                                  TransactionType.RETURN
+                                  ? "text-red-600" // Always red for card payments and returns
+                                  : transaction.amount >= 0
+                                    ? "text-green-600"
+                                    : "text-red-600"
+                              }`}
+                            >
+                              {transaction.transactionType ===
                                 TransactionType.CARD_PAYMENT ||
                               transaction.transactionType ===
                                 TransactionType.RETURN
-                                ? "text-red-600" // Always red for card payments and returns
+                                ? "-$" // Always negative for card payments and returns
                                 : transaction.amount >= 0
-                                  ? "text-green-600"
-                                  : "text-red-600"
-                            }`}
-                          >
-                            {transaction.transactionType ===
-                              TransactionType.CARD_PAYMENT ||
-                            transaction.transactionType ===
-                              TransactionType.RETURN
-                              ? "-$" // Always negative for card payments and returns
-                              : transaction.amount >= 0
-                                ? "+$"
-                                : "$"}
-                            {Math.abs(transaction.amount).toFixed(2)}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(
-                              transaction.createdAt,
-                            ).toLocaleDateString()}
-                          </p>
+                                  ? "+$"
+                                  : "$"}
+                              {Math.abs(transaction.amount).toFixed(2)}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(
+                                transaction.createdAt,
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                {transactions.length > 10 && (
-                  <div className="text-center">
-                    <Button
-                      onClick={() =>
-                        router.push(
-                          `/budgets/${params.id}/transactions?card=${cardId}`,
-                        )
-                      }
-                      variant="secondary"
-                    >
-                      View All Transactions
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
+                  ))}
+                  {transactions.length > 10 && (
+                    <div className="text-center">
+                      <Button
+                        onClick={() =>
+                          setShowAllTransactions(!showAllTransactions)
+                        }
+                        variant="secondary"
+                      >
+                        {showAllTransactions
+                          ? "Show Less"
+                          : "View All Transactions"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

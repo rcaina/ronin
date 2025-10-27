@@ -28,7 +28,7 @@ export default function BudgetCategoryCard({
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
     null,
   );
-  const [editingAmount, setEditingAmount] = useState<number>(0);
+  const [editingAmount, setEditingAmount] = useState<string | number>(0);
   const [editingName, setEditingName] = useState<string>("");
   const [categoryToDelete, setCategoryToDelete] = useState<{
     id: string;
@@ -72,12 +72,18 @@ export default function BudgetCategoryCard({
   const handleSaveCategory = async () => {
     if (!editingCategoryId) return;
 
+    // Parse the amount to a valid number
+    const amount =
+      typeof editingAmount === "string"
+        ? parseFloat(editingAmount) || 0
+        : editingAmount;
+
     try {
       await updateBudgetCategoryMutation.mutateAsync({
         budgetId: budgetId,
         categoryId: editingCategoryId,
         data: {
-          allocatedAmount: editingAmount,
+          allocatedAmount: amount,
           categoryName: editingName,
         },
       });
@@ -224,13 +230,21 @@ export default function BudgetCategoryCard({
                 <div className="flex items-center space-x-1">
                   <span className="text-sm text-gray-500">$</span>
                   <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={editingAmount}
-                    onChange={(e) =>
-                      setEditingAmount(parseFloat(e.target.value) || 0)
+                    type="text"
+                    value={
+                      typeof editingAmount === "number"
+                        ? editingAmount === 0
+                          ? ""
+                          : String(editingAmount)
+                        : editingAmount
                     }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Allow digits and one period for decimals
+                      if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                        setEditingAmount(value);
+                      }
+                    }}
                     className="w-20 rounded-md border border-gray-300 px-1 py-0.5 text-right text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>

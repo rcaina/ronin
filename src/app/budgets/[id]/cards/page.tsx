@@ -17,6 +17,7 @@ import { default as CardComponent } from "@/components/cards/Card";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import AddCardForm from "@/components/cards/AddCardForm";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
+import BudgetPageNavigation from "@/components/budgets/BudgetPageNavigation";
 import {
   useDeleteCard,
   useCreateCard,
@@ -338,6 +339,8 @@ const BudgetCardsPage = () => {
           },
         }}
       />
+
+      <BudgetPageNavigation />
 
       <div className="flex-1 overflow-hidden pt-20 sm:pt-20 lg:pt-0">
         <div className="h-full overflow-y-auto">
