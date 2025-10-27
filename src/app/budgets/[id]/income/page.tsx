@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams } from "next/navigation";
 import {
   Search,
@@ -21,6 +21,7 @@ import Button from "@/components/Button";
 import IncomeModal from "@/components/budgets/IncomeModal";
 import InlineIncomeEdit from "@/components/budgets/InlineIncomeEdit";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import { useBudgetHeader } from "../BudgetHeaderContext";
 
 interface Income {
   id: string;
@@ -43,6 +44,19 @@ export default function IncomePage() {
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
 
   const { data: budget, isLoading, refetch } = useBudget(budgetId);
+  const { setActions } = useBudgetHeader();
+
+  // Register header actions
+  useEffect(() => {
+    setActions([
+      {
+        icon: <Plus className="h-4 w-4" />,
+        label: "Add Income Source",
+        onClick: () => setIsIncomeModalOpen(true),
+        variant: "primary" as const,
+      },
+    ]);
+  }, [setActions]);
 
   const incomes = useMemo(() => {
     return budget?.incomes ?? [];

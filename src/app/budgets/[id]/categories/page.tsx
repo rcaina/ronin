@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BudgetCategoriesGridView from "@/components/budgets/BudgetCategoriesGridView";
 import BudgetCategoriesViewToggle, {
   type BudgetCategoriesViewType,
@@ -20,8 +20,11 @@ import {
   DollarSign,
   HandCoins,
   Info,
+  Plus,
 } from "lucide-react";
 import { roundToCents } from "@/lib/utils";
+import { useBudgetHeader } from "../BudgetHeaderContext";
+import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 
 const BudgetCategoriesPage = () => {
   const { id } = useParams();
@@ -33,6 +36,20 @@ const BudgetCategoriesPage = () => {
   } = useBudget(budgetId);
   const [view, setView] = useState<BudgetCategoriesViewType>("grid");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
+  const { setActions } = useBudgetHeader();
+
+  // Register header actions
+  useEffect(() => {
+    setActions([
+      {
+        icon: <Plus className="h-4 w-4" />,
+        label: "Add Transaction",
+        onClick: () => setIsAddTransactionOpen(true),
+        variant: "primary" as const,
+      },
+    ]);
+  }, [setActions]);
 
   // Use the search query in the hook
   const {
@@ -239,109 +256,119 @@ const BudgetCategoriesPage = () => {
   };
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
-        {/* Stats Cards */}
-        <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-          <StatsCard
-            title="Allocation Status"
-            value={allocationStatus.value}
-            subtitle={allocationStatus.subtitle}
-            icon={allocationStatus.icon}
-            iconColor={allocationStatus.iconColor}
-            valueColor={allocationStatus.valueColor}
-          />
-          <StatsCard
-            title="Completed Categories"
-            value={completedCategories}
-            subtitle={`of ${totalCategories} total`}
-            icon={<CheckCircle className="h-4 w-4" />}
-            iconColor="text-green-500"
-            valueColor="text-green-600"
-          />
-          <div className="group relative">
+    <>
+      <div className="h-full overflow-y-auto">
+        <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
+          {/* Stats Cards */}
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
             <StatsCard
-              title="Categories Over Budget"
-              value={categoriesOverBudget}
-              subtitle={getOverBudgetSubtitle().text}
-              icon={
-                categoriesOverBudget > 0 ? (
-                  <AlertCircle className="h-4 w-4" />
-                ) : (
-                  <CheckCircle className="h-4 w-4" />
-                )
-              }
-              iconColor={
-                categoriesOverBudget > 0 ? "text-red-500" : "text-green-500"
-              }
-              valueColor={
-                categoriesOverBudget > 0 ? "text-red-600" : "text-green-600"
-              }
+              title="Allocation Status"
+              value={allocationStatus.value}
+              subtitle={allocationStatus.subtitle}
+              icon={allocationStatus.icon}
+              iconColor={allocationStatus.iconColor}
+              valueColor={allocationStatus.valueColor}
             />
+            <StatsCard
+              title="Completed Categories"
+              value={completedCategories}
+              subtitle={`of ${totalCategories} total`}
+              icon={<CheckCircle className="h-4 w-4" />}
+              iconColor="text-green-500"
+              valueColor="text-green-600"
+            />
+            <div className="group relative">
+              <StatsCard
+                title="Categories Over Budget"
+                value={categoriesOverBudget}
+                subtitle={getOverBudgetSubtitle().text}
+                icon={
+                  categoriesOverBudget > 0 ? (
+                    <AlertCircle className="h-4 w-4" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4" />
+                  )
+                }
+                iconColor={
+                  categoriesOverBudget > 0 ? "text-red-500" : "text-green-500"
+                }
+                valueColor={
+                  categoriesOverBudget > 0 ? "text-red-600" : "text-green-600"
+                }
+              />
 
-            {/* Tooltip for over budget categories */}
-            {getOverBudgetSubtitle().tooltip && (
-              <div className="absolute left-1/2 top-full z-10 mt-2 min-w-[200px] -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 shadow-lg transition-opacity duration-200 group-hover:opacity-100">
-                <div className="mb-2 flex items-center gap-2">
-                  <Info className="h-4 w-4 text-blue-300" />
-                  <span className="font-medium">Categories Over Budget:</span>
+              {/* Tooltip for over budget categories */}
+              {getOverBudgetSubtitle().tooltip && (
+                <div className="absolute left-1/2 top-full z-10 mt-2 min-w-[200px] -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 shadow-lg transition-opacity duration-200 group-hover:opacity-100">
+                  <div className="mb-2 flex items-center gap-2">
+                    <Info className="h-4 w-4 text-blue-300" />
+                    <span className="font-medium">Categories Over Budget:</span>
+                  </div>
+                  <div className="space-y-1">
+                    {getOverBudgetSubtitle().tooltip!.map((cat, index) => (
+                      <div
+                        key={index}
+                        className="flex justify-between gap-4 text-xs"
+                      >
+                        <span className="text-gray-200">{cat.name}</span>
+                        <span className="text-red-300">
+                          ${(cat.amount - cat.allocated).toFixed(2)} over
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="absolute bottom-full left-1/2 h-0 w-0 -translate-x-1/2 transform border-b-4 border-l-4 border-r-4 border-transparent border-b-gray-900"></div>
                 </div>
-                <div className="space-y-1">
-                  {getOverBudgetSubtitle().tooltip!.map((cat, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between gap-4 text-xs"
-                    >
-                      <span className="text-gray-200">{cat.name}</span>
-                      <span className="text-red-300">
-                        ${(cat.amount - cat.allocated).toFixed(2)} over
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className="absolute bottom-full left-1/2 h-0 w-0 -translate-x-1/2 transform border-b-4 border-l-4 border-r-4 border-transparent border-b-gray-900"></div>
-              </div>
-            )}
-          </div>
-          <StatsCard
-            title="Total Income"
-            value={`$${totalIncome.toLocaleString()}`}
-            subtitle="Available to allocate"
-            icon={<DollarSign className="h-4 w-4" />}
-            iconColor="text-green-500"
-            valueColor="text-green-600"
-          />
-        </div>
-
-        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex-1">
-            <BudgetCategoriesSearch
-              onSearchChange={handleSearchChange}
-              searchQuery={searchQuery}
+              )}
+            </div>
+            <StatsCard
+              title="Total Income"
+              value={`$${totalIncome.toLocaleString()}`}
+              subtitle="Available to allocate"
+              icon={<DollarSign className="h-4 w-4" />}
+              iconColor="text-green-500"
+              valueColor="text-green-600"
             />
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4">
-            <BudgetCategoriesViewToggle view={view} onViewChange={setView} />
-          </div>
-        </div>
 
-        {view === "grid" ? (
-          <BudgetCategoriesGridView
-            budgetId={budgetId}
-            getGroupColor={getGroupColor}
-            getGroupLabel={getGroupLabel}
-            budgetCategories={budgetCategories}
-          />
-        ) : (
-          <BudgetCategoriesListView
-            budgetId={budgetId}
-            getGroupColor={getGroupColor}
-            getGroupLabel={getGroupLabel}
-            budgetCategories={budgetCategories}
-          />
-        )}
+          <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex-1">
+              <BudgetCategoriesSearch
+                onSearchChange={handleSearchChange}
+                searchQuery={searchQuery}
+              />
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4">
+              <BudgetCategoriesViewToggle view={view} onViewChange={setView} />
+            </div>
+          </div>
+
+          {view === "grid" ? (
+            <BudgetCategoriesGridView
+              budgetId={budgetId}
+              getGroupColor={getGroupColor}
+              getGroupLabel={getGroupLabel}
+              budgetCategories={budgetCategories}
+            />
+          ) : (
+            <BudgetCategoriesListView
+              budgetId={budgetId}
+              getGroupColor={getGroupColor}
+              getGroupLabel={getGroupLabel}
+              budgetCategories={budgetCategories}
+            />
+          )}
+        </div>
       </div>
-    </div>
+
+      {isAddTransactionOpen && (
+        <AddTransactionModal
+          isOpen={isAddTransactionOpen}
+          budgetId={budgetId}
+          onClose={() => setIsAddTransactionOpen(false)}
+        />
+      )}
+    </>
   );
 };
 
