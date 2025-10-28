@@ -537,8 +537,7 @@ const CardDetailsPage = () => {
                               {transaction.name ?? "Unnamed Transaction"}
                             </p>
                             <p className="text-sm text-gray-500">
-                              {transaction.category?.category?.name ??
-                                "Uncategorized"}
+                              {transaction.category?.name ?? "Uncategorized"}
                             </p>
                           </div>
                           <div className="text-right">

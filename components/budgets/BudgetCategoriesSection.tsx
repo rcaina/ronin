@@ -43,7 +43,8 @@ export default function BudgetCategoriesSection({
                 0,
               );
               const totalAllocated = (budget.categories ?? []).reduce(
-                (sum: number, category) => sum + category.allocatedAmount,
+                (sum: number, category) =>
+                  sum + (category.allocatedAmount ?? 0),
                 0,
               );
               const allocationRemaining = totalIncome - totalAllocated;

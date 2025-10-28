@@ -22,6 +22,7 @@ const navItems: NavItem[] = [
   { href: "/", icon: "📊", label: "Overview" },
   { href: "/budgets", icon: "🎯", label: "Budgets" },
   { href: "/transactions", icon: "🧾", label: "Transactions" },
+  { href: "/categories", icon: "📂", label: "Categories" },
   { href: "/settings", icon: "⚙️", label: "Settings" },
 ];
 
@@ -84,7 +85,11 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
 
         <nav className="flex flex-col gap-2">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive =
+              item.href === "/"
+                ? pathname === "/"
+                : pathname === item.href ||
+                  pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.href}

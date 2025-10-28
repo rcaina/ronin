@@ -4,18 +4,14 @@ import { useSession } from "next-auth/react";
 
 export type BudgetCategoryWithCategory = {
   id: string;
-  budgetId: string;
-  categoryId: string;
-  allocatedAmount: number;
+  budgetId: string | null;
+  name: string;
+  group: string;
+  allocatedAmount: number | null;
   spentAmount?: number;
   createdAt: Date;
   updatedAt: Date;
   deleted: Date | null;
-  category: {
-    id: string;
-    name: string;
-    group: string;
-  };
   transactions: Array<{
     id: string;
     name: string | null;
@@ -75,37 +71,21 @@ const createBudgetCategory = async (
     throw new Error(`Failed to create budget category: ${response.statusText}`);
   }
 
-  const result = await response.json() as { budgetCategory: BudgetCategoryWithCategory };
-  return result.budgetCategory;
+  const budgetCategory = await response.json() as BudgetCategoryWithCategory;
+  return budgetCategory;
 };
 
 export interface UpdateBudgetCategoryData {
   allocatedAmount?: number;
-  categoryId?: string;
-  categoryName?: string;
+  name?: string;
   group?: CategoryType;
-}
-
-interface BudgetCategoryResponse {
-  id: string;
-  budgetId: string;
-  categoryId: string;
-  allocatedAmount: number;
-  createdAt: string;
-  updatedAt: string;
-  deleted: string | null;
-  category: {
-    id: string;
-    name: string;
-    group: string;
-  };
 }
 
 const updateBudgetCategory = async (
   budgetId: string,
   categoryId: string,
   data: UpdateBudgetCategoryData
-): Promise<BudgetCategoryResponse> => {
+): Promise<BudgetCategoryWithCategory> => {
   const response = await fetch(`/api/budgets/${budgetId}/categories/${categoryId}`, {
     method: "PUT",
     headers: {
@@ -118,8 +98,8 @@ const updateBudgetCategory = async (
     throw new Error(`Failed to update budget category: ${response.statusText}`);
   }
 
-  const result = await response.json() as { budgetCategory: BudgetCategoryResponse };
-  return result.budgetCategory;
+  const budgetCategory = await response.json() as BudgetCategoryWithCategory;
+  return budgetCategory;
 };
 
 const deleteBudgetCategory = async (

@@ -290,11 +290,7 @@ export const getCardTransactions = async (
     deleted: null,
   },
   include: {
-    category: {
-      include: {
-        category: true,
-      },
-    },
+    category: true,
     Budget: true,
     card: {
       select: {

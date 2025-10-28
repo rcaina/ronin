@@ -120,7 +120,7 @@ export default function InlineTransactionEdit({
     <div className="group flex items-center justify-between bg-blue-50 px-3 py-3 sm:px-6 sm:py-4">
       <div className="flex min-w-0 flex-1 items-center space-x-3 sm:space-x-4">
         <div
-          className={`h-3 w-3 flex-shrink-0 rounded-full ${getGroupColor(transaction.category?.category.group ?? CategoryType.NEEDS)}`}
+          className={`h-3 w-3 flex-shrink-0 rounded-full ${getGroupColor(transaction.category?.group ?? CategoryType.NEEDS)}`}
         />
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 space-y-3">
@@ -217,7 +217,7 @@ export default function InlineTransactionEdit({
                     const availableAmount = allocatedAmount - spentAmount;
                     return (
                       <option key={budgetCategory.id} value={budgetCategory.id}>
-                        {budgetCategory.category.name} ($
+                        {budgetCategory.name} ($
                         {availableAmount.toFixed(2)} available)
                       </option>
                     );
@@ -229,7 +229,7 @@ export default function InlineTransactionEdit({
                     (bc) => bc.id === transaction.categoryId,
                   ) && (
                     <option value={transaction.categoryId ?? ""}>
-                      {transaction.category.category.name} (current category)
+                      {transaction.category.name} (current category)
                     </option>
                   )}
               </select>

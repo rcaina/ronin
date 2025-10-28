@@ -53,12 +53,26 @@ const BudgetsPage = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Data hooks for different budget statuses (excluding card payments for calculations)
-  const { data: activeBudgets = [], isLoading: activeLoading } =
+  const { data: activeBudgetsData, isLoading: activeLoading } =
     useActiveBudgets(true);
-  const { data: completedBudgets = [], isLoading: completedLoading } =
+  const { data: completedBudgetsData, isLoading: completedLoading } =
     useCompletedBudgets(true);
-  const { data: archivedBudgets = [], isLoading: archivedLoading } =
+  const { data: archivedBudgetsData, isLoading: archivedLoading } =
     useArchivedBudgets(true);
+
+  // Ensure budgets are always arrays (memoized to avoid unnecessary re-renders)
+  const activeBudgets = useMemo(
+    () => (Array.isArray(activeBudgetsData) ? activeBudgetsData : []),
+    [activeBudgetsData],
+  );
+  const completedBudgets = useMemo(
+    () => (Array.isArray(completedBudgetsData) ? completedBudgetsData : []),
+    [completedBudgetsData],
+  );
+  const archivedBudgets = useMemo(
+    () => (Array.isArray(archivedBudgetsData) ? archivedBudgetsData : []),
+    [archivedBudgetsData],
+  );
 
   // Mutation hooks
   const deleteBudgetMutation = useDeleteBudget();
@@ -125,7 +139,7 @@ const BudgetsPage = () => {
     const spendingByGroup = activeBudgets.reduce(
       (acc, budget) => {
         (budget.categories ?? []).forEach((category) => {
-          const group = category.category?.group.toLowerCase() ?? "unknown";
+          const group = category.group.toLowerCase() ?? "unknown";
           const spent = (category.transactions ?? []).reduce(
             (sum, transaction) => {
               if (transaction.transactionType === TransactionType.RETURN) {
@@ -246,13 +260,13 @@ const BudgetsPage = () => {
   const getCategorySummary = (budget: BudgetWithRelations) => {
     const categories = budget.categories ?? [];
     const needs = categories.filter(
-      (cat) => cat.category?.group === CategoryType.NEEDS,
+      (cat) => cat.group === CategoryType.NEEDS,
     ).length;
     const wants = categories.filter(
-      (cat) => cat.category?.group === CategoryType.WANTS,
+      (cat) => cat.group === CategoryType.WANTS,
     ).length;
     const investments = categories.filter(
-      (cat) => cat.category?.group === CategoryType.INVESTMENT,
+      (cat) => cat.group === CategoryType.INVESTMENT,
     ).length;
 
     return { needs, wants, investments };

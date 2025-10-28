@@ -1,4 +1,4 @@
-import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type BudgetCategory, type Category, type Budget, TransactionType, type CategoryType, type Transaction, type Card, CardType } from "@prisma/client"
+import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type Category, type Budget, TransactionType, type CategoryType, type Transaction, type Card, CardType } from "@prisma/client"
 import { HttpError } from "../errors"
 import { formatBudget, formatBudgetCategories } from "../db/converter"
 import type { PrismaClientTx } from "../prisma"
@@ -48,8 +48,7 @@ export interface UpdateBudgetData {
   }
 }
 
-export type BudgetCategories = (BudgetCategory & { 
-  category: Category, 
+export type BudgetCategories = (Category & { 
   spentAmount: number,
   transactions: Array<{
     id: string;
@@ -79,7 +78,6 @@ export async function getBudgetById(
                 deleted: null,
             },
             include: {
-                category: true,
                 transactions: {
                     where: {
                         deleted: null,
@@ -164,27 +162,14 @@ export async function createBudget(
 
   // Create budget category allocations
   if (data.categoryAllocations && data.categoryAllocations.length > 0) {
-    // Create categories first
-    const createdCategories = await Promise.all(
-      data.categoryAllocations.map(async ({ name, group }) => {
-        return await tx.category.create({
-          data: {
-            name,
-            group,
-          },
-        });
-      })
-    );
-
-    // Create budget category allocations using the created category IDs
-    const budgetCategories = data.categoryAllocations.map(({ allocatedAmount }, index) => ({
-      budgetId: budget.id,
-      categoryId: createdCategories[index]!.id,
-      allocatedAmount,
-    }));
-
-    await tx.budgetCategory.createMany({
-      data: budgetCategories,
+    // Create categories directly with budgetId
+    await tx.category.createMany({
+      data: data.categoryAllocations.map(({ name, group, allocatedAmount }) => ({
+        budgetId: budget.id,
+        name,
+        group,
+        allocatedAmount,
+      })),
     });
   }
 
@@ -235,7 +220,7 @@ export async function updateBudget(
   // Update budget category allocations if provided
   if (data.categoryAllocations) {
     // Delete existing allocations
-    await tx.budgetCategory.updateMany({
+    await tx.category.updateMany({
       where: {
         budgetId: id,
         deleted: null,
@@ -247,41 +232,13 @@ export async function updateBudget(
 
     // Create new allocations
     if (data.categoryAllocations.length > 0) {
-      // Create categories first if they don't exist
-      const createdCategories = await Promise.all(
-        data.categoryAllocations.map(async ({ name, group }) => {
-          // Check if category already exists
-          const existingCategory = await tx.category.findFirst({
-            where: {
-              name,
-              group,
-              deleted: null,
-            },
-          });
-
-          if (existingCategory) {
-            return existingCategory;
-          }
-
-          // Create new category if it doesn't exist
-          return await tx.category.create({
-            data: {
-              name,
-              group,
-            },
-          });
-        })
-      );
-
-      // Create budget category allocations using the category IDs
-      const budgetCategories = data.categoryAllocations.map(({ allocatedAmount }, index) => ({
-        budgetId: id,
-        categoryId: createdCategories[index]!.id,
-        allocatedAmount,
-      }));
-
-      await tx.budgetCategory.createMany({
-        data: budgetCategories,
+      await tx.category.createMany({
+        data: data.categoryAllocations.map(({ name, group, allocatedAmount }) => ({
+          budgetId: id,
+          name,
+          group,
+          allocatedAmount,
+        })),
       });
     }
   }
@@ -319,7 +276,7 @@ export async function deleteBudget(
   })
 
   // Soft delete budget categories
-  await tx.budgetCategory.updateMany({
+  await tx.category.updateMany({
     where: {
       budgetId: id,
       deleted: null,
@@ -350,7 +307,6 @@ export async function getBudgets(
       categories: {
         where: { deleted: null },
         include: {
-          category: true,
           transactions: {
             where: {
               deleted: null,
@@ -365,6 +321,20 @@ export async function getBudgets(
       },
       incomes: {
         where: { deleted: null }
+      },
+      transactions: {
+        where: {
+          deleted: null,
+          categoryId: null,
+          ...(excludeCardPayments && {
+            transactionType: {
+              not: 'CARD_PAYMENT'
+            }
+          }),
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
       },
     },
     orderBy: {
@@ -450,9 +420,9 @@ export async function duplicateBudget(
       categories: {
         where: { deleted: null },
         select: {
-          allocatedAmount: true,
-          categoryId: true,
-          category: true
+          name: true,
+          group: true,
+          allocatedAmount: true
         }
       },
       cards: {
@@ -502,12 +472,13 @@ export async function duplicateBudget(
   }
 
   // Copy budget category allocations
-  for (const budgetCategory of originalBudget.categories) {
-    await tx.budgetCategory.create({
+  for (const category of originalBudget.categories) {
+    await tx.category.create({
       data: {
         budgetId: newBudget.id,
-        categoryId: budgetCategory.categoryId,
-        allocatedAmount: budgetCategory.allocatedAmount,
+        name: category.name,
+        group: category.group,
+        allocatedAmount: category.allocatedAmount,
       },
     });
   }
@@ -534,7 +505,7 @@ export const getBudgetCategories = async (
   budgetId: string,
   searchQuery?: string,
 ): Promise<BudgetCategories> => {
-  const budgetCategories = await tx.budgetCategory.findMany({
+  const categories = await tx.category.findMany({
     where: {
       budgetId: budgetId,
       deleted: null,
@@ -542,11 +513,9 @@ export const getBudgetCategories = async (
         OR: [
           // Search in category name
           {
-            category: {
-              name: {
-                contains: searchQuery.trim(),
-                mode: 'insensitive',
-              },
+            name: {
+              contains: searchQuery.trim(),
+              mode: 'insensitive',
             },
           },
           // Search in allocated amount (exact match for numbers)
@@ -585,7 +554,6 @@ export const getBudgetCategories = async (
       }),
     },
     include: {
-      category: true,
       transactions: {
         where: {
           deleted: null,
@@ -604,18 +572,16 @@ export const getBudgetCategories = async (
       },
     },
     orderBy: {
-      category: {
-        name: 'asc',
-      },
+      name: 'asc',
     },
   });
 
-  const formattedCategories = formatBudgetCategories(budgetCategories);
+  const formattedCategories = formatBudgetCategories(categories);
   
   // Sort categories: incomplete first, completed last, then alphabetically within each group
   return formattedCategories.sort((a, b) => {
-    const aIsCompleted = a.spentAmount >= a.allocatedAmount;
-    const bIsCompleted = b.spentAmount >= b.allocatedAmount;
+    const aIsCompleted = a.spentAmount >= (a.allocatedAmount ?? 0);
+    const bIsCompleted = b.spentAmount >= (b.allocatedAmount ?? 0);
     
     // If completion status is different, incomplete comes first
     if (aIsCompleted !== bIsCompleted) {
@@ -623,7 +589,7 @@ export const getBudgetCategories = async (
     }
     
     // If completion status is the same, sort alphabetically by category name
-    return a.category.name.localeCompare(b.category.name);
+    return a.name.localeCompare(b.name);
   });
 }
 
@@ -636,7 +602,7 @@ export const createBudgetCategory = async (
     allocatedAmount: number;
   },
   user: User & { accountId: string }
-): Promise<BudgetCategory & { category: Category }> => {
+): Promise<Category> => {
   // Verify the budget belongs to the user
   const budget = await tx.budget.findFirst({
     where: {
@@ -650,29 +616,17 @@ export const createBudgetCategory = async (
     throw new HttpError("Budget not found", 404);
   }
 
-  const categoryType = data.group;
+  // Create the category directly with budgetId
+  const category = await tx.category.create({
+    data: {
+      budgetId: budgetId,
+      name: data.categoryName,
+      group: data.group,
+      allocatedAmount: data.allocatedAmount,
+    },
+  });
 
-    // Create the category template first
-    const category = await tx.category.create({
-      data: {
-        name: data.categoryName,
-        group: categoryType,
-      },
-    });
-
-    // Create the budget category
-    const budgetCategory = await tx.budgetCategory.create({
-      data: {
-        budgetId: budgetId,
-        categoryId: category.id,
-        allocatedAmount: data.allocatedAmount,
-      },
-      include: {
-        category: true,
-      },
-    });
-
-    return budgetCategory;
+  return category;
 }; 
 
 export const updateBudgetCategory = async (
@@ -681,7 +635,7 @@ export const updateBudgetCategory = async (
   categoryId: string,
   data: UpdateBudgetCategoryData,
   user: User & { accountId: string }
-): Promise<BudgetCategory & { category: Category }> => {
+): Promise<Category> => {
   // Verify the budget belongs to the user
   const budget = await tx.budget.findFirst({
     where: {
@@ -695,114 +649,44 @@ export const updateBudgetCategory = async (
     throw new HttpError("Budget not found", 404);
   }
 
-  // If updating categoryId, verify the new category exists
-  if (data.categoryId) {
-    const newCategory = await tx.category.findFirst({
-      where: {
-        id: data.categoryId,
-        deleted: null,
-      },
-    });
-
-    if (!newCategory) {
-      throw new HttpError("Category not found", 404);
-    }
-
-    // Check if the new category is already added to this budget
-    const existingBudgetCategory = await tx.budgetCategory.findFirst({
-      where: {
-        budgetId: budgetId,
-        categoryId: data.categoryId,
-        deleted: null,
-      },
-    });
-
-    if (existingBudgetCategory) {
-      throw new HttpError("Category is already added to this budget", 400);
-    }
-  }
-
-  // Update the budget category
-  const updateData: {
-    allocatedAmount?: number;
-    categoryId?: string;
-  } = {};
-  if (data.allocatedAmount !== undefined) {
-    updateData.allocatedAmount = data.allocatedAmount;
-  }
-  if (data.categoryId) {
-    updateData.categoryId = data.categoryId;
-  }
-
-  // If updating group, we need to update the associated category template
-  if (data.group) {
-    const budgetCategory = await tx.budgetCategory.findFirst({
-      where: {
-        id: categoryId,
-        budgetId: budgetId,
-        deleted: null,
-      },
-      include: {
-        category: true,
-      },
-    });
-
-    if (!budgetCategory) {
-      throw new HttpError("Budget category not found", 404);
-    }
-
-    // Update the category template group
-    await tx.category.update({
-      where: {
-        id: budgetCategory.categoryId,
-      },
-      data: {
-        group: data.group,
-      },
-    });
-  }
-
-  // If updating category name, update the associated category template
-  if (data.categoryName) {
-    const budgetCategory = await tx.budgetCategory.findFirst({
-      where: {
-        id: categoryId,
-        budgetId: budgetId,
-        deleted: null,
-      },
-      include: {
-        category: true,
-      },
-    });
-
-    if (!budgetCategory) {
-      throw new HttpError("Budget category not found", 404);
-    }
-
-    // Update the category template name
-      await tx.category.update({
-      where: {
-        id: budgetCategory.categoryId,
-      },
-      data: {
-        name: data.categoryName,
-      },
-    });
-  }
-
-  const updatedBudgetCategory = await tx.budgetCategory.update({
+  // Verify the category exists and belongs to this budget
+  const category = await tx.category.findFirst({
     where: {
       id: categoryId,
       budgetId: budgetId,
       deleted: null,
     },
-    data: updateData,
-    include: {
-      category: true,
-    },
   });
 
-  return updatedBudgetCategory;
+  if (!category) {
+    throw new HttpError("Category not found", 404);
+  }
+
+  // Update the category directly
+  const updateData: {
+    allocatedAmount?: number;
+    name?: string;
+    group?: CategoryType;
+  } = {};
+  
+  if (data.allocatedAmount !== undefined) {
+    updateData.allocatedAmount = data.allocatedAmount;
+  }
+  if (data.name) {
+    updateData.name = data.name;
+  }
+  if (data.group) {
+    updateData.group = data.group;
+  }
+
+  const updatedCategory = await tx.category.update({
+    where: {
+      id: categoryId,
+    },
+    data: updateData,
+  });
+
+  return updatedCategory;
 };
 
 export const deleteBudgetCategory = async (
@@ -810,7 +694,7 @@ export const deleteBudgetCategory = async (
   budgetId: string,
   categoryId: string,
   user: User & { accountId: string }
-): Promise<BudgetCategory> => {
+): Promise<Category> => {
   // Verify the budget belongs to the user
   const budget = await tx.budget.findFirst({
     where: {
@@ -837,8 +721,8 @@ export const deleteBudgetCategory = async (
     throw new HttpError("Cannot delete category with existing transactions", 400);
   }
 
-  // Soft delete the budget category
-  const budgetCategory = await tx.budgetCategory.update({
+  // Soft delete the category
+  const category = await tx.category.update({
     where: {
       id: categoryId,
       budgetId: budgetId,
@@ -849,21 +733,17 @@ export const deleteBudgetCategory = async (
     },
   });
 
-  return budgetCategory;
+  return category;
 };
 
 export const getBudgetTransactions = async (
   tx: PrismaClient,
   budgetId: string,
-): Promise<(Transaction & { category: (BudgetCategory & { category: Category }) | null, Budget: Budget })[]> => {
+): Promise<(Transaction & { category: Category | null, Budget: Budget })[]> => {
   return await tx.transaction.findMany({
     where: { budgetId: budgetId, deleted: null },
     include: {
-      category: {
-        include:{
-          category: true,
-        }
-      },
+      category: true,
       Budget: true,
     },
     orderBy: {

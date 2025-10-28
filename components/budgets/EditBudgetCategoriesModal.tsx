@@ -15,7 +15,7 @@ interface EditBudgetCategoriesModalProps {
 }
 
 interface CategoryAllocation {
-  categoryId: string;
+  id: string;
   name: string;
   group: CategoryType;
   allocatedAmount: number;
@@ -39,7 +39,7 @@ export default function EditBudgetCategoriesModal({
     if (budget && budget.categories) {
       const allocations: CategoryAllocation[] = budget.categories
         .map((budgetCategory) => {
-          if (!budgetCategory.category) return null;
+          if (!budgetCategory) return null;
 
           const currentSpent = (budgetCategory.transactions ?? []).reduce(
             (sum, transaction) => {
@@ -55,10 +55,10 @@ export default function EditBudgetCategoriesModal({
           );
 
           return {
-            categoryId: budgetCategory.categoryId,
-            name: budgetCategory.category.name,
-            group: budgetCategory.category.group,
-            allocatedAmount: budgetCategory.allocatedAmount,
+            id: budgetCategory.id,
+            name: budgetCategory.name,
+            group: budgetCategory.group,
+            allocatedAmount: budgetCategory.allocatedAmount ?? 0,
             currentSpent,
           };
         })
@@ -110,9 +110,7 @@ export default function EditBudgetCategoriesModal({
   const handleAllocationChange = (categoryId: string, amount: number) => {
     setCategoryAllocations((prev) =>
       prev.map((cat) =>
-        cat.categoryId === categoryId
-          ? { ...cat, allocatedAmount: amount }
-          : cat,
+        cat.id === categoryId ? { ...cat, allocatedAmount: amount } : cat,
       ),
     );
   };
@@ -261,7 +259,7 @@ export default function EditBudgetCategoriesModal({
                 <div className="space-y-3">
                   {categories.map((category) => (
                     <div
-                      key={category.categoryId}
+                      key={category.id}
                       className="flex items-center justify-between rounded-lg border p-4"
                     >
                       <div className="flex items-center space-x-3">
@@ -284,7 +282,7 @@ export default function EditBudgetCategoriesModal({
                           value={category.allocatedAmount}
                           onChange={(e) =>
                             handleAllocationChange(
-                              category.categoryId,
+                              category.id,
                               parseFloat(e.target.value) || 0,
                             )
                           }

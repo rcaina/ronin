@@ -43,6 +43,7 @@ export async function getCategories(
   const categories = await tx.category.findMany({
     where: {
       deleted: null,
+      budgetId: null, // Only get default/template categories
     },
     orderBy: {
       name: 'asc',
@@ -89,6 +90,7 @@ export async function createCategory(
     data: {
       name: data.name,
       group: data.group as CategoryType,
+      budgetId: null, // Default categories have no budgetId
     },
   });
 }

@@ -50,17 +50,17 @@ export default function BudgetCategoryCard({
     }, 0),
   );
   const categoryRemaining = roundToCents(
-    budgetCategory.allocatedAmount - categorySpent,
+    (budgetCategory.allocatedAmount ?? 0) - categorySpent,
   );
   const categoryPercentage =
-    budgetCategory.allocatedAmount > 0
+    budgetCategory.allocatedAmount && budgetCategory.allocatedAmount > 0
       ? roundToCents((categorySpent / budgetCategory.allocatedAmount) * 100)
       : 0;
 
   const handleStartEditCategory = () => {
     setEditingCategoryId(budgetCategory.id);
-    setEditingAmount(budgetCategory.allocatedAmount);
-    setEditingName(budgetCategory.category.name);
+    setEditingAmount(budgetCategory.allocatedAmount ?? 0);
+    setEditingName(budgetCategory.name);
   };
 
   const handleCancelEditCategory = () => {
@@ -84,7 +84,7 @@ export default function BudgetCategoryCard({
         categoryId: editingCategoryId,
         data: {
           allocatedAmount: amount,
-          categoryName: editingName,
+          name: editingName,
         },
       });
 
@@ -101,7 +101,7 @@ export default function BudgetCategoryCard({
   const handleDeleteCategory = () => {
     setCategoryToDelete({
       id: budgetCategory.id,
-      name: budgetCategory.category.name,
+      name: budgetCategory.name,
     });
   };
 
@@ -127,7 +127,7 @@ export default function BudgetCategoryCard({
 
   const handleViewAllTransactions = () => {
     router.push(
-      `/budgets/${budgetId}/transactions?category=${budgetCategory.category.id}`,
+      `/budgets/${budgetId}/transactions?category=${budgetCategory.id}`,
     );
   };
 
@@ -166,7 +166,7 @@ export default function BudgetCategoryCard({
             </div>
           ) : (
             <h3 className="text-lg font-semibold text-gray-900">
-              {budgetCategory.category.name}
+              {budgetCategory.name}
             </h3>
           )}
           <div className="flex items-center space-x-2">
@@ -250,7 +250,10 @@ export default function BudgetCategoryCard({
                 </div>
               ) : (
                 <span className="font-medium">
-                  ${budgetCategory.allocatedAmount.toFixed(2).toLocaleString()}
+                  $
+                  {(budgetCategory.allocatedAmount ?? 0)
+                    .toFixed(2)
+                    .toLocaleString()}
                 </span>
               )}
             </div>
@@ -321,7 +324,7 @@ export default function BudgetCategoryCard({
                   <button
                     onClick={handleViewAllTransactions}
                     className="cursor-pointer text-center text-xs text-blue-600 transition-colors hover:text-blue-800 hover:underline"
-                    title={`View all ${budgetCategory.transactions.length} transactions for ${budgetCategory.category.name}`}
+                    title={`View all ${budgetCategory.transactions.length} transactions for ${budgetCategory.name}`}
                   >
                     View all transactions
                   </button>
