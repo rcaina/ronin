@@ -13,7 +13,6 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
-import PageHeader from "@/components/PageHeader";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
@@ -29,6 +28,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import Button from "@/components/Button";
 import { CardType, TransactionType } from "@prisma/client";
 import StatsCard from "@/components/StatsCard";
+import { useBudgetHeader, type HeaderAction } from "../../BudgetHeaderContext";
 
 interface User {
   id: string;
@@ -55,6 +55,7 @@ const CardDetailsPage = () => {
   const { data: budgets = [] } = useBudgets();
   const deleteCardMutation = useDeleteCard();
   const updateCardMutation = useUpdateCard();
+  const { setActions, setTitle, setDescription } = useBudgetHeader();
 
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -203,6 +204,55 @@ const CardDetailsPage = () => {
     setShowCardPaymentModal(true);
   };
 
+  // Set title and description
+  useEffect(() => {
+    if (card) {
+      setTitle(card.name);
+      setDescription(
+        `${card.cardType.toLowerCase().replace("_", " ")} card details`,
+      );
+    }
+  }, [card, setTitle, setDescription]);
+
+  // Register header actions
+  useEffect(() => {
+    if (!card || !isCardOwner) {
+      setActions([]);
+      return;
+    }
+
+    const actions: HeaderAction[] = [
+      {
+        icon: <Plus className="h-4 w-4" />,
+        label: "Add Transaction",
+        onClick: handleOpenAddTransactionModal,
+        variant: "primary",
+      },
+      {
+        icon: <Trash2 className="h-4 w-4" />,
+        label: "Delete Card",
+        onClick: handleDeleteCard,
+        variant: "danger",
+      },
+    ];
+
+    // Add Pay Credit Card button if it's a credit card
+    if (
+      card.cardType === CardType.CREDIT ||
+      card.cardType === CardType.BUSINESS_CREDIT
+    ) {
+      actions.push({
+        icon: <CreditCard className="h-4 w-4" />,
+        label: "Pay Credit Card",
+        onClick: handleOpenCardPaymentModal,
+        variant: "secondary",
+      });
+    }
+
+    setActions(actions);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card, isCardOwner, setActions]);
+
   if (cardLoading) {
     return <LoadingSpinner message="Loading card details..." />;
   }
@@ -237,53 +287,8 @@ const CardDetailsPage = () => {
     : 0;
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
-      <PageHeader
-        title={card.name}
-        //capitilize first letter
-        description={`${card.cardType.toLowerCase().replace("_", " ")} card details`}
-        backButton={{
-          onClick: () => {
-            // Use a more reliable navigation method for mobile
-            if (window.history.length > 1) {
-              window.history.back();
-            } else {
-              // Fallback to budget cards list if no history
-              router.push(`/budgets/${cardId}/cards`);
-            }
-          },
-        }}
-        actions={[
-          ...(isCardOwner
-            ? [
-                {
-                  label: "Add Transaction",
-                  onClick: handleOpenAddTransactionModal,
-                  icon: <Plus className="h-4 w-4" />,
-                },
-                {
-                  label: "Delete Card",
-                  onClick: handleDeleteCard,
-                  icon: <Trash2 className="h-4 w-4" />,
-                  variant: "danger" as const,
-                },
-                ...(card.cardType === CardType.CREDIT ||
-                card.cardType === CardType.BUSINESS_CREDIT
-                  ? [
-                      {
-                        label: "Pay Credit Card",
-                        onClick: handleOpenCardPaymentModal,
-                        icon: <CreditCard className="h-4 w-4" />,
-                        variant: "outline" as const,
-                      },
-                    ]
-                  : []),
-              ]
-            : []),
-        ]}
-      />
-
-      <div className="flex-1 overflow-hidden pt-16 lg:pt-0">
+    <>
+      <div className="flex-1 overflow-hidden">
         <div className="h-full overflow-y-auto">
           <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
             {/* Card Stats */}
@@ -621,7 +626,7 @@ const CardDetailsPage = () => {
         onClose={() => setShowCardPaymentModal(false)}
         currentCardId={cardId ?? ""}
       />
-    </div>
+    </>
   );
 };
 

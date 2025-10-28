@@ -58,10 +58,8 @@ export default function BudgetPageNavigation() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex shrink-0 items-center gap-2 px-3 py-3 text-sm font-medium transition-colors hover:text-primary sm:px-4 ${
-                isActive
-                  ? "text-accent hover:text-accent"
-                  : "text-white hover:text-secondary"
+              className={`flex shrink-0 items-center gap-2 px-3 py-3 text-sm font-medium transition-colors sm:px-4 ${
+                isActive ? "text-accent" : "text-white hover:text-secondary"
               }`}
             >
               {item.icon}
