@@ -93,6 +93,33 @@ export default function AddCategoryForm({
           )}
         </div>
 
+        {/* Category Group */}
+        <div>
+          <label
+            htmlFor="categoryGroup"
+            className="mb-1 block text-sm font-medium text-gray-700"
+          >
+            Category Group
+          </label>
+          <select
+            id="categoryGroup"
+            {...register("group")}
+            className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
+              errors.group
+                ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            }`}
+            disabled={isLoading}
+          >
+            <option value={CategoryType.NEEDS}>Needs</option>
+            <option value={CategoryType.WANTS}>Wants</option>
+            <option value={CategoryType.INVESTMENT}>Investment</option>
+          </select>
+          {errors.group && (
+            <p className="mt-1 text-sm text-red-600">{errors.group.message}</p>
+          )}
+        </div>
+
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
           <Button

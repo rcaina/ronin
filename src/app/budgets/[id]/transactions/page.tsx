@@ -101,9 +101,8 @@ const BudgetTransactionsPage = () => {
             transaction.description?.toLowerCase().includes(searchLower) ??
             false;
           const categoryMatch =
-            transaction.category?.category?.name
-              ?.toLowerCase()
-              .includes(searchLower) ?? false;
+            transaction.category?.name?.toLowerCase().includes(searchLower) ??
+            false;
 
           // Only search amounts if the search term contains numbers
           const searchNumbers = searchLower.replace(/[^0-9.]/g, "");
@@ -130,8 +129,7 @@ const BudgetTransactionsPage = () => {
         // Category filter
         const matchesCategory =
           selectedCategory === "all" ||
-          transaction.category?.id === selectedCategory ||
-          transaction.category?.category.id === selectedCategory;
+          transaction.category?.id === selectedCategory;
 
         // Card filter
         const matchesCard =
@@ -183,16 +181,12 @@ const BudgetTransactionsPage = () => {
       { id: string; name: string; group: string; actualCategoryId: string }
     >();
     transactions.forEach((t) => {
-      if (
-        t.category &&
-        t.category.category &&
-        !uniqueCategories.has(t.category.id)
-      ) {
+      if (t.category && !uniqueCategories.has(t.category.id)) {
         uniqueCategories.set(t.category.id, {
           id: t.category.id,
-          name: t.category.category.name,
-          group: t.category.category.group,
-          actualCategoryId: t.category.category.id,
+          name: t.category.name,
+          group: t.category.group,
+          actualCategoryId: t.category.id,
         });
       }
     });
@@ -711,9 +705,9 @@ const BudgetTransactionsPage = () => {
                                 transaction.transactionType ===
                                 TransactionType.CARD_PAYMENT
                                   ? "bg-gray-200 text-gray-500"
-                                  : transaction.category?.category
+                                  : transaction.category
                                     ? getCategoryBadgeColor(
-                                        transaction.category.category.group,
+                                        transaction.category.group,
                                       )
                                     : getCategoryBadgeColor()
                               }`}
@@ -721,8 +715,7 @@ const BudgetTransactionsPage = () => {
                               {transaction.transactionType ===
                               TransactionType.CARD_PAYMENT
                                 ? "Card Payment"
-                                : (transaction.category?.category.name ??
-                                  "No Category")}
+                                : (transaction.category?.name ?? "No Category")}
                             </span>
                             {transaction.description && (
                               <div className="group relative flex-shrink-0">

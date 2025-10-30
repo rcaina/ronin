@@ -352,7 +352,7 @@ export default function TransactionForm({
                     : budgetCategories.length === 0
                       ? "No categories found for this budget"
                       : isEditing && transaction?.category
-                        ? `${transaction.category.category.name}`
+                        ? `${transaction.category.name}`
                         : "Select a category"}
                 </option>
                 {budgetCategories.map(
@@ -362,7 +362,7 @@ export default function TransactionForm({
                     const availableAmount = allocatedAmount - spentAmount;
                     return (
                       <option key={budgetCategory.id} value={budgetCategory.id}>
-                        {budgetCategory.category.name} ($
+                        {budgetCategory.name} ($
                         {availableAmount.toFixed(2)} available)
                       </option>
                     );
@@ -376,7 +376,7 @@ export default function TransactionForm({
                     (bc) => bc.id === transaction.categoryId,
                   ) && (
                     <option value={transaction.categoryId ?? ""}>
-                      {transaction.category.category.name} (current category)
+                      {transaction.category.name} (current category)
                     </option>
                   )}
               </select>

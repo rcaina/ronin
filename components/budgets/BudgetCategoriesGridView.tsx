@@ -52,7 +52,7 @@ export default function BudgetCategoriesGridView({
   const categoriesByGroup = useMemo(() => {
     return budgetCategories?.reduce(
       (acc, category: BudgetCategoryWithCategory) => {
-        const groupKey = category.category.group;
+        const groupKey = category.group;
         acc[groupKey] = [...(acc[groupKey] ?? []), category];
         return acc;
       },
@@ -165,10 +165,10 @@ export default function BudgetCategoriesGridView({
     const draggedBudgetCategory = (budgetCategories ?? []).find(
       (bc: BudgetCategoryWithCategory) => bc.id === budgetCategoryId,
     );
-    if (!draggedBudgetCategory?.category) return;
+    if (!draggedBudgetCategory) return;
 
     // Don't allow dropping in the same group
-    if (draggedBudgetCategory.category.group === targetGroup) {
+    if (draggedBudgetCategory.group === targetGroup) {
       return;
     }
 
@@ -241,9 +241,6 @@ export default function BudgetCategoriesGridView({
 
                   {categories?.map(
                     (budgetCategory: BudgetCategoryWithCategory) => {
-                      // Skip if category relation is not loaded
-                      if (!budgetCategory.category) return null;
-
                       return (
                         <BudgetCategoryCard
                           key={budgetCategory.id}

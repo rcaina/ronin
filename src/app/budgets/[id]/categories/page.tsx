@@ -62,7 +62,10 @@ const BudgetCategoriesPage = () => {
   const totalIncome =
     budget?.incomes?.reduce((sum, income) => sum + income.amount, 0) ?? 0;
   const totalAllocated =
-    budget?.categories?.reduce((sum, cat) => sum + cat.allocatedAmount, 0) ?? 0;
+    budget?.categories?.reduce(
+      (sum, cat) => sum + (cat.allocatedAmount ?? 0),
+      0,
+    ) ?? 0;
   const allocationDifference = (totalIncome - totalAllocated).toFixed(2);
 
   // Calculate category statistics
@@ -80,7 +83,7 @@ const BudgetCategoriesPage = () => {
           }
         }, 0) ?? 0,
       );
-      return totalSpent >= cat.allocatedAmount;
+      return totalSpent >= (cat.allocatedAmount ?? 0);
     }).length ?? 0;
 
   // Calculate categories over budget and total amount over
@@ -97,7 +100,7 @@ const BudgetCategoriesPage = () => {
           }
         }, 0) ?? 0,
       );
-      return totalSpent > cat.allocatedAmount;
+      return totalSpent > (cat.allocatedAmount ?? 0);
     }) ?? [];
 
   const categoriesOverBudget = overBudgetCategories.length;
@@ -113,7 +116,7 @@ const BudgetCategoriesPage = () => {
           }
         }, 0) ?? 0,
       );
-      const overAmount = Math.max(0, totalSpent - cat.allocatedAmount);
+      const overAmount = Math.max(0, totalSpent - (cat.allocatedAmount ?? 0));
       return sum + overAmount;
     }, 0) ?? 0,
   );
@@ -126,7 +129,7 @@ const BudgetCategoriesPage = () => {
 
     if (categoriesOverBudget === 1) {
       return {
-        text: `$${totalOverBudget.toFixed(2)} over - ${overBudgetCategories[0]?.category.name}`,
+        text: `$${totalOverBudget.toFixed(2)} over - ${overBudgetCategories[0]?.name}`,
         tooltip: null,
       };
     }
@@ -135,7 +138,7 @@ const BudgetCategoriesPage = () => {
     return {
       text: `$${totalOverBudget.toFixed(2)} over ${othersCount} categories`,
       tooltip: overBudgetCategories.map((cat) => ({
-        name: cat.category.name,
+        name: cat.name,
         amount: roundToCents(
           cat.transactions?.reduce((sum, transaction) => {
             if (transaction.transactionType === TransactionType.RETURN) {
@@ -312,7 +315,7 @@ const BudgetCategoriesPage = () => {
                       >
                         <span className="text-gray-200">{cat.name}</span>
                         <span className="text-red-300">
-                          ${(cat.amount - cat.allocated).toFixed(2)} over
+                          ${(cat.amount - (cat.allocated ?? 0)).toFixed(2)} over
                         </span>
                       </div>
                     ))}

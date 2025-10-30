@@ -86,9 +86,7 @@ const TransactionsPage = () => {
         (transaction.name?.toLowerCase().includes(searchLower) ?? false) ||
         (transaction.description?.toLowerCase().includes(searchLower) ??
           false) ||
-        (transaction.category?.category.name
-          .toLowerCase()
-          .includes(searchLower) ??
+        (transaction.category?.name?.toLowerCase().includes(searchLower) ??
           false) ||
         // Amount search - convert amount to string and search
         Math.abs(transaction.amount)
@@ -191,9 +189,7 @@ const TransactionsPage = () => {
         (transaction.name?.toLowerCase().includes(searchLower) ?? false) ||
         (transaction.description?.toLowerCase().includes(searchLower) ??
           false) ||
-        (transaction.category?.category.name
-          .toLowerCase()
-          .includes(searchLower) ??
+        (transaction.category?.name?.toLowerCase().includes(searchLower) ??
           false) ||
         // Amount search - convert amount to string and search
         Math.abs(transaction.amount)
@@ -297,8 +293,8 @@ const TransactionsPage = () => {
       if (t.category && !uniqueCategories.has(t.category.id)) {
         uniqueCategories.set(t.category.id, {
           id: t.category.id,
-          name: t.category.category.name,
-          group: t.category.category.group,
+          name: t.category.name,
+          group: t.category.group,
         });
       }
     });
@@ -884,16 +880,16 @@ const TransactionsPage = () => {
                                 className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
                                   transaction.transactionType === "CARD_PAYMENT"
                                     ? "bg-black text-white"
-                                    : transaction.category?.category
+                                    : transaction.category
                                       ? getCategoryBadgeColor(
-                                          transaction.category.category.group,
+                                          transaction.category.group,
                                         )
                                       : getCategoryBadgeColor()
                                 }`}
                               >
                                 {transaction.transactionType === "CARD_PAYMENT"
                                   ? "Card Payment"
-                                  : (transaction.category?.category.name ??
+                                  : (transaction.category?.name ??
                                     "No Category")}
                               </span>
                               {transaction.description && (

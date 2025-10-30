@@ -40,6 +40,7 @@ model AccountUser {
 
     @@index([accountId])
     @@index([userId])
+    @@map("account_user")
 }
 
 model User {
@@ -89,20 +90,20 @@ model Session {
 }
 
 model Budget {
-    id           String           @id @default(cuid())
+    id           String        @id @default(cuid())
     name         String
     strategy     StrategyType
     period       PeriodType
-    status       BudgetStatus     @default(ACTIVE)
+    status       BudgetStatus  @default(ACTIVE)
     deleted      DateTime?
     startAt      DateTime
     endAt        DateTime
-    isRecurring  Boolean          @default(false)
-    createdAt    DateTime         @default(now())
-    updatedAt    DateTime         @updatedAt
+    isRecurring  Boolean       @default(false)
+    createdAt    DateTime      @default(now())
+    updatedAt    DateTime      @updatedAt
     accountId    String
-    account      Account          @relation(fields: [accountId], references: [id])
-    categories   BudgetCategory[]
+    account      Account       @relation(fields: [accountId], references: [id])
+    categories   Category[]
     transactions Transaction[]
     incomes      Income[]
     cards        Card[]
@@ -135,37 +136,25 @@ model Income {
     deleted     DateTime?
 
     @@index([id])
+    @@map("income")
 }
 
 model Category {
-    id               String           @id @default(cuid())
-    name             String
-    group            CategoryType
-    deleted          DateTime?
-    createdAt        DateTime         @default(now())
-    updatedAt        DateTime         @updatedAt
-    budgetCategories BudgetCategory[]
-
-    @@index([id])
-    @@index([name])
-    @@index([deleted])
-    @@map("categories")
-}
-
-model BudgetCategory {
     id              String        @id @default(cuid())
-    budgetId        String
-    budget          Budget        @relation(fields: [budgetId], references: [id])
-    categoryId      String
-    category        Category      @relation(fields: [categoryId], references: [id])
-    allocatedAmount Float
+    budgetId        String?
+    budget          Budget?       @relation(fields: [budgetId], references: [id])
+    name            String
+    group           CategoryType
+    allocatedAmount Float?
     transactions    Transaction[]
     createdAt       DateTime      @default(now())
     updatedAt       DateTime      @updatedAt
     deleted         DateTime?
 
     @@index([id])
+    @@index([budgetId])
     @@index([deleted])
+    @@map("category")
 }
 
 model Card {
@@ -184,6 +173,7 @@ model Card {
     updatedAt     DateTime      @updatedAt
 
     @@index([id])
+    @@map("card")
 }
 
 model Transaction {
@@ -200,7 +190,7 @@ model Transaction {
     budgetId            String
     Budget              Budget          @relation(fields: [budgetId], references: [id])
     categoryId          String?
-    category            BudgetCategory? @relation(fields: [categoryId], references: [id])
+    category            Category?       @relation(fields: [categoryId], references: [id])
     accountId           String
     account             Account         @relation(fields: [accountId], references: [id])
     userId              String

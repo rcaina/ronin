@@ -1,27 +1,22 @@
-import { TransactionType, type Budget, type BudgetCategory, type Category, type Transaction } from "@prisma/client";
+import { TransactionType, type Budget, type Category, type Transaction } from "@prisma/client";
 
 // budget region
 
-export const formatBudget = (budget: Budget & { categories: (BudgetCategory & { category: Category, transactions: Transaction[] })[] }) => {
+export const formatBudget = (budget: Budget & { categories: (Category & { transactions: Transaction[] })[] }) => {
   return {
     ...budget,
-    categories: budget.categories?.map(budgetCategory => ({
-      ...budgetCategory,
-      category: {
-        id: budgetCategory.category.id,
-        name: budgetCategory.category.name,
-        group: budgetCategory.category.group,   
-      },
-      transactions: budgetCategory.transactions || [],
+    categories: budget.categories?.map(category => ({
+      ...category,
+      transactions: category.transactions || [],
     })) || [],
   };
 };
 
-export const formatBudgetCategories = (budgetCategories: (BudgetCategory & { category: Category, transactions: { id: string; name: string | null; description: string | null; amount: number, transactionType: TransactionType; createdAt: Date }[] })[]) => {
-  // Calculate spent amount for each budget category
-  return budgetCategories.map(budgetCategory => ({
-    ...budgetCategory,
-    spentAmount: budgetCategory.transactions?.reduce((sum, transaction) => {
+export const formatBudgetCategories = (categories: (Category & { transactions: { id: string; name: string | null; description: string | null; amount: number, transactionType: TransactionType; createdAt: Date }[] })[]) => {
+  // Calculate spent amount for each category
+  return categories.map(category => ({
+    ...category,
+    spentAmount: category.transactions?.reduce((sum, transaction) => {
       if (transaction.transactionType === TransactionType.RETURN) {
         // Returns reduce spending (positive amount = refund received)
         return sum - (transaction.amount || 0);
@@ -31,7 +26,7 @@ export const formatBudgetCategories = (budgetCategories: (BudgetCategory & { cat
       }
     }, 0) || 0,
     // Keep transactions for UI display
-    transactions: budgetCategory.transactions.map(transaction => ({
+    transactions: category.transactions.map(transaction => ({
       id: transaction.id,
       name: transaction.name,
       description: transaction.description,

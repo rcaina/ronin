@@ -160,106 +160,44 @@ async function main() {
     },
   ];
 
+  // Create default/template categories (no budgetId)
   for (const category of categories) {
     await prisma.category.create({
-      data: category,
+      data: {
+        ...category,
+        budgetId: null, // Template categories have no budgetId
+        allocatedAmount: null, // Template categories have no allocated amount
+      },
     });
   }
 
-  // Create BudgetCategory relationships
+  // Create budget-specific categories (with budgetId) and store their IDs
   const budgetCategories = [
-    // Demo Budget Categories
-    {
-      id: "bc1",
-      budgetId: "1",
-      categoryId: "1",
-      allocatedAmount: 1500,
-    },
-    {
-      id: "bc2",
-      budgetId: "1",
-      categoryId: "2",
-      allocatedAmount: 600,
-    },
-    {
-      id: "bc3",
-      budgetId: "1",
-      categoryId: "3",
-      allocatedAmount: 400,
-    },
-    {
-      id: "bc4",
-      budgetId: "1",
-      categoryId: "4",
-      allocatedAmount: 300,
-    },
-    {
-      id: "bc5",
-      budgetId: "1",
-      categoryId: "5",
-      allocatedAmount: 200,
-    },
-    {
-      id: "bc6",
-      budgetId: "1",
-      categoryId: "6",
-      allocatedAmount: 1000,
-    },
-    {
-      id: "bc7",
-      budgetId: "1",
-      categoryId: "7",
-      allocatedAmount: 500,
-    },
+    // Demo Budget Categories  
+    { budgetId: "1", name: 'Housing', group: CategoryType.NEEDS, allocatedAmount: 1500, txCategoryId: "bc1" },
+    { budgetId: "1", name: 'Food & Groceries', group: CategoryType.NEEDS, allocatedAmount: 600, txCategoryId: "bc2" },
+    { budgetId: "1", name: 'Transportation', group: CategoryType.NEEDS, allocatedAmount: 400, txCategoryId: "bc3" },
+    { budgetId: "1", name: 'Entertainment', group: CategoryType.WANTS, allocatedAmount: 300, txCategoryId: "bc4" },
+    { budgetId: "1", name: 'Shopping', group: CategoryType.WANTS, allocatedAmount: 200, txCategoryId: "bc5" },
+    { budgetId: "1", name: 'Investments', group: CategoryType.INVESTMENT, allocatedAmount: 1000, txCategoryId: "bc6" },
+    { budgetId: "1", name: 'Emergency Fund', group: CategoryType.INVESTMENT, allocatedAmount: 500, txCategoryId: "bc7" },
     // Startup Budget Categories
-    {
-      id: "bc8",
-      budgetId: "2",
-      categoryId: "1",
-      allocatedAmount: 2000,
-    },
-    {
-      id: "bc9",
-      budgetId: "2",
-      categoryId: "2",
-      allocatedAmount: 800,
-    },
-    {
-      id: "bc10",
-      budgetId: "2",
-      categoryId: "3",
-      allocatedAmount: 600,
-    },
-    {
-      id: "bc11",
-      budgetId: "2",
-      categoryId: "4",
-      allocatedAmount: 500,
-    },
-    {
-      id: "bc12",
-      budgetId: "2",
-      categoryId: "5",
-      allocatedAmount: 400,
-    },
-    {
-      id: "bc13",
-      budgetId: "2",
-      categoryId: "6",
-      allocatedAmount: 2000,
-    },
-    {
-      id: "bc14",
-      budgetId: "2",
-      categoryId: "7",
-      allocatedAmount: 700,
-    },
+    { budgetId: "2", name: 'Housing', group: CategoryType.NEEDS, allocatedAmount: 2000, txCategoryId: "bc8" },
+    { budgetId: "2", name: 'Food & Groceries', group: CategoryType.NEEDS, allocatedAmount: 800, txCategoryId: "bc9" },
+    { budgetId: "2", name: 'Transportation', group: CategoryType.NEEDS, allocatedAmount: 600, txCategoryId: "bc10" },
+    { budgetId: "2", name: 'Entertainment', group: CategoryType.WANTS, allocatedAmount: 500, txCategoryId: "bc11" },
+    { budgetId: "2", name: 'Shopping', group: CategoryType.WANTS, allocatedAmount: 400, txCategoryId: "bc12" },
+    { budgetId: "2", name: 'Investments', group: CategoryType.INVESTMENT, allocatedAmount: 2000, txCategoryId: "bc13" },
+    { budgetId: "2", name: 'Emergency Fund', group: CategoryType.INVESTMENT, allocatedAmount: 700, txCategoryId: "bc14" },
   ];
 
+  const categoryIdMap = new Map<string, string>();
   for (const budgetCategory of budgetCategories) {
-    await prisma.budgetCategory.create({
-      data: budgetCategory,
+    const { txCategoryId, ...categoryData } = budgetCategory;
+    const created = await prisma.category.create({
+      data: categoryData,
     });
+    categoryIdMap.set(txCategoryId, created.id);
   }
 
   // Create incomes
@@ -333,7 +271,7 @@ async function main() {
       amount: 1500,
       createdAt: new Date(),
       budgetId: "1",
-      categoryId: "bc1",
+      categoryId: categoryIdMap.get("bc1")!,
       accountId: demoAccount.id,
       userId: "1",
     },
@@ -343,7 +281,7 @@ async function main() {
       amount: 120,
       createdAt: new Date(),
       budgetId: "1",
-      categoryId: "bc2",
+      categoryId: categoryIdMap.get("bc2")!,
       accountId: demoAccount.id,
       userId: "1",
     },
@@ -353,7 +291,7 @@ async function main() {
       amount: 45,
       createdAt: new Date(),
       budgetId: "1",
-      categoryId: "bc3",
+      categoryId: categoryIdMap.get("bc3")!,
       accountId: demoAccount.id,
       userId: "1",
     },
@@ -363,7 +301,7 @@ async function main() {
       amount: 35,
       createdAt: new Date(),
       budgetId: "1",
-      categoryId: "bc4",
+      categoryId: categoryIdMap.get("bc4")!,
       accountId: demoAccount.id,
       userId: "1",
     },
@@ -373,7 +311,7 @@ async function main() {
       amount: 85,
       createdAt: new Date(),
       budgetId: "1",
-      categoryId: "bc5",
+      categoryId: categoryIdMap.get("bc5")!,
       accountId: demoAccount.id,
       userId: "1",
     },
@@ -383,7 +321,7 @@ async function main() {
       amount: 500,
       createdAt: new Date(),
       budgetId: "1",
-      categoryId: "bc6",
+      categoryId: categoryIdMap.get("bc6")!,
       accountId: demoAccount.id,
       userId: "1",
     },
@@ -393,7 +331,7 @@ async function main() {
       amount: 2000,
       createdAt: new Date(),
       budgetId: "2",
-      categoryId: "bc8",
+      categoryId: categoryIdMap.get("bc8")!,
       accountId: startupAccount.id,
       userId: "3",
     },
@@ -403,7 +341,7 @@ async function main() {
       amount: 75,
       createdAt: new Date(),
       budgetId: "2",
-      categoryId: "bc9",
+      categoryId: categoryIdMap.get("bc9")!,
       accountId: startupAccount.id,
       userId: "3",
     },

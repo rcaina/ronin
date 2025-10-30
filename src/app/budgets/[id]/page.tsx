@@ -164,10 +164,7 @@ const BudgetDetailsPage = () => {
   // Group categories by type and sort by usage percentage
   const categoriesByGroup = (budget.categories ?? []).reduce(
     (acc, budgetCategory) => {
-      // Skip if category relation is not loaded
-      if (!budgetCategory.category) return acc;
-
-      const group = budgetCategory.category.group.toLowerCase();
+      const group = budgetCategory.group.toLowerCase();
       acc[group] ??= [];
       acc[group].push(budgetCategory);
       return acc;
@@ -200,9 +197,13 @@ const BudgetDetailsPage = () => {
         }, 0);
 
         const aPercentage =
-          a.allocatedAmount > 0 ? (aSpent / a.allocatedAmount) * 100 : 0;
+          a.allocatedAmount && a.allocatedAmount > 0
+            ? (aSpent / a.allocatedAmount) * 100
+            : 0;
         const bPercentage =
-          b.allocatedAmount > 0 ? (bSpent / b.allocatedAmount) * 100 : 0;
+          b.allocatedAmount && b.allocatedAmount > 0
+            ? (bSpent / b.allocatedAmount) * 100
+            : 0;
 
         // Sort by percentage ascending (100% used categories at bottom)
         return aPercentage - bPercentage;
@@ -400,7 +401,7 @@ const BudgetDetailsPage = () => {
                   // Calculate totals for this group
                   const totalAllocated = roundToCents(
                     categories.reduce(
-                      (sum, cat) => sum + cat.allocatedAmount,
+                      (sum, cat) => sum + (cat.allocatedAmount ?? 0),
                       0,
                     ),
                   );
@@ -450,7 +451,7 @@ const BudgetDetailsPage = () => {
                       ),
                     );
                     const categoryPercentage = roundToCents(
-                      cat.allocatedAmount > 0
+                      cat.allocatedAmount && cat.allocatedAmount > 0
                         ? (categorySpent / cat.allocatedAmount) * 100
                         : 0,
                     );
@@ -524,8 +525,8 @@ const BudgetDetailsPage = () => {
                   (cat) =>
                     (cat.transactions ?? []).map((transaction) => ({
                       ...transaction,
-                      categoryName: cat.category.name,
-                      categoryGroup: cat.category.group,
+                      categoryName: cat.name,
+                      categoryGroup: cat.group,
                     })),
                 );
 

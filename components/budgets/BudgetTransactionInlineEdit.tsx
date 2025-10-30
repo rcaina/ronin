@@ -197,7 +197,7 @@ export default function BudgetTransactionInlineEdit({
                     const availableAmount = allocatedAmount - spentAmount;
                     return (
                       <option key={budgetCategory.id} value={budgetCategory.id}>
-                        {budgetCategory.category.name} ($
+                        {budgetCategory.name} ($
                         {availableAmount.toFixed(2)} available)
                       </option>
                     );

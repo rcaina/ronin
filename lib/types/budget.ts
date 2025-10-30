@@ -1,25 +1,15 @@
-import type { Budget, BudgetCategory, Income, Transaction, CategoryType } from "@prisma/client";
+import type { Budget, Category, Income, Transaction, CategoryType } from "@prisma/client";
 import type { BudgetCategoryWithCategory } from "../data-hooks/budgets/useBudgetCategories";
 
 export type BudgetWithRelations = Budget & {
-  categories: (BudgetCategory & {
-    category: {
-      id: string;
-      name: string;
-      group: CategoryType;
-    };
+  categories: (Category & {
     transactions: Transaction[];
   })[];
   incomes: Income[];
   transactions: Transaction[];
 };
 
-export type BudgetCategoryWithRelations = BudgetCategory & {
-  category: {
-    id: string;
-    name: string;
-    group: CategoryType;
-  };
+export type BudgetCategoryWithRelations = Category & {
   transactions: Transaction[];
 };
 

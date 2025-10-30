@@ -56,8 +56,7 @@ export default function BudgetCategoriesListView({
   const displayCategoriesByGroup = mainGroups.reduce((acc, group) => {
     acc[group] =
       budgetCategories?.filter(
-        (category: BudgetCategoryWithCategory) =>
-          category.category.group === group,
+        (category: BudgetCategoryWithCategory) => category.group === group,
       ) ?? [];
     return acc;
   }, {} as CategoriesByGroup);
@@ -151,9 +150,6 @@ export default function BudgetCategoriesListView({
             {/* Categories in this group */}
             {categories && categories.length > 0 ? (
               categories.map((budgetCategory) => {
-                // Skip if category relation is not loaded
-                if (!budgetCategory.category) return null;
-
                 const isExpanded = expandedCategories.has(budgetCategory.id);
                 const transactions = budgetCategory.transactions ?? [];
                 const spent = roundToCents(
@@ -170,7 +166,8 @@ export default function BudgetCategoriesListView({
                   }, 0),
                 );
                 const percentage = roundToCents(
-                  budgetCategory.allocatedAmount > 0
+                  budgetCategory.allocatedAmount &&
+                    budgetCategory.allocatedAmount > 0
                     ? (spent / budgetCategory.allocatedAmount) * 100
                     : 0,
                 );
@@ -192,7 +189,7 @@ export default function BudgetCategoriesListView({
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:space-x-2">
                               <p className="font-medium text-gray-900">
-                                {budgetCategory.category.name}
+                                {budgetCategory.name}
                               </p>
                               <span className="text-sm text-gray-500">
                                 ({getGroupLabel(group as CategoryType)})
@@ -202,19 +199,22 @@ export default function BudgetCategoriesListView({
                               <div className="flex flex-col gap-1 text-sm text-gray-500 sm:flex-row sm:items-center sm:space-x-4">
                                 <span>
                                   Allocated: $
-                                  {budgetCategory.allocatedAmount.toLocaleString()}
+                                  {budgetCategory.allocatedAmount?.toLocaleString()}
                                 </span>
                                 <span>Spent: ${spent.toLocaleString()}</span>
                                 <span
                                   className={
-                                    budgetCategory.allocatedAmount - spent >= 0
+                                    (budgetCategory.allocatedAmount ?? 0) -
+                                      spent >=
+                                    0
                                       ? "text-gray-500"
                                       : "text-red-500"
                                   }
                                 >
                                   Remaining: $
                                   {(
-                                    budgetCategory.allocatedAmount - spent
+                                    (budgetCategory.allocatedAmount ?? 0) -
+                                    spent
                                   ).toLocaleString()}
                                 </span>
                               </div>
@@ -240,7 +240,7 @@ export default function BudgetCategoriesListView({
                         <div className="text-right">
                           <p
                             className={`font-medium ${
-                              spent > budgetCategory.allocatedAmount
+                              spent > (budgetCategory.allocatedAmount ?? 0)
                                 ? "text-red-600"
                                 : "text-gray-900"
                             }`}
@@ -249,7 +249,7 @@ export default function BudgetCategoriesListView({
                           </p>
                           <p className="text-sm text-gray-500">
                             of $
-                            {budgetCategory.allocatedAmount.toLocaleString()}
+                            {budgetCategory.allocatedAmount?.toLocaleString()}
                           </p>
                         </div>
                         {transactions.length > 0 && (
@@ -310,12 +310,10 @@ export default function BudgetCategoriesListView({
                             <div className="flex justify-end">
                               <button
                                 onClick={() =>
-                                  handleViewAllTransactions(
-                                    budgetCategory.category.id,
-                                  )
+                                  handleViewAllTransactions(budgetCategory.id)
                                 }
                                 className="flex items-center space-x-1 text-xs text-blue-600 transition-colors hover:text-blue-800 hover:underline"
-                                title={`View all ${transactions.length} transactions for ${budgetCategory.category.name}`}
+                                title={`View all ${transactions.length} transactions for ${budgetCategory.name}`}
                               >
                                 <span>View all transactions</span>
                                 <ArrowRight className="h-3 w-3" />
