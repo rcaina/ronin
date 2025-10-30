@@ -49,7 +49,9 @@ export const createTransaction = async (
   tx: PrismaClientTx,
   data: CreateTransactionSchema,
   user: User & { accountId: string }
-) => await tx.transaction.create({
+) => {
+  // Create the transaction first
+  const transaction = await tx.transaction.create({
     data: {
       name: data.name,
       description: data.description,
@@ -67,7 +69,21 @@ export const createTransaction = async (
       category: true,
       Budget: true,
     },
-  })
+  });
+
+  // If a savingsCategoryId is provided, create a savings allocation linked to this transaction.
+  if (data.pocketId && data.pocketId.trim() !== "") {
+    await tx.allocation.create({
+      data: {
+        transactionId: transaction.id,
+        pocketId: data.pocketId,
+        amount: Math.abs(transaction.amount),
+      },
+    });
+  }
+
+  return transaction;
+}
 
 export async function updateTransaction(
   tx: PrismaClientTx,

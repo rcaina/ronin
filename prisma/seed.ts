@@ -263,6 +263,59 @@ async function main() {
     });
   }
 
+  // Create savings accounts with pockets
+  const personalSavings = await prisma.savings.create({
+    data: {
+      name: 'Personal Savings',
+      accountId: demoAccount.id,
+      userId: '1',
+      budgetId: '1',
+    },
+  });
+
+  const personalEmergencyPocket = await prisma.pocket.create({
+    data: {
+      savingsId: personalSavings.id,
+      name: 'Emergency Fund',
+      goalAmount: 5000,
+      goalNote: '3-6 months of expenses',
+    },
+  });
+  const personalVacationPocket = await prisma.pocket.create({
+    data: {
+      savingsId: personalSavings.id,
+      name: 'Vacation',
+      goalAmount: 2000,
+      goalNote: 'Trip to the beach',
+    },
+  });
+
+  const businessSavings = await prisma.savings.create({
+    data: {
+      name: 'Business Savings',
+      accountId: startupAccount.id,
+      userId: '3',
+      budgetId: '2',
+    },
+  });
+
+  const businessTaxReservePocket = await prisma.pocket.create({
+    data: {
+      savingsId: businessSavings.id,
+      name: 'Tax Reserve',
+      goalAmount: 10000,
+      goalNote: 'Quarterly estimated taxes',
+    },
+  });
+  const businessEquipmentPocket = await prisma.pocket.create({
+    data: {
+      savingsId: businessSavings.id,
+      name: 'Equipment Fund',
+      goalAmount: 8000,
+      goalNote: 'New laptops and peripherals',
+    },
+  });
+
   // Create transactions
   const transactions = [
     {
@@ -345,11 +398,78 @@ async function main() {
       accountId: startupAccount.id,
       userId: "3",
     },
+    // Personal savings deposits
+    {
+      name: 'Savings Deposit',
+      description: 'Transfer to savings',
+      amount: 300,
+      createdAt: new Date(),
+      budgetId: "1",
+      categoryId: null,
+      accountId: demoAccount.id,
+      userId: "1",
+    },
+    {
+      name: 'Savings Deposit',
+      description: 'Transfer to savings',
+      amount: 200,
+      createdAt: new Date(),
+      budgetId: "1",
+      categoryId: null,
+      accountId: demoAccount.id,
+      userId: "1",
+    },
+    // Business savings deposit
+    {
+      name: 'Business Savings Deposit',
+      description: 'Transfer to business savings',
+      amount: 1500,
+      createdAt: new Date(),
+      budgetId: "2",
+      categoryId: null,
+      accountId: startupAccount.id,
+      userId: "3",
+    },
   ];
 
+  const createdTransactions = [] as { id: string; amount: number; accountId: string; userId: string; budgetId: string }[];
   for (const transaction of transactions) {
-    await prisma.transaction.create({
+    const created = await prisma.transaction.create({
       data: transaction,
+    });
+    createdTransactions.push({ id: created.id, amount: created.amount, accountId: created.accountId, userId: created.userId, budgetId: created.budgetId });
+  }
+
+  // Allocate savings deposits to pockets
+  const personalDepositTxns = createdTransactions.filter(
+    (t) => t.accountId === demoAccount.id && t.userId === '1' && t.budgetId === '1' && (t.amount === 300 || t.amount === 200),
+  );
+  if (personalDepositTxns.length >= 2) {
+    const [pTxn1, pTxn2] = personalDepositTxns;
+    if (pTxn1 && pTxn2) {
+      // First deposit: split between Emergency 200 and Vacation 100
+      await prisma.allocation.create({
+        data: { transactionId: pTxn1.id, pocketId: personalEmergencyPocket.id, amount: 200 },
+      });
+      await prisma.allocation.create({
+        data: { transactionId: pTxn1.id, pocketId: personalVacationPocket.id, amount: 100 },
+      });
+      // Second deposit: all to Emergency
+      await prisma.allocation.create({
+        data: { transactionId: pTxn2.id, pocketId: personalEmergencyPocket.id, amount: 200 },
+      });
+    }
+  }
+
+  const businessDepositTxn = createdTransactions.find(
+    (t) => t.accountId === startupAccount.id && t.userId === '3' && t.budgetId === '2' && t.amount === 1500,
+  );
+  if (businessDepositTxn) {
+    await prisma.allocation.create({
+      data: { transactionId: businessDepositTxn.id, pocketId: businessTaxReservePocket.id, amount: 1000 },
+    });
+    await prisma.allocation.create({
+      data: { transactionId: businessDepositTxn.id, pocketId: businessEquipmentPocket.id, amount: 500 },
     });
   }
 

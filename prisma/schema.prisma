@@ -24,6 +24,7 @@ model Account {
     updatedAt    DateTime      @updatedAt
     incomes      Income[]
     transactions Transaction[]
+    savings      Savings[]
 
     @@index([id])
     @@index([name])
@@ -62,6 +63,7 @@ model User {
     accountUsers  AccountUser[]
     incomes       Income[]
     transactions  Transaction[]
+    savings       Savings[]
 
     @@index([email])
     @@index([name])
@@ -107,6 +109,7 @@ model Budget {
     transactions Transaction[]
     incomes      Income[]
     cards        Card[]
+    savings      Savings[]
 
     @@index([id])
     @@index([name])
@@ -199,6 +202,7 @@ model Transaction {
     linkedTransactionId String?
     linkedTransaction   Transaction?    @relation("LinkedTransactions", fields: [linkedTransactionId], references: [id])
     linkedTransactions  Transaction[]   @relation("LinkedTransactions")
+    pocketAllocations   Allocation[]
 
     @@index([id])
     @@index([name])
@@ -206,6 +210,59 @@ model Transaction {
     @@index([deleted])
     @@index([transactionType])
     @@map("transactions")
+}
+
+model Savings {
+    id        String    @id @default(cuid())
+    name      String
+    accountId String
+    account   Account   @relation(fields: [accountId], references: [id])
+    userId    String
+    user      User      @relation(fields: [userId], references: [id])
+    budgetId  String?
+    budget    Budget?   @relation(fields: [budgetId], references: [id])
+    pockets   Pocket[]
+    deleted   DateTime?
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+
+    @@index([accountId])
+    @@index([userId])
+    @@index([budgetId])
+    @@index([deleted])
+    @@map("savings")
+}
+
+model Pocket {
+    id          String       @id @default(cuid())
+    savingsId   String
+    savings     Savings      @relation(fields: [savingsId], references: [id])
+    name        String
+    goalAmount  Float?
+    goalDate    DateTime?
+    goalNote    String?
+    allocations Allocation[]
+    deleted     DateTime?
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
+
+    @@index([savingsId])
+    @@index([deleted])
+    @@map("pocket")
+}
+
+model Allocation {
+    id            String      @id @default(cuid())
+    transactionId String
+    transaction   Transaction @relation(fields: [transactionId], references: [id])
+    pocketId      String
+    pocket        Pocket      @relation(fields: [pocketId], references: [id])
+    amount        Float
+    createdAt     DateTime    @default(now())
+
+    @@index([transactionId])
+    @@index([pocketId])
+    @@map("allocation")
 }
 
 enum Role {

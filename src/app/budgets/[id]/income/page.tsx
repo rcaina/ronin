@@ -21,7 +21,7 @@ import Button from "@/components/Button";
 import IncomeModal from "@/components/budgets/IncomeModal";
 import InlineIncomeEdit from "@/components/budgets/InlineIncomeEdit";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
-import { useBudgetHeader } from "../BudgetHeaderContext";
+import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 
 interface Income {
   id: string;

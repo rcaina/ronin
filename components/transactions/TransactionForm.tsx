@@ -24,6 +24,8 @@ import type {
 import type { Card } from "@/lib/data-hooks/services/cards";
 import Button from "../Button";
 import { CardType, TransactionType } from "@prisma/client";
+import { useSavings } from "@/lib/data-hooks/savings/useSavings";
+import { usePockets } from "@/lib/data-hooks/savings/usePockets";
 
 // Validation schema
 const transactionSchema = z.object({
@@ -38,6 +40,8 @@ const transactionSchema = z.object({
   occurredAt: z.string().optional(),
   cardId: z.string().optional(),
   isReturn: z.boolean(),
+  savingsId: z.string().optional(),
+  pocketId: z.string().optional(),
 });
 
 type TransactionFormData = z.infer<typeof transactionSchema>;
@@ -63,9 +67,12 @@ export default function TransactionForm({
     useUpdateTransaction();
   const { data: budgets = [] } = useBudgets();
   const { data: cards = [] } = useCards(undefined, budgetId);
+  const { data: savings = [] } = useSavings();
 
   const [selectedBudgetId, setSelectedBudgetId] = useState<string>("");
+  const [selectedSavingsId, setSelectedSavingsId] = useState<string>("");
   const { data: budgetCategories = [] } = useBudgetCategories(selectedBudgetId);
+  const { data: pockets = [] } = usePockets(selectedSavingsId || undefined);
   const isEditing = !!transaction;
   const isPending = isCreating || isUpdating;
 
@@ -87,16 +94,23 @@ export default function TransactionForm({
       cardId: "",
       occurredAt: undefined,
       isReturn: false,
+      savingsId: "",
+      pocketId: "",
     },
   });
 
   const watchedBudgetId = watch("budgetId");
   const watchedCardId = watch("cardId");
+  const watchedSavingsId = watch("savingsId");
 
   // Update selected budget when form budget changes
   useEffect(() => {
     setSelectedBudgetId(watchedBudgetId);
   }, [watchedBudgetId]);
+
+  useEffect(() => {
+    setSelectedSavingsId(watchedSavingsId ?? "");
+  }, [watchedSavingsId]);
 
   // Determine if the selected card is a credit card
   const selectedCard = cards.find((card) => card.id === watchedCardId);
@@ -151,6 +165,11 @@ export default function TransactionForm({
         transactionType: data.isReturn
           ? TransactionType.RETURN
           : TransactionType.REGULAR,
+        // Allocate to pocket when provided
+        pocketId:
+          data.pocketId && data.pocketId.trim() !== ""
+            ? data.pocketId
+            : undefined,
       };
 
       updateTransaction(
@@ -179,6 +198,10 @@ export default function TransactionForm({
         transactionType: data.isReturn
           ? TransactionType.RETURN
           : TransactionType.REGULAR,
+        pocketId:
+          data.pocketId && data.pocketId.trim() !== ""
+            ? data.pocketId
+            : undefined,
       };
 
       createTransaction(transactionData, {
@@ -457,6 +480,70 @@ export default function TransactionForm({
               disabled={isPending}
             />
           </div>
+        </div>
+
+        {/* Savings Allocation (Optional) */}
+        <div className="sm:col-span-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="savingsId"
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
+                Savings Account (Optional)
+              </label>
+              <select
+                id="savingsId"
+                {...register("savingsId")}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                disabled={isPending}
+              >
+                <option value="">No savings allocation</option>
+                {savings.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name}
+                    {acc.budget ? ` — ${acc.budget.name}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label
+                htmlFor="pocketId"
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
+                Pocket (Optional)
+              </label>
+              <select
+                id="pocketId"
+                {...register("pocketId")}
+                className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
+                  selectedSavingsId
+                    ? "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    : "cursor-not-allowed border-gray-300 bg-gray-100 text-gray-500"
+                }`}
+                disabled={isPending || !selectedSavingsId}
+              >
+                <option value="">
+                  {!selectedSavingsId
+                    ? "Select a savings account first"
+                    : pockets.length === 0
+                      ? "No pockets in this savings account"
+                      : "Select a pocket"}
+                </option>
+                {pockets.map((pocket) => (
+                  <option key={pocket.id} value={pocket.id}>
+                    {pocket.name} (${pocket.total.toFixed(2)})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-gray-500">
+            If selected, the full transaction amount will be allocated to this
+            pocket.
+          </p>
         </div>
 
         {/* Action Buttons */}

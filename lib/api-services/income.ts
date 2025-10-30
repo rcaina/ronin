@@ -1,8 +1,9 @@
-import { type PrismaClient, type User } from "@prisma/client";
+import { type User } from "@prisma/client";
 import type { UpdateIncomeSchema, CreateIncomeSchema, UpdateSingleIncomeSchema } from "@/lib/api-schemas/income";
+import type { PrismaClientTx } from "../prisma";
 
 export async function updateBudgetIncome(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   budgetId: string,
   data: UpdateIncomeSchema,
   user: User & { accountId: string }
@@ -96,7 +97,7 @@ export async function updateBudgetIncome(
 }
 
 export async function createIncome(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   budgetId: string,
   data: CreateIncomeSchema,
   user: User & { accountId: string }
@@ -117,7 +118,7 @@ export async function createIncome(
 }
 
 export async function updateIncome(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   incomeId: string,
   budgetId: string,
   data: UpdateSingleIncomeSchema,
@@ -141,7 +142,7 @@ export async function updateIncome(
 }
 
 export async function deleteIncome(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: PrismaClientTx,
   incomeId: string,
   budgetId: string,
   user: User & { accountId: string }

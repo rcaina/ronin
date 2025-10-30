@@ -35,7 +35,7 @@ import Button from "@/components/Button";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { TransactionType } from "@prisma/client";
 import { getGroupColor, getCategoryBadgeColor } from "@/lib/utils";
-import { useBudgetHeader } from "../BudgetHeaderContext";
+import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 
 const BudgetTransactionsPage = () => {
   const params = useParams();
