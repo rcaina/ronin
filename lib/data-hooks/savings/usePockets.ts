@@ -42,6 +42,7 @@ export const useCreatePocket = () => {
       const savingsId = (variables as CreatePocketSchema | undefined)?.savingsId;
       if (savingsId) {
         void qc.invalidateQueries({ queryKey: pocketsKeyBySavings(savingsId) });
+        void qc.invalidateQueries({ queryKey: ["savings", "account", savingsId] });
       }
       void qc.invalidateQueries({ queryKey: savingsKey });
     },
@@ -49,8 +50,80 @@ export const useCreatePocket = () => {
       const savingsId = (variables as CreatePocketSchema | undefined)?.savingsId;
       if (savingsId) {
         void qc.invalidateQueries({ queryKey: pocketsKeyBySavings(savingsId) });
+        void qc.invalidateQueries({ queryKey: ["savings", "account", savingsId] });
       }
       void qc.invalidateQueries({ queryKey: savingsKey });
+    },
+  });
+};
+
+export interface UpdatePocketData {
+  name?: string;
+  goalAmount?: number | null;
+  goalDate?: string | null;
+  goalNote?: string | null;
+}
+
+const updatePocket = async (pocketId: string, data: UpdatePocketData) => {
+  const res = await fetch(`/api/savings/pockets/${pocketId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update pocket");
+  return (await res.json()) as PocketSummary;
+};
+
+const deletePocket = async (pocketId: string) => {
+  const res = await fetch(`/api/savings/pockets/${pocketId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete pocket");
+};
+
+export const useUpdatePocket = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationKey: pocketsKey,
+    mutationFn: ({ pocketId, data }: { pocketId: string; data: UpdatePocketData }) => updatePocket(pocketId, data),
+    onSuccess: () => {
+      // Get savingsId from pocket data or invalidate all
+      void qc.invalidateQueries({ queryKey: pocketsKey });
+      void qc.invalidateQueries({ queryKey: savingsKey });
+      void qc.invalidateQueries({ queryKey: ["savings", "account"] });
+    },
+  });
+};
+
+export const useDeletePocket = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationKey: pocketsKey,
+    mutationFn: (pocketId: string) => deletePocket(pocketId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: pocketsKey });
+      void qc.invalidateQueries({ queryKey: savingsKey });
+      void qc.invalidateQueries({ queryKey: ["savings", "account"] });
+    },
+  });
+};
+
+const deleteAllocation = async (allocationId: string) => {
+  const res = await fetch(`/api/savings/allocations/${allocationId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete allocation");
+};
+
+export const useDeleteAllocation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationKey: ["savings", "allocations"],
+    mutationFn: (allocationId: string) => deleteAllocation(allocationId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: pocketsKey });
+      void qc.invalidateQueries({ queryKey: savingsKey });
+      void qc.invalidateQueries({ queryKey: ["savings", "account"] });
     },
   });
 };

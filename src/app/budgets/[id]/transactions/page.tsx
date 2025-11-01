@@ -34,7 +34,11 @@ import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { TransactionType } from "@prisma/client";
-import { getGroupColor, getCategoryBadgeColor } from "@/lib/utils";
+import {
+  getGroupColor,
+  getCategoryBadgeColor,
+  formatCurrency,
+} from "@/lib/utils";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 
 const BudgetTransactionsPage = () => {
@@ -239,13 +243,6 @@ const BudgetTransactionsPage = () => {
       }
     }
   }, [searchParams, categories, availableCards]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
 
   const handleCopyTransaction = async (
     transaction: TransactionWithRelations,

@@ -12,8 +12,28 @@ export const createPocketSchema = z.object({
   goalNote: z.string().optional(),
 });
 
+export const updatePocketSchema = z.object({
+  name: z.string().min(1, "Name is required").optional(),
+  goalAmount: z.number().nullable().optional(),
+  goalDate: z.string().nullable().optional(),
+  goalNote: z.string().nullable().optional(),
+});
+
+export const createAllocationSchema = z.object({
+  transactionId: z.string().min(1, "Transaction ID is required"),
+  pocketId: z.string().min(1, "Pocket ID is required"),
+  amount: z.number().positive("Amount must be positive"),
+});
+
+export const updateAllocationSchema = z.object({
+  amount: z.number().positive("Amount must be positive"),
+});
+
 export type CreateSavingsSchema = z.infer<typeof createSavingsSchema>;
 export type CreatePocketSchema = z.infer<typeof createPocketSchema>;
+export type UpdatePocketSchema = z.infer<typeof updatePocketSchema>;
+export type CreateAllocationSchema = z.infer<typeof createAllocationSchema>;
+export type UpdateAllocationSchema = z.infer<typeof updateAllocationSchema>;
 
 
 

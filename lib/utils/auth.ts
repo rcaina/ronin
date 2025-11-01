@@ -136,3 +136,60 @@ export const validateTransactionId = (id: unknown): string => {
 
   return idString;
 };
+
+export const validateSavingsId = (id: unknown): string => {
+  const idString = id as string;
+  if (!idString) {
+    throw new HttpError("Savings ID is required", 400);
+  }
+
+  return idString;
+};
+
+export const ensureSavingsAccountOwnership = async (id: string, accountId: string): Promise<void> => {
+  const savings = await prisma.savings.findUnique({
+    where: {
+      id,
+      accountId,
+      deleted: null,
+    },
+  });
+
+  if (!savings) {
+    throw new HttpError("Savings account does not exist or is not in user's account", 404);
+  }
+};
+
+export const validateAllocationId = (id: unknown): string => {
+  const idString = id as string;
+  if (!idString) {
+    throw new HttpError("Allocation ID is required", 400);
+  }
+
+  return idString;
+};
+
+export const ensurePocketOwnership = async (id: string, accountId: string): Promise<void> => {
+  const pocket = await prisma.pocket.findUnique({
+    where: {
+      id,
+      savings: {
+        accountId,
+        deleted: null,
+      },
+    },
+  });
+  
+  if (!pocket) {
+    throw new HttpError("Pocket does not exist or is not in user's account", 404);
+  }
+};
+
+export const validatePocketId = (id: unknown): string => {
+  const idString = id as string;
+  if (!idString) {
+    throw new HttpError("Pocket ID is required", 400);
+  }
+
+  return idString;
+};

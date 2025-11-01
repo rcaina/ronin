@@ -51,3 +51,19 @@ export const useCreateSavings = () => {
   });
 }
 
+export const useSavingsAccount = (id: string) => {
+  const { data: session } = useSession();
+
+  return useQuery<SavingsSummary>({
+    queryKey: [...savingsKey, id],
+    queryFn: async () => {
+      const res = await fetch(`/api/savings/${id}`);
+      if (!res.ok) throw new Error("Failed to load savings account");
+      return (await res.json()) as SavingsSummary;
+    },
+    enabled: !!session && !!id,
+    placeholderData: keepPreviousData,
+    staleTime: 2 * 60 * 1000,
+  });
+};
+

@@ -1,6 +1,6 @@
 import type { User } from "@prisma/client";
 import type { PrismaClientTx } from "@/lib/prisma";
-import type { CreatePocketSchema, CreateSavingsSchema } from "@/lib/api-schemas/savings";
+import type { CreatePocketSchema, CreateSavingsSchema, UpdatePocketSchema } from "@/lib/api-schemas/savings";
 
 export const getSavings = async (
   tx: PrismaClientTx,
@@ -70,6 +70,123 @@ export const createPocket = async (
       goalNote: data.goalNote,
     },
     include: { allocations: true },
+  });
+}
+
+export const getSavingsById = async (
+  tx: PrismaClientTx,
+  id: string,
+  accountId: string,
+) => await tx.savings.findFirst({
+  where: { id, accountId, deleted: null },
+  include: {
+    pockets: {
+      where: { deleted: null },
+      include: { 
+        allocations: {
+          include: {
+            transaction: {
+              select: {
+                id: true,
+                name: true,
+                amount: true,
+                createdAt: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    },
+    budget: true,
+  },
+});
+
+export const updatePocket = async (
+  tx: PrismaClientTx,
+  pocketId: string,
+  data: UpdatePocketSchema,
+  accountId: string,
+) => {
+  // Verify pocket belongs to account
+  const pocket = await tx.pocket.findFirst({
+    where: {
+      id: pocketId,
+      savings: {
+        accountId,
+        deleted: null,
+      },
+      deleted: null,
+    },
+    select: { id: true },
+  });
+
+  if (!pocket) return null;
+
+  return await tx.pocket.update({
+    where: { id: pocketId },
+    data: {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.goalAmount !== undefined && { goalAmount: data.goalAmount }),
+      ...(data.goalDate !== undefined && { goalDate: data.goalDate }),
+      ...(data.goalNote !== undefined && { goalNote: data.goalNote }),
+    },
+    include: { allocations: true },
+  });
+}
+
+export const deletePocket = async (
+  tx: PrismaClientTx,
+  pocketId: string,
+  accountId: string,
+) => {
+  // Verify pocket belongs to account
+  const pocket = await tx.pocket.findFirst({
+    where: {
+      id: pocketId,
+      savings: {
+        accountId,
+        deleted: null,
+      },
+      deleted: null,
+    },
+    select: { id: true },
+  });
+
+  if (!pocket) return null;
+
+  return await tx.pocket.update({
+    where: { id: pocketId },
+    data: {
+      deleted: new Date(),
+    },
+  });
+}
+
+export const deleteAllocation = async (
+  tx: PrismaClientTx,
+  allocationId: string,
+  accountId: string,
+) => {
+  // Verify allocation belongs to account through pocket -> savings
+  const allocation = await tx.allocation.findFirst({
+    where: {
+      id: allocationId,
+      pocket: {
+        savings: {
+          accountId,
+          deleted: null,
+        },
+        deleted: null,
+      },
+    },
+    select: { id: true },
+  });
+
+  if (!allocation) return null;
+
+  return await tx.allocation.delete({
+    where: { id: allocationId },
   });
 }
 

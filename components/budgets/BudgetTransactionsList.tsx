@@ -11,6 +11,7 @@ import {
 import BudgetTransactionInlineEdit from "@/components/budgets/BudgetTransactionInlineEdit";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import { TransactionType } from "@prisma/client";
+import { formatCurrency } from "@/lib/utils";
 
 // Tooltip component that renders via portal
 const Tooltip = ({
@@ -102,13 +103,6 @@ export const BudgetTransactionsList = ({
   >(null);
   const [transactionToDelete, setTransactionToDelete] =
     useState<Transaction | null>(null);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
 
   const handleCopyTransaction = async (transaction: Transaction) => {
     try {

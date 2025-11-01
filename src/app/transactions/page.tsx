@@ -34,7 +34,11 @@ import InlineTransactionEdit from "@/components/transactions/InlineTransactionEd
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
 import StatsCard from "@/components/StatsCard";
-import { getGroupColor, getCategoryBadgeColor } from "@/lib/utils";
+import {
+  getGroupColor,
+  getCategoryBadgeColor,
+  formatCurrency,
+} from "@/lib/utils";
 
 const TransactionsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -325,13 +329,6 @@ const TransactionsPage = () => {
       }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
   }, [allTransactions, cards]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
 
   const handleCopyTransaction = async (
     transaction: TransactionWithRelations,
