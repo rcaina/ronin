@@ -5,7 +5,10 @@ import PageHeader from "@/components/PageHeader";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useMemo } from "react";
-import { BudgetHeaderProvider, useBudgetHeader } from "./BudgetHeaderContext";
+import {
+  BudgetHeaderProvider,
+  useBudgetHeader,
+} from "../../../../components/budgets/BudgetHeaderContext";
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const params = useParams();

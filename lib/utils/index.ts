@@ -14,7 +14,10 @@ export { useDebounce } from "./hooks";
  * @param value - The number to round
  * @returns The rounded number
  */
-export function roundToCents(value: number): number {
+export function roundToCents(value: number | null | undefined): number {
+  if (value == null || typeof value !== 'number' || isNaN(value)) {
+    return 0;
+  }
   return Math.round(value * 100) / 100;
 }
 
@@ -26,6 +29,18 @@ export function roundToCents(value: number): number {
 export function sumMonetaryValues(values: number[]): number {
   const sum = values.reduce((acc, val) => acc + val, 0);
   return roundToCents(sum);
+}
+
+/**
+ * Formats a number as US currency (USD)
+ * @param amount - The amount to format
+ * @returns Formatted currency string (e.g., "$1,234.56")
+ */
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(amount);
 }
 
 /**

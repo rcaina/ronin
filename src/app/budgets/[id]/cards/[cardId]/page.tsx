@@ -28,7 +28,10 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import Button from "@/components/Button";
 import { CardType, TransactionType } from "@prisma/client";
 import StatsCard from "@/components/StatsCard";
-import { useBudgetHeader, type HeaderAction } from "../../BudgetHeaderContext";
+import {
+  useBudgetHeader,
+  type HeaderAction,
+} from "../../../../../../components/budgets/BudgetHeaderContext";
 
 interface User {
   id: string;

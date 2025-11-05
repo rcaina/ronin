@@ -23,7 +23,7 @@ import {
   Plus,
 } from "lucide-react";
 import { roundToCents } from "@/lib/utils";
-import { useBudgetHeader } from "../BudgetHeaderContext";
+import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 
 const BudgetCategoriesPage = () => {

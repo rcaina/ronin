@@ -25,7 +25,7 @@ import {
   getGroupColor,
   roundToCents,
 } from "@/lib/utils";
-import { useBudgetHeader } from "./BudgetHeaderContext";
+import { useBudgetHeader } from "../../../../components/budgets/BudgetHeaderContext";
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();

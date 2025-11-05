@@ -23,6 +23,7 @@ const navItems: NavItem[] = [
   { href: "/budgets", icon: "🎯", label: "Budgets" },
   { href: "/transactions", icon: "🧾", label: "Transactions" },
   { href: "/categories", icon: "📂", label: "Categories" },
+  { href: "/savings", icon: "🏦", label: "Savings" },
   { href: "/settings", icon: "⚙️", label: "Settings" },
 ];
 

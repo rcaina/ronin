@@ -29,7 +29,7 @@ import { type Card, mapCardType, getCardColor } from "@/lib/utils/cards";
 import StatsCard from "@/components/StatsCard";
 import type { Card as PrismaCard } from "@prisma/client";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
-import { useBudgetHeader } from "../BudgetHeaderContext";
+import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 
 // Interface for budget cards with user information

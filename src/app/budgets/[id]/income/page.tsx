@@ -15,13 +15,13 @@ import {
 import { PeriodType } from "@prisma/client";
 import { toast } from "react-hot-toast";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
-import { calculateAdjustedIncome } from "@/lib/utils";
+import { calculateAdjustedIncome, formatCurrency } from "@/lib/utils";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Button from "@/components/Button";
 import IncomeModal from "@/components/budgets/IncomeModal";
 import InlineIncomeEdit from "@/components/budgets/InlineIncomeEdit";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
-import { useBudgetHeader } from "../BudgetHeaderContext";
+import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 
 interface Income {
   id: string;
@@ -153,13 +153,6 @@ export default function IncomePage() {
       default:
         return frequency;
     }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
   };
 
   if (isLoading) {

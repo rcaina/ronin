@@ -263,6 +263,57 @@ async function main() {
     });
   }
 
+  // Create savings accounts with pockets
+  const personalSavings = await prisma.savings.create({
+    data: {
+      name: 'Personal Savings',
+      accountId: demoAccount.id,
+      userId: '1',
+    },
+  });
+
+  const personalEmergencyPocket = await prisma.pocket.create({
+    data: {
+      savingsId: personalSavings.id,
+      name: 'Emergency Fund',
+      goalAmount: 5000,
+      goalNote: '3-6 months of expenses',
+    },
+  });
+  const personalVacationPocket = await prisma.pocket.create({
+    data: {
+      savingsId: personalSavings.id,
+      name: 'Vacation',
+      goalAmount: 2000,
+      goalNote: 'Trip to the beach',
+    },
+  });
+
+  const businessSavings = await prisma.savings.create({
+    data: {
+      name: 'Business Savings',
+      accountId: startupAccount.id,
+      userId: '3',
+    },
+  });
+
+  const businessTaxReservePocket = await prisma.pocket.create({
+    data: {
+      savingsId: businessSavings.id,
+      name: 'Tax Reserve',
+      goalAmount: 10000,
+      goalNote: 'Quarterly estimated taxes',
+    },
+  });
+  const businessEquipmentPocket = await prisma.pocket.create({
+    data: {
+      savingsId: businessSavings.id,
+      name: 'Equipment Fund',
+      goalAmount: 8000,
+      goalNote: 'New laptops and peripherals',
+    },
+  });
+
   // Create transactions
   const transactions = [
     {
@@ -345,13 +396,97 @@ async function main() {
       accountId: startupAccount.id,
       userId: "3",
     },
+    // Personal savings deposits
+    {
+      name: 'Savings Deposit',
+      description: 'Transfer to savings',
+      amount: 300,
+      createdAt: new Date(),
+      budgetId: "1",
+      categoryId: null,
+      accountId: demoAccount.id,
+      userId: "1",
+    },
+    {
+      name: 'Savings Deposit',
+      description: 'Transfer to savings',
+      amount: 200,
+      createdAt: new Date(),
+      budgetId: "1",
+      categoryId: null,
+      accountId: demoAccount.id,
+      userId: "1",
+    },
+    // Business savings deposit
+    {
+      name: 'Business Savings Deposit',
+      description: 'Transfer to business savings',
+      amount: 1500,
+      createdAt: new Date(),
+      budgetId: "2",
+      categoryId: null,
+      accountId: startupAccount.id,
+      userId: "3",
+    },
   ];
 
+  const createdTransactions = [] as { id: string; amount: number; accountId: string; userId: string; budgetId: string }[];
   for (const transaction of transactions) {
-    await prisma.transaction.create({
+    const created = await prisma.transaction.create({
       data: transaction,
     });
+    createdTransactions.push({ id: created.id, amount: created.amount, accountId: created.accountId, userId: created.userId, budgetId: created.budgetId });
   }
+
+  // Create allocations for pockets (independent of transactions)
+  // Personal savings allocations
+  await prisma.allocation.create({
+    data: {
+      pocketId: personalEmergencyPocket.id,
+      userId: '1',
+      amount: 200,
+      withdrawal: false,
+      note: 'Initial emergency fund deposit',
+    },
+  });
+  await prisma.allocation.create({
+    data: {
+      pocketId: personalVacationPocket.id,
+      userId: '1',
+      amount: 100,
+      withdrawal: false,
+      note: 'Initial vacation fund deposit',
+    },
+  });
+  await prisma.allocation.create({
+    data: {
+      pocketId: personalEmergencyPocket.id,
+      userId: '1',
+      amount: 200,
+      withdrawal: false,
+      note: 'Additional emergency fund deposit',
+    },
+  });
+
+  // Business savings allocations
+  await prisma.allocation.create({
+    data: {
+      pocketId: businessTaxReservePocket.id,
+      userId: '3',
+      amount: 1000,
+      withdrawal: false,
+      note: 'Quarterly tax reserve deposit',
+    },
+  });
+  await prisma.allocation.create({
+    data: {
+      pocketId: businessEquipmentPocket.id,
+      userId: '3',
+      amount: 500,
+      withdrawal: false,
+      note: 'Equipment fund deposit',
+    },
+  });
 
   console.log('Database has been seeded. 🌱');
 }
