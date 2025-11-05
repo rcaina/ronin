@@ -173,24 +173,6 @@ export async function createBudget(
     });
   }
 
-  // Create per-budget savings instances for a simple timeframe view
-  // Mirror cards pattern: base savings have no budgetId; we instantiate copies scoped to this budget
-  const baseSavings = await tx.savings.findMany({
-    where: { accountId: user.accountId, budgetId: null, deleted: null },
-    select: { name: true, userId: true },
-  });
-
-  if (baseSavings.length > 0) {
-    await tx.savings.createMany({
-      data: baseSavings.map((s) => ({
-        name: s.name,
-        accountId: user.accountId,
-        userId: s.userId,
-        budgetId: budget.id,
-      })),
-    });
-  }
-
   return budget
 }
 
