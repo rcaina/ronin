@@ -1,16 +1,12 @@
-import type { PocketSummary } from "@/lib/types/savings";
+import type { PocketSummary, AllocationSummary } from "@/lib/types/savings";
 import type { SavingsSummary } from "@/lib/types/savings";
 
-type AllocationWithTransaction = {
+type AllocationLite = {
   id: string;
   amount: number;
+  withdrawal: boolean;
+  note?: string | null;
   createdAt: Date;
-  transaction?: {
-    id: string;
-    name: string | null;
-    amount: number;
-    createdAt: Date;
-  };
 };
 
 type PocketWithAllocationsLite = {
@@ -21,13 +17,14 @@ type PocketWithAllocationsLite = {
   goalNote?: string | null;
   createdAt: Date;
   updatedAt: Date;
-  allocations?: AllocationWithTransaction[];
+  allocations?: AllocationLite[];
 };
 
 export function toPocketSummary(pocket: PocketWithAllocationsLite): PocketSummary {
   const total = (pocket.allocations ?? []).reduce((sum, a) => {
     const amount = typeof a.amount === 'number' && !isNaN(a.amount) ? a.amount : 0;
-    return sum + amount;
+    // Subtract if it's a withdrawal, add if it's a deposit
+    return sum + (a.withdrawal ? -amount : amount);
   }, 0);
   return {
     id: pocket.id,
@@ -43,13 +40,9 @@ export function toPocketSummary(pocket: PocketWithAllocationsLite): PocketSummar
       return {
         id: a.id,
         amount,
+        withdrawal: a.withdrawal ?? false,
+        note: a.note ?? undefined,
         createdAt: a.createdAt.toISOString(),
-        transaction: a.transaction ? {
-          id: a.transaction.id,
-          name: a.transaction.name,
-          amount: a.transaction.amount,
-          createdAt: a.transaction.createdAt.toISOString(),
-        } : undefined,
       };
     }),
   };
@@ -65,7 +58,6 @@ export type SavingsWithRelationsLite = {
   name: string;
   createdAt: Date;
   updatedAt: Date;
-  budget: { id: string; name: string } | null;
   pockets: PocketWithAllocationsLite[];
 };
 
@@ -78,7 +70,6 @@ export function toSavingsSummary(savings: SavingsWithRelationsLite): SavingsSumm
   return {
     id: savings.id,
     name: savings.name,
-    budget: savings.budget ? { id: savings.budget.id, name: savings.budget.name } : null,
     createdAt: savings.createdAt.toISOString(),
     updatedAt: savings.updatedAt.toISOString(),
     total,
@@ -88,6 +79,22 @@ export function toSavingsSummary(savings: SavingsWithRelationsLite): SavingsSumm
 
 export function toSavingsSummaryList(list: SavingsWithRelationsLite[]): SavingsSummary[] {
   return list.map(toSavingsSummary);
+}
+
+export function toAllocationSummary(allocation: {
+  id: string;
+  amount: number;
+  withdrawal: boolean;
+  note?: string | null;
+  createdAt: Date;
+}): AllocationSummary {
+  return {
+    id: allocation.id,
+    amount: allocation.amount,
+    withdrawal: allocation.withdrawal ?? false,
+    note: allocation.note ?? undefined,
+    createdAt: allocation.createdAt.toISOString(),
+  };
 }
 
 

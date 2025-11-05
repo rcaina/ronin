@@ -64,6 +64,7 @@ model User {
     incomes       Income[]
     transactions  Transaction[]
     savings       Savings[]
+    allocations   Allocation[]
 
     @@index([email])
     @@index([name])
@@ -109,7 +110,6 @@ model Budget {
     transactions Transaction[]
     incomes      Income[]
     cards        Card[]
-    savings      Savings[]
 
     @@index([id])
     @@index([name])
@@ -202,7 +202,6 @@ model Transaction {
     linkedTransactionId String?
     linkedTransaction   Transaction?    @relation("LinkedTransactions", fields: [linkedTransactionId], references: [id])
     linkedTransactions  Transaction[]   @relation("LinkedTransactions")
-    pocketAllocations   Allocation[]
 
     @@index([id])
     @@index([name])
@@ -219,8 +218,6 @@ model Savings {
     account   Account   @relation(fields: [accountId], references: [id])
     userId    String
     user      User      @relation(fields: [userId], references: [id])
-    budgetId  String?
-    budget    Budget?   @relation(fields: [budgetId], references: [id])
     pockets   Pocket[]
     deleted   DateTime?
     createdAt DateTime  @default(now())
@@ -228,7 +225,6 @@ model Savings {
 
     @@index([accountId])
     @@index([userId])
-    @@index([budgetId])
     @@index([deleted])
     @@map("savings")
 }
@@ -252,16 +248,18 @@ model Pocket {
 }
 
 model Allocation {
-    id            String      @id @default(cuid())
-    transactionId String
-    transaction   Transaction @relation(fields: [transactionId], references: [id])
-    pocketId      String
-    pocket        Pocket      @relation(fields: [pocketId], references: [id])
-    amount        Float
-    createdAt     DateTime    @default(now())
+    id         String   @id @default(cuid())
+    pocketId   String
+    pocket     Pocket   @relation(fields: [pocketId], references: [id])
+    userId     String
+    user       User     @relation(fields: [userId], references: [id])
+    amount     Float
+    withdrawal Boolean  @default(false)
+    note       String?
+    createdAt  DateTime @default(now())
 
-    @@index([transactionId])
     @@index([pocketId])
+    @@index([userId])
     @@map("allocation")
 }
 

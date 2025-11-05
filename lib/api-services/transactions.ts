@@ -71,16 +71,6 @@ export const createTransaction = async (
     },
   });
 
-  // If a savingsCategoryId is provided, create a savings allocation linked to this transaction.
-  if (data.pocketId && data.pocketId.trim() !== "") {
-    await tx.allocation.create({
-      data: {
-        transactionId: transaction.id,
-        pocketId: data.pocketId,
-        amount: Math.abs(transaction.amount),
-      },
-    });
-  }
 
   return transaction;
 }

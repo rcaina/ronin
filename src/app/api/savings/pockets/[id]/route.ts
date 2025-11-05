@@ -4,9 +4,27 @@ import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling";
 import prisma from "@/lib/prisma";
 import type { User } from "@prisma/client";
 import { updatePocketSchema } from "@/lib/api-schemas/savings";
-import { updatePocket, deletePocket } from "@/lib/api-services/savings";
+import { updatePocket, deletePocket, getPocketById } from "@/lib/api-services/savings";
+import { toPocketSummary } from "@/lib/transformers/savings";
 import { HttpError } from "@/lib/errors";
 import { ensurePocketOwnership, validatePocketId } from "@/lib/utils/auth";
+
+export const GET = withUser({
+  GET: withUserErrorHandling(async (_req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
+    const { id } = await context.params;
+    const pocketId = validatePocketId(id);
+    
+    return await prisma.$transaction(async (tx) => {
+      const pocket = await getPocketById(tx, pocketId, user.accountId);
+      
+      if (!pocket) {
+        throw new HttpError("Pocket not found", 404);
+      }
+      
+      return NextResponse.json(toPocketSummary(pocket), { status: 200 });
+    });
+  }),
+});
 
 export const PUT = withUser({
   PUT: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
@@ -27,7 +45,11 @@ export const PUT = withUser({
     return await prisma.$transaction(async (tx) => {
       const pocket = await updatePocket(tx, pocketId, validationResult.data, user.accountId);
 
-      return NextResponse.json(pocket, { status: 200 });
+      if (!pocket) {
+        return NextResponse.json({ message: "Pocket not found" }, { status: 404 });
+      }
+
+      return NextResponse.json(toPocketSummary(pocket), { status: 200 });
     });
   }),
 });

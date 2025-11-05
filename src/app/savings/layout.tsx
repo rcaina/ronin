@@ -3,6 +3,7 @@
 import PageHeader from "@/components/PageHeader";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useSavingsAccount } from "@/lib/data-hooks/savings/useSavings";
+import { usePocket } from "@/lib/data-hooks/savings/usePocket";
 import { useMemo, type ReactNode } from "react";
 
 export default function SavingsLayout({ children }: { children: ReactNode }) {
@@ -10,8 +11,10 @@ export default function SavingsLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const id = params.id as string | undefined;
+  const pocketId = params.pocketId as string | undefined;
 
   const { data: savings } = useSavingsAccount(id ?? "");
+  const { data: pocket } = usePocket(pocketId ?? "");
 
   // Configure page header based on current pathname
   const pageHeaderConfig = useMemo(() => {
@@ -30,11 +33,26 @@ export default function SavingsLayout({ children }: { children: ReactNode }) {
             })}`
           : "Loading...",
         showBackButton: true,
+        backTo: `/savings`,
+      };
+    } else if (
+      id &&
+      pocketId &&
+      pathname?.includes(`/savings/${id}/pockets/${pocketId}`)
+    ) {
+      // Pocket detail page
+      return {
+        title: pocket?.name ?? "Pocket",
+        description: savings
+          ? `${savings.name} • View and manage allocations`
+          : "Loading...",
+        showBackButton: true,
+        backTo: `/savings/${id}`,
       };
     }
 
     return null;
-  }, [pathname, id, savings]);
+  }, [pathname, id, pocketId, savings, pocket]);
 
   return (
     <div className="flex h-screen flex-col bg-gray-50">
@@ -44,7 +62,10 @@ export default function SavingsLayout({ children }: { children: ReactNode }) {
           description={pageHeaderConfig.description}
           backButton={
             pageHeaderConfig.showBackButton
-              ? { onClick: () => router.push(`/savings`) }
+              ? {
+                  onClick: () =>
+                    router.push(pageHeaderConfig.backTo ?? `/savings`),
+                }
               : undefined
           }
         />

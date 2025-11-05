@@ -87,10 +87,10 @@ export const useUpdatePocket = () => {
     mutationKey: pocketsKey,
     mutationFn: ({ pocketId, data }: { pocketId: string; data: UpdatePocketData }) => updatePocket(pocketId, data),
     onSuccess: () => {
-      // Get savingsId from pocket data or invalidate all
+      // Invalidate all pocket queries and savings queries
       void qc.invalidateQueries({ queryKey: pocketsKey });
+      // Invalidate all savings account queries (prefix matching will catch ["savings", "accounts", id])
       void qc.invalidateQueries({ queryKey: savingsKey });
-      void qc.invalidateQueries({ queryKey: ["savings", "account"] });
     },
   });
 };
@@ -102,8 +102,8 @@ export const useDeletePocket = () => {
     mutationFn: (pocketId: string) => deletePocket(pocketId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: pocketsKey });
+      // Invalidate all savings account queries (prefix matching will catch ["savings", "accounts", id])
       void qc.invalidateQueries({ queryKey: savingsKey });
-      void qc.invalidateQueries({ queryKey: ["savings", "account"] });
     },
   });
 };
@@ -122,8 +122,8 @@ export const useDeleteAllocation = () => {
     mutationFn: (allocationId: string) => deleteAllocation(allocationId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: pocketsKey });
+      // Invalidate all savings account queries (prefix matching will catch ["savings", "accounts", id])
       void qc.invalidateQueries({ queryKey: savingsKey });
-      void qc.invalidateQueries({ queryKey: ["savings", "account"] });
     },
   });
 };

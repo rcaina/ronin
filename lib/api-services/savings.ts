@@ -1,6 +1,6 @@
 import type { User } from "@prisma/client";
 import type { PrismaClientTx } from "@/lib/prisma";
-import type { CreatePocketSchema, CreateSavingsSchema, UpdatePocketSchema } from "@/lib/api-schemas/savings";
+import type { CreatePocketSchema, CreateSavingsSchema, UpdatePocketSchema, CreateAllocationSchema, UpdateAllocationSchema } from "@/lib/api-schemas/savings";
 
 export const getSavings = async (
   tx: PrismaClientTx,
@@ -9,7 +9,6 @@ export const getSavings = async (
     where: { accountId, deleted: null },
     include: {
       pockets: { include: { allocations: true } },
-      budget: true,
     },
     orderBy: { createdAt: "desc" },
   })
@@ -23,11 +22,9 @@ export const createSavings = async (
       name: data.name,
       accountId: user.accountId,
       userId: user.id,
-      budgetId: null,
     },
     include: {
       pockets: { include: { allocations: true } },
-      budget: true,
     },
   });
 
@@ -45,7 +42,7 @@ export const getPockets = async (
       },
       deleted: null,
     },
-    include: { allocations: true, savings: { include: { budget: true } } },
+    include: { allocations: true, savings: true },
     orderBy: { createdAt: "desc" },
   });
 
@@ -83,23 +80,27 @@ export const getSavingsById = async (
     pockets: {
       where: { deleted: null },
       include: { 
-        allocations: {
-          include: {
-            transaction: {
-              select: {
-                id: true,
-                name: true,
-                amount: true,
-                createdAt: true,
-              },
-            },
-          },
-        },
+        allocations: true,
       },
       orderBy: { createdAt: "desc" },
     },
-    budget: true,
   },
+});
+
+export const getPocketById = async (
+  tx: PrismaClientTx,
+  pocketId: string,
+  accountId: string,
+) => await tx.pocket.findFirst({
+  where: {
+    id: pocketId,
+    savings: {
+      accountId,
+      deleted: null,
+    },
+    deleted: null,
+  },
+  include: { allocations: true },
 });
 
 export const updatePocket = async (
@@ -159,6 +160,90 @@ export const deletePocket = async (
     where: { id: pocketId },
     data: {
       deleted: new Date(),
+    },
+  });
+}
+
+export const createAllocation = async (
+  tx: PrismaClientTx,
+  data: CreateAllocationSchema,
+  accountId: string,
+  user: User,
+) => {
+  // Verify pocket belongs to account
+  const pocket = await tx.pocket.findFirst({
+    where: {
+      id: data.pocketId,
+      savings: {
+        accountId,
+        deleted: null,
+      },
+      deleted: null,
+    },
+    select: { id: true },
+  });
+
+  if (!pocket) return null;
+
+  // Always save positive amount, use withdrawal flag to indicate direction
+  return await tx.allocation.create({
+    data: {
+      pocketId: data.pocketId,
+      userId: user.id,
+      amount: data.amount,
+      withdrawal: data.withdrawal ?? false,
+      note: data.note ? String(data.note) : null,
+    },
+    include: {
+      pocket: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+}
+
+export const updateAllocation = async (
+  tx: PrismaClientTx,
+  allocationId: string,
+  data: UpdateAllocationSchema,
+  accountId: string,
+) => {
+  // Verify allocation belongs to account through pocket -> savings
+  const allocation = await tx.allocation.findFirst({
+    where: {
+      id: allocationId,
+      pocket: {
+        savings: {
+          accountId,
+          deleted: null,
+        },
+        deleted: null,
+      },
+    },
+    select: { id: true, withdrawal: true },
+  });
+
+  if (!allocation) return null;
+
+  // Always save positive amount, use withdrawal flag to indicate direction
+  return await tx.allocation.update({
+    where: { id: allocationId },
+    data: {
+      amount: Math.abs(data.amount),
+      withdrawal: data.withdrawal ?? allocation.withdrawal,
+    },
+    include: {
+      pocket: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
   });
 }

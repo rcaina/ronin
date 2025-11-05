@@ -1,13 +1,9 @@
 export interface AllocationSummary {
   id: string;
   amount: number;
+  withdrawal: boolean;
+  note?: string;
   createdAt: string;
-  transaction?: {
-    id: string;
-    name: string | null;
-    amount: number;
-    createdAt: string;
-  };
 }
 
 export interface PocketSummary {
@@ -25,7 +21,6 @@ export interface PocketSummary {
 export interface SavingsSummary {
   id: string;
   name: string;
-  budget: { id: string; name: string } | null;
   total: number;
   createdAt: string;
   updatedAt: string;

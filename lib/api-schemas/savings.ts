@@ -20,13 +20,15 @@ export const updatePocketSchema = z.object({
 });
 
 export const createAllocationSchema = z.object({
-  transactionId: z.string().min(1, "Transaction ID is required"),
   pocketId: z.string().min(1, "Pocket ID is required"),
   amount: z.number().positive("Amount must be positive"),
+  note: z.string().optional(),
+  withdrawal: z.boolean().optional().default(false),
 });
 
 export const updateAllocationSchema = z.object({
   amount: z.number().positive("Amount must be positive"),
+  withdrawal: z.boolean().optional().default(false),
 });
 
 export type CreateSavingsSchema = z.infer<typeof createSavingsSchema>;

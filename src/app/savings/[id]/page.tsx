@@ -220,7 +220,11 @@ const SavingsCategoriesPage = () => {
             {savings.pockets && savings.pockets.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {savings.pockets.map((pocket) => (
-                  <PocketCard key={pocket.id} pocket={pocket} />
+                  <PocketCard
+                    key={pocket.id}
+                    pocket={pocket}
+                    savingsId={savingsId}
+                  />
                 ))}
               </div>
             ) : (

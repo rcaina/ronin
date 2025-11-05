@@ -269,7 +269,6 @@ async function main() {
       name: 'Personal Savings',
       accountId: demoAccount.id,
       userId: '1',
-      budgetId: '1',
     },
   });
 
@@ -295,7 +294,6 @@ async function main() {
       name: 'Business Savings',
       accountId: startupAccount.id,
       userId: '3',
-      budgetId: '2',
     },
   });
 
@@ -440,38 +438,55 @@ async function main() {
     createdTransactions.push({ id: created.id, amount: created.amount, accountId: created.accountId, userId: created.userId, budgetId: created.budgetId });
   }
 
-  // Allocate savings deposits to pockets
-  const personalDepositTxns = createdTransactions.filter(
-    (t) => t.accountId === demoAccount.id && t.userId === '1' && t.budgetId === '1' && (t.amount === 300 || t.amount === 200),
-  );
-  if (personalDepositTxns.length >= 2) {
-    const [pTxn1, pTxn2] = personalDepositTxns;
-    if (pTxn1 && pTxn2) {
-      // First deposit: split between Emergency 200 and Vacation 100
-      await prisma.allocation.create({
-        data: { transactionId: pTxn1.id, pocketId: personalEmergencyPocket.id, amount: 200 },
-      });
-      await prisma.allocation.create({
-        data: { transactionId: pTxn1.id, pocketId: personalVacationPocket.id, amount: 100 },
-      });
-      // Second deposit: all to Emergency
-      await prisma.allocation.create({
-        data: { transactionId: pTxn2.id, pocketId: personalEmergencyPocket.id, amount: 200 },
-      });
-    }
-  }
+  // Create allocations for pockets (independent of transactions)
+  // Personal savings allocations
+  await prisma.allocation.create({
+    data: {
+      pocketId: personalEmergencyPocket.id,
+      userId: '1',
+      amount: 200,
+      withdrawal: false,
+      note: 'Initial emergency fund deposit',
+    },
+  });
+  await prisma.allocation.create({
+    data: {
+      pocketId: personalVacationPocket.id,
+      userId: '1',
+      amount: 100,
+      withdrawal: false,
+      note: 'Initial vacation fund deposit',
+    },
+  });
+  await prisma.allocation.create({
+    data: {
+      pocketId: personalEmergencyPocket.id,
+      userId: '1',
+      amount: 200,
+      withdrawal: false,
+      note: 'Additional emergency fund deposit',
+    },
+  });
 
-  const businessDepositTxn = createdTransactions.find(
-    (t) => t.accountId === startupAccount.id && t.userId === '3' && t.budgetId === '2' && t.amount === 1500,
-  );
-  if (businessDepositTxn) {
-    await prisma.allocation.create({
-      data: { transactionId: businessDepositTxn.id, pocketId: businessTaxReservePocket.id, amount: 1000 },
-    });
-    await prisma.allocation.create({
-      data: { transactionId: businessDepositTxn.id, pocketId: businessEquipmentPocket.id, amount: 500 },
-    });
-  }
+  // Business savings allocations
+  await prisma.allocation.create({
+    data: {
+      pocketId: businessTaxReservePocket.id,
+      userId: '3',
+      amount: 1000,
+      withdrawal: false,
+      note: 'Quarterly tax reserve deposit',
+    },
+  });
+  await prisma.allocation.create({
+    data: {
+      pocketId: businessEquipmentPocket.id,
+      userId: '3',
+      amount: 500,
+      withdrawal: false,
+      note: 'Equipment fund deposit',
+    },
+  });
 
   console.log('Database has been seeded. 🌱');
 }

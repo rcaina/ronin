@@ -2,6 +2,7 @@
 
 import { Edit, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { useParams } from "next/navigation";
 import {
   useUpdatePocket,
   useDeletePocket,
@@ -14,9 +15,12 @@ import { roundToCents, formatDateUTC } from "@/lib/utils";
 
 interface PocketCardProps {
   pocket: PocketSummary;
+  savingsId?: string;
 }
 
-export default function PocketCard({ pocket }: PocketCardProps) {
+export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
+  const params = useParams();
+  const currentSavingsId = savingsId ?? (params.id as string);
   const [editingPocketId, setEditingPocketId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<string>("");
   const [editingGoalAmount, setEditingGoalAmount] = useState<string | number>(
@@ -33,6 +37,8 @@ export default function PocketCard({ pocket }: PocketCardProps) {
   const updatePocketMutation = useUpdatePocket();
   const deletePocketMutation = useDeletePocket();
   const deleteAllocationMutation = useDeleteAllocation();
+
+  const pocketDetailUrl = `/savings/${currentSavingsId}/pockets/${pocket.id}`;
 
   const totalAllocated =
     typeof pocket.total === "number" && !isNaN(pocket.total) ? pocket.total : 0;
@@ -127,13 +133,27 @@ export default function PocketCard({ pocket }: PocketCardProps) {
     setAllocationToDelete(null);
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on edit/delete buttons or inputs
+    const target = e.target as HTMLElement;
+    if (
+      target.closest("button") ||
+      target.closest("input") ||
+      editingPocketId === pocket.id
+    ) {
+      return;
+    }
+    window.location.href = pocketDetailUrl;
+  };
+
   return (
     <>
       <div
+        onClick={handleCardClick}
         className={`group relative overflow-hidden rounded-xl border p-6 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md ${
           editingPocketId === pocket.id
             ? "border-blue-200 bg-blue-50"
-            : "bg-white"
+            : "cursor-pointer bg-white"
         }`}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -156,14 +176,20 @@ export default function PocketCard({ pocket }: PocketCardProps) {
             {editingPocketId !== pocket.id ? (
               <div className="flex items-center space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
                 <button
-                  onClick={handleStartEditPocket}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStartEditPocket();
+                  }}
                   className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
                   title="Edit pocket"
                 >
                   <Edit className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={handleDeletePocket}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeletePocket();
+                  }}
                   className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
                   title="Delete pocket"
                 >
@@ -173,7 +199,10 @@ export default function PocketCard({ pocket }: PocketCardProps) {
             ) : (
               <div className="flex items-center space-x-1">
                 <button
-                  onClick={handleSavePocket}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleSavePocket();
+                  }}
                   disabled={updatePocketMutation.isPending}
                   className="rounded p-1 text-green-600 transition-colors hover:bg-green-100 disabled:opacity-50"
                   title="Save changes"
@@ -181,7 +210,10 @@ export default function PocketCard({ pocket }: PocketCardProps) {
                   ✓
                 </button>
                 <button
-                  onClick={handleCancelEditPocket}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCancelEditPocket();
+                  }}
                   disabled={updatePocketMutation.isPending}
                   className="rounded p-1 text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
                   title="Cancel editing"
@@ -280,14 +312,20 @@ export default function PocketCard({ pocket }: PocketCardProps) {
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-gray-900">
-                      {allocation.transaction?.name ?? "Unnamed transaction"}
+                      {allocation.note ?? undefined}
                     </p>
                     <p className="text-xs text-gray-500">
                       {formatDateUTC(allocation.createdAt)}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="font-medium text-gray-900">
+                    <span
+                      className={`font-medium ${
+                        allocation.withdrawal
+                          ? "text-red-600"
+                          : "text-green-600"
+                      }`}
+                    >
                       $
                       {(typeof allocation.amount === "number" &&
                       !isNaN(allocation.amount)
@@ -298,7 +336,10 @@ export default function PocketCard({ pocket }: PocketCardProps) {
                         .toLocaleString()}
                     </span>
                     <button
-                      onClick={() => handleDeleteAllocation(allocation.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteAllocation(allocation.id);
+                      }}
                       className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
                       title="Remove allocation"
                     >
