@@ -12,7 +12,6 @@ export const createTransactionSchema = z.object({
   createdAt: z.string().optional(),
   occurredAt: z.string().optional(),
   transactionType: z.nativeEnum(TransactionType).optional().default(TransactionType.REGULAR),
-  pocketId: z.string().optional(), // Optional: allocate this transaction to a pocket
 });
 
 // Schema for card payment transactions
@@ -37,7 +36,6 @@ export const updateTransactionSchema = z.object({
   createdAt: z.string().optional(),
   occurredAt: z.string().optional(),
   transactionType: z.nativeEnum(TransactionType).optional(),
-  pocketId: z.string().optional(),
 });
 
 // Export inferred types for convenience
