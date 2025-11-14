@@ -11,6 +11,7 @@ import {
 import Pagination from "@/components/Pagination";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
+import { useCategories } from "@/lib/data-hooks/categories/useCategories";
 import {
   TrendingUp,
   TrendingDown,
@@ -58,10 +59,11 @@ const TransactionsPage = () => {
   const { data: allTransactions = [] } = useAllTransactions();
   const { data: budgets = [] } = useBudgets();
   const { data: cards = [] } = useCards();
+  const { data: groupedCategories } = useCategories();
   const deleteTransactionMutation = useDeleteTransaction();
   const createTransactionMutation = useCreateTransaction();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all"); // Now stores category name instead of ID
   const [selectedBudget, setSelectedBudget] = useState<string>("all");
   const [selectedCard, setSelectedCard] = useState<string>("all");
   const [startDate, setStartDate] = useState<string>("");
@@ -105,10 +107,10 @@ const TransactionsPage = () => {
           .toLowerCase()
           .includes(searchLower);
 
-      // Category filter
+      // Category filter - match by category name (default category name)
       const matchesCategory =
         selectedCategory === "all" ||
-        transaction.category?.id === selectedCategory;
+        transaction.category?.name === selectedCategory;
 
       // Budget filter
       const matchesBudget =
@@ -208,10 +210,10 @@ const TransactionsPage = () => {
           .toLowerCase()
           .includes(searchLower);
 
-      // Category filter
+      // Category filter - match by category name (default category name)
       const matchesCategory =
         selectedCategory === "all" ||
-        transaction.category?.id === selectedCategory;
+        transaction.category?.name === selectedCategory;
 
       // Budget filter
       const matchesBudget =
@@ -287,25 +289,30 @@ const TransactionsPage = () => {
     sortOrder,
   ]);
 
-  // Get unique categories for filter from all transactions
+  // Get unique default categories for filter (flatten grouped categories)
   const categories = useMemo(() => {
-    const uniqueCategories = new Map<
-      string,
-      { id: string; name: string; group: string }
-    >();
+    if (!groupedCategories) return [];
+
+    // Flatten all default categories from all groups
+    const allDefaultCategories = [
+      ...(groupedCategories.wants || []),
+      ...(groupedCategories.needs || []),
+      ...(groupedCategories.investment || []),
+    ];
+
+    // Get unique category names from transactions to only show categories that are actually used
+    const usedCategoryNames = new Set<string>();
     allTransactions.forEach((t) => {
-      if (t.category && !uniqueCategories.has(t.category.id)) {
-        uniqueCategories.set(t.category.id, {
-          id: t.category.id,
-          name: t.category.name,
-          group: t.category.group,
-        });
+      if (t.category?.name) {
+        usedCategoryNames.add(t.category.name);
       }
     });
-    return Array.from(uniqueCategories.values()).sort((a, b) =>
-      a.name.localeCompare(b.name),
-    );
-  }, [allTransactions]);
+
+    // Filter to only show default categories that are actually used in transactions
+    return allDefaultCategories
+      .filter((cat) => usedCategoryNames.has(cat.name))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allTransactions, groupedCategories]);
 
   // Get unique budgets for filter
   const availableBudgets = useMemo(() => {
@@ -717,7 +724,7 @@ const TransactionsPage = () => {
                     >
                       <option value="all">All Categories</option>
                       {categories.map((category) => (
-                        <option key={category.id} value={category.id}>
+                        <option key={category.id} value={category.name}>
                           {category.name}
                         </option>
                       ))}

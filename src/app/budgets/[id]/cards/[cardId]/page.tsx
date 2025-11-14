@@ -65,7 +65,6 @@ const CardDetailsPage = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [showCardPaymentModal, setShowCardPaymentModal] = useState(false);
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
-  const [showAllTransactions, setShowAllTransactions] = useState(false);
 
   // Form state for editing
   const [editFormData, setEditFormData] = useState({
@@ -291,8 +290,8 @@ const CardDetailsPage = () => {
 
   return (
     <>
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto">
+      <div className="h-full flex-1 overflow-y-auto">
+        <div>
           <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
             {/* Card Stats */}
             <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
@@ -503,7 +502,7 @@ const CardDetailsPage = () => {
             <div className="mb-6">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-gray-900">
-                  Recent Transactions
+                  Transactions
                 </h2>
               </div>
 
@@ -530,10 +529,7 @@ const CardDetailsPage = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {(showAllTransactions
-                    ? transactions
-                    : transactions.slice(0, 10)
-                  ).map((transaction) => (
+                  {transactions.map((transaction) => (
                     <div
                       key={transaction.id}
                       className="flex items-center justify-between rounded-lg border bg-white p-4 shadow-sm"
@@ -581,20 +577,6 @@ const CardDetailsPage = () => {
                       </div>
                     </div>
                   ))}
-                  {transactions.length > 10 && (
-                    <div className="text-center">
-                      <Button
-                        onClick={() =>
-                          setShowAllTransactions(!showAllTransactions)
-                        }
-                        variant="secondary"
-                      >
-                        {showAllTransactions
-                          ? "Show Less"
-                          : "View All Transactions"}
-                      </Button>
-                    </div>
-                  )}
                 </div>
               )}
             </div>

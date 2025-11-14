@@ -33,7 +33,7 @@ import StatsCard from "@/components/StatsCard";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
-import { TransactionType } from "@prisma/client";
+import { TransactionType, CategoryType } from "@prisma/client";
 import {
   getGroupColor,
   getCategoryBadgeColor,
@@ -63,6 +63,9 @@ const BudgetTransactionsPage = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCategoryType, setSelectedCategoryType] = useState<
+    CategoryType | "all"
+  >("all");
   const [selectedCard, setSelectedCard] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"date" | "amount" | "name">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -135,13 +138,20 @@ const BudgetTransactionsPage = () => {
           selectedCategory === "all" ||
           transaction.category?.id === selectedCategory;
 
+        // Category type filter
+        const matchesCategoryType =
+          selectedCategoryType === "all" ||
+          transaction.category?.group === selectedCategoryType;
+
         // Card filter
         const matchesCard =
           selectedCard === "all" ||
           (selectedCard === "no-card" && !transaction.cardId) ||
           transaction.cardId === selectedCard;
 
-        return matchesSearch && matchesCategory && matchesCard;
+        return (
+          matchesSearch && matchesCategory && matchesCategoryType && matchesCard
+        );
       } catch (error) {
         console.error("Error filtering transaction:", error, transaction);
         return false;
@@ -173,6 +183,7 @@ const BudgetTransactionsPage = () => {
     transactions,
     searchTerm,
     selectedCategory,
+    selectedCategoryType,
     selectedCard,
     sortBy,
     sortOrder,
@@ -384,12 +395,16 @@ const BudgetTransactionsPage = () => {
   const clearAllFilters = () => {
     setSearchTerm("");
     setSelectedCategory("all");
+    setSelectedCategoryType("all");
     setSelectedCard("all");
   };
 
   // Check if any filters are active
   const hasActiveFilters =
-    searchTerm || selectedCategory !== "all" || selectedCard !== "all";
+    searchTerm ||
+    selectedCategory !== "all" ||
+    selectedCategoryType !== "all" ||
+    selectedCard !== "all";
 
   // Calculate total spent from filtered transactions
   const totalSpent = useMemo(() => {
@@ -511,8 +526,35 @@ const BudgetTransactionsPage = () => {
                 />
               </div>
 
-              {/* Filter Row: Categories, Cards, and Sort */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {/* Filter Row: Category Type, Categories, Cards, and Sort */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <div className="mb-1 flex items-center space-x-2">
+                    <label className="block text-xs font-medium text-gray-700">
+                      Category Type
+                    </label>
+                    {selectedCategoryType !== "all" && (
+                      <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                        Filtered
+                      </span>
+                    )}
+                  </div>
+                  <select
+                    value={selectedCategoryType}
+                    onChange={(e) =>
+                      setSelectedCategoryType(
+                        e.target.value as CategoryType | "all",
+                      )
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="all">All Types</option>
+                    <option value={CategoryType.WANTS}>Wants</option>
+                    <option value={CategoryType.NEEDS}>Needs</option>
+                    <option value={CategoryType.INVESTMENT}>Investments</option>
+                  </select>
+                </div>
+
                 <div>
                   <div className="mb-1 flex items-center space-x-2">
                     <label className="block text-xs font-medium text-gray-700">
@@ -796,6 +838,7 @@ const BudgetTransactionsPage = () => {
                   <h3 className="mb-2 text-lg font-medium text-gray-900">
                     {searchTerm ||
                     selectedCategory !== "all" ||
+                    selectedCategoryType !== "all" ||
                     selectedCard !== "all"
                       ? "No matching transactions"
                       : "No transactions yet"}
@@ -803,6 +846,7 @@ const BudgetTransactionsPage = () => {
                   <p className="text-gray-500">
                     {searchTerm ||
                     selectedCategory !== "all" ||
+                    selectedCategoryType !== "all" ||
                     selectedCard !== "all"
                       ? "Try adjusting your search or filter criteria"
                       : "Start adding transactions to see them here"}
