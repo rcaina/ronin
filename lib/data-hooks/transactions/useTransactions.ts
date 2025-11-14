@@ -55,6 +55,11 @@ export const useCreateTransaction = () => {
     onSuccess: (_, variables) => {
       // Invalidate and refetch transactions
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      // Invalidate and refetch card transactions if cardId is provided
+      if (variables.cardId) {
+        void queryClient.invalidateQueries({ queryKey: ["cards", variables.cardId, "transactions"] });
+        void queryClient.invalidateQueries({ queryKey: ["cards", variables.cardId] });
+      }
       // Invalidate and refetch budget transactions for the specific budget
       if (variables.budgetId) {
         void queryClient.invalidateQueries({ queryKey: ["budgetTransactions", variables.budgetId] });
@@ -75,6 +80,11 @@ export const useUpdateTransaction = () => {
     onSuccess: (_, variables) => {
       // Invalidate and refetch transactions
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      // Invalidate and refetch card transactions if cardId is provided
+      if (variables.data.cardId) {
+        void queryClient.invalidateQueries({ queryKey: ["cards", variables.data.cardId, "transactions"] });
+        void queryClient.invalidateQueries({ queryKey: ["cards", variables.data.cardId] });
+      }
       // Invalidate and refetch budget transactions for the specific budget
       if (variables.data.budgetId) {
         void queryClient.invalidateQueries({ queryKey: ["budgetTransactions", variables.data.budgetId] });
@@ -116,6 +126,16 @@ export const useCreateCardPayment = () => {
       // Invalidate and refetch both transactions and cards
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
       void queryClient.invalidateQueries({ queryKey: ["cards"] });
+      
+      // Invalidate card transactions for both cards involved in the payment
+      if (variables.fromCardId) {
+        void queryClient.invalidateQueries({ queryKey: ["cards", variables.fromCardId, "transactions"] });
+        void queryClient.invalidateQueries({ queryKey: ["cards", variables.fromCardId] });
+      }
+      if (variables.toCardId) {
+        void queryClient.invalidateQueries({ queryKey: ["cards", variables.toCardId, "transactions"] });
+        void queryClient.invalidateQueries({ queryKey: ["cards", variables.toCardId] });
+      }
       
       // If this card payment involves a budget, invalidate budget queries
       if (variables.budgetId) {
