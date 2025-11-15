@@ -63,7 +63,7 @@ const TransactionsPage = () => {
   const deleteTransactionMutation = useDeleteTransaction();
   const createTransactionMutation = useCreateTransaction();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all"); // Now stores category name instead of ID
+  const [selectedCategory, setSelectedCategory] = useState<string>("all"); // Stores default category ID
   const [selectedBudget, setSelectedBudget] = useState<string>("all");
   const [selectedCard, setSelectedCard] = useState<string>("all");
   const [startDate, setStartDate] = useState<string>("");
@@ -107,10 +107,12 @@ const TransactionsPage = () => {
           .toLowerCase()
           .includes(searchLower);
 
-      // Category filter - match by category name (default category name)
+      // Category filter - match by default category ID
       const matchesCategory =
         selectedCategory === "all" ||
-        transaction.category?.name === selectedCategory;
+        (transaction.category &&
+          "defaultCategoryId" in transaction.category &&
+          transaction.category.defaultCategoryId === selectedCategory);
 
       // Budget filter
       const matchesBudget =
@@ -210,10 +212,12 @@ const TransactionsPage = () => {
           .toLowerCase()
           .includes(searchLower);
 
-      // Category filter - match by category name (default category name)
+      // Category filter - match by default category ID
       const matchesCategory =
         selectedCategory === "all" ||
-        transaction.category?.name === selectedCategory;
+        (transaction.category &&
+          "defaultCategoryId" in transaction.category &&
+          transaction.category.defaultCategoryId === selectedCategory);
 
       // Budget filter
       const matchesBudget =
@@ -300,19 +304,9 @@ const TransactionsPage = () => {
       ...(groupedCategories.investment || []),
     ];
 
-    // Get unique category names from transactions to only show categories that are actually used
-    const usedCategoryNames = new Set<string>();
-    allTransactions.forEach((t) => {
-      if (t.category?.name) {
-        usedCategoryNames.add(t.category.name);
-      }
-    });
-
-    // Filter to only show default categories that are actually used in transactions
-    return allDefaultCategories
-      .filter((cat) => usedCategoryNames.has(cat.name))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [allTransactions, groupedCategories]);
+    // Return all default categories sorted by name
+    return allDefaultCategories.sort((a, b) => a.name.localeCompare(b.name));
+  }, [groupedCategories]);
 
   // Get unique budgets for filter
   const availableBudgets = useMemo(() => {
@@ -724,7 +718,7 @@ const TransactionsPage = () => {
                     >
                       <option value="all">All Categories</option>
                       {categories.map((category) => (
-                        <option key={category.id} value={category.name}>
+                        <option key={category.id} value={category.id}>
                           {category.name}
                         </option>
                       ))}

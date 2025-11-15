@@ -44,6 +44,7 @@ export async function getCategories(
     where: {
       deleted: null,
       budgetId: null, // Only get default/template categories
+      defaultCategoryId: null,
     },
     orderBy: {
       name: 'asc',

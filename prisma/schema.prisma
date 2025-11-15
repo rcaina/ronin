@@ -143,19 +143,23 @@ model Income {
 }
 
 model Category {
-    id              String        @id @default(cuid())
-    budgetId        String?
-    budget          Budget?       @relation(fields: [budgetId], references: [id])
-    name            String
-    group           CategoryType
-    allocatedAmount Float?
-    transactions    Transaction[]
-    createdAt       DateTime      @default(now())
-    updatedAt       DateTime      @updatedAt
-    deleted         DateTime?
+    id                String        @id @default(cuid())
+    budgetId          String?
+    budget            Budget?       @relation(fields: [budgetId], references: [id])
+    defaultCategoryId String?
+    defaultCategory   Category?     @relation("DefaultCategory", fields: [defaultCategoryId], references: [id])
+    budgetCategories  Category[]    @relation("DefaultCategory")
+    name              String
+    group             CategoryType
+    allocatedAmount   Float?
+    transactions      Transaction[]
+    createdAt         DateTime      @default(now())
+    updatedAt         DateTime      @updatedAt
+    deleted           DateTime?
 
     @@index([id])
     @@index([budgetId])
+    @@index([defaultCategoryId])
     @@index([deleted])
     @@map("category")
 }
