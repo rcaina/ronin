@@ -24,11 +24,14 @@ export const createAllocationSchema = z.object({
   amount: z.number().positive("Amount must be positive"),
   note: z.string().optional(),
   withdrawal: z.boolean().optional().default(false),
+  occurredAt: z.string().optional(),
 });
 
 export const updateAllocationSchema = z.object({
   amount: z.number().positive("Amount must be positive"),
   withdrawal: z.boolean().optional().default(false),
+  note: z.string().optional(),
+  occurredAt: z.string().optional(),
 });
 
 export type CreateSavingsSchema = z.infer<typeof createSavingsSchema>;

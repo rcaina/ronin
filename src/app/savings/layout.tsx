@@ -17,24 +17,14 @@ export default function SavingsLayout({ children }: { children: ReactNode }) {
   const { data: pocket } = usePocket(pocketId ?? "");
 
   // Configure page header based on current pathname
+  // Note: The child layout at savings/[id]/layout.tsx handles headers for:
+  // - /savings/[id] (overview)
+  // - /savings/[id]/pockets
+  // - /savings/[id]/allocations
   const pageHeaderConfig = useMemo(() => {
     if (pathname === `/savings`) {
       // Main savings page - no header needed as page has its own
       return null;
-    } else if (id && pathname === `/savings/${id}`) {
-      // Savings account detail page (categories/pockets page)
-      return {
-        title: savings?.name ?? "Savings Account",
-        description: savings
-          ? `Created ${new Date(savings.createdAt).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}`
-          : "Loading...",
-        showBackButton: true,
-        backTo: `/savings`,
-      };
     } else if (
       id &&
       pocketId &&
@@ -51,6 +41,7 @@ export default function SavingsLayout({ children }: { children: ReactNode }) {
       };
     }
 
+    // All other paths are handled by child layouts
     return null;
   }, [pathname, id, pocketId, savings, pocket]);
 
