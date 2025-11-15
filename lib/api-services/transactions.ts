@@ -13,7 +13,11 @@ export const getTransactions = async (
   };
 
   const include = {
-    category: true,
+    category: {
+      include: {
+        defaultCategory: true,
+      },
+    },
     Budget: true,
   };
 
@@ -66,7 +70,11 @@ export const createTransaction = async (
       occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
     },
     include: {
-      category: true,
+      category: {
+        include: {
+          defaultCategory: true,
+        },
+      },
       Budget: true,
     },
   });
@@ -99,7 +107,11 @@ export async function updateTransaction(
       transactionType: data.transactionType,
     },
     include: {
-      category: true,
+      category: {
+        include: {
+          defaultCategory: true,
+        },
+      },
       Budget: true,
     },
   })
@@ -145,7 +157,11 @@ export async function createCardPayment(
       occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
     },
     include: {
-      category: true,
+      category: {
+        include: {
+          defaultCategory: true,
+        },
+      },
       Budget: true,
     },
   });
@@ -166,7 +182,11 @@ export async function createCardPayment(
       occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
     },
     include: {
-      category: true,
+      category: {
+        include: {
+          defaultCategory: true,
+        },
+      },
       Budget: true,
     },
   });
