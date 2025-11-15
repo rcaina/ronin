@@ -23,12 +23,14 @@ export default function AddAllocationModal({
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [withdrawal, setWithdrawal] = useState(false);
+  const [occurredAt, setOccurredAt] = useState("");
 
   useEffect(() => {
     if (!isOpen) {
       setAmount("");
       setNote("");
       setWithdrawal(false);
+      setOccurredAt("");
     }
   }, [isOpen]);
 
@@ -51,12 +53,17 @@ export default function AddAllocationModal({
       submitData.note = note.trim();
     }
 
+    if (occurredAt) {
+      submitData.occurredAt = occurredAt;
+    }
+
     onSubmit(submitData);
 
     // Reset form
     setAmount("");
     setNote("");
     setWithdrawal(false);
+    setOccurredAt("");
   };
 
   return (
@@ -127,6 +134,19 @@ export default function AddAllocationModal({
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Add a note about this allocation..."
                 rows={3}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none transition-colors focus:border-gray-400"
+              />
+            </div>
+
+            {/* Occurred At Field */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Occurred At (optional)
+              </label>
+              <input
+                type="date"
+                value={occurredAt}
+                onChange={(e) => setOccurredAt(e.target.value)}
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none transition-colors focus:border-gray-400"
               />
             </div>

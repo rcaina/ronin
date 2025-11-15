@@ -6,6 +6,7 @@ type AllocationLite = {
   amount: number;
   withdrawal: boolean;
   note?: string | null;
+  occurredAt?: Date | null;
   createdAt: Date;
 };
 
@@ -42,6 +43,7 @@ export function toPocketSummary(pocket: PocketWithAllocationsLite): PocketSummar
         amount,
         withdrawal: a.withdrawal ?? false,
         note: a.note ?? undefined,
+        occurredAt: a.occurredAt ? a.occurredAt.toISOString() : undefined,
         createdAt: a.createdAt.toISOString(),
       };
     }),
@@ -86,6 +88,7 @@ export function toAllocationSummary(allocation: {
   amount: number;
   withdrawal: boolean;
   note?: string | null;
+  occurredAt?: Date | null;
   createdAt: Date;
 }): AllocationSummary {
   return {
@@ -93,6 +96,7 @@ export function toAllocationSummary(allocation: {
     amount: allocation.amount,
     withdrawal: allocation.withdrawal ?? false,
     note: allocation.note ?? undefined,
+    occurredAt: allocation.occurredAt ? allocation.occurredAt.toISOString() : undefined,
     createdAt: allocation.createdAt.toISOString(),
   };
 }

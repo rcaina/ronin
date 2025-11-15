@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "allocation" ADD COLUMN     "occurredAt" TIMESTAMP(3),
+ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

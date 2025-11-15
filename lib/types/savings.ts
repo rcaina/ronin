@@ -3,6 +3,7 @@ export interface AllocationSummary {
   amount: number;
   withdrawal: boolean;
   note?: string;
+  occurredAt?: string;
   createdAt: string;
 }
 

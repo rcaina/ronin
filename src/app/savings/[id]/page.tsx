@@ -1,18 +1,11 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState } from "react";
 import { useSavingsAccount } from "@/lib/data-hooks/savings/useSavings";
-import { useCreatePocket } from "@/lib/data-hooks/savings/usePockets";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import StatsCard from "@/components/StatsCard";
-import { AlertCircle, PiggyBank, Target, DollarSign, Plus } from "lucide-react";
+import { AlertCircle, PiggyBank, Target, DollarSign } from "lucide-react";
 import { roundToCents } from "@/lib/utils";
-import PocketCard from "@/components/savings/PocketCard";
-import AddPocketModal from "@/components/savings/AddPocketModal";
-import { toast } from "react-hot-toast";
-import type { CreatePocketSchema } from "@/lib/api-schemas/savings";
-import Button from "@/components/Button";
 
 const SavingsCategoriesPage = () => {
   const { id } = useParams();
@@ -21,10 +14,7 @@ const SavingsCategoriesPage = () => {
     data: savings,
     isLoading: savingsLoading,
     error: savingsError,
-    refetch,
   } = useSavingsAccount(savingsId);
-  const [isAddingPocket, setIsAddingPocket] = useState(false);
-  const createPocketMutation = useCreatePocket();
 
   // Calculate statistics
   const totalPockets = savings?.pockets?.length ?? 0;
@@ -71,18 +61,6 @@ const SavingsCategoriesPage = () => {
       }
       return false;
     }).length ?? 0;
-
-  const handleSubmitAddPocket = async (data: CreatePocketSchema) => {
-    try {
-      await createPocketMutation.mutateAsync(data);
-      setIsAddingPocket(false);
-      toast.success("Pocket added successfully!");
-      void refetch();
-    } catch (error) {
-      console.error("Failed to add pocket:", error);
-      toast.error("Failed to add pocket. Please try again.");
-    }
-  };
 
   // Show loading state
   if (savingsLoading) {
@@ -202,51 +180,7 @@ const SavingsCategoriesPage = () => {
             </div>
           </div>
         )}
-
-        {/* Pockets Section */}
-        <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-8 sm:p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
-              Pockets
-            </h3>
-            <Button onClick={() => setIsAddingPocket(true)}>
-              <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span>Add Pocket</span>
-            </Button>
-          </div>
-
-          <div className="space-y-4">
-            {/* Pockets Grid */}
-            {savings.pockets && savings.pockets.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {savings.pockets.map((pocket) => (
-                  <PocketCard
-                    key={pocket.id}
-                    pocket={pocket}
-                    savingsId={savingsId}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="flex h-32 items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50">
-                <div className="text-center text-sm text-gray-500">
-                  <p>No pockets yet</p>
-                  <p>Click &quot;Add Pocket&quot; to create one</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
-
-      {/* Add Pocket Modal */}
-      <AddPocketModal
-        isOpen={isAddingPocket}
-        onClose={() => setIsAddingPocket(false)}
-        onSubmit={handleSubmitAddPocket}
-        isLoading={createPocketMutation.isPending}
-        savingsId={savingsId}
-      />
     </div>
   );
 };

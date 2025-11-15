@@ -193,6 +193,7 @@ export const createAllocation = async (
       amount: data.amount,
       withdrawal: data.withdrawal ?? false,
       note: data.note ? String(data.note) : null,
+      occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
     },
     include: {
       pocket: true,
@@ -230,12 +231,29 @@ export const updateAllocation = async (
   if (!allocation) return null;
 
   // Always save positive amount, use withdrawal flag to indicate direction
+  const updateData: {
+    amount: number;
+    withdrawal: boolean;
+    note?: string | null;
+    occurredAt?: Date;
+  } = {
+    amount: Math.abs(data.amount),
+    withdrawal: data.withdrawal ?? allocation.withdrawal,
+  };
+
+  // Handle note update - if note is provided (even if empty string), update it
+  if (data.note !== undefined) {
+    updateData.note = data.note.trim() || null;
+  }
+
+  // Handle occurredAt update
+  if (data.occurredAt !== undefined) {
+    updateData.occurredAt = data.occurredAt ? new Date(data.occurredAt) : undefined;
+  }
+
   return await tx.allocation.update({
     where: { id: allocationId },
-    data: {
-      amount: Math.abs(data.amount),
-      withdrawal: data.withdrawal ?? allocation.withdrawal,
-    },
+    data: updateData,
     include: {
       pocket: true,
       user: {

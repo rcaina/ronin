@@ -252,15 +252,17 @@ model Pocket {
 }
 
 model Allocation {
-    id         String   @id @default(cuid())
+    id         String    @id @default(cuid())
     pocketId   String
-    pocket     Pocket   @relation(fields: [pocketId], references: [id])
+    pocket     Pocket    @relation(fields: [pocketId], references: [id])
     userId     String
-    user       User     @relation(fields: [userId], references: [id])
+    user       User      @relation(fields: [userId], references: [id])
     amount     Float
-    withdrawal Boolean  @default(false)
+    withdrawal Boolean   @default(false)
     note       String?
-    createdAt  DateTime @default(now())
+    occurredAt DateTime?
+    createdAt  DateTime  @default(now())
+    updatedAt  DateTime  @default(now()) @updatedAt
 
     @@index([pocketId])
     @@index([userId])

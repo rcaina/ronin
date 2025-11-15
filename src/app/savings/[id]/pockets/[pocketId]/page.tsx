@@ -53,6 +53,8 @@ const PocketDetailPage = () => {
   );
 
   const [editingAmount, setEditingAmount] = useState<string>("");
+  const [editingNote, setEditingNote] = useState<string>("");
+  const [editingOccurredAt, setEditingOccurredAt] = useState<string>("");
 
   // Calculate statistics
   const totalAllocated =
@@ -81,11 +83,25 @@ const PocketDetailPage = () => {
   const handleStartEditAllocation = (allocation: AllocationSummary) => {
     setEditingAllocationId(allocation.id);
     setEditingAmount(allocation.amount.toString());
+    setEditingNote(allocation.note ?? "");
+    if (allocation.occurredAt) {
+      const occurredAtStr = String(allocation.occurredAt);
+      try {
+        const dateStr = new Date(occurredAtStr).toISOString().split("T")[0];
+        setEditingOccurredAt(dateStr ?? "");
+      } catch {
+        setEditingOccurredAt("");
+      }
+    } else {
+      setEditingOccurredAt("");
+    }
   };
 
   const handleCancelEditAllocation = () => {
     setEditingAllocationId(null);
     setEditingAmount("");
+    setEditingNote("");
+    setEditingOccurredAt("");
   };
 
   const handleSaveAllocation = async (allocation: AllocationSummary) => {
@@ -101,12 +117,34 @@ const PocketDetailPage = () => {
         withdrawal: allocation.withdrawal, // Preserve the withdrawal flag
       };
 
+      // Include note if it's been modified (even if empty)
+      if (editingNote.trim() !== (allocation.note ?? "")) {
+        data.note = editingNote.trim() || undefined;
+      }
+
+      // Include occurredAt if it's been modified
+      let currentOccurredAt = "";
+      if (allocation.occurredAt) {
+        const occurredAtStr = String(allocation.occurredAt);
+        try {
+          const dateStr = new Date(occurredAtStr).toISOString().split("T")[0];
+          currentOccurredAt = dateStr ?? "";
+        } catch {
+          currentOccurredAt = "";
+        }
+      }
+      if (editingOccurredAt !== currentOccurredAt) {
+        data.occurredAt = editingOccurredAt.trim() || undefined;
+      }
+
       await updateAllocationMutation.mutateAsync({
         allocationId: allocation.id,
         data,
       });
       setEditingAllocationId(null);
       setEditingAmount("");
+      setEditingNote("");
+      setEditingOccurredAt("");
       toast.success("Allocation updated successfully!");
     } catch (error) {
       console.error("Failed to update allocation:", error);
@@ -277,40 +315,71 @@ const PocketDetailPage = () => {
                   }`}
                 >
                   {editingAllocationId === allocation.id ? (
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">
-                          {allocation.note ?? "Allocation"}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {formatDateUTC(allocation.createdAt)}
-                        </p>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500">
+                            {allocation.occurredAt
+                              ? formatDateUTC(String(allocation.occurredAt))
+                              : formatDateUTC(allocation.createdAt)}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0.01"
-                          value={editingAmount}
-                          onChange={(e) => setEditingAmount(e.target.value)}
-                          className="w-24 rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">
+                          Note
+                        </label>
+                        <textarea
+                          value={editingNote}
+                          onChange={(e) => setEditingNote(e.target.value)}
+                          placeholder="Add a note about this allocation..."
+                          rows={2}
+                          className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
-                        <button
-                          onClick={() => handleSaveAllocation(allocation)}
-                          disabled={updateAllocationMutation.isPending}
-                          className="rounded p-1 text-green-600 transition-colors hover:bg-green-100 disabled:opacity-50"
-                          title="Save changes"
-                        >
-                          ✓
-                        </button>
-                        <button
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-gray-700">
+                            Amount
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            value={editingAmount}
+                            onChange={(e) => setEditingAmount(e.target.value)}
+                            className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            placeholder="Amount"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-gray-700">
+                            Occurred At (optional)
+                          </label>
+                          <input
+                            type="date"
+                            value={editingOccurredAt}
+                            onChange={(e) =>
+                              setEditingOccurredAt(e.target.value)
+                            }
+                            className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button
                           onClick={handleCancelEditAllocation}
                           disabled={updateAllocationMutation.isPending}
-                          className="rounded p-1 text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
-                          title="Cancel editing"
+                          variant="secondary"
                         >
-                          ✕
-                        </button>
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={() => handleSaveAllocation(allocation)}
+                          disabled={updateAllocationMutation.isPending}
+                        >
+                          Save
+                        </Button>
                       </div>
                     </div>
                   ) : (
@@ -320,7 +389,9 @@ const PocketDetailPage = () => {
                           {allocation.note ?? "Allocation"}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {formatDateUTC(allocation.createdAt)}
+                          {allocation.occurredAt
+                            ? formatDateUTC(String(allocation.occurredAt))
+                            : formatDateUTC(allocation.createdAt)}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
