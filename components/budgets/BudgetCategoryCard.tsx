@@ -313,7 +313,7 @@ export default function BudgetCategoryCard({
                       </p>
                     </div>
                     <span
-                      className={`font-medium ${transaction.amount < 0 ? "text-green-600" : "text-gray-900"}`}
+                      className={`font-medium ${transaction.transactionType === TransactionType.RETURN ? "text-green-600" : "text-gray-900"}`}
                     >
                       {transaction.amount < 0 ? "-" : ""}$
                       {Math.abs(transaction.amount).toFixed(2).toLocaleString()}

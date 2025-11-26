@@ -23,6 +23,7 @@ import type {
   IncomeEntry,
   StepType,
 } from "./types";
+import type { BudgetWithRelations } from "@/lib/types/budget";
 import Button from "../Button";
 
 // Validation schema
@@ -127,12 +128,14 @@ interface CreateBudgetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  initialBudget?: BudgetWithRelations | null;
 }
 
 export default function CreateBudgetModal({
   isOpen,
   onClose,
   onSuccess,
+  initialBudget,
 }: CreateBudgetModalProps) {
   const createBudgetMutation = useCreateBudget();
   const [selectedCategories, setSelectedCategories] = useState<
@@ -170,6 +173,82 @@ export default function CreateBudgetModal({
       isRecurring: true,
     },
   });
+
+  // Prefill form when initialBudget is provided
+  useEffect(() => {
+    if (isOpen) {
+      // Always reset to basic step when modal opens
+      setCurrentStep("basic");
+
+      if (initialBudget) {
+        const startDate = new Date();
+        const endDate = calculateEndDate(startDate, initialBudget.period);
+
+        // Set form values
+        setValue("name", `${initialBudget.name} (Copy)`);
+        setValue("strategy", initialBudget.strategy);
+        setValue("period", initialBudget.period);
+        setValue("startAt", formatDateForInput(startDate));
+        setValue("endAt", formatDateForInput(endDate));
+        setValue("isRecurring", initialBudget.isRecurring);
+
+        // Set income entries
+        if (initialBudget.incomes && initialBudget.incomes.length > 0) {
+          const entries: IncomeEntry[] = initialBudget.incomes.map(
+            (income, index) => ({
+              id: (index + 1).toString(),
+              amount: income.amount,
+              source: income.source ?? "",
+              description: income.description ?? "",
+              isPlanned: income.isPlanned,
+              frequency: income.frequency,
+            }),
+          );
+          setIncomeEntries(entries);
+        } else {
+          setIncomeEntries([
+            {
+              id: "1",
+              amount: 0,
+              source: "",
+              description: "",
+              isPlanned: true,
+              frequency: PeriodType.MONTHLY,
+            },
+          ]);
+        }
+
+        // Set categories
+        if (initialBudget.categories && initialBudget.categories.length > 0) {
+          const categories: CategoryAllocation[] = initialBudget.categories.map(
+            (category, index) => ({
+              categoryId: `temp-${Date.now()}-${index}`,
+              name: category.name,
+              group: category.group,
+              allocatedAmount: category.allocatedAmount ?? 0,
+            }),
+          );
+          setSelectedCategories(categories);
+        } else {
+          setSelectedCategories([]);
+        }
+      } else {
+        // Reset to defaults when opening without initial budget
+        reset();
+        setSelectedCategories([]);
+        setIncomeEntries([
+          {
+            id: "1",
+            amount: 0,
+            source: "",
+            description: "",
+            isPlanned: true,
+            frequency: PeriodType.MONTHLY,
+          },
+        ]);
+      }
+    }
+  }, [initialBudget, isOpen, setValue, reset]);
 
   const watchedName = watch("name");
   const watchedStartAt = watch("startAt");

@@ -156,20 +156,26 @@ const CardComponent = ({
                 </span>
               </div>
             )}
-            {card.spendingLimit && !general && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Available</span>
-                <span
-                  className={`font-semibold ${
-                    card.spendingLimit - card.amountSpent >= 0
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  ${(card.spendingLimit - card.amountSpent).toFixed(2)}
-                </span>
-              </div>
-            )}
+            {card.spendingLimit &&
+              !general &&
+              (() => {
+                // Round to 2 decimal places to avoid floating point precision issues
+                const available =
+                  Math.round((card.spendingLimit - card.amountSpent) * 100) /
+                  100;
+                return (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Available</span>
+                    <span
+                      className={`font-semibold ${
+                        available >= 0 ? "text-green-600" : "text-red-600"
+                      }`}
+                    >
+                      ${Math.max(0, available).toFixed(2)}
+                    </span>
+                  </div>
+                );
+              })()}
           </div>
 
           {/* Utilization Bar */}

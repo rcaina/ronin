@@ -162,15 +162,37 @@ export async function createBudget(
 
   // Create budget category allocations
   if (data.categoryAllocations && data.categoryAllocations.length > 0) {
-    // Create categories directly with budgetId
-    await tx.category.createMany({
-      data: data.categoryAllocations.map(({ name, group, allocatedAmount }) => ({
-        budgetId: budget.id,
-        name,
-        group,
-        allocatedAmount,
-      })),
+    // Fetch all default categories to match against
+    const defaultCategories = await tx.category.findMany({
+      where: {
+        budgetId: null,
+        defaultCategoryId: null,
+        deleted: null,
+      },
     });
+
+    // Create a map of (name, group) -> defaultCategoryId for quick lookup
+    const defaultCategoryMap = new Map<string, string>();
+    defaultCategories.forEach((cat) => {
+      const key = `${cat.name}|${cat.group}`;
+      defaultCategoryMap.set(key, cat.id);
+    });
+
+    // Create categories with proper defaultCategoryId linking
+    for (const { name, group, allocatedAmount } of data.categoryAllocations) {
+      const key = `${name}|${group}`;
+      const defaultCategoryId = defaultCategoryMap.get(key) ?? null;
+
+      await tx.category.create({
+        data: {
+          budgetId: budget.id,
+          name,
+          group,
+          allocatedAmount,
+          defaultCategoryId,
+        },
+      });
+    }
   }
 
   return budget
@@ -232,14 +254,37 @@ export async function updateBudget(
 
     // Create new allocations
     if (data.categoryAllocations.length > 0) {
-      await tx.category.createMany({
-        data: data.categoryAllocations.map(({ name, group, allocatedAmount }) => ({
-          budgetId: id,
-          name,
-          group,
-          allocatedAmount,
-        })),
+      // Fetch all default categories to match against
+      const defaultCategories = await tx.category.findMany({
+        where: {
+          budgetId: null,
+          defaultCategoryId: null,
+          deleted: null,
+        },
       });
+
+      // Create a map of (name, group) -> defaultCategoryId for quick lookup
+      const defaultCategoryMap = new Map<string, string>();
+      defaultCategories.forEach((cat) => {
+        const key = `${cat.name}|${cat.group}`;
+        defaultCategoryMap.set(key, cat.id);
+      });
+
+      // Create categories with proper defaultCategoryId linking
+      for (const { name, group, allocatedAmount } of data.categoryAllocations) {
+        const key = `${name}|${group}`;
+        const defaultCategoryId = defaultCategoryMap.get(key) ?? null;
+
+        await tx.category.create({
+          data: {
+            budgetId: id,
+            name,
+            group,
+            allocatedAmount,
+            defaultCategoryId,
+          },
+        });
+      }
     }
   }
 
@@ -616,13 +661,25 @@ export const createBudgetCategory = async (
     throw new HttpError("Budget not found", 404);
   }
 
-  // Create the category directly with budgetId
+  // Find matching default category if it exists
+  const defaultCategory = await tx.category.findFirst({
+    where: {
+      budgetId: null,
+      defaultCategoryId: null,
+      name: data.categoryName,
+      group: data.group,
+      deleted: null,
+    },
+  });
+
+  // Create the category with proper defaultCategoryId linking
   const category = await tx.category.create({
     data: {
       budgetId: budgetId,
       name: data.categoryName,
       group: data.group,
       allocatedAmount: data.allocatedAmount,
+      defaultCategoryId: defaultCategory?.id ?? null,
     },
   });
 
