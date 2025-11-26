@@ -31,7 +31,7 @@ interface BudgetNavItem {
 
 const navItems: NavItem[] = [
   { href: "/", icon: "📊", label: "Overview" },
-  { href: "/budgets", icon: "💰", label: "Budget" },
+  { href: "/budgets", icon: "💰", label: "Budgets" },
   { href: "/transactions", icon: "🧾", label: "Transactions" },
   { href: "/categories", icon: "📂", label: "Categories" },
   { href: "/savings", icon: "💰", label: "Savings" },

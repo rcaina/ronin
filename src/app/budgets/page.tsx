@@ -24,10 +24,7 @@ import {
   useMarkBudgetArchived,
   useReactivateBudget,
 } from "@/lib/data-hooks/budgets/useBudgets";
-import {
-  useDeleteBudget,
-  useDuplicateBudget,
-} from "@/lib/data-hooks/budgets/useBudgets";
+import { useDeleteBudget } from "@/lib/data-hooks/budgets/useBudgets";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -51,6 +48,8 @@ const BudgetsPage = () => {
   const [budgetToDelete, setBudgetToDelete] =
     useState<BudgetWithRelations | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [budgetToDuplicate, setBudgetToDuplicate] =
+    useState<BudgetWithRelations | null>(null);
 
   // Data hooks for different budget statuses (excluding card payments for calculations)
   const { data: activeBudgetsData, isLoading: activeLoading } =
@@ -76,7 +75,6 @@ const BudgetsPage = () => {
 
   // Mutation hooks
   const deleteBudgetMutation = useDeleteBudget();
-  const duplicateBudgetMutation = useDuplicateBudget();
   const markCompletedMutation = useMarkBudgetCompleted();
   const markArchivedMutation = useMarkBudgetArchived();
   const reactivateMutation = useReactivateBudget();
@@ -272,14 +270,9 @@ const BudgetsPage = () => {
     return { needs, wants, investments };
   };
 
-  const handleDuplicateBudget = async (budget: BudgetWithRelations) => {
-    try {
-      await duplicateBudgetMutation.mutateAsync(budget.id);
-      toast.success("Budget duplicated successfully!");
-    } catch (err) {
-      toast.error("Failed to duplicate budget. Please try again.");
-      console.error("Failed to duplicate budget:", err);
-    }
+  const handleDuplicateBudget = (budget: BudgetWithRelations) => {
+    setBudgetToDuplicate(budget);
+    setIsCreateModalOpen(true);
   };
 
   const handleDeleteBudget = (budget: BudgetWithRelations) => {
@@ -546,9 +539,9 @@ const BudgetsPage = () => {
                               </button>
                             )}
                             <button
-                              onClick={async (e: MouseEvent) => {
+                              onClick={(e: MouseEvent) => {
                                 e.stopPropagation();
-                                await handleDuplicateBudget(budget);
+                                handleDuplicateBudget(budget);
                               }}
                               className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-blue-600"
                               title="Duplicate"
@@ -678,11 +671,16 @@ const BudgetsPage = () => {
       {/* Modals */}
       <CreateBudgetModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setBudgetToDuplicate(null);
+        }}
         onSuccess={() => {
           setIsCreateModalOpen(false);
+          setBudgetToDuplicate(null);
           toast.success("Budget created successfully!");
         }}
+        initialBudget={budgetToDuplicate}
       />
 
       <DeleteConfirmationModal

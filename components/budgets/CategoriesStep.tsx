@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Plus,
   X,
@@ -9,10 +9,13 @@ import {
   ShoppingBag,
   TrendingUp,
   Target,
+  CheckCircle2,
 } from "lucide-react";
 import { CategoryType } from "@prisma/client";
 import type { CategoryAllocation } from "./types";
 import { getCategoryBadgeColor } from "@/lib/utils";
+import { useCategories } from "@/lib/data-hooks/categories/useCategories";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface CategoriesStepProps {
   selectedCategories: CategoryAllocation[];
@@ -30,6 +33,10 @@ export default function CategoriesStep({
     CategoryType.WANTS,
   );
   const [isAddingCategory, setIsAddingCategory] = useState(false);
+
+  // Fetch default categories
+  const { data: defaultCategories, isLoading: isLoadingCategories } =
+    useCategories();
 
   const getCategoryGroupIcon = (group: CategoryType) => {
     switch (group) {
@@ -79,7 +86,42 @@ export default function CategoriesStep({
     setNewCategoryName("");
   };
 
-  // Group categories by type
+  // Check if a default category is already selected and get its categoryId
+  const getSelectedCategoryId = (name: string, group: CategoryType) => {
+    const selected = selectedCategories.find(
+      (cat) => cat.name === name && cat.group === group,
+    );
+    return selected?.categoryId;
+  };
+
+  const isDefaultCategorySelected = (name: string, group: CategoryType) => {
+    return getSelectedCategoryId(name, group) !== undefined;
+  };
+
+  // Handle toggling a default category (add if not selected, remove if selected)
+  const handleToggleDefaultCategory = (name: string, group: CategoryType) => {
+    const categoryId = getSelectedCategoryId(name, group);
+    if (categoryId) {
+      // If already selected, remove it
+      onRemoveCategory(categoryId);
+    } else {
+      // If not selected, add it
+      onAddCategory({ name, group });
+    }
+  };
+
+  // Group default categories by type
+  const defaultCategoriesByGroup = useMemo(() => {
+    if (!defaultCategories) return {};
+
+    return {
+      [CategoryType.NEEDS]: defaultCategories.needs || [],
+      [CategoryType.WANTS]: defaultCategories.wants || [],
+      [CategoryType.INVESTMENT]: defaultCategories.investment || [],
+    };
+  }, [defaultCategories]);
+
+  // Group selected categories by type
   const categoriesByGroup = selectedCategories.reduce(
     (acc, category) => {
       if (!acc[category.group]) {
@@ -110,12 +152,100 @@ export default function CategoriesStep({
           Budget Categories
         </h3>
         <p className="text-sm text-gray-500">
-          Add the spending categories you want to track in your budget
-          (optional). You can organize them by needs, wants, or investments.
+          Select from default categories or create custom ones to track in your
+          budget (optional). You can organize them by needs, wants, or
+          investments.
         </p>
       </div>
 
-      {/* Categories grouped by type */}
+      {/* Default Categories Section */}
+      {isLoadingCategories ? (
+        <div className="flex justify-center py-4">
+          <LoadingSpinner message="Loading default categories..." />
+        </div>
+      ) : (
+        defaultCategories && (
+          <div className="space-y-4">
+            <div>
+              <h4 className="mb-3 text-sm font-semibold text-gray-700">
+                Default Categories
+              </h4>
+              <p className="mb-4 text-xs text-gray-500">
+                Click on a category to add it to your budget
+              </p>
+            </div>
+
+            {groupOrder.map((groupType) => {
+              const defaultCats = defaultCategoriesByGroup[groupType] ?? [];
+              if (defaultCats.length === 0) return null;
+
+              return (
+                <div key={`default-${groupType}`} className="space-y-2">
+                  <h5
+                    className={`text-xs font-medium ${getGroupTitleColor(groupType)}`}
+                  >
+                    {groupLabels[groupType]} - Default Categories
+                  </h5>
+                  <div className="flex flex-wrap gap-2">
+                    {defaultCats.map((defaultCat) => {
+                      const isSelected = isDefaultCategorySelected(
+                        defaultCat.name,
+                        defaultCat.group,
+                      );
+
+                      return (
+                        <button
+                          key={defaultCat.id}
+                          type="button"
+                          onClick={() =>
+                            handleToggleDefaultCategory(
+                              defaultCat.name,
+                              defaultCat.group,
+                            )
+                          }
+                          className={`flex items-center space-x-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+                            isSelected
+                              ? "border-green-500 bg-green-50 text-green-700 hover:border-green-600 hover:bg-green-100"
+                              : "hover:bg-secondary/5 border-gray-200 bg-white text-gray-700 hover:border-secondary hover:text-secondary"
+                          }`}
+                          title={
+                            isSelected
+                              ? `Click to remove ${defaultCat.name} from budget`
+                              : `Click to add ${defaultCat.name} to budget`
+                          }
+                        >
+                          {getCategoryGroupIcon(defaultCat.group)}
+                          <span>{defaultCat.name}</span>
+                          {isSelected && (
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
+      )}
+
+      {/* Divider and Selected Categories Header */}
+      {defaultCategories &&
+        Object.values(defaultCategoriesByGroup).some(
+          (group: CategoryAllocation[]) => group.length > 0,
+        ) && (
+          <div className="border-t border-gray-200 pt-6">
+            <h4 className="mb-3 text-sm font-semibold text-gray-700">
+              Selected Categories
+            </h4>
+            <p className="mb-4 text-xs text-gray-500">
+              Categories you&apos;ve added to your budget
+            </p>
+          </div>
+        )}
+
+      {/* Selected Categories grouped by type */}
       {groupOrder.map((groupType) => {
         const categories = categoriesByGroup[groupType] || [];
         const isAddingToThisGroup =

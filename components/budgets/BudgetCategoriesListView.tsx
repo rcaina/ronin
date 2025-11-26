@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronDown,
@@ -43,7 +43,23 @@ export default function BudgetCategoriesListView({
   );
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [activeGroup, setActiveGroup] = useState<CategoryType | null>(null);
+  // Track which groups are expanded/collapsed (for mobile accordion)
+  const [expandedGroups, setExpandedGroups] = useState<Set<CategoryType>>(
+    new Set(Object.values(CategoryType)), // All groups expanded by default
+  );
+  const [isMobile, setIsMobile] = useState(false);
   const createBudgetCategoryMutation = useCreateBudgetCategory();
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640); // sm breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Define the three main category groups using the enum values
   const mainGroups = Object.values(CategoryType);
@@ -69,6 +85,16 @@ export default function BudgetCategoriesListView({
       newExpanded.add(categoryId);
     }
     setExpandedCategories(newExpanded);
+  };
+
+  const toggleGroupExpanded = (group: CategoryType) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(group)) {
+      newExpanded.delete(group);
+    } else {
+      newExpanded.add(group);
+    }
+    setExpandedGroups(newExpanded);
   };
 
   const handleStartAddCategory = (group: CategoryType) => {
@@ -109,232 +135,279 @@ export default function BudgetCategoriesListView({
 
   return (
     <div className="h-full w-full">
-      <div className="space-y-2 pr-2">
-        {Object.entries(displayCategoriesByGroup).map(([group, categories]) => (
-          <div key={group} className="space-y-2">
-            {/* Group Header */}
-            <div
-              className={`flex items-center justify-between rounded-lg p-3 text-white sm:p-4 ${getGroupColor(group as CategoryType)}`}
-            >
-              <div className="flex items-center space-x-2 sm:space-x-3">
-                <div className="h-3 w-3 rounded-full bg-white/20"></div>
-                <h3 className="font-medium text-white">
-                  {getGroupLabel(group as CategoryType)}
-                </h3>
-                <span className="text-sm text-white/80">
-                  ({categories?.length || 0})
-                </span>
-              </div>
-              <div className="flex items-center">
-                <button
-                  onClick={() => handleStartAddCategory(group as CategoryType)}
-                  className="rounded p-1 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
-                  title="Add category to this group"
+      <div className="pr-2">
+        {Object.entries(displayCategoriesByGroup).map(
+          ([group, categories], index) => {
+            const groupType = group as CategoryType;
+            const isGroupExpanded = expandedGroups.has(groupType);
+            const isLastGroup =
+              index === Object.entries(displayCategoriesByGroup).length - 1;
+
+            return (
+              <div
+                key={group}
+                className={`${isGroupExpanded ? "space-y-2" : "space-y-0"} ${!isLastGroup ? (isGroupExpanded ? "mb-2" : "mb-0") : ""} sm:space-y-2 ${!isLastGroup ? "sm:mb-2" : ""}`}
+              >
+                {/* Group Header */}
+                <div
+                  className={`flex items-center justify-between rounded-lg p-3 text-white sm:p-4 ${getGroupColor(groupType)}`}
                 >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Add Category Form - inline within group */}
-            {isAddingCategory && activeGroup === group && (
-              <div className="ml-4 sm:ml-8">
-                <AddBudgetCategoryForm
-                  onSubmit={handleSubmitAddCategory}
-                  onCancel={handleCancelAddCategory}
-                  isLoading={createBudgetCategoryMutation.isPending}
-                />
-              </div>
-            )}
-
-            {/* Categories in this group */}
-            {categories && categories.length > 0 ? (
-              categories.map((budgetCategory) => {
-                const isExpanded = expandedCategories.has(budgetCategory.id);
-                const transactions = budgetCategory.transactions ?? [];
-                const spent = roundToCents(
-                  transactions.reduce((sum: number, transaction) => {
-                    if (
-                      transaction.transactionType === TransactionType.RETURN
-                    ) {
-                      // Returns reduce spending (positive amount = refund received)
-                      return sum - transaction.amount;
-                    } else {
-                      // Regular transactions: positive = purchases (increase spending)
-                      return sum + transaction.amount;
-                    }
-                  }, 0),
-                );
-                const percentage = roundToCents(
-                  budgetCategory.allocatedAmount &&
-                    budgetCategory.allocatedAmount > 0
-                    ? (spent / budgetCategory.allocatedAmount) * 100
-                    : 0,
-                );
-
-                return (
-                  <div key={budgetCategory.id} className="space-y-2">
-                    {/* Category Row */}
-                    <div
-                      className="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-3 transition-colors hover:bg-gray-100 sm:p-4"
-                      onClick={() => toggleExpanded(budgetCategory.id)}
+                  <div
+                    className="flex flex-1 cursor-pointer items-center space-x-2 sm:cursor-default sm:space-x-3"
+                    onClick={() => {
+                      // Only toggle on mobile
+                      if (isMobile) {
+                        toggleGroupExpanded(groupType);
+                      }
+                    }}
+                  >
+                    {/* Mobile collapse/expand chevron */}
+                    <ChevronDown
+                      className={`h-4 w-4 text-white/80 transition-transform duration-200 sm:hidden ${
+                        isGroupExpanded ? "rotate-0" : "-rotate-90"
+                      }`}
+                    />
+                    <div className="h-3 w-3 rounded-full bg-white/20"></div>
+                    <h3 className="font-medium text-white">
+                      {getGroupLabel(groupType)}
+                    </h3>
+                    <span className="text-sm text-white/80">
+                      ({categories?.length || 0})
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStartAddCategory(groupType);
+                      }}
+                      className="rounded p-1 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+                      title="Add category to this group"
                     >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center space-x-2 sm:space-x-3">
-                          <div
-                            className={`h-3 w-3 rounded-full ${getGroupColor(
-                              group as CategoryType,
-                            )}`}
-                          ></div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:space-x-2">
-                              <p className="font-medium text-gray-900">
-                                {budgetCategory.name}
-                              </p>
-                              <span className="text-sm text-gray-500">
-                                ({getGroupLabel(group as CategoryType)})
-                              </span>
-                            </div>
-                            <div className="mt-2 space-y-2">
-                              <div className="flex flex-col gap-1 text-sm text-gray-500 sm:flex-row sm:items-center sm:space-x-4">
-                                <span>
-                                  Allocated: $
-                                  {budgetCategory.allocatedAmount?.toLocaleString()}
-                                </span>
-                                <span>Spent: ${spent.toLocaleString()}</span>
-                                <span
-                                  className={
-                                    (budgetCategory.allocatedAmount ?? 0) -
-                                      spent >=
-                                    0
-                                      ? "text-gray-500"
-                                      : "text-red-500"
-                                  }
-                                >
-                                  Remaining: $
-                                  {(
-                                    (budgetCategory.allocatedAmount ?? 0) -
-                                    spent
-                                  ).toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="h-2 w-full rounded-full bg-gray-200">
-                                <div
-                                  className={`h-2 rounded-full transition-all duration-300 ${
-                                    percentage === 100
-                                      ? "bg-green-500"
-                                      : percentage > 100
-                                        ? "bg-red-500"
-                                        : "bg-secondary"
-                                  }`}
-                                  style={{
-                                    width: `${percentage > 100 ? 100 : percentage}%`,
-                                  }}
-                                ></div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="ml-2 flex items-center space-x-2 sm:space-x-4">
-                        <div className="text-right">
-                          <p
-                            className={`font-medium ${
-                              spent > (budgetCategory.allocatedAmount ?? 0)
-                                ? "text-red-600"
-                                : "text-gray-900"
-                            }`}
-                          >
-                            ${spent.toLocaleString()}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            of $
-                            {budgetCategory.allocatedAmount?.toLocaleString()}
-                          </p>
-                        </div>
-                        {transactions.length > 0 && (
-                          <div className="flex items-center">
-                            {isExpanded ? (
-                              <ChevronDown className="h-5 w-5 text-gray-400" />
-                            ) : (
-                              <ChevronRight className="h-5 w-5 text-gray-400" />
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
 
-                    {/* Expanded Transactions */}
-                    {isExpanded && (
-                      <div className="ml-4 space-y-2 sm:ml-8">
-                        {transactions.length === 0 ? (
-                          <div className="bg-gray-25 rounded-lg p-3 text-center text-sm text-gray-500 sm:p-4">
-                            No transactions in this category
-                          </div>
-                        ) : (
-                          <>
-                            {transactions.slice(0, 3).map((transaction) => (
-                              <div
-                                key={transaction.id}
-                                className="flex items-center justify-between rounded-lg border border-blue-100 bg-blue-50 p-2 sm:p-3"
-                              >
+                {/* Add Category Form - inline within group */}
+                {isAddingCategory && activeGroup === group && (
+                  <div
+                    className={`ml-4 sm:ml-8 ${!isGroupExpanded ? "hidden sm:block" : ""}`}
+                  >
+                    <AddBudgetCategoryForm
+                      onSubmit={handleSubmitAddCategory}
+                      onCancel={handleCancelAddCategory}
+                      isLoading={createBudgetCategoryMutation.isPending}
+                    />
+                  </div>
+                )}
+
+                {/* Categories in this group */}
+                <div className={`${!isGroupExpanded ? "hidden sm:block" : ""}`}>
+                  {categories && categories.length > 0 ? (
+                    categories.map((budgetCategory) => {
+                      const isExpanded = expandedCategories.has(
+                        budgetCategory.id,
+                      );
+                      const transactions = budgetCategory.transactions ?? [];
+                      const spent = roundToCents(
+                        transactions.reduce((sum: number, transaction) => {
+                          if (
+                            transaction.transactionType ===
+                            TransactionType.RETURN
+                          ) {
+                            // Returns reduce spending (positive amount = refund received)
+                            return sum - transaction.amount;
+                          } else {
+                            // Regular transactions: positive = purchases (increase spending)
+                            return sum + transaction.amount;
+                          }
+                        }, 0),
+                      );
+                      const percentage = roundToCents(
+                        budgetCategory.allocatedAmount &&
+                          budgetCategory.allocatedAmount > 0
+                          ? (spent / budgetCategory.allocatedAmount) * 100
+                          : 0,
+                      );
+
+                      return (
+                        <div key={budgetCategory.id} className="space-y-2">
+                          {/* Category Row */}
+                          <div
+                            className="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-3 transition-colors hover:bg-gray-100 sm:p-4"
+                            onClick={() => toggleExpanded(budgetCategory.id)}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center space-x-2 sm:space-x-3">
+                                <div
+                                  className={`h-3 w-3 rounded-full ${getGroupColor(
+                                    group as CategoryType,
+                                  )}`}
+                                ></div>
                                 <div className="min-w-0 flex-1">
-                                  <div className="flex items-center space-x-2">
-                                    <p className="truncate font-medium text-gray-900">
-                                      {transaction.name ??
-                                        "Unnamed transaction"}
+                                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:space-x-2">
+                                    <p className="font-medium text-gray-900">
+                                      {budgetCategory.name}
                                     </p>
-                                    {transaction.description && (
-                                      <div className="group relative flex-shrink-0">
-                                        <Info className="h-4 w-4 cursor-help text-gray-400" />
-                                        <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                                          {transaction.description}
-                                          <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                                    <span className="text-sm text-gray-500">
+                                      ({getGroupLabel(group as CategoryType)})
+                                    </span>
+                                  </div>
+                                  <div className="mt-2 space-y-2">
+                                    <div className="flex flex-col gap-1 text-sm text-gray-500 sm:flex-row sm:items-center sm:space-x-4">
+                                      <span>
+                                        Allocated: $
+                                        {budgetCategory.allocatedAmount?.toLocaleString()}
+                                      </span>
+                                      <span>
+                                        Spent: ${spent.toLocaleString()}
+                                      </span>
+                                      <span
+                                        className={
+                                          (budgetCategory.allocatedAmount ??
+                                            0) -
+                                            spent >=
+                                          0
+                                            ? "text-gray-500"
+                                            : "text-red-500"
+                                        }
+                                      >
+                                        Remaining: $
+                                        {(
+                                          (budgetCategory.allocatedAmount ??
+                                            0) - spent
+                                        ).toLocaleString()}
+                                      </span>
+                                    </div>
+                                    <div className="h-2 w-full rounded-full bg-gray-200">
+                                      <div
+                                        className={`h-2 rounded-full transition-all duration-300 ${
+                                          percentage === 100
+                                            ? "bg-green-500"
+                                            : percentage > 100
+                                              ? "bg-red-500"
+                                              : "bg-secondary"
+                                        }`}
+                                        style={{
+                                          width: `${percentage > 100 ? 100 : percentage}%`,
+                                        }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="ml-2 flex items-center space-x-2 sm:space-x-4">
+                              <div className="text-right">
+                                <p
+                                  className={`font-medium ${
+                                    spent >
+                                    (budgetCategory.allocatedAmount ?? 0)
+                                      ? "text-red-600"
+                                      : "text-gray-900"
+                                  }`}
+                                >
+                                  ${spent.toLocaleString()}
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                  of $
+                                  {budgetCategory.allocatedAmount?.toLocaleString()}
+                                </p>
+                              </div>
+                              {transactions.length > 0 && (
+                                <div className="flex items-center">
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-5 w-5 text-gray-400" />
+                                  ) : (
+                                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Expanded Transactions */}
+                          {isExpanded && (
+                            <div className="ml-4 space-y-2 sm:ml-8">
+                              {transactions.length === 0 ? (
+                                <div className="bg-gray-25 rounded-lg p-3 text-center text-sm text-gray-500 sm:p-4">
+                                  No transactions in this category
+                                </div>
+                              ) : (
+                                <>
+                                  {transactions
+                                    .slice(0, 3)
+                                    .map((transaction) => (
+                                      <div
+                                        key={transaction.id}
+                                        className="flex items-center justify-between rounded-lg border border-blue-100 bg-blue-50 p-2 sm:p-3"
+                                      >
+                                        <div className="min-w-0 flex-1">
+                                          <div className="flex items-center space-x-2">
+                                            <p className="truncate font-medium text-gray-900">
+                                              {transaction.name ??
+                                                "Unnamed transaction"}
+                                            </p>
+                                            {transaction.description && (
+                                              <div className="group relative flex-shrink-0">
+                                                <Info className="h-4 w-4 cursor-help text-gray-400" />
+                                                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                                  {transaction.description}
+                                                  <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                          <p className="truncate text-sm text-gray-500">
+                                            {new Date(
+                                              transaction.createdAt,
+                                            ).toLocaleDateString()}
+                                          </p>
+                                        </div>
+                                        <div className="ml-2 flex-shrink-0 text-right">
+                                          <p
+                                            className={`font-medium ${transaction.transactionType === TransactionType.RETURN ? "text-green-600" : "text-gray-900"}`}
+                                          >
+                                            $
+                                            {transaction.amount.toLocaleString()}
+                                          </p>
                                         </div>
                                       </div>
-                                    )}
+                                    ))}
+                                  <div className="flex justify-end">
+                                    <button
+                                      onClick={() =>
+                                        handleViewAllTransactions(
+                                          budgetCategory.id,
+                                        )
+                                      }
+                                      className="flex items-center space-x-1 text-xs text-blue-600 transition-colors hover:text-blue-800 hover:underline"
+                                      title={`View all ${transactions.length} transactions for ${budgetCategory.name}`}
+                                    >
+                                      <span>View all transactions</span>
+                                      <ArrowRight className="h-3 w-3" />
+                                    </button>
                                   </div>
-                                  <p className="truncate text-sm text-gray-500">
-                                    {new Date(
-                                      transaction.createdAt,
-                                    ).toLocaleDateString()}
-                                  </p>
-                                </div>
-                                <div className="ml-2 flex-shrink-0 text-right">
-                                  <p className="font-medium text-gray-900">
-                                    ${transaction.amount.toLocaleString()}
-                                  </p>
-                                </div>
-                              </div>
-                            ))}
-                            <div className="flex justify-end">
-                              <button
-                                onClick={() =>
-                                  handleViewAllTransactions(budgetCategory.id)
-                                }
-                                className="flex items-center space-x-1 text-xs text-blue-600 transition-colors hover:text-blue-800 hover:underline"
-                                title={`View all ${transactions.length} transactions for ${budgetCategory.name}`}
-                              >
-                                <span>View all transactions</span>
-                                <ArrowRight className="h-3 w-3" />
-                              </button>
+                                </>
+                              )}
                             </div>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            ) : (
-              /* Empty state for group with no categories */
-              <div className="ml-4 rounded-lg bg-gray-50 p-3 text-center text-sm text-gray-500 sm:ml-8 sm:p-4">
-                <p>No categories in this group yet</p>
-                <p>Click the + button above to add one</p>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    /* Empty state for group with no categories */
+                    <div className="ml-4 rounded-lg bg-gray-50 p-3 text-center text-sm text-gray-500 sm:ml-8 sm:p-4">
+                      <p>No categories in this group yet</p>
+                      <p>Click the + button above to add one</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
-        ))}
+            );
+          },
+        )}
       </div>
     </div>
   );
