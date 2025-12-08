@@ -15,7 +15,8 @@ export const GET = withUser({
         
         const budgets = await getBudgets(prisma, user.accountId, status, excludeCardPayments);
         
-        return NextResponse.json(budgets, { status: 200 });
+        // Ensure we always return an array, even if budgets is null/undefined
+        return NextResponse.json(Array.isArray(budgets) ? budgets : [], { status: 200 });
     })
 })
 
