@@ -30,13 +30,13 @@ const CategoriesPage = () => {
   // Filter categories based on search query
   const filteredCategories = categories
     ? {
-        needs: categories.needs.filter((cat) =>
+        needs: (categories.needs || []).filter((cat) =>
           cat.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
         ),
-        wants: categories.wants.filter((cat) =>
+        wants: (categories.wants || []).filter((cat) =>
           cat.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
         ),
-        investment: categories.investment.filter((cat) =>
+        investment: (categories.investment || []).filter((cat) =>
           cat.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
         ),
       }

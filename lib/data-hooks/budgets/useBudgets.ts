@@ -13,6 +13,10 @@ export const useBudgets = (status?: BudgetStatus, excludeCardPayments?: boolean)
     placeholderData: keepPreviousData,
     enabled: !!session,
     staleTime: 2 * 60 * 1000,
+    select: (data) => {
+      // Ensure data is always an array, even if placeholderData or cached data is not
+      return Array.isArray(data) ? data : [];
+    },
   });
 
   return query;

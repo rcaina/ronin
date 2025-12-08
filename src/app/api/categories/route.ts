@@ -12,7 +12,14 @@ export const GET = withUser({
       return await prisma.$transaction(async (tx) => {
         const categories = await getCategories(tx)
 
-        return NextResponse.json(categories, { status: 200 })
+        // Ensure all category groups are present as arrays, even if empty
+        const response = {
+          needs: categories.needs || [],
+          wants: categories.wants || [],
+          investment: categories.investment || [],
+        }
+
+        return NextResponse.json(response, { status: 200 })
       })
     }),
 })

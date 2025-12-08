@@ -28,6 +28,7 @@ export default function HomePage() {
     undefined,
     true,
   ); // Exclude card payments for calculations
+
   const { data: transactions = [], isLoading: transactionsLoading } =
     useAllTransactions();
 

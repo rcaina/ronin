@@ -8,7 +8,13 @@ export const getBudgets = async (status?: BudgetStatus, excludeCardPayments?: bo
   if (excludeCardPayments) params.append('excludeCardPayments', 'true');
   
   const url = params.toString() ? `/api/budgets?${params.toString()}` : "/api/budgets";
-  return fetch(url).then((res) => res.json()) as Promise<BudgetWithRelations[]>;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch budgets: ${response.statusText}`);
+  }
+  const data = (await response.json()) as unknown;
+  // Ensure we always return an array
+  return Array.isArray(data) ? (data as BudgetWithRelations[]) : [];
 };
 
 export const getBudget = async (id: string, excludeCardPayments?: boolean): Promise<BudgetWithRelations> => {
