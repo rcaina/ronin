@@ -1,4 +1,4 @@
-import { CategoryType, PeriodType, PrismaClient, Role, StrategyType, CardType } from '@prisma/client';
+import { CategoryType, PeriodType, PrismaClient, Role, StrategyType, CardType, TransactionType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -198,38 +198,6 @@ async function main() {
       data: categoryData,
     });
     categoryIdMap.set(txCategoryId, created.id);
-  }
-
-  // Create incomes
-  const incomes = [
-    {
-      accountId: demoAccount.id,
-      userId: "1",
-      budgetId: "1",
-      amount: 5000,
-      source: 'Salary',
-      description: 'Monthly salary',
-      receivedAt: new Date(),
-      isPlanned: true,
-      frequency: PeriodType.MONTHLY,
-    },
-    {
-      accountId: startupAccount.id,
-      userId: "3",
-      budgetId: "2",
-      amount: 8000,
-      source: 'Business Revenue',
-      description: 'Monthly business income',
-      receivedAt: new Date(),
-      isPlanned: true,
-      frequency: PeriodType.MONTHLY,
-    },
-  ];
-
-  for (const income of incomes) {
-    await prisma.income.create({
-      data: income,
-    });
   }
 
   // Create cards

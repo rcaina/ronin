@@ -306,6 +306,7 @@ enum TransactionType {
     REGULAR
     RETURN
     CARD_PAYMENT
+    INCOME
 }
 
 enum BudgetStatus {

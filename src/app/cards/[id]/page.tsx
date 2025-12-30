@@ -391,17 +391,34 @@ const CardDetailsPage = () => {
                               transaction.transactionType ===
                               TransactionType.CARD_PAYMENT
                                 ? "text-red-600" // Always red for card payments
-                                : transaction.amount >= 0
-                                  ? "text-green-600"
-                                  : "text-red-600"
+                                : // For debit cards: returns are green, regular transactions are red
+                                  card.cardType === CardType.DEBIT ||
+                                    card.cardType === CardType.BUSINESS_DEBIT ||
+                                    card.cardType === CardType.CASH
+                                  ? transaction.transactionType ===
+                                    TransactionType.RETURN
+                                    ? "text-green-600" // Returns are green for debit cards
+                                    : "text-red-600" // Regular transactions are red for debit cards
+                                  : transaction.transactionType ===
+                                      TransactionType.RETURN
+                                    ? "text-green-600"
+                                    : "text-red-600"
                             }`}
                           >
                             {transaction.transactionType ===
                             TransactionType.CARD_PAYMENT
                               ? "-$" // Always negative for card payments
-                              : transaction.amount >= 0
-                                ? "+$"
-                                : "$"}
+                              : // For debit cards: returns are positive, regular transactions are negative
+                                card.cardType === CardType.DEBIT ||
+                                  card.cardType === CardType.BUSINESS_DEBIT ||
+                                  card.cardType === CardType.CASH
+                                ? transaction.transactionType ===
+                                  TransactionType.RETURN
+                                  ? "+$" // Returns are positive for debit cards
+                                  : "-$" // Regular transactions are negative for debit cards
+                                : transaction.amount >= 0
+                                  ? "+$"
+                                  : "$"}
                             {Math.abs(transaction.amount).toFixed(2)}
                           </p>
                           <p className="text-xs text-gray-500">

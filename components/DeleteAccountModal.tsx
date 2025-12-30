@@ -67,7 +67,7 @@ const DeleteAccountModal = ({ isOpen, onClose }: DeleteAccountModalProps) => {
             </p>
             <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-red-700">
               <li>All your budgets and budget categories</li>
-              <li>All your transactions and income records</li>
+              <li>All your transactions</li>
               <li>All your cards and payment methods</li>
               <li>Your profile and account settings</li>
               <li>All associated data and history</li>

@@ -1,14 +1,18 @@
-import { TransactionType, type Budget, type Category, type Transaction } from "@prisma/client";
+import { TransactionType, type Budget, type Card, type Category, type Transaction } from "@prisma/client";
 
 // budget region
 
-export const formatBudget = (budget: Budget & { categories: (Category & { transactions: Transaction[] })[] }) => {
+export const formatBudget = (budget: Budget & { 
+  categories: (Category & { transactions: Transaction[] })[];
+  cards?: Card[];
+}) => {
   return {
     ...budget,
     categories: budget.categories?.map(category => ({
       ...category,
       transactions: category.transactions || [],
     })) || [],
+    cards: budget.cards ?? [],
   };
 };
 

@@ -17,8 +17,7 @@ import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import { useState, useEffect } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 import StatsCard from "@/components/StatsCard";
-import { type CategoryType, TransactionType } from "@prisma/client";
-import IncomeModal from "@/components/budgets/IncomeModal";
+import { type CategoryType, TransactionType, CardType } from "@prisma/client";
 import {
   formatDateUTC,
   getCategoryBadgeColor,
@@ -31,7 +30,6 @@ const BudgetDetailsPage = () => {
   const { id } = useParams();
   const router = useRouter();
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
-  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [isEditBudgetOpen, setIsEditBudgetOpen] = useState(false);
   const [isCardPaymentOpen, setIsCardPaymentOpen] = useState(false);
   const {
@@ -92,10 +90,28 @@ const BudgetDetailsPage = () => {
   }
 
   // Calculate totals
-  const totalIncome = (budget.incomes ?? []).reduce(
-    (sum, income) => sum + income.amount,
-    0,
-  );
+  // Calculate total income from INCOME transactions on debit cards
+  const totalIncome = (() => {
+    // Get all debit cards for this budget
+    const debitCards = (budget.cards ?? []).filter(
+      (card: { cardType: string }) =>
+        card.cardType === CardType.DEBIT || card.cardType === CardType.BUSINESS_DEBIT,
+    );
+    
+    const debitCardIds = debitCards.map((card: { id: string }) => card.id);
+    
+    // Sum all INCOME transactions on debit cards
+    return (budget.transactions ?? []).reduce((sum, transaction) => {
+      if (
+        transaction.transactionType === TransactionType.INCOME &&
+        transaction.cardId &&
+        debitCardIds.includes(transaction.cardId)
+      ) {
+        return sum + transaction.amount;
+      }
+      return sum;
+    }, 0);
+  })();
   const totalSpent =
     (budget.categories ?? []).reduce((categoryTotal: number, category) => {
       const categorySpent = (category.transactions ?? []).reduce(
@@ -224,9 +240,6 @@ const BudgetDetailsPage = () => {
     }
   };
 
-  const handleIncomeSuccess = () => {
-    void refetch();
-  };
 
   return (
     <>
@@ -239,24 +252,25 @@ const BudgetDetailsPage = () => {
                 title="Total Income"
                 value={`$${totalIncome.toLocaleString()}`}
                 subtitle={
-                  budget.incomes?.length === 1
-                    ? (budget.incomes[0]?.source ?? "Primary income")
-                    : `${budget.incomes?.length ?? 0} income sources`
+                  (() => {
+                    const debitCards = (budget.cards ?? []).filter(
+                      (card: { cardType: string }) =>
+                        card.cardType === CardType.DEBIT || card.cardType === CardType.BUSINESS_DEBIT,
+                    );
+                    const debitCardIds = debitCards.map((card: { id: string }) => card.id);
+                    const incomeTransactions = (budget.transactions ?? []).filter(
+                      (transaction) =>
+                        transaction.transactionType === TransactionType.INCOME &&
+                        transaction.cardId &&
+                        debitCardIds.includes(transaction.cardId)
+                    );
+                    return incomeTransactions.length === 1
+                      ? (incomeTransactions[0]?.name ?? "Income")
+                      : `${incomeTransactions.length} income transactions`;
+                  })()
                 }
                 icon={
-                  <div className="flex items-center space-x-1 sm:space-x-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsIncomeModalOpen(true);
-                      }}
-                      className="rounded p-1 text-gray-400 opacity-0 transition-opacity hover:bg-gray-100 hover:text-gray-600 group-hover:opacity-100"
-                      title="Edit income sources"
-                    >
-                      <EditIcon className="h-3 w-3 sm:h-4 sm:w-4" />
-                    </button>
-                    <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
-                  </div>
+                  <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
                 }
                 iconColor="text-green-500"
                 hover={true}
@@ -638,14 +652,6 @@ const BudgetDetailsPage = () => {
           isOpen={isAddTransactionOpen}
           budgetId={id as string}
           onClose={() => setIsAddTransactionOpen(false)}
-        />
-      )}
-      {isIncomeModalOpen && (
-        <IncomeModal
-          isOpen={isIncomeModalOpen}
-          budgetId={id as string}
-          onClose={() => setIsIncomeModalOpen(false)}
-          onSuccess={handleIncomeSuccess}
         />
       )}
       {isEditBudgetOpen && (

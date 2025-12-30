@@ -8,7 +8,7 @@ import BudgetCategoriesViewToggle, {
 } from "@/components/budgets/BudgetCategoriesViewToggle";
 import BudgetCategoriesListView from "@/components/budgets/BudgetCategoriesListView";
 import BudgetCategoriesSearch from "@/components/budgets/BudgetCategoriesSearch";
-import { CategoryType, TransactionType } from "@prisma/client";
+import { CategoryType, TransactionType, CardType } from "@prisma/client";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -59,8 +59,32 @@ const BudgetCategoriesPage = () => {
   } = useBudgetCategories(budgetId, searchQuery);
 
   // Calculate allocation statistics
-  const totalIncome =
-    budget?.incomes?.reduce((sum, income) => sum + income.amount, 0) ?? 0;
+  // Calculate total income from INCOME transactions on debit cards
+  const totalIncome = (() => {
+    if (!budget) return 0;
+    
+    // Get all debit cards for this budget
+    const debitCards = (budget.cards ?? []).filter(
+      (card: { cardType: string }) =>
+        card.cardType === CardType.DEBIT ||
+        card.cardType === CardType.BUSINESS_DEBIT,
+    );
+    
+    const debitCardIds = debitCards.map((card: { id: string }) => card.id);
+    
+    // Sum all INCOME transactions on debit cards
+    return (budget.transactions ?? []).reduce((sum, transaction) => {
+      if (
+        transaction.transactionType === TransactionType.INCOME &&
+        transaction.cardId &&
+        debitCardIds.includes(transaction.cardId)
+      ) {
+        return sum + transaction.amount;
+      }
+      return sum;
+    }, 0);
+  })();
+  
   const totalAllocated =
     budget?.categories?.reduce(
       (sum, cat) => sum + (cat.allocatedAmount ?? 0),

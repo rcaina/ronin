@@ -18,13 +18,6 @@ export interface CreateBudgetData {
     group: CategoryType
     allocatedAmount: number
   }>
-  incomes: Array<{
-    amount: number
-    source: string
-    description?: string
-    isPlanned: boolean
-    frequency: PeriodType
-  }>
 }
 
 export interface UpdateBudgetData {
@@ -39,13 +32,6 @@ export interface UpdateBudgetData {
     group: CategoryType
     allocatedAmount: number
   }>
-  income?: {
-    amount: number
-    source: string
-    description?: string
-    isPlanned: boolean
-    frequency: PeriodType
-  }
 }
 
 export type BudgetCategories = (Category & { 
@@ -93,11 +79,6 @@ export async function getBudgetById(
                 },
             },
         },
-        incomes: {
-            where: {
-                deleted: null,
-            },
-        },
         transactions: {
             where: {
                 deleted: null,
@@ -113,6 +94,21 @@ export async function getBudgetById(
             },
             orderBy: {
                 createdAt: 'desc',
+            },
+        },
+        cards: {
+            where: {
+                deleted: null,
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        firstName: true,
+                        lastName: true,
+                    },
+                },
             },
         },
     },
@@ -143,21 +139,85 @@ export async function createBudget(
     },
   })
 
-  // Create the income records
-  for (const income of data.incomes) {
-    await tx.income.create({
+  // Check if user already has any debit cards
+  // Get all users in the same account
+  const accountUsers = await tx.accountUser.findMany({
+    where: {
+      accountId: user.accountId,
+    },
+    select: {
+      userId: true,
+    },
+  });
+
+  const userIds = accountUsers.map(au => au.userId);
+
+  const existingDebitCards = await tx.card.findFirst({
+    where: {
+      userId: {
+        in: userIds,
+      },
+      cardType: {
+        in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
+      },
+      deleted: null,
+    },
+  });
+
+  // Create a default debit card named "Main" for the budget only if no debit cards exist
+  let mainDebitCard;
+  if (!existingDebitCards) {
+    mainDebitCard = await tx.card.create({
       data: {
-        accountId: user.accountId,
+        name: "Main",
+        cardType: CardType.DEBIT,
         userId: user.id,
         budgetId: budget.id,
-        amount: income.amount,
-        source: income.source,
-        description: income.description,
-        isPlanned: income.isPlanned,
-        frequency: income.frequency,
-        receivedAt: new Date(),
+        amountSpent: 0,
       },
-    })
+    });
+  } else {
+    // Find or create the main debit card for this budget
+    mainDebitCard = await tx.card.findFirst({
+      where: {
+        budgetId: budget.id,
+        cardType: {
+          in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
+        },
+        deleted: null,
+      },
+    });
+
+    // If no debit card exists for this budget, create one
+    mainDebitCard ??= await tx.card.create({
+      data: {
+        name: "Main",
+        cardType: CardType.DEBIT,
+        userId: user.id,
+        budgetId: budget.id,
+        amountSpent: 0,
+      },
+    });
+  }
+
+  // Create income transactions instead of income records
+  if (mainDebitCard && data.incomes && data.incomes.length > 0) {
+    for (const income of data.incomes) {
+      await tx.transaction.create({
+        data: {
+          name: income.source,
+          description: income.description,
+          amount: income.amount, // Positive amount for income
+          budgetId: budget.id,
+          cardId: mainDebitCard.id,
+          accountId: user.accountId,
+          userId: user.id,
+          transactionType: TransactionType.INCOME,
+          categoryId: null, // Income transactions don't have categories
+          occurredAt: new Date(),
+        },
+      });
+    }
   }
 
   // Create budget category allocations
@@ -220,24 +280,6 @@ export async function updateBudget(
       isRecurring: data.isRecurring,
     },
   })
-
-  // Update income if provided
-  if (data.income) {
-    await tx.income.updateMany({
-      where: {
-        budgetId: id,
-        accountId: user.accountId,
-        deleted: null,
-      },
-      data: {
-        amount: data.income.amount,
-        source: data.income.source,
-        description: data.income.description,
-        isPlanned: data.income.isPlanned,
-        frequency: data.income.frequency,
-      },
-    })
-  }
 
   // Update budget category allocations if provided
   if (data.categoryAllocations) {
@@ -308,17 +350,6 @@ export async function deleteBudget(
     },
   })
 
-  // Soft delete related incomes
-  await tx.income.updateMany({
-    where: {
-      budgetId: id,
-      accountId: user.accountId,
-      deleted: null,
-    },
-    data: {
-      deleted: new Date(),
-    },
-  })
 
   // Soft delete budget categories
   await tx.category.updateMany({
@@ -452,15 +483,27 @@ export async function duplicateBudget(
       deleted: null,
     },
     include: {
-      incomes: {
+      cards: {
         where: { deleted: null },
         select: {
-          amount: true,
-          source: true,
+          id: true,
+          name: true,
+          cardType: true,
+          spendingLimit: true,
+          userId: true,
+        },
+      },
+      transactions: {
+        where: { deleted: null },
+        select: {
+          id: true,
+          name: true,
           description: true,
-          isPlanned: true,
-          frequency: true,
-        }
+          amount: true,
+          transactionType: true,
+          cardId: true,
+          occurredAt: true,
+        },
       },
       categories: {
         where: { deleted: null },
@@ -468,15 +511,6 @@ export async function duplicateBudget(
           name: true,
           group: true,
           allocatedAmount: true
-        }
-      },
-      cards: {
-        where: { deleted: null },
-        select: {
-          name: true,
-          cardType: true,
-          spendingLimit: true,
-          userId: true,
         }
       }
     }
@@ -499,21 +533,49 @@ export async function duplicateBudget(
     },
   });
 
-  // Copy income records
-  for (const income of originalBudget.incomes) {
-    await tx.income.create({
-      data: {
-        accountId: user.accountId,
-        userId: user.id,
+  // Copy income transactions (INCOME type transactions on debit cards)
+  const debitCards = originalBudget.cards?.filter(
+    (card) => card.cardType === CardType.DEBIT || card.cardType === CardType.BUSINESS_DEBIT
+  ) ?? [];
+  const debitCardIds = debitCards.map((card) => card.id);
+  
+  if (debitCardIds.length > 0) {
+    const incomeTransactions = originalBudget.transactions?.filter(
+      (transaction) =>
+        transaction.transactionType === TransactionType.INCOME &&
+        transaction.cardId &&
+        debitCardIds.includes(transaction.cardId)
+    ) ?? [];
+
+    // Find the main debit card in the new budget (should be created above)
+    const newMainDebitCard = await tx.card.findFirst({
+      where: {
         budgetId: newBudget.id,
-        amount: income.amount,
-        source: income.source,
-        description: income.description,
-        isPlanned: income.isPlanned,
-        frequency: income.frequency,
-        receivedAt: new Date(),
+        cardType: {
+          in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
+        },
+        deleted: null,
       },
     });
+
+    if (newMainDebitCard) {
+      for (const transaction of incomeTransactions) {
+        await tx.transaction.create({
+          data: {
+            name: transaction.name,
+            description: transaction.description,
+            amount: transaction.amount,
+            budgetId: newBudget.id,
+            cardId: newMainDebitCard.id,
+            accountId: user.accountId,
+            userId: user.id,
+            transactionType: TransactionType.INCOME,
+            categoryId: null,
+            occurredAt: transaction.occurredAt ?? new Date(),
+          },
+        });
+      }
+    }
   }
 
   // Copy budget category allocations
@@ -860,9 +922,12 @@ export const getBudgetCards = async (
         }
       }, 0);
     } else {
-      // For debit/cash cards: sum all amounts normally
+      // For debit/cash cards: handle income, returns, and regular transactions
       amountSpent = card.transactions.reduce((sum, transaction) => {
-        if (transaction.transactionType === TransactionType.RETURN) {
+        if (transaction.transactionType === TransactionType.INCOME) {
+          // Income increases the balance (positive amount = money coming in)
+          return sum - transaction.amount; // Subtract because we're tracking "spent"
+        } else if (transaction.transactionType === TransactionType.RETURN) {
           // Returns reduce the balance (positive amount = refund received)
           return sum - transaction.amount; // Subtract return amount (reduces balance)
         } else {
@@ -881,4 +946,95 @@ export const getBudgetCards = async (
 
   return cardsWithAmountSpent;
 }
+
+export const getBudgetIncomeTransactions = async (
+  tx: PrismaClient,
+  budgetId: string,
+): Promise<Transaction[]> => {
+  // Get all debit cards for this budget
+  const debitCards = await tx.card.findMany({
+    where: {
+      budgetId: budgetId,
+      cardType: {
+        in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
+      },
+      deleted: null,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  const cardIds = debitCards.map((card) => card.id);
+
+  if (cardIds.length === 0) {
+    return [];
+  }
+
+  // Get all INCOME transactions on these debit cards
+  const transactions = await tx.transaction.findMany({
+    where: {
+      budgetId: budgetId,
+      cardId: {
+        in: cardIds,
+      },
+      transactionType: TransactionType.INCOME,
+      deleted: null,
+    },
+    include: {
+      card: {
+        select: {
+          id: true,
+          name: true,
+          cardType: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return transactions;
+};
+
+export const calculateBudgetIncome = async (
+  tx: PrismaClient,
+  budgetId: string,
+): Promise<number> => {
+  const debitCards = await tx.card.findMany({
+    where: {
+      budgetId: budgetId,
+      cardType: {
+        in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
+      },
+      deleted: null,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  const cardIds = debitCards.map((card) => card.id);
+
+  if (cardIds.length === 0) {
+    return 0;
+  }
+
+  const incomeTransactions = await tx.transaction.findMany({
+    where: {
+      budgetId: budgetId,
+      cardId: {
+        in: cardIds,
+      },
+      transactionType: TransactionType.INCOME,
+      deleted: null,
+    },
+    select: {
+      amount: true,
+    },
+  });
+
+  return incomeTransactions.reduce((sum, t) => sum + t.amount, 0);
+};
     
