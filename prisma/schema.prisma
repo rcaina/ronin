@@ -22,7 +22,6 @@ model Account {
     deleted      DateTime?
     createdAt    DateTime      @default(now())
     updatedAt    DateTime      @updatedAt
-    incomes      Income[]
     transactions Transaction[]
     savings      Savings[]
 
@@ -61,7 +60,6 @@ model User {
     updatedAt     DateTime      @updatedAt
     sessions      Session[]
     accountUsers  AccountUser[]
-    incomes       Income[]
     transactions  Transaction[]
     savings       Savings[]
     allocations   Allocation[]
@@ -108,7 +106,6 @@ model Budget {
     account      Account       @relation(fields: [accountId], references: [id])
     categories   Category[]
     transactions Transaction[]
-    incomes      Income[]
     cards        Card[]
 
     @@index([id])
@@ -118,28 +115,6 @@ model Budget {
     @@index([status])
     @@index([deleted])
     @@map("budgets")
-}
-
-model Income {
-    id          String     @id @default(cuid())
-    amount      Float
-    source      String?
-    description String?
-    isPlanned   Boolean    @default(false)
-    frequency   PeriodType
-    accountId   String
-    account     Account    @relation(fields: [accountId], references: [id])
-    userId      String
-    user        User       @relation(fields: [userId], references: [id])
-    budgetId    String
-    budget      Budget     @relation(fields: [budgetId], references: [id])
-    receivedAt  DateTime?
-    createdAt   DateTime   @default(now())
-    updatedAt   DateTime   @updatedAt
-    deleted     DateTime?
-
-    @@index([id])
-    @@map("income")
 }
 
 model Category {
