@@ -8,6 +8,7 @@ interface AddTransactionModalProps {
   onSuccess?: () => void;
   isOpen: boolean;
   onClose: () => void;
+  isIncome?: boolean; // If true, this is for income transactions
 }
 
 export default function AddTransactionModal({
@@ -16,6 +17,7 @@ export default function AddTransactionModal({
   onSuccess,
   isOpen,
   onClose,
+  isIncome = false,
 }: AddTransactionModalProps) {
   const handleSuccess = () => {
     onSuccess?.();
@@ -32,6 +34,7 @@ export default function AddTransactionModal({
               onSuccess={handleSuccess}
               budgetId={budgetId}
               cardId={cardId}
+              isIncome={isIncome}
             />
           </div>
         </div>

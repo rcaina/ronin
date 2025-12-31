@@ -18,7 +18,7 @@ import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import StatsCard from "@/components/StatsCard";
-import { TransactionType } from "@prisma/client";
+import { TransactionType, CardType } from "@prisma/client";
 import { roundToCents } from "@/lib/utils";
 
 export default function HomePage() {
@@ -42,12 +42,26 @@ export default function HomePage() {
 
   const totalIncome = roundToCents(
     budgets.reduce((sum, budget) => {
-      return (
-        sum +
-        (budget.incomes ?? []).reduce((incomeSum, income) => {
-          return incomeSum + income.amount;
-        }, 0)
+      // Get all debit cards for this budget
+      const debitCards = (budget.cards ?? []).filter(
+        (card: { cardType: string }) =>
+          card.cardType === CardType.DEBIT || card.cardType === CardType.BUSINESS_DEBIT,
       );
+      const debitCardIds = debitCards.map((card: { id: string }) => card.id);
+      
+      // Sum all INCOME transactions on debit cards
+      const budgetIncome = (budget.transactions ?? []).reduce((incomeSum, transaction) => {
+        if (
+          transaction.transactionType === TransactionType.INCOME &&
+          transaction.cardId &&
+          debitCardIds.includes(transaction.cardId)
+        ) {
+          return incomeSum + transaction.amount;
+        }
+        return incomeSum;
+      }, 0);
+      
+      return sum + budgetIncome;
     }, 0),
   );
 

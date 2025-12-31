@@ -31,15 +31,32 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import CreateBudgetModal from "@/components/budgets/CreateBudgetModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import StatsCard from "@/components/StatsCard";
-import { CategoryType, TransactionType } from "@prisma/client";
+import { CategoryType, TransactionType, CardType } from "@prisma/client";
 import Button from "@/components/Button";
 import { roundToCents } from "@/lib/utils";
 
 type TabType = "active" | "completed" | "archived";
 
-// Helper function to calculate total income from all income sources
+// Helper function to calculate total income from INCOME transactions on debit cards
 const calculateTotalIncome = (budget: BudgetWithRelations): number => {
-  return (budget.incomes ?? []).reduce((sum, income) => sum + income.amount, 0);
+  // Get all debit cards for this budget
+  const debitCards = (budget.cards ?? []).filter(
+    (card: { cardType: string }) =>
+      card.cardType === CardType.DEBIT || card.cardType === CardType.BUSINESS_DEBIT,
+  );
+  const debitCardIds = debitCards.map((card: { id: string }) => card.id);
+  
+  // Sum all INCOME transactions on debit cards
+  return (budget.transactions ?? []).reduce((sum, transaction) => {
+    if (
+      transaction.transactionType === TransactionType.INCOME &&
+      transaction.cardId &&
+      debitCardIds.includes(transaction.cardId)
+    ) {
+      return sum + transaction.amount;
+    }
+    return sum;
+  }, 0);
 };
 
 const BudgetsPage = () => {

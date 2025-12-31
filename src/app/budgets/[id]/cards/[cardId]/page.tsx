@@ -16,6 +16,7 @@ import { toast } from "react-hot-toast";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
+import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
 import {
   useCard,
   useCardTransactions,
@@ -23,6 +24,7 @@ import {
   useUpdateCard,
 } from "@/lib/data-hooks/cards/useCards";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { useDeleteTransaction } from "@/lib/data-hooks/transactions/useTransactions";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Button from "@/components/Button";
@@ -32,6 +34,8 @@ import {
   useBudgetHeader,
   type HeaderAction,
 } from "../../../../../../components/budgets/BudgetHeaderContext";
+import type { TransactionWithRelations } from "@/lib/types/transaction";
+import { getGroupColor, formatCurrency } from "@/lib/utils";
 
 interface User {
   id: string;
@@ -65,6 +69,12 @@ const CardDetailsPage = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [showCardPaymentModal, setShowCardPaymentModal] = useState(false);
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
+  const [editingTransactionId, setEditingTransactionId] = useState<
+    string | null
+  >(null);
+  const [transactionToDelete, setTransactionToDelete] =
+    useState<TransactionWithRelations | null>(null);
+  const deleteTransactionMutation = useDeleteTransaction();
 
   // Form state for editing
   const [editFormData, setEditFormData] = useState({
@@ -188,6 +198,50 @@ const CardDetailsPage = () => {
   const handleTransactionSuccess = () => {
     setShowAddTransactionModal(false);
     toast.success("Transaction added successfully!");
+  };
+
+  const handleEditTransaction = (transaction: TransactionWithRelations) => {
+    // Check if this is a card payment transaction
+    if (transaction.transactionType === "CARD_PAYMENT") {
+      toast.error(
+        "Card payment transactions cannot be edited. Please delete and recreate if needed.",
+      );
+      return;
+    } else {
+      setEditingTransactionId(transaction.id);
+    }
+  };
+
+  const handleDeleteTransaction = (transaction: TransactionWithRelations) => {
+    setTransactionToDelete(transaction);
+  };
+
+  const handleConfirmDeleteTransaction = async () => {
+    if (!transactionToDelete) return;
+
+    try {
+      await deleteTransactionMutation.mutateAsync({
+        id: transactionToDelete.id,
+        budgetId: transactionToDelete.budgetId,
+      });
+      setTransactionToDelete(null);
+      toast.success("Transaction deleted successfully!");
+    } catch (err) {
+      console.error("Failed to delete transaction:", err);
+      toast.error("Failed to delete transaction. Please try again.");
+    }
+  };
+
+  const handleCancelDeleteTransaction = () => {
+    setTransactionToDelete(null);
+  };
+
+  const handleInlineEditCancel = () => {
+    setEditingTransactionId(null);
+  };
+
+  const handleInlineEditSuccess = () => {
+    setEditingTransactionId(null);
   };
 
   const handleOpenAddTransactionModal = () => {
@@ -529,54 +583,124 @@ const CardDetailsPage = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {transactions.map((transaction) => (
-                    <div
-                      key={transaction.id}
-                      className="flex items-center justify-between rounded-lg border bg-white p-4 shadow-sm"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">
-                              {transaction.name ?? "Unnamed Transaction"}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {transaction.category?.name ?? "Uncategorized"}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p
-                              className={`font-semibold ${
-                                transaction.transactionType ===
-                                  TransactionType.CARD_PAYMENT ||
-                                transaction.transactionType ===
-                                  TransactionType.RETURN
-                                  ? "text-red-600" // Always red for card payments and returns
-                                  : transaction.amount >= 0
-                                    ? "text-green-600"
-                                    : "text-red-600"
-                              }`}
-                            >
+                  {transactions.map((transaction) => {
+                    // Check if this transaction is being edited
+                    const isEditing = editingTransactionId === transaction.id;
+
+                    if (isEditing) {
+                      return (
+                        <InlineTransactionEdit
+                          key={transaction.id}
+                          transaction={transaction}
+                          onCancel={handleInlineEditCancel}
+                          onSuccess={handleInlineEditSuccess}
+                          getGroupColor={getGroupColor}
+                          formatCurrency={formatCurrency}
+                        />
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={transaction.id}
+                        className="group flex items-center justify-between rounded-lg border bg-white p-4 shadow-sm hover:bg-gray-50"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900">
+                                {transaction.name ?? "Unnamed Transaction"}
+                              </p>
                               {transaction.transactionType ===
-                                TransactionType.CARD_PAYMENT ||
-                              transaction.transactionType ===
-                                TransactionType.RETURN
-                                ? "-$" // Always negative for card payments and returns
-                                : transaction.amount >= 0
-                                  ? "+$"
-                                  : "$"}
-                              {Math.abs(transaction.amount).toFixed(2)}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {new Date(
-                                transaction.createdAt,
-                              ).toLocaleDateString()}
-                            </p>
+                              TransactionType.INCOME ? (
+                                <p className="text-sm font-medium text-green-600">
+                                  Income
+                                </p>
+                              ) : (
+                                <p className="text-sm text-gray-500">
+                                  {transaction.category?.name ??
+                                    "Uncategorized"}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {/* Action Icons - Always visible on mobile, hover on desktop */}
+                              <div className="flex items-center space-x-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                                <button
+                                  onClick={() =>
+                                    handleEditTransaction(transaction)
+                                  }
+                                  className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                                  title="Edit transaction"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleDeleteTransaction(transaction)
+                                  }
+                                  className="rounded p-1 text-red-300 transition-colors hover:bg-gray-100 hover:text-red-600"
+                                  title="Delete transaction"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                              <div className="text-right">
+                                <p
+                                  className={`font-semibold ${
+                                    transaction.transactionType ===
+                                    TransactionType.INCOME
+                                      ? "text-green-600" // Income transactions are always green
+                                      : transaction.transactionType ===
+                                          TransactionType.CARD_PAYMENT
+                                        ? "text-red-600" // Always red for card payments
+                                        : // For debit cards: returns are green, regular transactions are red
+                                          card.cardType === CardType.DEBIT ||
+                                            card.cardType ===
+                                              CardType.BUSINESS_DEBIT ||
+                                            card.cardType === CardType.CASH
+                                          ? transaction.transactionType ===
+                                            TransactionType.RETURN
+                                            ? "text-green-600" // Returns are green for debit cards
+                                            : "text-red-600" // Regular transactions are red for debit cards
+                                          : transaction.transactionType ===
+                                              TransactionType.RETURN
+                                            ? "text-green-600"
+                                            : "text-red-600"
+                                  }`}
+                                >
+                                  {transaction.transactionType ===
+                                  TransactionType.INCOME
+                                    ? "+$" // Income transactions are always positive
+                                    : transaction.transactionType ===
+                                        TransactionType.CARD_PAYMENT
+                                      ? "-$" // Always negative for card payments
+                                      : // For debit cards: returns are positive, regular transactions are negative
+                                        card.cardType === CardType.DEBIT ||
+                                          card.cardType ===
+                                            CardType.BUSINESS_DEBIT ||
+                                          card.cardType === CardType.CASH
+                                        ? transaction.transactionType ===
+                                          TransactionType.RETURN
+                                          ? "+$" // Returns are positive for debit cards
+                                          : "-$" // Regular transactions are negative for debit cards
+                                        : transaction.amount >= 0
+                                          ? "+$"
+                                          : "$"}
+                                  {Math.abs(transaction.amount).toFixed(2)}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {new Date(
+                                    transaction.createdAt,
+                                  ).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -610,6 +734,20 @@ const CardDetailsPage = () => {
         isOpen={showCardPaymentModal}
         onClose={() => setShowCardPaymentModal(false)}
         currentCardId={cardId ?? ""}
+      />
+
+      {/* Delete Transaction Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={!!transactionToDelete}
+        onClose={handleCancelDeleteTransaction}
+        onConfirm={handleConfirmDeleteTransaction}
+        title="Delete Transaction"
+        message="Are you sure you want to delete the transaction '{itemName}'? This action cannot be undone."
+        itemName={transactionToDelete?.name ?? "Unnamed transaction"}
+        isLoading={deleteTransactionMutation.isPending}
+        loadingText="Deleting..."
+        confirmText="Delete Transaction"
+        cancelText="Cancel"
       />
     </>
   );

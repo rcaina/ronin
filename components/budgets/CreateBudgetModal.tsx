@@ -7,7 +7,12 @@ import { z } from "zod";
 import { X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useCreateBudget } from "@/lib/data-hooks/budgets/useBudgets";
-import { StrategyType, PeriodType, type CategoryType } from "@prisma/client";
+import {
+  StrategyType,
+  PeriodType,
+  type CategoryType,
+  type Income,
+} from "@prisma/client";
 import { calculateAdjustedIncome, calculateEndDate } from "@/lib/utils";
 
 // Import components
@@ -193,16 +198,19 @@ export default function CreateBudgetModal({
         setValue("isRecurring", initialBudget.isRecurring);
 
         // Set income entries
-        if (initialBudget.incomes && initialBudget.incomes.length > 0) {
-          const entries: IncomeEntry[] = initialBudget.incomes.map(
-            (income, index) => ({
-              id: (index + 1).toString(),
-              amount: income.amount,
-              source: income.source ?? "",
-              description: income.description ?? "",
-              isPlanned: income.isPlanned,
-              frequency: income.frequency,
-            }),
+        const { incomes } = initialBudget;
+        if (incomes && Array.isArray(incomes) && incomes.length > 0) {
+          const entries: IncomeEntry[] = incomes.map(
+            (income: Income, index: number) => {
+              return {
+                id: (index + 1).toString(),
+                amount: Number(income.amount),
+                source: income.source ?? "",
+                description: income.description ?? "",
+                isPlanned: Boolean(income.isPlanned),
+                frequency: income.frequency,
+              };
+            },
           );
           setIncomeEntries(entries);
         } else {

@@ -131,10 +131,6 @@ export async function deleteUserAccount(
       where: { accountId: user.accountId },
     });
 
-    await tx.income.deleteMany({
-      where: { accountId: user.accountId },
-    });
-
     await tx.category.deleteMany({
       where: {
         budget: {

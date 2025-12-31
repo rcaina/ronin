@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -34,10 +34,10 @@ const transactionSchema = z.object({
     return !isNaN(num) && num >= 0;
   }, "Amount is required and must be 0 or greater"),
   budgetId: z.string().min(1, "Budget is required"),
-  categoryId: z.string().min(1, "Category is required"),
+  categoryId: z.string().optional(), // Optional for income transactions
   occurredAt: z.string().optional(),
   cardId: z.string().optional(),
-  isReturn: z.boolean(),
+  transactionType: z.nativeEnum(TransactionType),
 });
 
 type TransactionFormData = z.infer<typeof transactionSchema>;
@@ -48,6 +48,7 @@ interface TransactionFormProps {
   transaction?: TransactionWithRelations; // For editing
   budgetId?: string; // For pre-selecting a budget
   cardId?: string; // For pre-selecting a card
+  isIncome?: boolean; // If true, this is an income transaction
 }
 
 export default function TransactionForm({
@@ -56,6 +57,7 @@ export default function TransactionForm({
   transaction,
   budgetId,
   cardId,
+  isIncome = false,
 }: TransactionFormProps) {
   const { mutate: createTransaction, isPending: isCreating } =
     useCreateTransaction();
@@ -68,6 +70,9 @@ export default function TransactionForm({
   const { data: budgetCategories = [] } = useBudgetCategories(selectedBudgetId);
   const isEditing = !!transaction;
   const isPending = isCreating || isUpdating;
+
+  // Track if we've already shown the success toast for the current mutation
+  const hasShownSuccessToastRef = useRef(false);
 
   const {
     register,
@@ -86,12 +91,15 @@ export default function TransactionForm({
       categoryId: "",
       cardId: "",
       occurredAt: undefined,
-      isReturn: false,
+      transactionType: isIncome
+        ? TransactionType.INCOME
+        : TransactionType.REGULAR,
     },
   });
 
   const watchedBudgetId = watch("budgetId");
   const watchedCardId = watch("cardId");
+  const watchedTransactionType = watch("transactionType");
 
   // Update selected budget when form budget changes
   useEffect(() => {
@@ -105,6 +113,15 @@ export default function TransactionForm({
     (selectedCard.cardType === CardType.CREDIT ||
       selectedCard.cardType === CardType.BUSINESS_CREDIT);
 
+  // Determine if the selected card is a debit card (for income)
+  const isDebitCard =
+    selectedCard &&
+    (selectedCard.cardType === CardType.DEBIT ||
+      selectedCard.cardType === CardType.BUSINESS_DEBIT);
+
+  // Determine if current transaction type is income
+  const isIncomeTransaction = watchedTransactionType === TransactionType.INCOME;
+
   // Set form values when editing
   useEffect(() => {
     if (transaction) {
@@ -114,10 +131,7 @@ export default function TransactionForm({
       setValue("budgetId", transaction.budgetId);
       setValue("categoryId", transaction.categoryId ?? "");
       setValue("cardId", transaction.cardId ?? "");
-      setValue(
-        "isReturn",
-        transaction.transactionType === TransactionType.RETURN,
-      );
+      setValue("transactionType", transaction.transactionType);
       setValue(
         "occurredAt",
         transaction.occurredAt
@@ -135,8 +149,13 @@ export default function TransactionForm({
       if (cardId) {
         setValue("cardId", cardId);
       }
+      // Set default transaction type based on isIncome prop
+      setValue(
+        "transactionType",
+        isIncome ? TransactionType.INCOME : TransactionType.REGULAR,
+      );
     }
-  }, [transaction, budgetId, cardId, setValue]);
+  }, [transaction, budgetId, cardId, isIncome, setValue]);
 
   const onSubmit = (data: TransactionFormData) => {
     if (isEditing && transaction) {
@@ -145,12 +164,13 @@ export default function TransactionForm({
         description: data.description ?? undefined,
         amount: Math.abs(parseFloat(data.amount)),
         budgetId: data.budgetId,
-        categoryId: data.categoryId,
+        categoryId:
+          data.categoryId && data.categoryId.trim() !== ""
+            ? data.categoryId
+            : undefined,
         cardId: data.cardId ?? undefined,
         occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
-        transactionType: data.isReturn
-          ? TransactionType.RETURN
-          : TransactionType.REGULAR,
+        transactionType: data.transactionType,
       };
 
       updateTransaction(
@@ -173,19 +193,38 @@ export default function TransactionForm({
         description: data.description ?? undefined,
         amount: Math.abs(parseFloat(data.amount)),
         budgetId: data.budgetId,
-        categoryId: data.categoryId ?? undefined,
+        categoryId:
+          data.categoryId && data.categoryId.trim() !== ""
+            ? data.categoryId
+            : undefined,
         cardId: data.cardId ?? undefined,
         occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
-        transactionType: data.isReturn
-          ? TransactionType.RETURN
-          : TransactionType.REGULAR,
+        transactionType: data.transactionType,
       };
+
+      // Reset the toast flag when starting a new mutation
+      hasShownSuccessToastRef.current = false;
 
       createTransaction(transactionData, {
         onSuccess: () => {
-          toast.success("Transaction created successfully!");
-          // Reset form for adding multiple transactions
-          reset();
+          // Only show toast if we haven't shown it for this mutation yet
+          if (!hasShownSuccessToastRef.current) {
+            hasShownSuccessToastRef.current = true;
+            toast.success("Transaction created successfully!");
+          }
+          // Reset form for adding multiple transactions, maintaining isIncome default
+          reset({
+            name: "",
+            description: "",
+            amount: "",
+            budgetId: budgetId ?? "",
+            categoryId: "",
+            cardId: cardId ?? "",
+            occurredAt: undefined,
+            transactionType: isIncome
+              ? TransactionType.INCOME
+              : TransactionType.REGULAR,
+          });
           onSuccess?.();
         },
         onError: (error: unknown) => {
@@ -262,23 +301,39 @@ export default function TransactionForm({
                 {errors.amount.message}
               </p>
             )}
+          </div>
 
-            {/* Return/Refund Toggle */}
-            <div className="mt-3">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  {...register("isReturn")}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  disabled={isPending}
-                />
-                <span className="text-sm text-gray-700">
-                  {isCreditCard
-                    ? "This is a payment or refund (money back to credit card)"
-                    : "This is a return or refund (money back to account)"}
-                </span>
-              </label>
-            </div>
+          {/* Transaction Type */}
+          <div>
+            <label
+              htmlFor="transactionType"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Transaction Type <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="transactionType"
+              {...register("transactionType")}
+              className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
+                errors.transactionType
+                  ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                  : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              }`}
+              disabled={isPending}
+            >
+              <option value={TransactionType.REGULAR}>Regular</option>
+              {((isDebitCard ?? false) || (isIncome ?? false)) && (
+                <option value={TransactionType.INCOME}>Income</option>
+              )}
+              <option value={TransactionType.RETURN}>
+                {isCreditCard ? "Refund" : "Return"}
+              </option>
+            </select>
+            {errors.transactionType && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.transactionType.message}
+              </p>
+            )}
           </div>
 
           {/* Budget Selection */}
@@ -322,7 +377,10 @@ export default function TransactionForm({
               className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700"
             >
               <span>
-                Category <span className="text-red-500">*</span>
+                Category{" "}
+                {!isIncomeTransaction && (
+                  <span className="text-red-500">*</span>
+                )}
               </span>
               {!selectedBudgetId && (
                 <div className="group relative">
@@ -340,11 +398,13 @@ export default function TransactionForm({
                 className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
                   errors.categoryId
                     ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                    : !selectedBudgetId
+                    : !selectedBudgetId && !isIncomeTransaction
                       ? "cursor-not-allowed border-gray-300 bg-gray-100 text-gray-500"
                       : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 }`}
-                disabled={isPending || !selectedBudgetId}
+                disabled={
+                  isPending || (!selectedBudgetId && !isIncomeTransaction)
+                }
               >
                 <option value="">
                   {!selectedBudgetId

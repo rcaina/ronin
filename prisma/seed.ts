@@ -200,38 +200,6 @@ async function main() {
     categoryIdMap.set(txCategoryId, created.id);
   }
 
-  // Create incomes
-  const incomes = [
-    {
-      accountId: demoAccount.id,
-      userId: "1",
-      budgetId: "1",
-      amount: 5000,
-      source: 'Salary',
-      description: 'Monthly salary',
-      receivedAt: new Date(),
-      isPlanned: true,
-      frequency: PeriodType.MONTHLY,
-    },
-    {
-      accountId: startupAccount.id,
-      userId: "3",
-      budgetId: "2",
-      amount: 8000,
-      source: 'Business Revenue',
-      description: 'Monthly business income',
-      receivedAt: new Date(),
-      isPlanned: true,
-      frequency: PeriodType.MONTHLY,
-    },
-  ];
-
-  for (const income of incomes) {
-    await prisma.income.create({
-      data: income,
-    });
-  }
-
   // Create cards
   const cards = [
     {
