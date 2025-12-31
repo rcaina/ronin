@@ -1,4 +1,4 @@
-import type { Budget, Category, Transaction, CategoryType, Card } from "@prisma/client";
+import type { Budget, Category, Transaction, CategoryType, Card, Income } from "@prisma/client";
 import type { BudgetCategoryWithCategory } from "../data-hooks/budgets/useBudgetCategories";
 
 export type BudgetWithRelations = Budget & {
@@ -14,6 +14,7 @@ export type BudgetWithRelations = Budget & {
       lastName: string;
     };
   })[];
+  incomes?: Income[];
 };
 
 export type BudgetCategoryWithRelations = Category & {

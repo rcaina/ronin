@@ -18,6 +18,13 @@ export interface CreateBudgetData {
     group: CategoryType
     allocatedAmount: number
   }>
+  incomes?: Array<{
+    amount: number
+    source: string
+    description?: string
+    isPlanned: boolean
+    frequency: PeriodType
+  }>
 }
 
 export interface UpdateBudgetData {
