@@ -402,9 +402,6 @@ export async function getBudgets(
           }
         }
       },
-      incomes: {
-        where: { deleted: null }
-      },
       transactions: {
         where: {
           deleted: null,

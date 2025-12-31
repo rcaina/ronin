@@ -11,7 +11,7 @@ import {
   StrategyType,
   PeriodType,
   type CategoryType,
-  type Income,
+  TransactionType,
 } from "@prisma/client";
 import { calculateAdjustedIncome, calculateEndDate } from "@/lib/utils";
 
@@ -197,18 +197,21 @@ export default function CreateBudgetModal({
         setValue("endAt", formatDateForInput(endDate));
         setValue("isRecurring", initialBudget.isRecurring);
 
-        // Set income entries
-        const { incomes } = initialBudget;
-        if (incomes && Array.isArray(incomes) && incomes.length > 0) {
-          const entries: IncomeEntry[] = incomes.map(
-            (income: Income, index: number) => {
+        // Set income entries from income transactions
+        const incomeTransactions = (initialBudget.transactions ?? []).filter(
+          (transaction) =>
+            transaction.transactionType === TransactionType.INCOME,
+        );
+        if (incomeTransactions.length > 0) {
+          const entries: IncomeEntry[] = incomeTransactions.map(
+            (transaction, index: number) => {
               return {
                 id: (index + 1).toString(),
-                amount: Number(income.amount),
-                source: income.source ?? "",
-                description: income.description ?? "",
-                isPlanned: Boolean(income.isPlanned),
-                frequency: income.frequency,
+                amount: Number(transaction.amount),
+                source: transaction.name ?? "",
+                description: transaction.description ?? "",
+                isPlanned: true, // Default since transactions don't have this field
+                frequency: PeriodType.MONTHLY, // Default since transactions don't have this field
               };
             },
           );
