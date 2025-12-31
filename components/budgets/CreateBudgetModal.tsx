@@ -198,13 +198,9 @@ export default function CreateBudgetModal({
         setValue("isRecurring", initialBudget.isRecurring);
 
         // Set income entries
-        const budgetIncomes = initialBudget.incomes as Income[] | undefined;
-        if (
-          budgetIncomes &&
-          Array.isArray(budgetIncomes) &&
-          budgetIncomes.length > 0
-        ) {
-          const entries: IncomeEntry[] = budgetIncomes.map(
+        const { incomes } = initialBudget;
+        if (incomes && Array.isArray(incomes) && incomes.length > 0) {
+          const entries: IncomeEntry[] = incomes.map(
             (income: Income, index: number) => {
               return {
                 id: (index + 1).toString(),

@@ -7,7 +7,6 @@ export const useUpdateProfile = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     mutationFn: updateProfile,
     onSuccess: (updatedUser: { name: string; email: string | null; phone: string | null }) => {
       // Update the session with the new user data

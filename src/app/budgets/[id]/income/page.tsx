@@ -11,7 +11,7 @@ import {
   Clock,
   Target,
 } from "lucide-react";
-import { TransactionType, CardType } from "@prisma/client";
+import { CardType } from "@prisma/client";
 import { toast } from "react-hot-toast";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { formatCurrency } from "@/lib/utils";
