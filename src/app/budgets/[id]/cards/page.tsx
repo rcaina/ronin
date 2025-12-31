@@ -200,6 +200,14 @@ const BudgetCardsPage = () => {
   };
 
   const handleEditCard = (card: Card) => {
+    // Debit cards should not be editable as they are calculated from transactions
+    if (card.type === "debit" || card.type === "business_debit") {
+      toast.error(
+        "Debit cards cannot be edited. Their balance is automatically calculated from income transactions, refunds, and spending.",
+      );
+      return;
+    }
+
     const originalApiCard = apiCards?.find((c) => c.id === card.id);
     if (!originalApiCard) {
       console.error("Failed to load card data for editing");
@@ -475,7 +483,7 @@ const BudgetCardsPage = () => {
                     onCopy={handleCopyCard}
                     onDelete={handleDeleteCard}
                     onClick={handleCardClick}
-                    canEdit={card.userId === session?.user?.id}
+                    canEdit={false}
                   />
                 );
               })}

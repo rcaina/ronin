@@ -905,6 +905,7 @@ export const getBudgetCards = async (
   // Calculate amountSpent for each card by summing related transactions
   const cardsWithAmountSpent = cards.map(card => {
     const isCreditCard = card.cardType === CardType.CREDIT || card.cardType === CardType.BUSINESS_CREDIT;
+    const isDebitCard = card.cardType === CardType.DEBIT || card.cardType === CardType.BUSINESS_DEBIT;
     
     let amountSpent = 0;
     if (isCreditCard) {
@@ -922,24 +923,38 @@ export const getBudgetCards = async (
         }
       }, 0);
     } else {
-      // For debit/cash cards: handle income, returns, and regular transactions
+      // For debit/cash cards: exclude income, handle returns and regular transactions
       amountSpent = card.transactions.reduce((sum, transaction) => {
+        // Exclude income transactions from amount spent
         if (transaction.transactionType === TransactionType.INCOME) {
-          // Income increases the balance (positive amount = money coming in)
-          return sum - transaction.amount; // Subtract because we're tracking "spent"
+          return sum; // Don't count income in amount spent
         } else if (transaction.transactionType === TransactionType.RETURN) {
-          // Returns reduce the balance (positive amount = refund received)
-          return sum - transaction.amount; // Subtract return amount (reduces balance)
+          // Returns reduce spending (positive amount = refund received)
+          return sum - transaction.amount; // Subtract return amount (reduces spending)
         } else {
-          // Regular transactions: positive = purchases (increase balance)
+          // Regular transactions: positive = purchases (increase spending)
           return sum + transaction.amount;
         }
       }, 0);
     }
     
+    // For debit cards, calculate spendingLimit from INCOME transactions on this card
+    // This matches the income page calculation but per-card
+    let spendingLimit = card.spendingLimit;
+    if (isDebitCard) {
+      const cardIncome = card.transactions.reduce((sum, transaction) => {
+        if (transaction.transactionType === TransactionType.INCOME) {
+          return sum + transaction.amount;
+        }
+        return sum;
+      }, 0);
+      spendingLimit = cardIncome > 0 ? cardIncome : null;
+    }
+    
     return {
       ...card,
       amountSpent,
+      spendingLimit,
       transactions: undefined, // Remove transactions from response
     };
   });
@@ -1037,4 +1052,5 @@ export const calculateBudgetIncome = async (
 
   return incomeTransactions.reduce((sum, t) => sum + t.amount, 0);
 };
+    
     

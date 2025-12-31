@@ -75,23 +75,25 @@ const CardComponent = ({
               <CopyIcon className="h-4 w-4" />
             </button>
 
-            <button
-              className={`rounded-md p-1 transition-opacity ${
-                canEdit
-                  ? "opacity-0 hover:bg-white/20 group-hover:opacity-100"
-                  : "cursor-not-allowed opacity-50"
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (canEdit) {
-                  onEdit?.(card);
-                }
-              }}
-              title={canEdit ? "Edit" : "Only owner can edit"}
-              disabled={!canEdit}
-            >
-              <Edit className="h-4 w-4" />
-            </button>
+            {canEdit && (
+              <button
+                className={`rounded-md p-1 transition-opacity ${
+                  canEdit
+                    ? "opacity-0 hover:bg-white/20 group-hover:opacity-100"
+                    : "cursor-not-allowed opacity-50"
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (canEdit) {
+                    onEdit?.(card);
+                  }
+                }}
+                title={canEdit ? "Edit" : "Only owner can edit"}
+                disabled={!canEdit}
+              >
+                <Edit className="h-4 w-4" />
+              </button>
+            )}
             <button
               className={`rounded-md p-1 text-red-300 transition-opacity ${
                 canEdit

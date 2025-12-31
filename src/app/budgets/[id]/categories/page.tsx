@@ -62,16 +62,16 @@ const BudgetCategoriesPage = () => {
   // Calculate total income from INCOME transactions on debit cards
   const totalIncome = (() => {
     if (!budget) return 0;
-    
+
     // Get all debit cards for this budget
     const debitCards = (budget.cards ?? []).filter(
       (card: { cardType: string }) =>
         card.cardType === CardType.DEBIT ||
         card.cardType === CardType.BUSINESS_DEBIT,
     );
-    
+
     const debitCardIds = debitCards.map((card: { id: string }) => card.id);
-    
+
     // Sum all INCOME transactions on debit cards
     return (budget.transactions ?? []).reduce((sum, transaction) => {
       if (
@@ -84,7 +84,7 @@ const BudgetCategoriesPage = () => {
       return sum;
     }, 0);
   })();
-  
+
   const totalAllocated =
     budget?.categories?.reduce(
       (sum, cat) => sum + (cat.allocatedAmount ?? 0),

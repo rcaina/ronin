@@ -409,9 +409,11 @@ const BudgetTransactionsPage = () => {
   // Calculate total spent from filtered transactions
   const totalSpent = useMemo(() => {
     return filteredAndSortedTransactions.reduce((total, transaction) => {
-      // Only count expenses (negative amounts) and returns (positive amounts)
-      // Card payments are excluded from spending calculations
-      if (transaction.transactionType === TransactionType.CARD_PAYMENT) {
+      // Exclude INCOME and CARD_PAYMENT transactions from spending calculations
+      if (
+        transaction.transactionType === TransactionType.INCOME ||
+        transaction.transactionType === TransactionType.CARD_PAYMENT
+      ) {
         return total;
       }
 
@@ -744,17 +746,26 @@ const BudgetTransactionsPage = () => {
                                 transaction.transactionType ===
                                 TransactionType.CARD_PAYMENT
                                   ? "bg-gray-200 text-gray-500"
-                                  : transaction.category
-                                    ? getCategoryBadgeColor(
-                                        transaction.category.group,
-                                      )
-                                    : getCategoryBadgeColor()
+                                  : transaction.transactionType ===
+                                        TransactionType.INCOME &&
+                                      !transaction.category
+                                    ? "bg-accent text-primary"
+                                    : transaction.category
+                                      ? getCategoryBadgeColor(
+                                          transaction.category.group,
+                                        )
+                                      : getCategoryBadgeColor()
                               }`}
                             >
                               {transaction.transactionType ===
                               TransactionType.CARD_PAYMENT
                                 ? "Card Payment"
-                                : (transaction.category?.name ?? "No Category")}
+                                : transaction.transactionType ===
+                                      TransactionType.INCOME &&
+                                    !transaction.category
+                                  ? "Income"
+                                  : (transaction.category?.name ??
+                                    "No Category")}
                             </span>
                             {transaction.description && (
                               <div className="group relative flex-shrink-0">

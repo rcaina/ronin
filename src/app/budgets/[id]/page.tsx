@@ -32,12 +32,7 @@ const BudgetDetailsPage = () => {
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
   const [isEditBudgetOpen, setIsEditBudgetOpen] = useState(false);
   const [isCardPaymentOpen, setIsCardPaymentOpen] = useState(false);
-  const {
-    data: budget,
-    isLoading,
-    error,
-    refetch,
-  } = useBudget(id as string, true); // Exclude card payments for calculations
+  const { data: budget, isLoading, error } = useBudget(id as string, true); // Exclude card payments for calculations
   const { setActions } = useBudgetHeader();
 
   // Register header actions
@@ -95,11 +90,12 @@ const BudgetDetailsPage = () => {
     // Get all debit cards for this budget
     const debitCards = (budget.cards ?? []).filter(
       (card: { cardType: string }) =>
-        card.cardType === CardType.DEBIT || card.cardType === CardType.BUSINESS_DEBIT,
+        card.cardType === CardType.DEBIT ||
+        card.cardType === CardType.BUSINESS_DEBIT,
     );
-    
+
     const debitCardIds = debitCards.map((card: { id: string }) => card.id);
-    
+
     // Sum all INCOME transactions on debit cards
     return (budget.transactions ?? []).reduce((sum, transaction) => {
       if (
@@ -112,10 +108,18 @@ const BudgetDetailsPage = () => {
       return sum;
     }, 0);
   })();
-  const totalSpent =
-    (budget.categories ?? []).reduce((categoryTotal: number, category) => {
+  // Calculate total spent only from categorized transactions to match categories summary
+  const totalSpent = (budget.categories ?? []).reduce(
+    (categoryTotal: number, category) => {
       const categorySpent = (category.transactions ?? []).reduce(
         (transactionTotal: number, transaction) => {
+          // Exclude INCOME and CARD_PAYMENT transactions from spending
+          if (
+            transaction.transactionType === TransactionType.INCOME ||
+            transaction.transactionType === TransactionType.CARD_PAYMENT
+          ) {
+            return transactionTotal;
+          }
           if (transaction.transactionType === TransactionType.RETURN) {
             // Returns reduce spending (positive amount = refund received)
             return transactionTotal - transaction.amount;
@@ -127,16 +131,9 @@ const BudgetDetailsPage = () => {
         0,
       );
       return categoryTotal + categorySpent;
-    }, 0) +
-    (budget.transactions ?? []).reduce((total: number, transaction) => {
-      if (transaction.transactionType === TransactionType.RETURN) {
-        // Returns reduce spending (positive amount = refund received)
-        return total - transaction.amount;
-      } else {
-        // Regular transactions: positive = purchases (increase spending)
-        return total + transaction.amount;
-      }
-    }, 0);
+    },
+    0,
+  );
   const totalRemaining = totalIncome - totalSpent;
   const spendingPercentage =
     totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
@@ -240,7 +237,6 @@ const BudgetDetailsPage = () => {
     }
   };
 
-
   return (
     <>
       <div className="h-full overflow-y-auto">
@@ -251,24 +247,25 @@ const BudgetDetailsPage = () => {
               <StatsCard
                 title="Total Income"
                 value={`$${totalIncome.toLocaleString()}`}
-                subtitle={
-                  (() => {
-                    const debitCards = (budget.cards ?? []).filter(
-                      (card: { cardType: string }) =>
-                        card.cardType === CardType.DEBIT || card.cardType === CardType.BUSINESS_DEBIT,
-                    );
-                    const debitCardIds = debitCards.map((card: { id: string }) => card.id);
-                    const incomeTransactions = (budget.transactions ?? []).filter(
-                      (transaction) =>
-                        transaction.transactionType === TransactionType.INCOME &&
-                        transaction.cardId &&
-                        debitCardIds.includes(transaction.cardId)
-                    );
-                    return incomeTransactions.length === 1
-                      ? (incomeTransactions[0]?.name ?? "Income")
-                      : `${incomeTransactions.length} income transactions`;
-                  })()
-                }
+                subtitle={(() => {
+                  const debitCards = (budget.cards ?? []).filter(
+                    (card: { cardType: string }) =>
+                      card.cardType === CardType.DEBIT ||
+                      card.cardType === CardType.BUSINESS_DEBIT,
+                  );
+                  const debitCardIds = debitCards.map(
+                    (card: { id: string }) => card.id,
+                  );
+                  const incomeTransactions = (budget.transactions ?? []).filter(
+                    (transaction) =>
+                      transaction.transactionType === TransactionType.INCOME &&
+                      transaction.cardId &&
+                      debitCardIds.includes(transaction.cardId),
+                  );
+                  return incomeTransactions.length === 1
+                    ? (incomeTransactions[0]?.name ?? "Income")
+                    : `${incomeTransactions.length} income transactions`;
+                })()}
                 icon={
                   <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
                 }
@@ -425,6 +422,15 @@ const BudgetDetailsPage = () => {
                       const categorySpent = roundToCents(
                         (cat.transactions ?? []).reduce(
                           (transactionTotal: number, transaction) => {
+                            // Exclude INCOME and CARD_PAYMENT transactions from spending
+                            if (
+                              transaction.transactionType ===
+                                TransactionType.INCOME ||
+                              transaction.transactionType ===
+                                TransactionType.CARD_PAYMENT
+                            ) {
+                              return transactionTotal;
+                            }
                             if (
                               transaction.transactionType ===
                               TransactionType.RETURN
@@ -452,6 +458,15 @@ const BudgetDetailsPage = () => {
                     const categorySpent = roundToCents(
                       (cat.transactions ?? []).reduce(
                         (transactionTotal: number, transaction) => {
+                          // Exclude INCOME and CARD_PAYMENT transactions from spending
+                          if (
+                            transaction.transactionType ===
+                              TransactionType.INCOME ||
+                            transaction.transactionType ===
+                              TransactionType.CARD_PAYMENT
+                          ) {
+                            return transactionTotal;
+                          }
                           if (
                             transaction.transactionType ===
                             TransactionType.RETURN
