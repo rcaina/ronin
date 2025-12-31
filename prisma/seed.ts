@@ -1,4 +1,4 @@
-import { CategoryType, PeriodType, PrismaClient, Role, StrategyType, CardType, TransactionType } from '@prisma/client';
+import { CategoryType, PeriodType, PrismaClient, Role, StrategyType, CardType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
