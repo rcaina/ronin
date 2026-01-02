@@ -12,6 +12,7 @@ import {
   DollarSign,
   CreditCard,
   Receipt,
+  PiggyBank,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
@@ -24,6 +25,12 @@ interface NavItem {
 }
 
 interface BudgetNavItem {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+}
+
+interface SavingsNavItem {
   href: string;
   icon: React.ReactNode;
   label: string;
@@ -47,6 +54,11 @@ export default function MobileHeader() {
   const isBudgetPage =
     pathname.startsWith("/budgets/") && pathname !== "/budgets";
   const budgetId = isBudgetPage ? pathname.split("/")[2] : null;
+
+  // Check if we're on a savings page and extract the savings ID
+  const isSavingsPage =
+    pathname.startsWith("/savings/") && pathname !== "/savings";
+  const savingsId = isSavingsPage ? pathname.split("/")[2] : null;
 
   // Budget sub-menu items (same as BudgetLayout)
   const budgetNavItems: BudgetNavItem[] = budgetId
@@ -75,6 +87,27 @@ export default function MobileHeader() {
           href: `/budgets/${budgetId}/cards`,
           icon: <CreditCard className="h-5 w-5" />,
           label: "Cards",
+        },
+      ]
+    : [];
+
+  // Savings sub-menu items (same as SavingsPageNavigation)
+  const savingsNavItems: SavingsNavItem[] = savingsId
+    ? [
+        {
+          href: `/savings/${savingsId}`,
+          icon: <Target className="h-5 w-5" />,
+          label: "Overview",
+        },
+        {
+          href: `/savings/${savingsId}/pockets`,
+          icon: <PiggyBank className="h-5 w-5" />,
+          label: "Pockets",
+        },
+        {
+          href: `/savings/${savingsId}/allocations`,
+          icon: <DollarSign className="h-5 w-5" />,
+          label: "Allocations",
         },
       ]
     : [];
@@ -179,6 +212,31 @@ export default function MobileHeader() {
                         Budget Navigation
                       </div>
                       {budgetNavItems.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={closeMenu}
+                          className={`flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
+                            pathname === item.href
+                              ? "bg-secondary/10 text-secondary"
+                              : "text-gray-700 hover:bg-gray-100"
+                          }`}
+                        >
+                          <span className="text-gray-600">{item.icon}</span>
+                          <span className="font-medium">{item.label}</span>
+                        </Link>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Savings Sub-menu Items */}
+                  {isSavingsPage && savingsNavItems.length > 0 && (
+                    <>
+                      <div className="my-3 border-t border-gray-200" />
+                      <div className="mb-2 px-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Savings Navigation
+                      </div>
+                      {savingsNavItems.map((item) => (
                         <Link
                           key={item.href}
                           href={item.href}

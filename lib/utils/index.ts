@@ -6,9 +6,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Re-export hooks
-export { useDebounce } from "./hooks";
-
 /**
  * Rounds a number to 2 decimal places to avoid floating-point precision issues
  * @param value - The number to round
@@ -142,6 +139,43 @@ export const getCategoryBadgeColor = (group?: CategoryType) => {
       return "bg-gray-100 text-gray-800";
   }
 };
+
+/**
+ * Parses an ISO date string and returns a local Date object to avoid timezone issues
+ * @param dateString - ISO date string (e.g., "2024-01-15T00:00:00.000Z") or date string (e.g., "2024-01-15") or Date object
+ * @returns Local Date object with the correct date, or null if invalid
+ */
+export function parseLocalDate(dateString: string | Date | null | undefined): Date | null {
+  if (!dateString) return null;
+
+  // If it's already a Date object, extract the date parts using local methods
+  if (dateString instanceof Date) {
+    return new Date(
+      dateString.getFullYear(),
+      dateString.getMonth(),
+      dateString.getDate()
+    );
+  }
+
+  const dateStr = String(dateString);
+
+  // Handle both ISO date strings and simple date strings
+  let year: number, month: number, day: number;
+
+  if (dateStr.includes("T")) {
+    // ISO date string - extract date part
+    const datePart = dateStr.split("T")[0] ?? "";
+    [year, month, day] = datePart.split("-").map(Number) as [number, number, number];
+  } else {
+    // Simple date string (YYYY-MM-DD)
+    [year, month, day] = dateStr.split("-").map(Number) as [number, number, number];
+  }
+
+  if (!year || !month || !day || isNaN(year) || isNaN(month) || isNaN(day)) return null;
+
+  // Create local date to avoid timezone issues
+  return new Date(year, month - 1, day);
+}
 
 export function formatDateUTC(dateString: string): string {
   if (!dateString) return "";

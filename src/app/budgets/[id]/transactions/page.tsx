@@ -38,6 +38,7 @@ import {
   getGroupColor,
   getCategoryBadgeColor,
   formatCurrency,
+  parseLocalDate,
 } from "@/lib/utils";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 
@@ -778,9 +779,9 @@ const BudgetTransactionsPage = () => {
                             )}
                           </div>
                           <p className="mt-1 text-xs text-gray-400">
-                            {new Date(
+                            {parseLocalDate(
                               transaction.createdAt,
-                            ).toLocaleDateString()}
+                            )?.toLocaleDateString() ?? ""}
                           </p>
                         </div>
                       </div>

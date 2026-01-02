@@ -41,17 +41,8 @@ export default function SavingsLayout({
         description: "View all allocations across all pockets",
         showBackButton: true,
       };
-    } else if (
-      pathname?.includes("/pockets/") &&
-      /\/pockets\/[^/]+$/.test(pathname)
-    ) {
-      // Individual pocket page - title will be set dynamically by the page
-      return {
-        title: "Pocket Details",
-        description: "View and manage pocket allocations",
-        showBackButton: true,
-      };
     }
+    // Note: Pocket detail pages are handled by the parent layout at savings/layout.tsx
 
     return null;
   }, [pathname, id, savings]);

@@ -42,10 +42,11 @@ const calculateTotalIncome = (budget: BudgetWithRelations): number => {
   // Get all debit cards for this budget
   const debitCards = (budget.cards ?? []).filter(
     (card: { cardType: string }) =>
-      card.cardType === CardType.DEBIT || card.cardType === CardType.BUSINESS_DEBIT,
+      card.cardType === CardType.DEBIT ||
+      card.cardType === CardType.BUSINESS_DEBIT,
   );
   const debitCardIds = debitCards.map((card: { id: string }) => card.id);
-  
+
   // Sum all INCOME transactions on debit cards
   return (budget.transactions ?? []).reduce((sum, transaction) => {
     if (
@@ -131,6 +132,13 @@ const BudgetsPage = () => {
             categorySum +
             (category.transactions ?? []).reduce(
               (transactionSum, transaction) => {
+                // Exclude INCOME and CARD_PAYMENT transactions from spending
+                if (
+                  transaction.transactionType === TransactionType.INCOME ||
+                  transaction.transactionType === TransactionType.CARD_PAYMENT
+                ) {
+                  return transactionSum;
+                }
                 if (transaction.transactionType === TransactionType.RETURN) {
                   // Returns reduce spending (positive amount = refund received)
                   return transactionSum - transaction.amount;
@@ -157,6 +165,13 @@ const BudgetsPage = () => {
           const group = category.group.toLowerCase() ?? "unknown";
           const spent = (category.transactions ?? []).reduce(
             (sum, transaction) => {
+              // Exclude INCOME and CARD_PAYMENT transactions from spending
+              if (
+                transaction.transactionType === TransactionType.INCOME ||
+                transaction.transactionType === TransactionType.CARD_PAYMENT
+              ) {
+                return sum;
+              }
               if (transaction.transactionType === TransactionType.RETURN) {
                 // Returns reduce spending (positive amount = refund received)
                 return sum - transaction.amount;
@@ -187,6 +202,13 @@ const BudgetsPage = () => {
               (transactionSum, transaction) => {
                 const transactionDate = new Date(transaction.createdAt);
                 if (transactionDate >= sevenDaysAgo) {
+                  // Exclude INCOME and CARD_PAYMENT transactions from spending
+                  if (
+                    transaction.transactionType === TransactionType.INCOME ||
+                    transaction.transactionType === TransactionType.CARD_PAYMENT
+                  ) {
+                    return transactionSum;
+                  }
                   if (transaction.transactionType === TransactionType.RETURN) {
                     // Returns reduce spending (positive amount = refund received)
                     return transactionSum - transaction.amount;
@@ -232,6 +254,13 @@ const BudgetsPage = () => {
           sum +
           (category.transactions ?? []).reduce(
             (transactionSum: number, transaction) => {
+              // Exclude INCOME and CARD_PAYMENT transactions from spending
+              if (
+                transaction.transactionType === TransactionType.INCOME ||
+                transaction.transactionType === TransactionType.CARD_PAYMENT
+              ) {
+                return transactionSum;
+              }
               if (transaction.transactionType === TransactionType.RETURN) {
                 // Returns reduce spending (positive amount = refund received)
                 return transactionSum - transaction.amount;
@@ -457,6 +486,15 @@ const BudgetsPage = () => {
                       sum +
                       (category.transactions ?? []).reduce(
                         (transactionSum: number, transaction) => {
+                          // Exclude INCOME and CARD_PAYMENT transactions from spending
+                          if (
+                            transaction.transactionType ===
+                              TransactionType.INCOME ||
+                            transaction.transactionType ===
+                              TransactionType.CARD_PAYMENT
+                          ) {
+                            return transactionSum;
+                          }
                           if (
                             transaction.transactionType ===
                             TransactionType.RETURN
