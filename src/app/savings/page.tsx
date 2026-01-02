@@ -20,7 +20,7 @@ export default function SavingsPage() {
     return <div className="p-6 text-red-600">Failed to load savings</div>;
 
   return (
-    <>
+    <div className="flex h-screen flex-col bg-gray-50 pt-16 sm:pt-8 lg:pt-0">
       <PageHeader
         title="Savings"
         description="Track savings accounts and categories"
@@ -34,7 +34,7 @@ export default function SavingsPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
       />
-      <div className="h-full overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
         <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
           <div className="space-y-4">
             {savings.map((acc) => (
@@ -83,6 +83,6 @@ export default function SavingsPage() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

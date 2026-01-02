@@ -384,6 +384,12 @@ export async function getBudgets(
     ...(status && { status }),
   };
 
+  // Sort completed and archived budgets by created date (descending - newest first)
+  // Active budgets are also sorted by createdAt descending (newest first)
+  const orderBy = status === 'COMPLETED' || status === 'ARCHIVED' 
+    ? { createdAt: 'desc' as const }
+    : { createdAt: 'desc' as const };
+
   return await tx.budget.findMany({
     where: whereClause,
     include: {
@@ -412,14 +418,30 @@ export async function getBudgets(
             }
           }),
         },
+        include: {
+          card: true,
+        },
         orderBy: {
           createdAt: 'desc',
         },
       },
+      cards: {
+        where: {
+          deleted: null,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
     },
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy,
   })
 }
 
