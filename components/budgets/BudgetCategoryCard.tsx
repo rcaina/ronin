@@ -13,6 +13,7 @@ import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import type { GroupColorFunction } from "@/lib/types/budget";
 import { TransactionType } from "@prisma/client";
 import { roundToCents } from "@/lib/utils";
+import Button from "@/components/Button";
 
 interface BudgetCategoryCardProps {
   budgetCategory: BudgetCategoryWithCategory;
@@ -139,7 +140,7 @@ export default function BudgetCategoryCard({
           e.dataTransfer.setData("text/plain", budgetCategory.id);
           e.dataTransfer.effectAllowed = "move";
         }}
-        className={`group relative cursor-grab overflow-hidden rounded-xl border p-6 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md active:cursor-grabbing ${
+        className={`group relative cursor-grab overflow-hidden rounded-xl border p-4 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md active:cursor-grabbing ${
           editingCategoryId === budgetCategory.id
             ? "border-blue-200 bg-blue-50"
             : "bg-white"
@@ -153,25 +154,25 @@ export default function BudgetCategoryCard({
           <GripVertical className="h-4 w-4 text-gray-400" />
         </div>
 
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between">
           {editingCategoryId === budgetCategory.id ? (
             <div className="flex items-center space-x-2">
               <input
                 type="text"
                 value={editingName}
                 onChange={(e) => setEditingName(e.target.value)}
-                className="rounded-md border border-gray-300 px-2 py-1 text-lg font-semibold text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="rounded-md border border-gray-300 px-2 py-1 text-base font-semibold text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder="Category name"
               />
             </div>
           ) : (
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-base font-semibold text-gray-900">
               {budgetCategory.name}
             </h3>
           )}
           <div className="flex items-center space-x-2">
             {/* Action Icons - Only visible on hover when not editing */}
-            {editingCategoryId !== budgetCategory.id ? (
+            {editingCategoryId !== budgetCategory.id && (
               <div className="flex items-center space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
                 <button
                   onClick={handleStartEditCategory}
@@ -186,25 +187,6 @@ export default function BudgetCategoryCard({
                   title="Delete category"
                 >
                   <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-1">
-                <button
-                  onClick={handleSaveCategory}
-                  disabled={updateBudgetCategoryMutation.isPending}
-                  className="rounded p-1 text-green-600 transition-colors hover:bg-green-100 disabled:opacity-50"
-                  title="Save changes"
-                >
-                  ✓
-                </button>
-                <button
-                  onClick={handleCancelEditCategory}
-                  disabled={updateBudgetCategoryMutation.isPending}
-                  className="rounded p-1 text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
-                  title="Cancel editing"
-                >
-                  ✕
                 </button>
               </div>
             )}
@@ -222,9 +204,9 @@ export default function BudgetCategoryCard({
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           <div>
-            <div className="mb-1 flex justify-between text-sm">
+            <div className="mb-1 flex justify-between text-xs">
               <span className="text-gray-500">Allocated</span>
               {editingCategoryId === budgetCategory.id ? (
                 <div className="flex items-center space-x-1">
@@ -257,13 +239,13 @@ export default function BudgetCategoryCard({
                 </span>
               )}
             </div>
-            <div className="mb-1 flex justify-between text-sm">
+            <div className="mb-1 flex justify-between text-xs">
               <span className="text-gray-500">Spent</span>
               <span className="font-medium">
                 ${categorySpent.toFixed(2).toLocaleString()}
               </span>
             </div>
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between text-xs">
               <span className="text-gray-500">Remaining</span>
               <span
                 className={`font-medium ${
@@ -291,24 +273,46 @@ export default function BudgetCategoryCard({
           </div>
         </div>
 
+        {/* Edit Mode Action Buttons */}
+        {editingCategoryId === budgetCategory.id && (
+          <div className="mt-3 flex justify-end gap-2 border-t pt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCancelEditCategory}
+              disabled={updateBudgetCategoryMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSaveCategory}
+              isLoading={updateBudgetCategoryMutation.isPending}
+            >
+              Save
+            </Button>
+          </div>
+        )}
+
         {/* Recent Transactions */}
         {budgetCategory.transactions &&
           budgetCategory.transactions.length > 0 && (
-            <div className="mt-4 border-t pt-4">
-              <h4 className="mb-2 text-sm font-medium text-gray-700">
+            <div className="mt-3 border-t pt-3">
+              <h4 className="mb-2 text-xs font-medium text-gray-700">
                 Recent Transactions
               </h4>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {budgetCategory.transactions.slice(0, 3).map((transaction) => (
                   <div
                     key={transaction.id}
-                    className="flex items-center justify-between text-sm"
+                    className="flex items-center justify-between text-xs"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-gray-900">
                         {transaction.name ?? "Unnamed transaction"}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-[10px] text-gray-500">
                         {new Date(transaction.createdAt).toLocaleDateString()}
                       </p>
                     </div>

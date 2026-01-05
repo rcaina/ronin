@@ -216,121 +216,111 @@ export default function BudgetCategoriesGridView({
 
   return (
     <div className="flex h-full w-full flex-col">
-      <div className="grid w-full grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-        {Object.entries(displayCategoriesByGroup).map(
-          ([group, categories], index) => {
-            const groupType = group as CategoryType;
-            const isGroupExpanded = expandedGroups.has(groupType);
-            const isLastGroup =
-              index === Object.entries(displayCategoriesByGroup).length - 1;
+      <div className="grid h-full min-h-0 w-full grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+        {Object.entries(displayCategoriesByGroup).map(([group, categories]) => {
+          const groupType = group as CategoryType;
+          const isGroupExpanded = expandedGroups.has(groupType);
 
-            return (
+          return (
+            <div
+              key={group}
+              className="flex h-full min-h-0 flex-col"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, groupType)}
+            >
               <div
-                key={group}
-                className={`flex flex-col sm:min-h-[500px] md:min-h-[600px] ${
-                  !isLastGroup
-                    ? isGroupExpanded
-                      ? "mb-8 sm:mb-8"
-                      : "mb-0 sm:mb-8"
-                    : ""
-                }`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, groupType)}
+                className="mb-3 flex items-center justify-between sm:mb-4"
+                onClick={() => {
+                  // Only toggle on mobile
+                  if (isMobile) {
+                    toggleGroupExpanded(groupType);
+                  }
+                }}
               >
                 <div
-                  className="mb-3 flex items-center justify-between sm:mb-4"
-                  onClick={() => {
-                    // Only toggle on mobile
-                    if (isMobile) {
-                      toggleGroupExpanded(groupType);
-                    }
-                  }}
+                  className={`flex flex-1 cursor-pointer items-center sm:cursor-default`}
                 >
+                  {/* Mobile collapse/expand chevron */}
+                  <ChevronDown
+                    className={`h-4 w-4 text-gray-400 transition-transform duration-200 sm:hidden ${
+                      isGroupExpanded ? "rotate-0" : "-rotate-90"
+                    }`}
+                  />
                   <div
-                    className={`flex flex-1 cursor-pointer items-center sm:cursor-default`}
-                  >
-                    {/* Mobile collapse/expand chevron */}
-                    <ChevronDown
-                      className={`h-4 w-4 text-gray-400 transition-transform duration-200 sm:hidden ${
-                        isGroupExpanded ? "rotate-0" : "-rotate-90"
-                      }`}
-                    />
-                    <div
-                      className={`h-3 w-3 rounded-full ${getGroupColor(groupType)} mr-2 sm:mr-3`}
-                    ></div>
-                    <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
-                      {getGroupLabel(groupType)}
-                    </h3>
-                    <span className="ml-2 text-sm text-gray-500">
-                      ({categories?.length ?? 0})
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartAddCategory(groupType);
-                      }}
-                      className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                      title="Add category"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
+                    className={`h-3 w-3 rounded-full ${getGroupColor(groupType)} mr-2 sm:mr-3`}
+                  ></div>
+                  <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
+                    {getGroupLabel(groupType)}
+                  </h3>
+                  <span className="ml-2 text-sm text-gray-500">
+                    ({categories?.length ?? 0})
+                  </span>
                 </div>
-                <div
-                  className={`relative min-h-0 flex-1 ${!isGroupExpanded ? "hidden sm:block" : ""}`}
-                >
-                  <div
-                    ref={(el) => {
-                      scrollContainerRefs.current[group] = el;
+                <div className="flex items-center">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStartAddCategory(groupType);
                     }}
-                    className="scrollbar-hide h-full space-y-4 overflow-y-auto pb-6"
+                    className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    title="Add category"
                   >
-                    {/* Add Category Form - inline within column */}
-                    {isAddingCategory && activeGroup === group && (
-                      <AddBudgetCategoryForm
-                        onSubmit={handleSubmitAddCategory}
-                        onCancel={handleCancelAddCategory}
-                        isLoading={createBudgetCategoryMutation.isPending}
-                      />
-                    )}
-
-                    {categories?.map(
-                      (budgetCategory: BudgetCategoryWithCategory) => {
-                        return (
-                          <BudgetCategoryCard
-                            key={budgetCategory.id}
-                            budgetCategory={budgetCategory}
-                            budgetId={budgetId}
-                            getGroupColor={getGroupColor}
-                          />
-                        );
-                      },
-                    )}
-
-                    {/* Show empty state message when no categories in this group */}
-                    {(!categories || categories.length === 0) &&
-                      !(isAddingCategory && activeGroup === group) && (
-                        <div className="flex h-32 items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50">
-                          <div className="text-center text-sm text-gray-500">
-                            <p>No categories yet</p>
-                            <p>Click the + button to add one</p>
-                          </div>
-                        </div>
-                      )}
-                  </div>
-
-                  {/* Scroll Shadow Indicator */}
-                  {scrollShadows[group] && (
-                    <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white/80 to-transparent" />
-                  )}
+                    <Plus className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
-            );
-          },
-        )}
+              <div
+                className={`relative min-h-0 flex-1 overflow-hidden ${!isGroupExpanded ? "hidden sm:block" : ""}`}
+              >
+                <div
+                  ref={(el) => {
+                    scrollContainerRefs.current[group] = el;
+                  }}
+                  className="scrollbar-hide h-full space-y-3 overflow-y-auto pb-4"
+                >
+                  {/* Add Category Form - inline within column */}
+                  {isAddingCategory && activeGroup === group && (
+                    <AddBudgetCategoryForm
+                      onSubmit={handleSubmitAddCategory}
+                      onCancel={handleCancelAddCategory}
+                      isLoading={createBudgetCategoryMutation.isPending}
+                    />
+                  )}
+
+                  {categories?.map(
+                    (budgetCategory: BudgetCategoryWithCategory) => {
+                      return (
+                        <BudgetCategoryCard
+                          key={budgetCategory.id}
+                          budgetCategory={budgetCategory}
+                          budgetId={budgetId}
+                          getGroupColor={getGroupColor}
+                        />
+                      );
+                    },
+                  )}
+
+                  {/* Show empty state message when no categories in this group */}
+                  {(!categories || categories.length === 0) &&
+                    !(isAddingCategory && activeGroup === group) && (
+                      <div className="flex h-32 items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50">
+                        <div className="text-center text-sm text-gray-500">
+                          <p>No categories yet</p>
+                          <p>Click the + button to add one</p>
+                        </div>
+                      </div>
+                    )}
+                </div>
+
+                {/* Scroll Shadow Indicator */}
+                {scrollShadows[group] && (
+                  <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white/80 to-transparent" />
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

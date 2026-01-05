@@ -30,18 +30,8 @@ const AllocationsPage = () => {
       })),
     ) ?? [];
 
-  // Sort by date: allocations without occurredAt at top, then by occurredAt (most recent first)
-  const sortedAllocations = [...allAllocations].sort((a, b) => {
-    // If one has occurredAt and the other doesn't, put the one without at top
-    if (!a.occurredAt && b.occurredAt) return -1;
-    if (a.occurredAt && !b.occurredAt) return 1;
-    // If both don't have occurredAt, keep original order
-    if (!a.occurredAt && !b.occurredAt) return 0;
-    // If both have occurredAt, sort by date (most recent first)
-    const dateA = new Date(a.occurredAt!);
-    const dateB = new Date(b.occurredAt!);
-    return dateB.getTime() - dateA.getTime();
-  });
+  // Allocations are already sorted by the backend (most recent first)
+  const sortedAllocations = allAllocations;
 
   // Calculate statistics
   const totalAllocations = sortedAllocations.length;
@@ -96,8 +86,8 @@ const AllocationsPage = () => {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="mx-auto w-full flex-shrink-0 px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
         {/* Stats Cards */}
         <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
           <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-6">
@@ -162,75 +152,79 @@ const AllocationsPage = () => {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Allocations List */}
-        <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
-              All Allocations
-            </h3>
-          </div>
+      {/* Allocations List - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto w-full px-2 pb-8 sm:px-4 sm:pb-12 lg:px-8 lg:pb-16">
+          <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
+                All Allocations
+              </h3>
+            </div>
 
-          <div className="space-y-2">
-            {sortedAllocations.length > 0 ? (
-              sortedAllocations.map((allocation) => (
-                <div
-                  key={allocation.id}
-                  className="group flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3 transition-colors hover:bg-gray-100"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      {!allocation.occurredAt && (
-                        <AlertCircle className="h-4 w-4 text-amber-500" />
-                      )}
-                      <span className="text-sm font-medium text-gray-900">
-                        {allocation.note ?? "Allocation"}
-                      </span>
-                      <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
-                        {allocation.pocketName}
-                      </span>
+            <div className="space-y-2 pb-2">
+              {sortedAllocations.length > 0 ? (
+                sortedAllocations.map((allocation) => (
+                  <div
+                    key={allocation.id}
+                    className="group flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3 transition-colors hover:bg-gray-100"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        {!allocation.occurredAt && (
+                          <AlertCircle className="h-4 w-4 text-amber-500" />
+                        )}
+                        <span className="text-sm font-medium text-gray-900">
+                          {allocation.note ?? "Allocation"}
+                        </span>
+                        <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
+                          {allocation.pocketName}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {allocation.occurredAt
+                          ? formatDateUTC(String(allocation.occurredAt))
+                          : formatDateUTC(allocation.createdAt)}
+                      </p>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">
-                      {allocation.occurredAt
-                        ? formatDateUTC(String(allocation.occurredAt))
-                        : formatDateUTC(allocation.createdAt)}
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`font-semibold ${
+                          allocation.withdrawal
+                            ? "text-red-600"
+                            : "text-green-600"
+                        }`}
+                      >
+                        {allocation.withdrawal ? "-" : "+"}
+                        {formatCurrency(allocation.amount)}
+                      </span>
+                      <button
+                        onClick={() =>
+                          router.push(
+                            `/savings/${savingsId}/pockets/${allocation.pocketId}`,
+                          )
+                        }
+                        className="rounded p-1 text-gray-400 opacity-0 transition-all hover:bg-gray-200 hover:text-gray-600 group-hover:opacity-100"
+                        title="View pocket"
+                      >
+                        <ArrowRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="flex h-32 items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50">
+                  <div className="text-center text-sm text-gray-500">
+                    <p>No allocations yet</p>
+                    <p className="mt-1 text-xs">
+                      Allocations will appear here when you add them to pockets
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`font-semibold ${
-                        allocation.withdrawal
-                          ? "text-red-600"
-                          : "text-green-600"
-                      }`}
-                    >
-                      {allocation.withdrawal ? "-" : "+"}
-                      {formatCurrency(allocation.amount)}
-                    </span>
-                    <button
-                      onClick={() =>
-                        router.push(
-                          `/savings/${savingsId}/pockets/${allocation.pocketId}`,
-                        )
-                      }
-                      className="rounded p-1 text-gray-400 opacity-0 transition-all hover:bg-gray-200 hover:text-gray-600 group-hover:opacity-100"
-                      title="View pocket"
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
-                  </div>
                 </div>
-              ))
-            ) : (
-              <div className="flex h-32 items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50">
-                <div className="text-center text-sm text-gray-500">
-                  <p>No allocations yet</p>
-                  <p className="mt-1 text-xs">
-                    Allocations will appear here when you add them to pockets
-                  </p>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>

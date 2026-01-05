@@ -27,6 +27,18 @@ export function toPocketSummary(pocket: PocketWithAllocationsLite): PocketSummar
     // Subtract if it's a withdrawal, add if it's a deposit
     return sum + (a.withdrawal ? -amount : amount);
   }, 0);
+  
+  // Sort allocations by most recent first (use occurredAt if available, otherwise createdAt)
+  const sortedAllocations = [...(pocket.allocations ?? [])].sort((a, b) => {
+    const dateA = a.occurredAt
+      ? a.occurredAt.getTime()
+      : a.createdAt.getTime();
+    const dateB = b.occurredAt
+      ? b.occurredAt.getTime()
+      : b.createdAt.getTime();
+    return dateB - dateA; // Most recent first
+  });
+  
   return {
     id: pocket.id,
     name: pocket.name,
@@ -36,7 +48,7 @@ export function toPocketSummary(pocket: PocketWithAllocationsLite): PocketSummar
     goalAmount: pocket.goalAmount ?? null,
     goalDate: pocket.goalDate ? pocket.goalDate.toISOString() : null,
     goalNote: pocket.goalNote ?? null,
-    allocations: (pocket.allocations ?? []).map((a) => {
+    allocations: sortedAllocations.map((a) => {
       const amount = typeof a.amount === 'number' && !isNaN(a.amount) ? a.amount : 0;
       return {
         id: a.id,
