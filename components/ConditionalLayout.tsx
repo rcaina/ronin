@@ -83,7 +83,7 @@ export default function ConditionalLayout({
           setIsMainNavCollapsed: setIsCollapsed,
         }}
       >
-        <main className="bg-gray/90 flex text-black">
+        <main className="bg-gray/90 flex h-screen text-black">
           {/* Mobile Header - only visible on mobile */}
           <MobileHeader />
 
@@ -97,7 +97,7 @@ export default function ConditionalLayout({
 
           {/* Main Content Area */}
           <div
-            className={`flex-1 transition-all duration-300 ${
+            className={`flex flex-1 flex-col overflow-hidden transition-all duration-300 ${
               isCollapsed ? "lg:ml-16" : "lg:ml-64"
             } pt-32 lg:pt-0`}
           >

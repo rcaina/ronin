@@ -315,7 +315,9 @@ export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
                       {allocation.note ?? undefined}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {formatDateUTC(allocation.createdAt)}
+                      {allocation.occurredAt
+                        ? formatDateUTC(allocation.occurredAt)
+                        : formatDateUTC(allocation.createdAt)}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">

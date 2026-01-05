@@ -14,9 +14,8 @@ import {
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
-import StatsCard from "@/components/StatsCard";
 import { type CategoryType, TransactionType, CardType } from "@prisma/client";
 import {
   formatDateUTC,
@@ -25,6 +24,20 @@ import {
   roundToCents,
 } from "@/lib/utils";
 import { useBudgetHeader } from "../../../../components/budgets/BudgetHeaderContext";
+import { ChartContainer } from "@/components/recharts/ChartWrapper";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  LineChart,
+  Line,
+  CartesianGrid,
+} from "recharts";
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();
@@ -52,6 +65,205 @@ const BudgetDetailsPage = () => {
       },
     ]);
   }, [setActions]);
+
+  // Calculate totals - moved before early returns
+  // Calculate total income from INCOME transactions on debit cards
+  const totalIncome = useMemo(() => {
+    if (!budget) return 0;
+    // Get all debit cards for this budget
+    const debitCards = (budget.cards ?? []).filter(
+      (card: { cardType: string }) =>
+        card.cardType === CardType.DEBIT ||
+        card.cardType === CardType.BUSINESS_DEBIT,
+    );
+
+    const debitCardIds = debitCards.map((card: { id: string }) => card.id);
+
+    // Sum all INCOME transactions on debit cards
+    return (budget.transactions ?? []).reduce((sum, transaction) => {
+      if (
+        transaction.transactionType === TransactionType.INCOME &&
+        transaction.cardId &&
+        debitCardIds.includes(transaction.cardId)
+      ) {
+        return sum + transaction.amount;
+      }
+      return sum;
+    }, 0);
+  }, [budget]);
+
+  // Calculate total spent only from categorized transactions to match categories summary
+  const totalSpent = useMemo(() => {
+    if (!budget) return 0;
+    return (budget.categories ?? []).reduce(
+      (categoryTotal: number, category) => {
+        const categorySpent = (category.transactions ?? []).reduce(
+          (transactionTotal: number, transaction) => {
+            // Exclude INCOME and CARD_PAYMENT transactions from spending
+            if (
+              transaction.transactionType === TransactionType.INCOME ||
+              transaction.transactionType === TransactionType.CARD_PAYMENT
+            ) {
+              return transactionTotal;
+            }
+            if (transaction.transactionType === TransactionType.RETURN) {
+              // Returns reduce spending (positive amount = refund received)
+              return transactionTotal - transaction.amount;
+            } else {
+              // Regular transactions: positive = purchases (increase spending)
+              return transactionTotal + transaction.amount;
+            }
+          },
+          0,
+        );
+        return categoryTotal + categorySpent;
+      },
+      0,
+    );
+  }, [budget]);
+
+  const totalRemaining = totalIncome - totalSpent;
+  const spendingPercentage =
+    totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
+
+  // Prepare data for category-specific pie chart (actual spending)
+  const categorySpendingData = useMemo(() => {
+    if (!budget) return [];
+    // Color palette for category pie chart
+    const categoryColors = [
+      "#3b82f6", // blue-500
+      "#a855f7", // purple-500
+      "#10b981", // green-500
+      "#f59e0b", // amber-500
+      "#ef4444", // red-500
+      "#06b6d4", // cyan-500
+      "#ec4899", // pink-500
+      "#8b5cf6", // violet-500
+      "#14b8a6", // teal-500
+      "#f97316", // orange-500
+    ];
+    const categorySpending = (budget.categories ?? [])
+      .map((category) => {
+        const spent = (category.transactions ?? []).reduce(
+          (sum, transaction) => {
+            if (
+              transaction.transactionType === TransactionType.INCOME ||
+              transaction.transactionType === TransactionType.CARD_PAYMENT
+            ) {
+              return sum;
+            }
+            if (transaction.transactionType === TransactionType.RETURN) {
+              return sum - transaction.amount;
+            } else {
+              return sum + transaction.amount;
+            }
+          },
+          0,
+        );
+        return {
+          name: category.name,
+          value: roundToCents(spent),
+          group: category.group,
+        };
+      })
+      .filter((item) => item.value > 0)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8); // Top 8 categories
+
+    return categorySpending.map((item, index) => ({
+      ...item,
+      color: categoryColors[index % categoryColors.length],
+    }));
+  }, [budget]);
+
+  // Prepare data for daily spending trend (last 7 days)
+  const dailySpendingData = useMemo(() => {
+    if (!budget) return [];
+    const dailyData = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+
+      const daySpending = (budget.categories ?? []).reduce((sum, category) => {
+        return (
+          sum +
+          (category.transactions ?? []).reduce(
+            (transactionSum, transaction) => {
+              const transactionDate = new Date(transaction.createdAt);
+              if (transactionDate >= date && transactionDate < nextDate) {
+                if (
+                  transaction.transactionType === TransactionType.INCOME ||
+                  transaction.transactionType === TransactionType.CARD_PAYMENT
+                ) {
+                  return transactionSum;
+                }
+                if (transaction.transactionType === TransactionType.RETURN) {
+                  return transactionSum - transaction.amount;
+                } else {
+                  return transactionSum + transaction.amount;
+                }
+              }
+              return transactionSum;
+            },
+            0,
+          )
+        );
+      }, 0);
+
+      const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+      dailyData.push({
+        day: dayName,
+        date: date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+        spending: roundToCents(daySpending),
+      });
+    }
+    return dailyData;
+  }, [budget]);
+
+  // Prepare data for category usage (remaining vs allocated)
+  const categoryUsageData = useMemo(() => {
+    if (!budget) return [];
+    return (budget.categories ?? [])
+      .map((category) => {
+        const spent = (category.transactions ?? []).reduce(
+          (sum, transaction) => {
+            if (
+              transaction.transactionType === TransactionType.INCOME ||
+              transaction.transactionType === TransactionType.CARD_PAYMENT
+            ) {
+              return sum;
+            }
+            if (transaction.transactionType === TransactionType.RETURN) {
+              return sum - transaction.amount;
+            } else {
+              return sum + transaction.amount;
+            }
+          },
+          0,
+        );
+        const allocated = category.allocatedAmount ?? 0;
+        const remaining = allocated - spent;
+        return {
+          name:
+            category.name.length > 12
+              ? category.name.substring(0, 12) + "..."
+              : category.name,
+          fullName: category.name,
+          allocated: roundToCents(allocated),
+          remaining: roundToCents(Math.max(0, remaining)),
+          spent: roundToCents(spent),
+        };
+      })
+      .filter((item) => item.allocated > 0)
+      .sort((a, b) => b.allocated - a.allocated)
+      .slice(0, 5); // Top 5 categories by allocation
+  }, [budget]);
 
   if (isLoading) {
     return <LoadingSpinner message="Loading budget..." />;
@@ -83,60 +295,6 @@ const BudgetDetailsPage = () => {
       </div>
     );
   }
-
-  // Calculate totals
-  // Calculate total income from INCOME transactions on debit cards
-  const totalIncome = (() => {
-    // Get all debit cards for this budget
-    const debitCards = (budget.cards ?? []).filter(
-      (card: { cardType: string }) =>
-        card.cardType === CardType.DEBIT ||
-        card.cardType === CardType.BUSINESS_DEBIT,
-    );
-
-    const debitCardIds = debitCards.map((card: { id: string }) => card.id);
-
-    // Sum all INCOME transactions on debit cards
-    return (budget.transactions ?? []).reduce((sum, transaction) => {
-      if (
-        transaction.transactionType === TransactionType.INCOME &&
-        transaction.cardId &&
-        debitCardIds.includes(transaction.cardId)
-      ) {
-        return sum + transaction.amount;
-      }
-      return sum;
-    }, 0);
-  })();
-  // Calculate total spent only from categorized transactions to match categories summary
-  const totalSpent = (budget.categories ?? []).reduce(
-    (categoryTotal: number, category) => {
-      const categorySpent = (category.transactions ?? []).reduce(
-        (transactionTotal: number, transaction) => {
-          // Exclude INCOME and CARD_PAYMENT transactions from spending
-          if (
-            transaction.transactionType === TransactionType.INCOME ||
-            transaction.transactionType === TransactionType.CARD_PAYMENT
-          ) {
-            return transactionTotal;
-          }
-          if (transaction.transactionType === TransactionType.RETURN) {
-            // Returns reduce spending (positive amount = refund received)
-            return transactionTotal - transaction.amount;
-          } else {
-            // Regular transactions: positive = purchases (increase spending)
-            return transactionTotal + transaction.amount;
-          }
-        },
-        0,
-      );
-      return categoryTotal + categorySpent;
-    },
-    0,
-  );
-  const totalRemaining = totalIncome - totalSpent;
-  const spendingPercentage =
-    totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
 
   // Get budget status display
   const getBudgetStatusDisplay = () => {
@@ -239,186 +397,399 @@ const BudgetDetailsPage = () => {
 
   return (
     <>
-      <div className="h-full overflow-y-auto">
-        <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
-          {/* Budget Overview Cards */}
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-            <div className="group relative">
-              <StatsCard
-                title="Total Income"
-                value={`$${totalIncome.toLocaleString()}`}
-                subtitle={(() => {
-                  const debitCards = (budget.cards ?? []).filter(
-                    (card: { cardType: string }) =>
-                      card.cardType === CardType.DEBIT ||
-                      card.cardType === CardType.BUSINESS_DEBIT,
-                  );
-                  const debitCardIds = debitCards.map(
-                    (card: { id: string }) => card.id,
-                  );
-                  const incomeTransactions = (budget.transactions ?? []).filter(
-                    (transaction) =>
-                      transaction.transactionType === TransactionType.INCOME &&
-                      transaction.cardId &&
-                      debitCardIds.includes(transaction.cardId),
-                  );
-                  return incomeTransactions.length === 1
-                    ? (incomeTransactions[0]?.name ?? "Income")
-                    : `${incomeTransactions.length} income transactions`;
-                })()}
-                icon={
-                  <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
-                }
-                iconColor="text-green-500"
-                hover={true}
-              />
-            </div>
-
-            <StatsCard
-              title="Total Spent"
-              value={`$${totalSpent.toLocaleString()}`}
-              subtitle={`${spendingPercentage.toFixed(1)}% of budget`}
-              icon={
-                <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-red-500"
-            />
-
-            <StatsCard
-              title="Remaining"
-              value={`$${totalRemaining.toLocaleString()}`}
-              subtitle={totalRemaining >= 0 ? "Available" : "Over budget"}
-              icon={
-                <TrendingUp className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-blue-500"
-              valueColor={
-                totalRemaining >= 0 ? "text-gray-900" : "text-red-600"
-              }
-            />
-
-            <StatsCard
-              title="Status"
-              value={budgetStatusDisplay.status}
-              subtitle={budgetStatusDisplay.subtitle}
-              icon={
-                <div
-                  className={`h-4 w-4 rounded-full ${budgetStatusDisplay.bg} sm:h-5 sm:w-5`}
-                >
-                  <div
-                    className={`h-2 w-2 rounded-full ${budgetStatusDisplay.color.replace("text-", "bg-")} m-1 sm:m-1 sm:h-3 sm:w-3`}
-                  ></div>
-                </div>
-              }
-              iconColor={budgetStatusDisplay.color}
-              valueColor={budgetStatusDisplay.color}
-            />
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-8 sm:p-6">
-            <div className="mb-2 flex items-center justify-between sm:mb-4">
-              <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
+      <div className="flex h-full flex-col overflow-hidden">
+        <div className="mx-auto flex w-full flex-1 flex-col overflow-hidden px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
+          {/* Budget Overview Graphs */}
+          <div className="mb-4 grid flex-shrink-0 grid-cols-2 gap-2 sm:mb-6 sm:grid-cols-4 sm:gap-3 lg:gap-4">
+            {/* Budget Progress Circular Progress Bar */}
+            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+              <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
                 Budget Progress
               </h3>
-              <span className="text-xs text-gray-500 sm:text-sm">
-                {spendingPercentage.toFixed(1)}% used
-              </span>
+              {totalIncome > 0 ? (
+                <div className="flex flex-col items-center justify-center">
+                  <div className="relative" style={{ width: 120, height: 120 }}>
+                    <svg
+                      className="-rotate-90 transform"
+                      width="120"
+                      height="120"
+                    >
+                      {/* Background circle */}
+                      <circle
+                        cx="60"
+                        cy="60"
+                        r="50"
+                        fill="none"
+                        stroke="#e5e7eb"
+                        strokeWidth="8"
+                      />
+                      {/* Progress circle */}
+                      <circle
+                        cx="60"
+                        cy="60"
+                        r="50"
+                        fill="none"
+                        stroke={
+                          spendingPercentage > 100
+                            ? "#ef4444"
+                            : spendingPercentage === 100
+                              ? "#10b981"
+                              : "#8b5cf6"
+                        }
+                        strokeWidth="8"
+                        strokeLinecap="round"
+                        strokeDasharray={`${2 * Math.PI * 50}`}
+                        strokeDashoffset={`${
+                          2 *
+                          Math.PI *
+                          50 *
+                          (1 - Math.min(spendingPercentage, 100) / 100)
+                        }`}
+                        style={{
+                          transition: "stroke-dashoffset 0.5s ease-in-out",
+                        }}
+                      />
+                    </svg>
+                    {/* Center text */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <div className="text-base font-bold text-gray-900 sm:text-lg">
+                        {spendingPercentage.toFixed(1)}%
+                      </div>
+                      <div className="text-[10px] text-gray-500 sm:text-xs">
+                        Used
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex h-[140px] items-center justify-center text-gray-400">
+                  <div className="text-center">
+                    <Target className="mx-auto mb-1 h-6 w-6" />
+                    <p className="text-[10px]">No data</p>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="h-2 w-full rounded-full bg-gray-200 sm:h-3">
-              <div
-                className={`h-2 rounded-full transition-all duration-300 sm:h-3 ${
-                  spendingPercentage === 100
-                    ? "bg-green-500"
-                    : spendingPercentage > 100
-                      ? "bg-red-500"
-                      : "bg-secondary"
-                }`}
-                style={{ width: `${Math.min(spendingPercentage, 100)}%` }}
-              ></div>
+
+            {/* Category Spending Pie Chart */}
+            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+              <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
+                Category Spending
+              </h3>
+              {categorySpendingData.length > 0 ? (
+                <>
+                  <ChartContainer height={140}>
+                    <PieChart>
+                      <Pie
+                        data={categorySpendingData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={false}
+                        outerRadius={50}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {categorySpendingData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(
+                          value: number | undefined,
+                          name?: string,
+                        ) => {
+                          if (value === undefined) return ["", name ?? ""];
+                          const total = categorySpendingData.reduce(
+                            (sum, item) => sum + item.value,
+                            0,
+                          );
+                          const percentage =
+                            total > 0 ? (value / total) * 100 : 0;
+                          return [
+                            `$${value.toLocaleString()} (${percentage.toFixed(1)}%)`,
+                            name ?? "",
+                          ];
+                        }}
+                      />
+                    </PieChart>
+                  </ChartContainer>
+                  <div className="mt-1 flex flex-wrap justify-center gap-1 text-[9px] sm:text-[10px]">
+                    {categorySpendingData.slice(0, 3).map((item) => (
+                      <div
+                        key={item.name}
+                        className="flex items-center gap-0.5"
+                      >
+                        <div
+                          className="h-1.5 w-1.5 rounded-full"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="text-gray-600">
+                          {item.name.length > 8
+                            ? item.name.substring(0, 8) + "..."
+                            : item.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="flex h-[140px] items-center justify-center text-gray-400">
+                  <div className="text-center">
+                    <Target className="mx-auto mb-1 h-6 w-6" />
+                    <p className="text-[10px]">No spending</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Daily Spending Trend */}
+            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+              <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
+                Daily Spending
+              </h3>
+              {dailySpendingData.length > 0 &&
+              dailySpendingData.some((d) => d.spending > 0) ? (
+                <ChartContainer height={140}>
+                  <LineChart data={dailySpendingData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="day"
+                      fontSize={8}
+                      tick={{ fontSize: 8 }}
+                      height={25}
+                    />
+                    <YAxis
+                      tickFormatter={(value: unknown) =>
+                        `$${typeof value === "number" ? (value / 1000).toFixed(0) + "k" : ""}`
+                      }
+                      fontSize={8}
+                      width={35}
+                    />
+                    <Tooltip
+                      formatter={(
+                        value: number | undefined,
+                        payload: unknown,
+                      ) => {
+                        if (value === undefined) return "";
+                        const payloadData = payload as
+                          | { payload?: { date?: string } }
+                          | undefined;
+                        const date = payloadData?.payload?.date ?? "";
+                        return [
+                          `$${value.toLocaleString()}`,
+                          date ? `Spending (${date})` : "Spending",
+                        ];
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="spending"
+                      stroke="#8b5cf6"
+                      strokeWidth={2}
+                      dot={{ fill: "#8b5cf6", r: 2 }}
+                      activeDot={{ r: 4 }}
+                    />
+                  </LineChart>
+                </ChartContainer>
+              ) : (
+                <div className="flex h-[140px] items-center justify-center text-gray-400">
+                  <div className="text-center">
+                    <TrendingUp className="mx-auto mb-1 h-6 w-6" />
+                    <p className="text-[10px]">No data</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Category Usage Bar Chart */}
+            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+              <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
+                Top Categories
+              </h3>
+              {categoryUsageData.length > 0 ? (
+                <ChartContainer height={140}>
+                  <BarChart data={categoryUsageData}>
+                    <XAxis
+                      dataKey="name"
+                      angle={-45}
+                      textAnchor="end"
+                      height={40}
+                      fontSize={7}
+                      tick={{ fontSize: 7 }}
+                    />
+                    <YAxis
+                      tickFormatter={(value: unknown) =>
+                        `$${typeof value === "number" ? (value / 1000).toFixed(0) + "k" : ""}`
+                      }
+                      fontSize={7}
+                      width={35}
+                    />
+                    <Tooltip
+                      formatter={(
+                        value: number | undefined,
+                        name?: string,
+                        payload?: unknown,
+                      ) => {
+                        if (value === undefined) return "";
+                        const payloadData = payload as
+                          | {
+                              fullName?: string;
+                              allocated?: number;
+                              spent?: number;
+                            }
+                          | undefined;
+                        return [
+                          `$${value.toLocaleString()}`,
+                          payloadData?.fullName ?? name ?? "Category",
+                        ];
+                      }}
+                    />
+                    <Bar
+                      dataKey="remaining"
+                      stackId="a"
+                      fill="#e5e7eb"
+                      radius={[0, 0, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="spent"
+                      stackId="a"
+                      fill="#8b5cf6"
+                      radius={[2, 2, 0, 0]}
+                    />
+                  </BarChart>
+                </ChartContainer>
+              ) : (
+                <div className="flex h-[140px] items-center justify-center text-gray-400">
+                  <div className="text-center">
+                    <Target className="mx-auto mb-1 h-6 w-6" />
+                    <p className="text-[10px]">No categories</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Budget Details */}
-          <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-8 sm:p-6">
-            <div className="mb-2 flex items-center justify-between sm:mb-4">
-              <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
-                Budget Details
-              </h3>
-              <button
-                onClick={() => setIsEditBudgetOpen(true)}
-                className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                title="Edit budget details"
-              >
-                <EditIcon className="h-3 w-3 sm:h-4 sm:w-4" />
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:gap-4">
-              <div>
-                <span className="text-xs text-gray-500 sm:text-sm">
-                  Strategy:
-                </span>
-                <p className="text-sm font-medium sm:text-base">
-                  {budget.strategy.replace("_", " ")}
-                </p>
+          {/* Budget Details, Categories Summary, and Budget Summary - Three Columns */}
+          <div className="mb-4 grid flex-shrink-0 grid-cols-1 gap-3 sm:mb-4 sm:grid-cols-2 sm:gap-4 lg:mb-4 lg:grid-cols-3">
+            {/* Budget Details */}
+            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+              <div className="mb-1.5 flex items-center justify-between sm:mb-2">
+                <h3 className="text-xs font-semibold text-gray-900 sm:text-sm lg:text-base">
+                  Budget Details
+                </h3>
+                <button
+                  onClick={() => setIsEditBudgetOpen(true)}
+                  className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                  title="Edit budget details"
+                >
+                  <EditIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                </button>
               </div>
-              <div>
-                <span className="text-xs text-gray-500 sm:text-sm">
-                  Period:
-                </span>
-                <p className="text-sm font-medium sm:text-base">
-                  {budget.period.replace("_", " ")}
-                </p>
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+                <div>
+                  <span className="text-[10px] text-gray-500 sm:text-xs">
+                    Strategy:
+                  </span>
+                  <p className="text-xs font-medium sm:text-sm">
+                    {budget.strategy.replace("_", " ")}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-500 sm:text-xs">
+                    Period:
+                  </span>
+                  <p className="text-xs font-medium sm:text-sm">
+                    {budget.period.replace("_", " ")}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-500 sm:text-xs">
+                    Start Date:
+                  </span>
+                  <p className="text-xs font-medium sm:text-sm">
+                    {formatDateUTC(new Date(budget.startAt).toISOString())}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-500 sm:text-xs">
+                    End Date:
+                  </span>
+                  <p className="text-xs font-medium sm:text-sm">
+                    {formatDateUTC(new Date(budget.endAt).toISOString())}
+                  </p>
+                </div>
               </div>
-              <div>
-                <span className="text-xs text-gray-500 sm:text-sm">
-                  Start Date:
-                </span>
-                <p className="text-sm font-medium sm:text-base">
-                  {formatDateUTC(new Date(budget.startAt).toISOString())}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 sm:text-sm">
-                  End Date:
-                </span>
-                <p className="text-sm font-medium sm:text-base">
-                  {formatDateUTC(new Date(budget.endAt).toISOString())}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Categories Summary */}
-          <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-8 sm:p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
-                Categories Summary
-              </h3>
-              <button
-                onClick={() => router.push(`/budgets/${String(id)}/categories`)}
-                className="text-xs font-medium text-blue-600 hover:text-blue-700 sm:text-sm"
-              >
-                View Details
-              </button>
             </div>
 
-            <div className="space-y-4">
-              {Object.entries(categoriesByGroup)
-                .filter(([group]) => group !== "card_payment")
-                .map(([group, categories]) => {
-                  if (!categories || categories.length === 0) return null;
+            {/* Categories Summary */}
+            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-gray-900 sm:text-sm lg:text-base">
+                  Categories Summary
+                </h3>
+                <button
+                  onClick={() =>
+                    router.push(`/budgets/${String(id)}/categories`)
+                  }
+                  className="text-[10px] font-medium text-blue-600 hover:text-blue-700 sm:text-xs"
+                >
+                  View Details
+                </button>
+              </div>
 
-                  // Calculate totals for this group
-                  const totalAllocated = roundToCents(
-                    categories.reduce(
-                      (sum, cat) => sum + (cat.allocatedAmount ?? 0),
-                      0,
-                    ),
-                  );
+              <div className="space-y-2">
+                {Object.entries(categoriesByGroup)
+                  .filter(([group]) => group !== "card_payment")
+                  .map(([group, categories]) => {
+                    if (!categories || categories.length === 0) return null;
 
-                  const totalSpent = roundToCents(
-                    categories.reduce((sum, cat) => {
+                    // Calculate totals for this group
+                    const totalAllocated = roundToCents(
+                      categories.reduce(
+                        (sum, cat) => sum + (cat.allocatedAmount ?? 0),
+                        0,
+                      ),
+                    );
+
+                    const totalSpent = roundToCents(
+                      categories.reduce((sum, cat) => {
+                        const categorySpent = roundToCents(
+                          (cat.transactions ?? []).reduce(
+                            (transactionTotal: number, transaction) => {
+                              // Exclude INCOME and CARD_PAYMENT transactions from spending
+                              if (
+                                transaction.transactionType ===
+                                  TransactionType.INCOME ||
+                                transaction.transactionType ===
+                                  TransactionType.CARD_PAYMENT
+                              ) {
+                                return transactionTotal;
+                              }
+                              if (
+                                transaction.transactionType ===
+                                TransactionType.RETURN
+                              ) {
+                                return transactionTotal - transaction.amount;
+                              } else {
+                                return transactionTotal + transaction.amount;
+                              }
+                            },
+                            0,
+                          ),
+                        );
+                        return sum + categorySpent;
+                      }, 0),
+                    );
+
+                    const usagePercentage = roundToCents(
+                      totalAllocated > 0
+                        ? (totalSpent / totalAllocated) * 100
+                        : 0,
+                    );
+
+                    // Count categories that are 100% used
+                    const fullyUsedCount = categories.filter((cat) => {
                       const categorySpent = roundToCents(
                         (cat.transactions ?? []).reduce(
                           (transactionTotal: number, transaction) => {
@@ -443,97 +814,163 @@ const BudgetDetailsPage = () => {
                           0,
                         ),
                       );
-                      return sum + categorySpent;
-                    }, 0),
-                  );
+                      const categoryPercentage = roundToCents(
+                        cat.allocatedAmount && cat.allocatedAmount > 0
+                          ? (categorySpent / cat.allocatedAmount) * 100
+                          : 0,
+                      );
+                      return categoryPercentage >= 100;
+                    }).length;
 
-                  const usagePercentage = roundToCents(
-                    totalAllocated > 0
-                      ? (totalSpent / totalAllocated) * 100
-                      : 0,
-                  );
-
-                  // Count categories that are 100% used
-                  const fullyUsedCount = categories.filter((cat) => {
-                    const categorySpent = roundToCents(
-                      (cat.transactions ?? []).reduce(
-                        (transactionTotal: number, transaction) => {
-                          // Exclude INCOME and CARD_PAYMENT transactions from spending
-                          if (
-                            transaction.transactionType ===
-                              TransactionType.INCOME ||
-                            transaction.transactionType ===
-                              TransactionType.CARD_PAYMENT
-                          ) {
-                            return transactionTotal;
-                          }
-                          if (
-                            transaction.transactionType ===
-                            TransactionType.RETURN
-                          ) {
-                            return transactionTotal - transaction.amount;
-                          } else {
-                            return transactionTotal + transaction.amount;
-                          }
-                        },
-                        0,
-                      ),
-                    );
-                    const categoryPercentage = roundToCents(
-                      cat.allocatedAmount && cat.allocatedAmount > 0
-                        ? (categorySpent / cat.allocatedAmount) * 100
-                        : 0,
-                    );
-                    return categoryPercentage >= 100;
-                  }).length;
-
-                  return (
-                    <div key={group} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
+                    return (
+                      <div key={group} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-1.5">
+                            <div
+                              className={`h-2 w-2 rounded-full ${getGroupColor(group as CategoryType)}`}
+                            ></div>
+                            <span className="text-xs font-medium text-gray-900">
+                              {getGroupLabel(group)}
+                            </span>
+                            <span className="text-[10px] text-gray-500">
+                              ({fullyUsedCount}/{categories.length})
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs font-medium text-gray-900">
+                              ${totalSpent.toLocaleString()} / $
+                              {totalAllocated.toLocaleString()}
+                            </div>
+                            <div className="text-[10px] text-gray-500">
+                              {usagePercentage.toFixed(1)}% used
+                            </div>
+                          </div>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-gray-200">
                           <div
-                            className={`h-3 w-3 rounded-full ${getGroupColor(group as CategoryType)}`}
+                            className={`h-1.5 rounded-full transition-all duration-300 ${
+                              usagePercentage === 100
+                                ? "bg-green-500"
+                                : usagePercentage > 100
+                                  ? "bg-red-500"
+                                  : "bg-secondary"
+                            }`}
+                            style={{
+                              width: `${usagePercentage > 100 ? 100 : usagePercentage}%`,
+                            }}
                           ></div>
-                          <span className="text-sm font-medium text-gray-900">
-                            {getGroupLabel(group)}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            ({fullyUsedCount}/{categories.length} fully used)
-                          </span>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-gray-900">
-                            ${totalSpent.toLocaleString()} / $
-                            {totalAllocated.toLocaleString()}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {usagePercentage.toFixed(1)}% used
-                          </div>
                         </div>
                       </div>
-                      <div className="h-2 w-full rounded-full bg-gray-200">
-                        <div
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            usagePercentage === 100
-                              ? "bg-green-500"
-                              : usagePercentage > 100
-                                ? "bg-red-500"
-                                : "bg-secondary"
-                          }`}
-                          style={{
-                            width: `${usagePercentage > 100 ? 100 : usagePercentage}%`,
-                          }}
-                        ></div>
-                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Budget Summary */}
+            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+              <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm lg:text-base">
+                Budget Summary
+              </h3>
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                <div>
+                  <div className="mb-0.5 flex items-center gap-1.5">
+                    <DollarSign className="h-3 w-3 text-green-500 sm:h-4 sm:w-4" />
+                    <span className="text-[10px] text-gray-500 sm:text-xs">
+                      Total Income
+                    </span>
+                  </div>
+                  <div className="text-sm font-bold text-gray-900 sm:text-base">
+                    ${totalIncome.toLocaleString()}
+                  </div>
+                  <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
+                    {(() => {
+                      const debitCards = (budget.cards ?? []).filter(
+                        (card: { cardType: string }) =>
+                          card.cardType === CardType.DEBIT ||
+                          card.cardType === CardType.BUSINESS_DEBIT,
+                      );
+                      const debitCardIds = debitCards.map(
+                        (card: { id: string }) => card.id,
+                      );
+                      const incomeTransactions = (
+                        budget.transactions ?? []
+                      ).filter(
+                        (transaction) =>
+                          transaction.transactionType ===
+                            TransactionType.INCOME &&
+                          transaction.cardId &&
+                          debitCardIds.includes(transaction.cardId),
+                      );
+                      return incomeTransactions.length === 1
+                        ? (incomeTransactions[0]?.name ?? "Income")
+                        : `${incomeTransactions.length} income transactions`;
+                    })()}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-0.5 flex items-center gap-1.5">
+                    <TrendingDown className="h-3 w-3 text-red-500 sm:h-4 sm:w-4" />
+                    <span className="text-[10px] text-gray-500 sm:text-xs">
+                      Total Spent
+                    </span>
+                  </div>
+                  <div className="text-sm font-bold text-gray-900 sm:text-base">
+                    ${totalSpent.toLocaleString()}
+                  </div>
+                  <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
+                    {spendingPercentage.toFixed(1)}% of budget
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-0.5 flex items-center gap-1.5">
+                    <TrendingUp className="h-3 w-3 text-blue-500 sm:h-4 sm:w-4" />
+                    <span className="text-[10px] text-gray-500 sm:text-xs">
+                      Remaining
+                    </span>
+                  </div>
+                  <div
+                    className={`text-sm font-bold sm:text-base ${
+                      totalRemaining >= 0 ? "text-gray-900" : "text-red-600"
+                    }`}
+                  >
+                    ${totalRemaining.toLocaleString()}
+                  </div>
+                  <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
+                    {totalRemaining >= 0 ? "Available" : "Over budget"}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-0.5 flex items-center gap-1.5">
+                    <div
+                      className={`h-3 w-3 rounded-full ${budgetStatusDisplay.bg} sm:h-4 sm:w-4`}
+                    >
+                      <div
+                        className={`h-1.5 w-1.5 rounded-full ${budgetStatusDisplay.color.replace("text-", "bg-")} m-0.5 sm:m-0.5 sm:h-2 sm:w-2`}
+                      ></div>
                     </div>
-                  );
-                })}
+                    <span className="text-[10px] text-gray-500 sm:text-xs">
+                      Status
+                    </span>
+                  </div>
+                  <div
+                    className={`text-sm font-bold sm:text-base ${budgetStatusDisplay.color}`}
+                  >
+                    {budgetStatusDisplay.status}
+                  </div>
+                  <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
+                    {budgetStatusDisplay.subtitle}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Recent Transactions Summary */}
-          <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-8 sm:p-6">
-            <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex min-h-0 flex-1 flex-col rounded-xl border bg-white p-3 shadow-sm sm:mb-4 sm:p-4">
+            <div className="mb-3 flex flex-shrink-0 items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
                 Recent Transactions
               </h3>
@@ -547,7 +984,7 @@ const BudgetDetailsPage = () => {
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
               {(() => {
                 // Collect all transactions from all categories
                 const allTransactions = (budget.categories ?? []).flatMap(
