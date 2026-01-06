@@ -102,7 +102,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
       <BudgetPageNavigation />
 
-      <div className={`flex-1 overflow-hidden ${contentPadding} lg:pt-0`}>
+      <div className={`flex-1 overflow-y-auto overflow-x-hidden ${contentPadding} lg:pt-0`}>
         {children}
       </div>
     </div>

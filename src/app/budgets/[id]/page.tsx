@@ -397,8 +397,8 @@ const BudgetDetailsPage = () => {
 
   return (
     <>
-      <div className="flex h-full flex-col overflow-hidden">
-        <div className="mx-auto flex w-full flex-1 flex-col overflow-hidden px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
+      <div className="flex flex-col lg:h-full lg:flex-col">
+        <div className="mx-auto flex w-full flex-col px-2 py-4 pb-32 sm:px-4 sm:py-6 sm:pb-32 lg:flex-1 lg:overflow-hidden lg:px-8 lg:py-4">
           {/* Budget Overview Graphs */}
           <div className="mb-4 grid flex-shrink-0 grid-cols-2 gap-2 sm:mb-6 sm:grid-cols-4 sm:gap-3 lg:gap-4">
             {/* Budget Progress Circular Progress Bar */}
