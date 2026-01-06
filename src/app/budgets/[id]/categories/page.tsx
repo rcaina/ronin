@@ -410,8 +410,8 @@ const BudgetCategoriesPage = () => {
 
   return (
     <>
-      <div className="flex h-full flex-col overflow-hidden">
-        <div className="mx-auto flex w-full flex-1 flex-col overflow-hidden px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
+      <div className="flex flex-col lg:h-full lg:flex-col">
+        <div className="mx-auto flex w-full flex-col px-2 py-4 pb-32 sm:px-4 sm:py-6 sm:pb-32 lg:flex-1 lg:px-8 lg:py-4 lg:pb-4">
           {/* Charts and Summary Card - 4 items in one row */}
           <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-4">
             {/* Graph 1: All Categories by Allocated Amount (Pie Chart) */}
@@ -774,7 +774,7 @@ const BudgetCategoriesPage = () => {
             </div>
           </div>
 
-          <div className="min-h-0 flex-1">
+          <div className="lg:min-h-0 lg:flex-1">
             {view === "grid" ? (
               <BudgetCategoriesGridView
                 budgetId={budgetId}

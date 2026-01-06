@@ -97,7 +97,7 @@ export default function ConditionalLayout({
 
           {/* Main Content Area */}
           <div
-            className={`flex flex-1 flex-col overflow-hidden transition-all duration-300 ${
+            className={`flex flex-1 flex-col overflow-y-auto overflow-x-hidden transition-all duration-300 lg:overflow-hidden ${
               isCollapsed ? "lg:ml-16" : "lg:ml-64"
             } pt-32 lg:pt-0`}
           >
