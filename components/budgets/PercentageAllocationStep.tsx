@@ -238,6 +238,24 @@ export default function PercentageAllocationStep({
 
       {/* Summary */}
       <div className="rounded-lg bg-gray-50 p-4">
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-medium text-gray-700">
+            Total Income ({budgetPeriod.toLowerCase()}):
+          </span>
+          <span className="font-semibold text-gray-900">
+            ${totalIncome.toLocaleString()}
+          </span>
+        </div>
+        <div className="mt-2 flex items-center justify-between text-sm">
+          <span className="font-medium text-gray-700">Total Allocated:</span>
+          <span
+            className={`font-semibold ${
+              totalAllocated > totalIncome ? "text-red-600" : "text-gray-900"
+            }`}
+          >
+            ${totalAllocated.toLocaleString()}
+          </span>
+        </div>
         <div className="mt-2 flex items-center justify-between text-sm">
           <span className="text-gray-500">Remaining:</span>
           <span
@@ -246,20 +264,6 @@ export default function PercentageAllocationStep({
             }`}
           >
             ${allocationRemaining.toLocaleString()}
-          </span>
-        </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-medium text-gray-700">Total Allocated:</span>
-          <span className="font-semibold text-gray-900">
-            ${totalAllocated.toLocaleString()}
-          </span>
-        </div>
-        <div className="mt-2 flex items-center justify-between text-sm">
-          <span className="font-medium text-gray-700">
-            Total Income ({budgetPeriod.toLowerCase()}):
-          </span>
-          <span className="font-semibold text-gray-900">
-            ${totalIncome.toLocaleString()}
           </span>
         </div>
       </div>
