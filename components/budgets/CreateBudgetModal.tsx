@@ -514,8 +514,7 @@ export default function CreateBudgetModal({
       incomeEntries.length > 0 &&
       incomeEntries.every(
         (entry) => entry.amount > 0 && entry.source.trim() !== "",
-      ) &&
-      isAllocationStepValid()
+      )
     );
   };
 
