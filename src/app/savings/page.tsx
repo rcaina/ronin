@@ -36,51 +36,33 @@ export default function SavingsPage() {
       />
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {savings.map((acc) => (
               <Link
                 key={acc.id}
                 href={`/savings/${acc.id}`}
-                className="block rounded-xl border bg-white p-4 shadow-sm transition-all hover:border-gray-300 hover:shadow-md"
+                className="block rounded-xl border bg-white p-5 shadow-sm transition-all hover:border-gray-300 hover:shadow-md"
               >
-                <div className="mb-2 flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900">
-                      {acc.name}
-                    </div>
-                  </div>
-                  <div className="text-sm font-semibold text-gray-900">
-                    {formatCurrency(acc.total)}
-                  </div>
+                <div className="text-base font-semibold text-gray-900">
+                  {acc.name}
                 </div>
-                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  {acc.pockets.map((cat) => (
-                    <div
-                      key={cat.id}
-                      className="rounded-lg border bg-gray-50 p-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-900">{cat.name}</div>
-                        <div className="text-sm font-medium text-gray-700">
-                          {formatCurrency(cat.total)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {acc.pockets.length === 0 && (
-                    <div className="text-sm text-gray-500">
-                      No categories yet
-                    </div>
-                  )}
+                <div className="mt-3 flex items-baseline justify-between gap-2">
+                  <span className="text-sm text-gray-500">
+                    {acc.pockets.length}{" "}
+                    {acc.pockets.length === 1 ? "pocket" : "pockets"}
+                  </span>
+                  <span className="text-lg font-semibold text-gray-900">
+                    {formatCurrency(acc.total)}
+                  </span>
                 </div>
               </Link>
             ))}
-            {savings.length === 0 && (
-              <div className="rounded-xl border bg-white p-8 text-center text-gray-500 shadow-sm">
-                No savings accounts yet. Create your first one above.
-              </div>
-            )}
           </div>
+          {savings.length === 0 && (
+            <div className="rounded-xl border bg-white p-8 text-center text-gray-500 shadow-sm">
+              No savings accounts yet. Create your first one above.
+            </div>
+          )}
         </div>
       </div>
     </div>
