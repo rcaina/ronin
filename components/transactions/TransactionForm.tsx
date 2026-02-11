@@ -239,7 +239,11 @@ export default function TransactionForm({
     <div className="rounded-xl border bg-white p-6 shadow-sm">
       <div className="mb-6 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">
-          {isEditing ? "Edit Transaction" : "Add Transaction"}
+          {isEditing
+            ? "Edit Transaction"
+            : isIncome
+              ? "Add New Income"
+              : "Add Transaction"}
         </h3>
         <button
           onClick={onClose}
@@ -370,95 +374,97 @@ export default function TransactionForm({
             </div>
           )}
 
-          {/* Category Selection */}
-          <div>
-            <label
-              htmlFor="categoryId"
-              className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700"
-            >
-              <span>
-                Category{" "}
-                {!isIncomeTransaction && (
-                  <span className="text-red-500">*</span>
-                )}
-              </span>
-              {!selectedBudgetId && (
-                <div className="group relative">
-                  <Info className="h-4 w-4 text-blue-500" />
-                  <div className="absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg bg-gray-900 p-2 text-xs text-white group-hover:block">
-                    Select a budget to see available categories.
-                  </div>
-                </div>
-              )}
-            </label>
-            <div className="relative">
-              <select
-                id="categoryId"
-                {...register("categoryId")}
-                className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
-                  errors.categoryId
-                    ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                    : !selectedBudgetId && !isIncomeTransaction
-                      ? "cursor-not-allowed border-gray-300 bg-gray-100 text-gray-500"
-                      : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                }`}
-                disabled={
-                  isPending || (!selectedBudgetId && !isIncomeTransaction)
-                }
+          {/* Category Selection - hidden for income */}
+          {!isIncome && (
+            <div>
+              <label
+                htmlFor="categoryId"
+                className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700"
               >
-                <option value="">
-                  {!selectedBudgetId
-                    ? "Please select a budget first"
-                    : budgetCategories.length === 0
-                      ? "No categories found for this budget"
-                      : isEditing && transaction?.category
-                        ? `${transaction.category.name}`
-                        : "Select a category"}
-                </option>
-                {budgetCategories.map(
-                  (budgetCategory: BudgetCategoryWithCategory) => {
-                    const allocatedAmount = budgetCategory.allocatedAmount ?? 0;
-                    const spentAmount = budgetCategory.spentAmount ?? 0;
-                    const availableAmount = allocatedAmount - spentAmount;
-                    return (
-                      <option key={budgetCategory.id} value={budgetCategory.id}>
-                        {budgetCategory.name} ($
-                        {availableAmount.toFixed(2)} available)
-                      </option>
-                    );
-                  },
-                )}
-                {/* Show current category if editing and it's not in the current budget categories */}
-                {isEditing &&
-                  transaction &&
-                  transaction.category &&
-                  !budgetCategories.some(
-                    (bc) => bc.id === transaction.categoryId,
-                  ) && (
-                    <option value={transaction.categoryId ?? ""}>
-                      {transaction.category.name} (current category)
-                    </option>
+                <span>
+                  Category{" "}
+                  {!isIncomeTransaction && (
+                    <span className="text-red-500">*</span>
                   )}
-              </select>
-              {selectedBudgetId && budgetCategories.length === 0 && (
-                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                </span>
+                {!selectedBudgetId && (
                   <div className="group relative">
-                    <Info className="h-4 w-4 text-gray-400" />
-                    <div className="absolute bottom-full right-0 mb-2 hidden w-64 rounded-lg bg-gray-900 p-2 text-xs text-white group-hover:block">
-                      No categories found for this budget. Please add categories
-                      to your budget first.
-                      <div className="absolute right-2 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                    <Info className="h-4 w-4 text-blue-500" />
+                    <div className="absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg bg-gray-900 p-2 text-xs text-white group-hover:block">
+                      Select a budget to see available categories.
                     </div>
                   </div>
-                </div>
+                )}
+              </label>
+              <div className="relative">
+                <select
+                  id="categoryId"
+                  {...register("categoryId")}
+                  className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
+                    errors.categoryId
+                      ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                      : !selectedBudgetId && !isIncomeTransaction
+                        ? "cursor-not-allowed border-gray-300 bg-gray-100 text-gray-500"
+                        : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  }`}
+                  disabled={
+                    isPending || (!selectedBudgetId && !isIncomeTransaction)
+                  }
+                >
+                  <option value="">
+                    {!selectedBudgetId
+                      ? "Please select a budget first"
+                      : budgetCategories.length === 0
+                        ? "No categories found for this budget"
+                        : isEditing && transaction?.category
+                          ? `${transaction.category.name}`
+                          : "Select a category"}
+                  </option>
+                  {budgetCategories.map(
+                    (budgetCategory: BudgetCategoryWithCategory) => {
+                      const allocatedAmount = budgetCategory.allocatedAmount ?? 0;
+                      const spentAmount = budgetCategory.spentAmount ?? 0;
+                      const availableAmount = allocatedAmount - spentAmount;
+                      return (
+                        <option key={budgetCategory.id} value={budgetCategory.id}>
+                          {budgetCategory.name} ($
+                          {availableAmount.toFixed(2)} available)
+                        </option>
+                      );
+                    },
+                  )}
+                  {/* Show current category if editing and it's not in the current budget categories */}
+                  {isEditing &&
+                    transaction &&
+                    transaction.category &&
+                    !budgetCategories.some(
+                      (bc) => bc.id === transaction.categoryId,
+                    ) && (
+                      <option value={transaction.categoryId ?? ""}>
+                        {transaction.category.name} (current category)
+                      </option>
+                    )}
+                </select>
+                {selectedBudgetId && budgetCategories.length === 0 && (
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    <div className="group relative">
+                      <Info className="h-4 w-4 text-gray-400" />
+                      <div className="absolute bottom-full right-0 mb-2 hidden w-64 rounded-lg bg-gray-900 p-2 text-xs text-white group-hover:block">
+                        No categories found for this budget. Please add categories
+                        to your budget first.
+                        <div className="absolute right-2 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {errors.categoryId && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.categoryId.message}
+                </p>
               )}
             </div>
-            {errors.categoryId && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.categoryId.message}
-              </p>
-            )}
-          </div>
+          )}
 
           {/* Occurred At */}
           <div>

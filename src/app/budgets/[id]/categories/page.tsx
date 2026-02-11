@@ -37,6 +37,44 @@ import {
   Legend,
 } from "recharts";
 
+// Renders allocated (back) and spent (front) at the same x so they overlap; height = amount
+function OverlapBarShape(props: {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  payload?: { allocated: number; spent: number; name?: string };
+}) {
+  const { x = 0, y = 0, width = 0, height = 0, payload } = props;
+  const allocated = payload?.allocated ?? 0;
+  const spent = payload?.spent ?? 0;
+  const spentHeight =
+    allocated > 0 ? (height * Math.max(0, spent)) / allocated : 0;
+  const spentY = y + height - spentHeight;
+  return (
+    <g>
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill="rgba(229, 231, 235, 0.7)"
+        rx={2}
+        ry={0}
+      />
+      <rect
+        x={x}
+        y={spentY}
+        width={width}
+        height={spentHeight}
+        fill="#8b5cf6"
+        rx={2}
+        ry={0}
+      />
+    </g>
+  );
+}
+
 const BudgetCategoriesPage = () => {
   const { id } = useParams();
   const budgetId = id as string;
@@ -440,13 +478,13 @@ const BudgetCategoriesPage = () => {
                       <Tooltip
                         formatter={(
                           value: number | undefined,
-                          payload: unknown,
+                          _name: unknown,
+                          entry: unknown,
                         ) => {
                           if (value === undefined) return ["", ""];
-                          const payloadData = payload as
-                            | { payload?: { fullName?: string } }
-                            | undefined;
-                          const fullName = payloadData?.payload?.fullName ?? "";
+                          // Recharts passes the raw data point as entry.payload for Pie
+                          const payload = (entry as { payload?: { fullName?: string } })?.payload;
+                          const fullName = payload?.fullName ?? "";
                           const total = chartData.allCategoriesData.reduce(
                             (sum, item) => sum + item.value,
                             0,
@@ -497,8 +535,12 @@ const BudgetCategoriesPage = () => {
                 Spending vs Allocated
               </h3>
               {chartData.groupSpendingData.length > 0 ? (
-                <ChartContainer height={160}>
-                  <BarChart data={chartData.groupSpendingData}>
+                <ChartContainer height={200}>
+                  <BarChart
+                    data={chartData.groupSpendingData}
+                    barCategoryGap="20%"
+                    barSize={56}
+                  >
                     <XAxis
                       dataKey="name"
                       fontSize={8}
@@ -513,57 +555,62 @@ const BudgetCategoriesPage = () => {
                       width={40}
                     />
                     <Tooltip
-                      formatter={(value: number | undefined) => {
-                        if (value === undefined) return "";
-                        return `$${value.toLocaleString()}`;
+                      content={({ active, payload: tooltipPayload }) => {
+                        type PayloadItem = {
+                          payload?: { name: string; allocated: number; spent: number };
+                        };
+                        const first = (tooltipPayload as PayloadItem[] | undefined)?.[0];
+                        if (!active || !first?.payload) return null;
+                        const { name: groupName, allocated, spent } = first.payload;
+                        return (
+                          <div className="rounded border border-gray-200 bg-white px-2 py-1.5 shadow-sm">
+                            <div className="mb-1 text-xs font-medium text-gray-700">
+                              {groupName}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              Allocated: ${allocated.toLocaleString()}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              Spent: ${spent.toLocaleString()}
+                            </div>
+                          </div>
+                        );
                       }}
                     />
                     <Legend
                       wrapperStyle={{ fontSize: "10px", paddingTop: "5px" }}
-                      content={({ payload }) => (
+                      content={() => (
                         <div className="flex justify-center gap-4">
-                          {payload?.map((entry, index) => (
+                          <div className="flex items-center gap-1.5">
                             <div
-                              key={index}
-                              className="flex items-center gap-1.5"
-                            >
-                              <div
-                                style={{
-                                  width: "12px",
-                                  height: "12px",
-                                  backgroundColor: entry.color,
-                                  borderRadius: "2px",
-                                }}
-                              />
-                              <span
-                                style={{
-                                  fontSize: "10px",
-                                  color:
-                                    entry.value === "Allocated"
-                                      ? "#000000"
-                                      : undefined,
-                                }}
-                              >
-                                {entry.value}
-                              </span>
-                            </div>
-                          ))}
+                              className="h-3 w-3 rounded-sm"
+                              style={{
+                                backgroundColor: "rgba(139, 92, 246, 1)",
+                              }}
+                            />
+                            <span className="text-[10px] text-gray-700">
+                              Spent
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className="h-3 w-3 rounded-sm"
+                              style={{
+                                backgroundColor: "rgba(229, 231, 235, 0.7)",
+                              }}
+                            />
+                            <span className="text-[10px] text-gray-700">
+                              Allocated
+                            </span>
+                          </div>
                         </div>
                       )}
                     />
+                    {/* Single bar per category: custom shape draws allocated (back) + spent (front) at same x */}
                     <Bar
                       dataKey="allocated"
-                      stackId="a"
-                      fill="#e5e7eb"
                       name="Allocated"
-                      radius={[0, 0, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="spent"
-                      stackId="a"
-                      fill="#8b5cf6"
-                      name="Spent"
-                      radius={[2, 2, 0, 0]}
+                      shape={<OverlapBarShape />}
                     />
                   </BarChart>
                 </ChartContainer>

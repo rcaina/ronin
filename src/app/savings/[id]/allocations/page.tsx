@@ -100,7 +100,6 @@ const AllocationsPage = () => {
                   {totalAllocations}
                 </p>
               </div>
-              <DollarSign className="h-5 w-5 text-blue-500 sm:h-6 sm:w-6" />
             </div>
           </div>
 
@@ -114,7 +113,6 @@ const AllocationsPage = () => {
                   {formatCurrency(totalDeposits)}
                 </p>
               </div>
-              <DollarSign className="h-5 w-5 text-green-500 sm:h-6 sm:w-6" />
             </div>
           </div>
 
@@ -128,7 +126,6 @@ const AllocationsPage = () => {
                   {formatCurrency(totalWithdrawals)}
                 </p>
               </div>
-              <DollarSign className="h-5 w-5 text-red-500 sm:h-6 sm:w-6" />
             </div>
           </div>
 
@@ -144,11 +141,6 @@ const AllocationsPage = () => {
                   {formatCurrency(netAmount)}
                 </p>
               </div>
-              <DollarSign
-                className={`h-5 w-5 sm:h-6 sm:w-6 ${
-                  netAmount >= 0 ? "text-green-500" : "text-red-500"
-                }`}
-              />
             </div>
           </div>
         </div>
