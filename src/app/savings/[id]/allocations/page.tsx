@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useSavingsAccount } from "@/lib/data-hooks/savings/useSavings";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { AlertCircle, PiggyBank, DollarSign, ArrowRight } from "lucide-react";
+import { AlertCircle, PiggyBank, ArrowRight } from "lucide-react";
 import { formatCurrency, formatDateUTC } from "@/lib/utils";
 import type { AllocationSummary } from "@/lib/types/savings";
 
