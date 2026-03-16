@@ -1,7 +1,16 @@
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { getBudgets, updateBudget, deleteBudget, markBudgetCompleted, markBudgetArchived, reactivateBudget } from "../services/budgets";
-import type { UpdateBudgetData, CreateBudgetData } from "@/lib/api-services/budgets";
+import {
+  getBudgets,
+  updateBudget,
+  deleteBudget,
+  markBudgetCompleted,
+  markBudgetArchived,
+  reactivateBudget,
+  createBudget,
+  duplicateBudget,
+} from "../services/budgets";
+import type { UpdateBudgetData } from "@/lib/api-services/budgets";
 import type { BudgetStatus } from "@prisma/client";
 
 export const useBudgets = (status?: BudgetStatus, excludeCardPayments?: boolean) => {
@@ -71,20 +80,7 @@ export const useCreateBudget = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateBudgetData) => {
-      return fetch("/api/budgets", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      }).then((res) => {
-        if (!res.ok) {
-          throw new Error(`Failed to create budget: ${res.statusText}`);
-        }
-        return res.json();
-      });
-    },
+    mutationFn: createBudget,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },
@@ -119,19 +115,7 @@ export const useDuplicateBudget = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (budgetId: string) => {
-      return fetch(`/api/budgets/${budgetId}/duplicate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }).then((res) => {
-        if (!res.ok) {
-          throw new Error(`Failed to duplicate budget: ${res.statusText}`);
-        }
-        return res.json();
-      });
-    },
+    mutationFn: duplicateBudget,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },

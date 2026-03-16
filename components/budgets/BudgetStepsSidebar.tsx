@@ -20,6 +20,11 @@ const steps = [
     description: "Income sources",
   },
   {
+    step: "cards" as StepType,
+    label: "Cards",
+    description: "Review budget cards",
+  },
+  {
     step: "categories" as StepType,
     label: "Categories",
     description: "Select categories",

@@ -19,6 +19,7 @@ import { calculateAdjustedIncome, calculateEndDate } from "@/lib/utils";
 import BudgetStepsSidebar from "./BudgetStepsSidebar";
 import BasicBudgetStep from "./BasicBudgetStep";
 import IncomeStep from "./IncomeStep";
+import CardsStep from "./CardsStep";
 import CategoriesStep from "./CategoriesStep";
 import AllocationStep from "./AllocationStep";
 import PercentageAllocationStep from "./PercentageAllocationStep";
@@ -29,7 +30,9 @@ import type {
   StepType,
 } from "./types";
 import type { BudgetWithRelations } from "@/lib/types/budget";
+import type { Budget } from "@prisma/client";
 import Button from "../Button";
+import { useCreateCard } from "@/lib/data-hooks/cards/useCards";
 
 // Validation schema
 const createBudgetSchema = z
@@ -143,10 +146,14 @@ export default function CreateBudgetModal({
   initialBudget,
 }: CreateBudgetModalProps) {
   const createBudgetMutation = useCreateBudget();
+  const createCardMutation = useCreateCard();
   const [selectedCategories, setSelectedCategories] = useState<
     CategoryAllocation[]
   >([]);
   const [currentStep, setCurrentStep] = useState<StepType>("basic");
+  const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(
+    () => new Set<string>(),
+  );
   const [incomeEntries, setIncomeEntries] = useState<IncomeEntry[]>([
     {
       id: "1",
@@ -243,6 +250,11 @@ export default function CreateBudgetModal({
         } else {
           setSelectedCategories([]);
         }
+
+        // Preselect all cards from the initial budget
+        const initialCardIds =
+          initialBudget.cards?.map((card) => card.id) ?? [];
+        setSelectedCardIds(new Set(initialCardIds));
       } else {
         // Reset to defaults when opening without initial budget
         reset();
@@ -257,6 +269,7 @@ export default function CreateBudgetModal({
             frequency: PeriodType.MONTHLY,
           },
         ]);
+        setSelectedCardIds(new Set());
       }
     }
   }, [initialBudget, isOpen, setValue, reset]);
@@ -329,6 +342,7 @@ export default function CreateBudgetModal({
   // Start with no categories selected
   useEffect(() => {
     setSelectedCategories([]);
+    setSelectedCardIds(new Set());
   }, []);
 
   const handleAddCategory = (category: {
@@ -366,7 +380,8 @@ export default function CreateBudgetModal({
 
   const handleNext = () => {
     if (currentStep === "basic") setCurrentStep("income");
-    else if (currentStep === "income") setCurrentStep("categories");
+    else if (currentStep === "income") setCurrentStep("cards");
+    else if (currentStep === "cards") setCurrentStep("categories");
     else if (currentStep === "categories") setCurrentStep("allocation");
   };
 
@@ -377,7 +392,8 @@ export default function CreateBudgetModal({
 
   const handleBack = () => {
     if (currentStep === "income") setCurrentStep("basic");
-    else if (currentStep === "categories") setCurrentStep("income");
+    else if (currentStep === "cards") setCurrentStep("income");
+    else if (currentStep === "categories") setCurrentStep("cards");
     else if (currentStep === "allocation") setCurrentStep("categories");
   };
 
@@ -436,6 +452,18 @@ export default function CreateBudgetModal({
     );
   };
 
+  const handleToggleCard = (cardId: string) => {
+    setSelectedCardIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(cardId)) {
+        next.delete(cardId);
+      } else {
+        next.add(cardId);
+      }
+      return next;
+    });
+  };
+
   const onSubmit = async (data: CreateBudgetFormData) => {
     try {
       // Transform selectedCategories to the format expected by the API
@@ -454,11 +482,39 @@ export default function CreateBudgetModal({
         frequency: entry.frequency,
       }));
 
-      await createBudgetMutation.mutateAsync({
+      const created = (await createBudgetMutation.mutateAsync({
         ...data,
         categoryAllocations,
         incomes,
-      });
+      })) as { message: string; budget: Budget };
+
+      // If duplicating from an existing budget and the user selected cards, copy only selected cards
+      if (initialBudget && selectedCardIds.size > 0) {
+        const newBudgetId: string = created.budget.id;
+
+        if (newBudgetId) {
+          const cardsToCopy =
+            initialBudget.cards?.filter((card) =>
+              selectedCardIds.has(card.id),
+            ) ?? [];
+
+          // Fire off card creations sequentially to keep it simple
+          // Errors here shouldn't block the budget itself from existing
+          for (const card of cardsToCopy) {
+            try {
+              await createCardMutation.mutateAsync({
+                name: card.name,
+                cardType: card.cardType,
+                spendingLimit: card.spendingLimit ?? undefined,
+                userId: card.userId,
+                budgetId: newBudgetId,
+              });
+            } catch {
+              // Ignore individual card copy failures; budget has already been created
+            }
+          }
+        }
+      }
 
       resetModal();
       onSuccess?.();
@@ -527,11 +583,13 @@ export default function CreateBudgetModal({
         <div className="flex flex-shrink-0 items-center justify-between border-b p-6">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">
-              Create New Budget
+              {initialBudget ? "Duplicate Budget" : "Create New Budget"}
             </h2>
             <p className="text-sm text-gray-500">
               {currentStep === "basic" && "Set up your budget basics"}
               {currentStep === "income" && "Set up your income"}
+              {currentStep === "cards" &&
+                "Optionally review the cards that will be associated with this budget. You can always adjust cards later from the Cards page."}
               {currentStep === "categories" &&
                 "Create your own spending categories (optional). You can organize them by needs, wants, or investments."}
               {currentStep === "allocation" &&
@@ -553,7 +611,13 @@ export default function CreateBudgetModal({
             currentStep={currentStep}
             onStepClick={(step) => {
               // Only allow navigation to completed steps or current step
-              const stepOrder = ["basic", "income", "categories", "allocation"];
+              const stepOrder = [
+                "basic",
+                "income",
+                "cards",
+                "categories",
+                "allocation",
+              ];
               const currentIndex = stepOrder.indexOf(currentStep);
               const targetIndex = stepOrder.indexOf(step);
               if (targetIndex <= currentIndex) {
@@ -587,6 +651,14 @@ export default function CreateBudgetModal({
                     onAddIncomeEntry={addIncomeEntry}
                     onRemoveIncomeEntry={removeIncomeEntry}
                     onUpdateIncomeEntry={updateIncomeEntry}
+                  />
+                )}
+
+                {currentStep === "cards" && (
+                  <CardsStep
+                    initialBudget={initialBudget}
+                    selectedCardIds={selectedCardIds}
+                    onToggleCard={handleToggleCard}
                   />
                 )}
 
@@ -660,7 +732,7 @@ export default function CreateBudgetModal({
                     (currentStep === "categories" && !isCategoriesStepValid())
                   }
                 >
-                  Next
+                  {currentStep === "cards" ? "Continue" : "Next"}
                 </Button>
               )}
             </div>
