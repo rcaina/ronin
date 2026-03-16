@@ -1,6 +1,5 @@
 "use client";
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
 import { CreditCard, Info, Plus, Trash2 } from "lucide-react";
 import type { CardToInclude } from "./types";
 import { mapCardType } from "@/lib/utils/cards";
