@@ -1,5 +1,6 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +13,7 @@ import {
   PeriodType,
   type CategoryType,
   TransactionType,
+  type CardType,
 } from "@prisma/client";
 import { calculateAdjustedIncome, calculateEndDate } from "@/lib/utils";
 
@@ -28,11 +30,13 @@ import type {
   CategoryAllocation,
   IncomeEntry,
   StepType,
+  CardToInclude,
 } from "./types";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import type { Budget } from "@prisma/client";
 import Button from "../Button";
 import { useCreateCard } from "@/lib/data-hooks/cards/useCards";
+import AddCardForm from "../cards/AddCardForm";
 
 // Validation schema
 const createBudgetSchema = z
@@ -151,9 +155,10 @@ export default function CreateBudgetModal({
     CategoryAllocation[]
   >([]);
   const [currentStep, setCurrentStep] = useState<StepType>("basic");
-  const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(
-    () => new Set<string>(),
-  );
+  const [cardsToInclude, setCardsToInclude] = useState<CardToInclude[]>([]);
+  const [showAddCardModal, setShowAddCardModal] = useState(false);
+  const [users, setUsers] = useState<Array<{ id: string; name: string; firstName: string; lastName: string; email: string | null; role: string }>>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [incomeEntries, setIncomeEntries] = useState<IncomeEntry[]>([
     {
       id: "1",
@@ -251,10 +256,17 @@ export default function CreateBudgetModal({
           setSelectedCategories([]);
         }
 
-        // Preselect all cards from the initial budget
-        const initialCardIds =
-          initialBudget.cards?.map((card) => card.id) ?? [];
-        setSelectedCardIds(new Set(initialCardIds));
+        // Start with all cards from the initial budget (user can remove with Delete)
+        const initialCards: CardToInclude[] =
+          initialBudget.cards?.map((card) => ({
+            id: card.id,
+            name: card.name,
+            cardType: card.cardType,
+            spendingLimit: card.spendingLimit ?? undefined,
+            userId: card.userId,
+            user: card.user ?? undefined,
+          })) ?? [];
+        setCardsToInclude(initialCards);
       } else {
         // Reset to defaults when opening without initial budget
         reset();
@@ -269,8 +281,17 @@ export default function CreateBudgetModal({
             frequency: PeriodType.MONTHLY,
           },
         ]);
-        setSelectedCardIds(new Set());
+        setCardsToInclude([]);
       }
+
+      setShowAddCardModal(false);
+      setLoadingUsers(true);
+      type UserRow = { id: string; name: string; firstName: string; lastName: string; email: string | null; role: string };
+      void fetch("/api/users")
+        .then(async (res) => (res.ok ? ((await res.json()) as UserRow[]) : []))
+        .then((data) => setUsers(Array.isArray(data) ? data : []))
+        .catch(() => setUsers([]))
+        .finally(() => setLoadingUsers(false));
     }
   }, [initialBudget, isOpen, setValue, reset]);
 
@@ -339,10 +360,9 @@ export default function CreateBudgetModal({
     }
   };
 
-  // Start with no categories selected
+  // Start with no categories selected (run once on mount)
   useEffect(() => {
     setSelectedCategories([]);
-    setSelectedCardIds(new Set());
   }, []);
 
   const handleAddCategory = (category: {
@@ -399,8 +419,9 @@ export default function CreateBudgetModal({
 
   const resetModal = () => {
     reset();
-    // Reset categories to empty
     setSelectedCategories([]);
+    setCardsToInclude([]);
+    setShowAddCardModal(false);
     setIncomeEntries([
       {
         id: "1",
@@ -452,16 +473,36 @@ export default function CreateBudgetModal({
     );
   };
 
-  const handleToggleCard = (cardId: string) => {
-    setSelectedCardIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(cardId)) {
-        next.delete(cardId);
-      } else {
-        next.add(cardId);
-      }
-      return next;
-    });
+  const handleRemoveCard = (id: string) => {
+    setCardsToInclude((prev) => prev.filter((c: CardToInclude) => c.id !== id));
+  };
+
+  const handleAddCard = (data: {
+    name: string;
+    cardType: CardType;
+    spendingLimit?: string;
+    userId: string;
+  }) => {
+    const user = users.find((u) => u.id === data.userId);
+    const newCard: CardToInclude = {
+      id: `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      name: data.name,
+      cardType: data.cardType,
+      spendingLimit:
+        data.spendingLimit && data.spendingLimit.trim() !== ""
+          ? Number(data.spendingLimit)
+          : undefined,
+      userId: data.userId,
+      user: user
+        ? {
+            name: user.name,
+            firstName: user.firstName,
+            lastName: user.lastName,
+          }
+        : undefined,
+    };
+    setCardsToInclude((prev) => [...prev, newCard]);
+    setShowAddCardModal(false);
   };
 
   const onSubmit = async (data: CreateBudgetFormData) => {
@@ -488,30 +529,20 @@ export default function CreateBudgetModal({
         incomes,
       })) as { message: string; budget: Budget };
 
-      // If duplicating from an existing budget and the user selected cards, copy only selected cards
-      if (initialBudget && selectedCardIds.size > 0) {
-        const newBudgetId: string = created.budget.id;
-
-        if (newBudgetId) {
-          const cardsToCopy =
-            initialBudget.cards?.filter((card) =>
-              selectedCardIds.has(card.id),
-            ) ?? [];
-
-          // Fire off card creations sequentially to keep it simple
-          // Errors here shouldn't block the budget itself from existing
-          for (const card of cardsToCopy) {
-            try {
-              await createCardMutation.mutateAsync({
-                name: card.name,
-                cardType: card.cardType,
-                spendingLimit: card.spendingLimit ?? undefined,
-                userId: card.userId,
-                budgetId: newBudgetId,
-              });
-            } catch {
-              // Ignore individual card copy failures; budget has already been created
-            }
+      // Create any cards the user added or chose to copy (from cardsToInclude)
+      const newBudgetId = created.budget.id;
+      if (cardsToInclude.length > 0 && newBudgetId) {
+        for (const card of cardsToInclude) {
+          try {
+            await createCardMutation.mutateAsync({
+              name: card.name,
+              cardType: card.cardType,
+              spendingLimit: card.spendingLimit,
+              userId: card.userId,
+              budgetId: newBudgetId,
+            });
+          } catch {
+            // Ignore individual card failures; budget has already been created
           }
         }
       }
@@ -656,9 +687,10 @@ export default function CreateBudgetModal({
 
                 {currentStep === "cards" && (
                   <CardsStep
-                    initialBudget={initialBudget}
-                    selectedCardIds={selectedCardIds}
-                    onToggleCard={handleToggleCard}
+                    cardsToInclude={cardsToInclude}
+                    onRemoveCard={handleRemoveCard}
+                    onOpenAddCard={() => setShowAddCardModal(true)}
+                    isDuplicating={!!initialBudget}
                   />
                 )}
 
@@ -739,6 +771,27 @@ export default function CreateBudgetModal({
           </div>
         </div>
       </div>
+
+      {/* Add card modal (within create budget flow) */}
+      {showAddCardModal && (
+        <div
+          className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setShowAddCardModal(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md">
+            <AddCardForm
+              onSubmit={handleAddCard}
+              onCancel={() => setShowAddCardModal(false)}
+              isLoading={false}
+              users={users}
+              loadingUsers={loadingUsers}
+              defaultValues={{
+                userId: users.length === 1 ? users[0]?.id : undefined,
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

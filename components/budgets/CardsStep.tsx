@@ -1,23 +1,25 @@
 "use client";
 
-import { CreditCard, Info } from "lucide-react";
-import type { BudgetWithRelations } from "@/lib/types/budget";
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
+import { CreditCard, Info, Plus, Trash2 } from "lucide-react";
+import type { CardToInclude } from "./types";
 import { mapCardType } from "@/lib/utils/cards";
 
 interface CardsStepProps {
-  initialBudget?: BudgetWithRelations | null;
-  selectedCardIds: Set<string>;
-  onToggleCard: (cardId: string) => void;
+  cardsToInclude: CardToInclude[];
+  onRemoveCard: (id: string) => void;
+  onOpenAddCard?: () => void;
+  isDuplicating?: boolean;
 }
 
 export default function CardsStep({
-  initialBudget,
-  selectedCardIds,
-  onToggleCard,
+  cardsToInclude,
+  onRemoveCard,
+  onOpenAddCard,
+  isDuplicating = false,
 }: CardsStepProps) {
-  const cards = initialBudget?.cards ?? [];
-
-  const hasCards = cards.length > 0;
+  const list: CardToInclude[] = cardsToInclude;
+  const hasCards = list.length > 0;
 
   return (
     <div className="space-y-4">
@@ -29,8 +31,9 @@ export default function CardsStep({
           </p>
           <p className="mt-1 text-xs text-blue-900/80">
             We&apos;ll always create a main debit card for your budget so income
-            has somewhere to land. You can add additional credit, debit, or cash
-            cards from the Cards tab after your budget is created.
+            has somewhere to land. Add cards below or remove any you don&apos;t
+            want; you can also manage cards from the Cards tab after the budget
+            is created.
           </p>
         </div>
       </div>
@@ -39,29 +42,21 @@ export default function CardsStep({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-900">
-              Cards that will be copied into this budget
+              {isDuplicating
+                ? "Cards to copy (remove any you don't want)"
+                : "Cards to add to this budget"}
             </h3>
-            <p className="text-xs text-gray-500">
-              Uncheck any cards you don&apos;t want to duplicate.
-            </p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
-            {cards.map((card) => (
+            {list.map((card) => (
               <div
                 key={card.id}
                 className="flex items-start gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm"
               >
-                <button
-                  type="button"
-                  onClick={() => onToggleCard(card.id)}
-                  className="mt-1 h-4 w-4 flex-shrink-0 rounded border border-gray-300 bg-white text-secondary focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-1"
-                  aria-pressed={selectedCardIds.has(card.id)}
-                >
-                  {selectedCardIds.has(card.id) && (
-                    <span className="block h-full w-full bg-secondary" />
-                  )}
-                </button>
-                <div className="flex-1">
+                <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-900 text-white">
+                  <CreditCard className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <div>
                       <p className="text-sm font-medium text-gray-900">
@@ -91,6 +86,15 @@ export default function CardsStep({
                     </p>
                   )}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => onRemoveCard(card.id)}
+                  className="mt-0.5 flex-shrink-0 rounded p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                  title="Remove card"
+                  aria-label={`Remove ${card.name}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
             ))}
           </div>
@@ -99,22 +103,36 @@ export default function CardsStep({
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white px-4 py-8 text-center">
           <CreditCard className="mb-3 h-8 w-8 text-gray-300" />
           <p className="text-sm font-medium text-gray-900">
-            No existing cards to copy
+            {isDuplicating
+              ? "No cards will be copied"
+              : "No cards added yet"}
           </p>
           <p className="mt-1 max-w-sm text-xs text-gray-500">
-            We&apos;ll create a default debit card named &quot;Main&quot; for
-            this budget. You can add more cards from the Cards tab once the
-            budget is created.
+            {isDuplicating
+              ? "Add new cards below or continue without copying any."
+              : "We'll create a default debit card named \"Main\". Add more below or continue."}
           </p>
+        </div>
+      )}
+
+      {onOpenAddCard && (
+        <div className="flex justify-center pt-2">
+          <button
+            type="button"
+            onClick={onOpenAddCard}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+          >
+            <Plus className="h-4 w-4" />
+            Add card
+          </button>
         </div>
       )}
 
       <p className="mt-2 text-xs text-gray-500">
         When you click <span className="font-semibold">Continue</span>, you&apos;ll
-        move on without making any changes to cards. You can always adjust cards
-        later from the budget&apos;s Cards page.
+        move on. You can always adjust cards later from the budget&apos;s Cards
+        page.
       </p>
     </div>
   );
 }
-
