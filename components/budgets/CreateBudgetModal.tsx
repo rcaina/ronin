@@ -544,6 +544,7 @@ export default function CreateBudgetModal({
       
       if (cardsToInclude.length > 0 && newBudgetId) {
         const createdCards: Array<{ id: string; name: string; cardType: CardType }> = [];
+        const failedCards: string[] = [];
         for (const card of cardsToInclude) {
           try {
             const createdCard = await createCardMutation.mutateAsync({
@@ -560,8 +561,14 @@ export default function CreateBudgetModal({
               cardType: createdCard.cardType,
             });
           } catch {
-            // Ignore individual card failures; budget has already been created
+            failedCards.push(card.name);
           }
+        }
+
+        if (failedCards.length > 0) {
+          toast.error(
+            `Budget created, but ${failedCards.length} card(s) could not be added: ${failedCards.join(", ")}`,
+          );
         }
 
         // If we skipped creating the default debit card at budget-creation time,
