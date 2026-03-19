@@ -1,6 +1,6 @@
-import type { BudgetWithRelations } from "@/lib/types/budget";
+import type { BudgetWithRelations, SerializedBudget } from "@/lib/types/budget";
 import type { UpdateBudgetData, CreateBudgetData } from "@/lib/api-services/budgets";
-import type { BudgetStatus, Budget } from "@prisma/client";
+import type { BudgetStatus } from "@prisma/client";
 
 export const getBudgets = async (status?: BudgetStatus, excludeCardPayments?: boolean): Promise<BudgetWithRelations[]> => {
   const params = new URLSearchParams();
@@ -85,7 +85,9 @@ export const reactivateBudget = async (id: string): Promise<void> => {
   }
 };
 
-export const createBudget = async (data: CreateBudgetData): Promise<{ message: string; budget: Budget }> => {
+export const createBudget = async (
+  data: CreateBudgetData,
+): Promise<{ message: string; budget: SerializedBudget }> => {
   const response = await fetch("/api/budgets", {
     method: "POST",
     headers: {
@@ -98,10 +100,12 @@ export const createBudget = async (data: CreateBudgetData): Promise<{ message: s
     throw new Error(`Failed to create budget: ${response.statusText}`);
   }
 
-  return (await response.json()) as { message: string; budget: Budget };
+  return (await response.json()) as { message: string; budget: SerializedBudget };
 };
 
-export const duplicateBudget = async (budgetId: string): Promise<{ message: string; budget: Budget }> => {
+export const duplicateBudget = async (
+  budgetId: string,
+): Promise<{ message: string; budget: SerializedBudget }> => {
   const response = await fetch(`/api/budgets/${budgetId}/duplicate`, {
     method: "POST",
     headers: {
@@ -113,5 +117,5 @@ export const duplicateBudget = async (budgetId: string): Promise<{ message: stri
     throw new Error(`Failed to duplicate budget: ${response.statusText}`);
   }
 
-  return (await response.json()) as { message: string; budget: Budget };
+  return (await response.json()) as { message: string; budget: SerializedBudget };
 };

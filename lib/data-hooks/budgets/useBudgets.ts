@@ -13,6 +13,12 @@ import {
 import type { UpdateBudgetData } from "@/lib/api-services/budgets";
 import type { BudgetStatus } from "@prisma/client";
 
+type CreateBudgetVariables = Parameters<typeof createBudget>[0];
+type CreateBudgetResponse = Awaited<ReturnType<typeof createBudget>>;
+
+type DuplicateBudgetVariables = Parameters<typeof duplicateBudget>[0];
+type DuplicateBudgetResponse = Awaited<ReturnType<typeof duplicateBudget>>;
+
 export const useBudgets = (status?: BudgetStatus, excludeCardPayments?: boolean) => {
   const { data: session } = useSession();
 
@@ -79,7 +85,7 @@ export const useReactivateBudget = () => {
 export const useCreateBudget = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<CreateBudgetResponse, Error, CreateBudgetVariables>({
     mutationFn: createBudget,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
@@ -114,7 +120,7 @@ export const useDeleteBudget = () => {
 export const useDuplicateBudget = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<DuplicateBudgetResponse, Error, DuplicateBudgetVariables>({
     mutationFn: duplicateBudget,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });

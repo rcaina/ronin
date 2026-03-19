@@ -29,6 +29,7 @@ export const createBudgetSchema = z.object({
     group: z.nativeEnum(CategoryType),
     allocatedAmount: z.coerce.number().min(0, "Allocated amount must be non-negative"),
   })).optional(),
+  shouldCreateDefaultDebitCard: z.boolean().optional(),
   incomes: z.array(z.object({
     amount: z.coerce.number().positive("Income amount must be positive"),
     source: z.string().min(1, "Income source is required"),

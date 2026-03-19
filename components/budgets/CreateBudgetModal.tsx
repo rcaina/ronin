@@ -12,7 +12,7 @@ import {
   PeriodType,
   type CategoryType,
   TransactionType,
-  type CardType,
+  CardType,
 } from "@prisma/client";
 import { calculateAdjustedIncome, calculateEndDate } from "@/lib/utils";
 
@@ -32,10 +32,10 @@ import type {
   CardToInclude,
 } from "./types";
 import type { BudgetWithRelations } from "@/lib/types/budget";
-import type { Budget } from "@prisma/client";
 import Button from "../Button";
 import { useCreateCard } from "@/lib/data-hooks/cards/useCards";
 import AddCardForm from "../cards/AddCardForm";
+import { useUpdateTransaction } from "@/lib/data-hooks/transactions/useTransactions";
 
 // Validation schema
 const createBudgetSchema = z
@@ -150,6 +150,7 @@ export default function CreateBudgetModal({
 }: CreateBudgetModalProps) {
   const createBudgetMutation = useCreateBudget();
   const createCardMutation = useCreateCard();
+  const updateTransactionMutation = useUpdateTransaction();
   const [selectedCategories, setSelectedCategories] = useState<
     CategoryAllocation[]
   >([]);
@@ -513,6 +514,15 @@ export default function CreateBudgetModal({
         allocatedAmount: cat.allocatedAmount,
       }));
 
+      // If we're duplicating and there is at least one debit card in the copy/add set,
+      // we should not auto-create the default "Main" debit card for the new budget.
+      const hasDebitCardsToCopy = cardsToInclude.some(
+        (card) =>
+          card.cardType === CardType.DEBIT ||
+          card.cardType === CardType.BUSINESS_DEBIT,
+      );
+      const shouldCreateDefaultDebitCard = !hasDebitCardsToCopy;
+
       // Convert income entries to the format expected by the API
       const incomes = incomeEntries.map((entry) => ({
         amount: entry.amount,
@@ -522,26 +532,79 @@ export default function CreateBudgetModal({
         frequency: entry.frequency,
       }));
 
-      const created = (await createBudgetMutation.mutateAsync({
+      const created = await createBudgetMutation.mutateAsync({
         ...data,
         categoryAllocations,
         incomes,
-      })) as { message: string; budget: Budget };
+        shouldCreateDefaultDebitCard,
+      });
 
       // Create any cards the user added or chose to copy (from cardsToInclude)
       const newBudgetId = created.budget.id;
+      
       if (cardsToInclude.length > 0 && newBudgetId) {
+        const createdCards: Array<{ id: string; name: string; cardType: CardType }> = [];
         for (const card of cardsToInclude) {
           try {
-            await createCardMutation.mutateAsync({
+            const createdCard = await createCardMutation.mutateAsync({
               name: card.name,
               cardType: card.cardType,
               spendingLimit: card.spendingLimit,
               userId: card.userId,
               budgetId: newBudgetId,
             });
+
+            createdCards.push({
+              id: createdCard.id,
+              name: createdCard.name,
+              cardType: createdCard.cardType,
+            });
           } catch {
             // Ignore individual card failures; budget has already been created
+          }
+        }
+
+        // If we skipped creating the default debit card at budget-creation time,
+        // re-link any INCOME transactions (created with no cardId) to the copied debit card.
+        if (!shouldCreateDefaultDebitCard) {
+          try {
+            const res = await fetch(`/api/budgets/${newBudgetId}/transactions`);
+            const transactions = (await res.json()) as Array<{
+              id: string;
+              transactionType: string;
+              cardId: string | null;
+            }>;
+
+            const debitCards = createdCards.filter(
+              (c) =>
+                c.cardType === CardType.DEBIT ||
+                c.cardType === CardType.BUSINESS_DEBIT,
+            );
+
+            const debitCardToUse =
+              debitCards.find((c) => c.name === "Main") ?? debitCards[0];
+
+            if (debitCardToUse) {
+              await Promise.all(
+                transactions
+                  .filter(
+                    (t) =>
+                      t.transactionType === TransactionType.INCOME &&
+                      !t.cardId,
+                  )
+                  .map((t) =>
+                    updateTransactionMutation.mutateAsync({
+                      id: t.id,
+                      data: {
+                        cardId: debitCardToUse.id,
+                        budgetId: newBudgetId,
+                      },
+                    }),
+                  ),
+              );
+            }
+          } catch {
+            // Non-fatal: budget + cards are already created; income linkage will be corrected manually.
           }
         }
       }

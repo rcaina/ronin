@@ -13,6 +13,9 @@ export interface CreateBudgetData {
   startAt: string
   endAt: string
   isRecurring: boolean
+  // If false, we skip auto-creating the default "Main" debit card because
+  // the client will (or already does) copy/add at least one debit card.
+  shouldCreateDefaultDebitCard?: boolean
   categoryAllocations?: Array<{
     name: string
     group: CategoryType
@@ -146,48 +149,31 @@ export async function createBudget(
     },
   })
 
-  // Check if user already has any debit cards
-  // Get all users in the same account
-  const accountUsers = await tx.accountUser.findMany({
-    where: {
-      accountId: user.accountId,
-    },
-    select: {
-      userId: true,
-    },
-  });
+  const shouldCreateDefaultDebitCard = data.shouldCreateDefaultDebitCard ?? true
 
-  const userIds = accountUsers.map(au => au.userId);
+  // Used to attach "income" transactions to a card at budget-creation time.
+  // If we're skipping default debit-card creation, these transactions may be created with no cardId.
+  let mainDebitCard: Card | null = null
 
-  const existingDebitCards = await tx.card.findFirst({
-    where: {
-      userId: {
-        in: userIds,
+  if (shouldCreateDefaultDebitCard) {
+    // Check if user already has any debit cards
+    // Get all users in the same account
+    const accountUsers = await tx.accountUser.findMany({
+      where: {
+        accountId: user.accountId,
       },
-      cardType: {
-        in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
-      },
-      deleted: null,
-    },
-  });
-
-  // Create a default debit card named "Main" for the budget only if no debit cards exist
-  let mainDebitCard;
-  if (!existingDebitCards) {
-    mainDebitCard = await tx.card.create({
-      data: {
-        name: "Main",
-        cardType: CardType.DEBIT,
-        userId: user.id,
-        budgetId: budget.id,
-        amountSpent: 0,
+      select: {
+        userId: true,
       },
     });
-  } else {
-    // Find or create the main debit card for this budget
-    mainDebitCard = await tx.card.findFirst({
+
+    const userIds = accountUsers.map(au => au.userId);
+
+    const existingDebitCards = await tx.card.findFirst({
       where: {
-        budgetId: budget.id,
+        userId: {
+          in: userIds,
+        },
         cardType: {
           in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
         },
@@ -195,20 +181,44 @@ export async function createBudget(
       },
     });
 
-    // If no debit card exists for this budget, create one
-    mainDebitCard ??= await tx.card.create({
-      data: {
-        name: "Main",
-        cardType: CardType.DEBIT,
-        userId: user.id,
-        budgetId: budget.id,
-        amountSpent: 0,
-      },
-    });
+    // Create a default debit card named "Main" for the budget only if no debit cards exist
+    if (!existingDebitCards) {
+      mainDebitCard = await tx.card.create({
+        data: {
+          name: "Main",
+          cardType: CardType.DEBIT,
+          userId: user.id,
+          budgetId: budget.id,
+          amountSpent: 0,
+        },
+      });
+    } else {
+      // Find or create the main debit card for this budget
+      mainDebitCard = await tx.card.findFirst({
+        where: {
+          budgetId: budget.id,
+          cardType: {
+            in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
+          },
+          deleted: null,
+        },
+      });
+
+      // If no debit card exists for this budget, create one
+      mainDebitCard ??= await tx.card.create({
+        data: {
+          name: "Main",
+          cardType: CardType.DEBIT,
+          userId: user.id,
+          budgetId: budget.id,
+          amountSpent: 0,
+        },
+      });
+    }
   }
 
   // Create income transactions instead of income records
-  if (mainDebitCard && data.incomes && data.incomes.length > 0) {
+  if (data.incomes && data.incomes.length > 0) {
     for (const income of data.incomes) {
       await tx.transaction.create({
         data: {
@@ -216,7 +226,7 @@ export async function createBudget(
           description: income.description,
           amount: income.amount, // Positive amount for income
           budgetId: budget.id,
-          cardId: mainDebitCard.id,
+          cardId: mainDebitCard?.id,
           accountId: user.accountId,
           userId: user.id,
           transactionType: TransactionType.INCOME,
