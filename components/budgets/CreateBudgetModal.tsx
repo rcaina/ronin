@@ -587,33 +587,29 @@ export default function CreateBudgetModal({
             toast.error(
               "Budget created, but income transactions could not be linked because no debit card was created successfully."
             );
-          }
-
-          const failedIncomes: string[] = [];
-          for (const income of incomes) {
-            try {
-              await createTransactionMutation.mutateAsync({
-                name: income.source,
-                description: income.description,
-                amount: income.amount,
-                budgetId: newBudgetId,
-                cardId: debitCardToUse?.id,
-                transactionType: TransactionType.INCOME,
-                occurredAt: new Date(),
-              });
-            } catch {
-              failedIncomes.push(income.source);
+          } else {
+            const failedIncomes: string[] = [];
+            for (const income of incomes) {
+              try {
+                await createTransactionMutation.mutateAsync({
+                  name: income.source,
+                  description: income.description,
+                  amount: income.amount,
+                  budgetId: newBudgetId,
+                  cardId: debitCardToUse.id,
+                  transactionType: TransactionType.INCOME,
+                  occurredAt: new Date(),
+                });
+              } catch {
+                failedIncomes.push(income.source);
+              }
             }
-          }
 
-          if (failedIncomes.length > 0) {
-            toast.error(
-              `Budget created, but ${failedIncomes.length} income transaction(s) could not be created: ${failedIncomes.join(", ")}`
-            );
-          } else if (!debitCardToUse) {
-            toast.error(
-              "INCOME transactions were created without a linked debit card. You can fix the card mapping in Transactions."
-            );
+            if (failedIncomes.length > 0) {
+              toast.error(
+                `Budget created, but ${failedIncomes.length} income transaction(s) could not be created: ${failedIncomes.join(", ")}`
+              );
+            }
           }
         }
       }
