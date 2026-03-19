@@ -1,7 +1,56 @@
 import { PeriodType, StrategyType, CategoryType, CardType } from "@prisma/client"
 import { z } from "zod"
+import { calculateEndDate } from "@/lib/utils"
 
-export const createBudgetSchema = z.object({
+const parseBudgetDate = (value: string): Date | null => {
+  const datePart = value.includes("T") ? (value.split("T")[0] ?? "") : value
+  const [year, month, day] = datePart.split("-").map(Number)
+
+  if (!year || !month || !day || Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+    return null
+  }
+
+  return new Date(year, month - 1, day)
+}
+
+const budgetDateInvariantRefine = (
+  data: { startAt: string; endAt: string; period: PeriodType },
+  ctx: z.RefinementCtx,
+) => {
+  const startDate = parseBudgetDate(data.startAt)
+  const endDate = parseBudgetDate(data.endAt)
+
+  if (!startDate || !endDate) {
+    return
+  }
+
+  if (endDate < startDate) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["endAt"],
+      message: "End date must be on or after start date",
+    })
+    return
+  }
+
+  if (data.period === PeriodType.ONE_TIME) {
+    return
+  }
+
+  const calculatedEndDate = calculateEndDate(startDate, data.period)
+  const diffTime = Math.abs(calculatedEndDate.getTime() - endDate.getTime())
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+  if (diffDays > 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["endAt"],
+      message: "End date should match the selected period",
+    })
+  }
+}
+
+const createBudgetBaseSchema = z.object({
   name: z.string().min(1, "Budget name is required"),
   strategy: z.enum([StrategyType.ZERO_SUM, StrategyType.FIFTY_THIRTY_TWENTY]),
   isRecurring: z.boolean(),
@@ -49,6 +98,8 @@ export const createBudgetSchema = z.object({
     .min(1, "At least one income is required")
     .optional(),
 })
+
+export const createBudgetSchema = createBudgetBaseSchema.superRefine(budgetDateInvariantRefine)
 
 const cardToIncludeSchema = z.object({
   name: z.string().min(1, "Card name is required"),
@@ -106,9 +157,9 @@ export const createBudgetWithCardsSchema = z.object({
     .min(1, "At least one income is required")
     .optional(),
   cardsToInclude: z.array(cardToIncludeSchema).optional(),
-})
+}).superRefine(budgetDateInvariantRefine)
 
-export const updateBudgetSchema = createBudgetSchema.partial()
+export const updateBudgetSchema = createBudgetBaseSchema.partial()
 
 export type CreateBudgetSchema = z.infer<typeof createBudgetSchema> 
 

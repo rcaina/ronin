@@ -14,7 +14,13 @@ export const POST = withUser({
       _context: { params: Promise<Record<string, string>> },
       user: User & { accountId: string },
     ) => {
-      const body = await req.json() as unknown
+      let body: unknown
+      try {
+        body = await req.json()
+      } catch {
+        throw new HttpError("Invalid request body", 400)
+      }
+
       const validatedResult = createBudgetWithCardsSchema.safeParse(body)
 
       if (!validatedResult.success) {
