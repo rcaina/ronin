@@ -156,24 +156,11 @@ export async function createBudget(
   let mainDebitCard: Card | null = null
 
   if (shouldCreateDefaultDebitCard) {
-    // Check if user already has any debit cards
-    // Get all users in the same account
-    const accountUsers = await tx.accountUser.findMany({
+    // Ensure this budget has a default debit card named "Main".
+    // (If cards were already created for this budget elsewhere, reuse them.)
+    mainDebitCard = await tx.card.findFirst({
       where: {
-        accountId: user.accountId,
-      },
-      select: {
-        userId: true,
-      },
-    });
-
-    const userIds = accountUsers.map(au => au.userId);
-
-    const existingDebitCards = await tx.card.findFirst({
-      where: {
-        userId: {
-          in: userIds,
-        },
+        budgetId: budget.id,
         cardType: {
           in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
         },
@@ -181,44 +168,21 @@ export async function createBudget(
       },
     });
 
-    // Create a default debit card named "Main" for the budget only if no debit cards exist
-    if (!existingDebitCards) {
-      mainDebitCard = await tx.card.create({
-        data: {
-          name: "Main",
-          cardType: CardType.DEBIT,
-          userId: user.id,
-          budgetId: budget.id,
-          amountSpent: 0,
-        },
-      });
-    } else {
-      // Find or create the main debit card for this budget
-      mainDebitCard = await tx.card.findFirst({
-        where: {
-          budgetId: budget.id,
-          cardType: {
-            in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
-          },
-          deleted: null,
-        },
-      });
-
-      // If no debit card exists for this budget, create one
-      mainDebitCard ??= await tx.card.create({
-        data: {
-          name: "Main",
-          cardType: CardType.DEBIT,
-          userId: user.id,
-          budgetId: budget.id,
-          amountSpent: 0,
-        },
-      });
-    }
+    mainDebitCard ??= await tx.card.create({
+      data: {
+        name: "Main",
+        cardType: CardType.DEBIT,
+        userId: user.id,
+        budgetId: budget.id,
+        amountSpent: 0,
+      },
+    });
   }
 
-  // Create income transactions instead of income records
-  if (data.incomes && data.incomes.length > 0) {
+  // Create income transactions only when we can link them to a debit card.
+  // When `shouldCreateDefaultDebitCard` is false, the client creates cards first
+  // and then creates INCOME transactions once the debit card id is available.
+  if (mainDebitCard?.id && data.incomes && data.incomes.length > 0) {
     for (const income of data.incomes) {
       await tx.transaction.create({
         data: {
@@ -226,7 +190,7 @@ export async function createBudget(
           description: income.description,
           amount: income.amount, // Positive amount for income
           budgetId: budget.id,
-          cardId: mainDebitCard?.id,
+          cardId: mainDebitCard.id,
           accountId: user.accountId,
           userId: user.id,
           transactionType: TransactionType.INCOME,

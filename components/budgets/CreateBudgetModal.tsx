@@ -35,7 +35,7 @@ import type { BudgetWithRelations } from "@/lib/types/budget";
 import Button from "../Button";
 import { useCreateCard } from "@/lib/data-hooks/cards/useCards";
 import AddCardForm from "../cards/AddCardForm";
-import { useUpdateTransaction } from "@/lib/data-hooks/transactions/useTransactions";
+import { useCreateTransaction } from "@/lib/data-hooks/transactions/useTransactions";
 
 // Validation schema
 const createBudgetSchema = z
@@ -150,7 +150,7 @@ export default function CreateBudgetModal({
 }: CreateBudgetModalProps) {
   const createBudgetMutation = useCreateBudget();
   const createCardMutation = useCreateCard();
-  const updateTransactionMutation = useUpdateTransaction();
+  const createTransactionMutation = useCreateTransaction();
   const [selectedCategories, setSelectedCategories] = useState<
     CategoryAllocation[]
   >([]);
@@ -535,7 +535,7 @@ export default function CreateBudgetModal({
       const created = await createBudgetMutation.mutateAsync({
         ...data,
         categoryAllocations,
-        incomes,
+        incomes: shouldCreateDefaultDebitCard ? incomes : undefined,
         shouldCreateDefaultDebitCard,
       });
 
@@ -572,46 +572,48 @@ export default function CreateBudgetModal({
         }
 
         // If we skipped creating the default debit card at budget-creation time,
-        // re-link any INCOME transactions (created with no cardId) to the copied debit card.
+        // create/link INCOME transactions only after the debit cards exist.
         if (!shouldCreateDefaultDebitCard) {
-          try {
-            const res = await fetch(`/api/budgets/${newBudgetId}/transactions`);
-            const transactions = (await res.json()) as Array<{
-              id: string;
-              transactionType: string;
-              cardId: string | null;
-            }>;
+          const debitCards = createdCards.filter(
+            (c) =>
+              c.cardType === CardType.DEBIT ||
+              c.cardType === CardType.BUSINESS_DEBIT,
+          );
 
-            const debitCards = createdCards.filter(
-              (c) =>
-                c.cardType === CardType.DEBIT ||
-                c.cardType === CardType.BUSINESS_DEBIT,
+          const debitCardToUse =
+            debitCards.find((c) => c.name === "Main") ?? debitCards[0];
+
+          if (!debitCardToUse) {
+            toast.error(
+              "Budget created, but income transactions could not be linked because no debit card was created successfully."
             );
+          }
 
-            const debitCardToUse =
-              debitCards.find((c) => c.name === "Main") ?? debitCards[0];
-
-            if (debitCardToUse) {
-              await Promise.all(
-                transactions
-                  .filter(
-                    (t) =>
-                      t.transactionType === TransactionType.INCOME &&
-                      !t.cardId,
-                  )
-                  .map((t) =>
-                    updateTransactionMutation.mutateAsync({
-                      id: t.id,
-                      data: {
-                        cardId: debitCardToUse.id,
-                        budgetId: newBudgetId,
-                      },
-                    }),
-                  ),
-              );
+          const failedIncomes: string[] = [];
+          for (const income of incomes) {
+            try {
+              await createTransactionMutation.mutateAsync({
+                name: income.source,
+                description: income.description,
+                amount: income.amount,
+                budgetId: newBudgetId,
+                cardId: debitCardToUse?.id,
+                transactionType: TransactionType.INCOME,
+                occurredAt: new Date(),
+              });
+            } catch {
+              failedIncomes.push(income.source);
             }
-          } catch {
-            // Non-fatal: budget + cards are already created; income linkage will be corrected manually.
+          }
+
+          if (failedIncomes.length > 0) {
+            toast.error(
+              `Budget created, but ${failedIncomes.length} income transaction(s) could not be created: ${failedIncomes.join(", ")}`
+            );
+          } else if (!debitCardToUse) {
+            toast.error(
+              "INCOME transactions were created without a linked debit card. You can fix the card mapping in Transactions."
+            );
           }
         }
       }

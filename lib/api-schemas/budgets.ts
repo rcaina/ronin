@@ -30,13 +30,24 @@ export const createBudgetSchema = z.object({
     allocatedAmount: z.coerce.number().min(0, "Allocated amount must be non-negative"),
   })).optional(),
   shouldCreateDefaultDebitCard: z.boolean().optional(),
-  incomes: z.array(z.object({
-    amount: z.coerce.number().positive("Income amount must be positive"),
-    source: z.string().min(1, "Income source is required"),
-    description: z.string().optional(),
-    isPlanned: z.boolean(),
-    frequency: z.enum([PeriodType.WEEKLY, PeriodType.MONTHLY, PeriodType.QUARTERLY, PeriodType.YEARLY, PeriodType.ONE_TIME]),
-  })).min(1, "At least one income is required"),
+  incomes: z
+    .array(
+      z.object({
+        amount: z.coerce.number().positive("Income amount must be positive"),
+        source: z.string().min(1, "Income source is required"),
+        description: z.string().optional(),
+        isPlanned: z.boolean(),
+        frequency: z.enum([
+          PeriodType.WEEKLY,
+          PeriodType.MONTHLY,
+          PeriodType.QUARTERLY,
+          PeriodType.YEARLY,
+          PeriodType.ONE_TIME,
+        ]),
+      }),
+    )
+    .min(1, "At least one income is required")
+    .optional(),
 })
 
 export const updateBudgetSchema = createBudgetSchema.partial()
