@@ -1,5 +1,5 @@
-import type { BudgetWithRelations } from "@/lib/types/budget";
-import type { UpdateBudgetData } from "@/lib/api-services/budgets";
+import type { BudgetWithRelations, SerializedBudget } from "@/lib/types/budget";
+import type { UpdateBudgetData, CreateBudgetData, CreateBudgetWithCardsData } from "@/lib/api-services/budgets";
 import type { BudgetStatus } from "@prisma/client";
 
 export const getBudgets = async (status?: BudgetStatus, excludeCardPayments?: boolean): Promise<BudgetWithRelations[]> => {
@@ -85,6 +85,97 @@ export const reactivateBudget = async (id: string): Promise<void> => {
   }
 };
 
+export const createBudget = async (
+  data: CreateBudgetData,
+): Promise<{ message: string; budget: SerializedBudget }> => {
+  const response = await fetch("/api/budgets", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
 
+  if (!response.ok) {
+    throw new Error(`Failed to create budget: ${response.statusText}`);
+  }
 
+  return (await response.json()) as { message: string; budget: SerializedBudget };
+};
 
+export const createBudgetFromScratchWithCards = async (
+  data: CreateBudgetWithCardsData,
+): Promise<{
+  message: string
+  budget: SerializedBudget
+  failedCards: string[]
+  failedIncomes: string[]
+  incomesSkipped: boolean
+}> => {
+  const response = await fetch("/api/budgets/create-from-scratch", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to create budget: ${response.statusText}`)
+  }
+
+  return (await response.json()) as {
+    message: string
+    budget: SerializedBudget
+    failedCards: string[]
+    failedIncomes: string[]
+    incomesSkipped: boolean
+  }
+}
+
+export const duplicateBudgetWithCards = async (
+  data: CreateBudgetWithCardsData,
+): Promise<{
+  message: string
+  budget: SerializedBudget
+  failedCards: string[]
+  failedIncomes: string[]
+  incomesSkipped: boolean
+}> => {
+  const response = await fetch("/api/budgets/duplicate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to duplicate budget: ${response.statusText}`)
+  }
+
+  return (await response.json()) as {
+    message: string
+    budget: SerializedBudget
+    failedCards: string[]
+    failedIncomes: string[]
+    incomesSkipped: boolean
+  }
+}
+
+export const duplicateBudget = async (
+  budgetId: string,
+): Promise<{ message: string; budget: SerializedBudget }> => {
+  const response = await fetch(`/api/budgets/${budgetId}/duplicate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to duplicate budget: ${response.statusText}`);
+  }
+
+  return (await response.json()) as { message: string; budget: SerializedBudget };
+};

@@ -23,6 +23,7 @@ export interface CreateCardRequest {
   name: string;
   cardType: CardType;
   spendingLimit?: number;
+  userId: string;
   budgetId: string;
 }
 

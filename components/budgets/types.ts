@@ -1,4 +1,23 @@
-import type { StrategyType, PeriodType, CategoryType } from "@prisma/client";
+import type {
+  StrategyType,
+  PeriodType,
+  CategoryType,
+  CardType,
+} from "@prisma/client";
+
+/** Card entry for the create/duplicate budget wizard (to copy or add) */
+export interface CardToInclude {
+  id: string;
+  name: string;
+  cardType: CardType;
+  spendingLimit?: number;
+  userId: string;
+  user?: {
+    name: string | null;
+    firstName: string | null;
+    lastName: string | null;
+  } | null;
+}
 
 // Form data type
 export interface CreateBudgetFormData {
@@ -26,7 +45,7 @@ export interface IncomeEntry {
   frequency: PeriodType;
 }
 
-export type StepType = "basic" | "income" | "categories" | "allocation";
+export type StepType = "basic" | "income" | "cards" | "categories" | "allocation";
 
 export interface Step {
   step: StepType;
