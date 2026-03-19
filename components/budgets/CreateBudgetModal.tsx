@@ -6,13 +6,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { X } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { useCreateBudget } from "@/lib/data-hooks/budgets/useBudgets";
+import {
+  useCreateBudgetFromScratchWithCards,
+  useDuplicateBudgetWithCards,
+} from "@/lib/data-hooks/budgets/useBudgets";
 import {
   StrategyType,
   PeriodType,
   type CategoryType,
   TransactionType,
-  CardType,
+  type CardType,
 } from "@prisma/client";
 import { calculateAdjustedIncome, calculateEndDate } from "@/lib/utils";
 
@@ -33,9 +36,7 @@ import type {
 } from "./types";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import Button from "../Button";
-import { useCreateCard } from "@/lib/data-hooks/cards/useCards";
 import AddCardForm from "../cards/AddCardForm";
-import { useCreateTransaction } from "@/lib/data-hooks/transactions/useTransactions";
 
 // Validation schema
 const createBudgetSchema = z
@@ -148,9 +149,10 @@ export default function CreateBudgetModal({
   onSuccess,
   initialBudget,
 }: CreateBudgetModalProps) {
-  const createBudgetMutation = useCreateBudget();
-  const createCardMutation = useCreateCard();
-  const createTransactionMutation = useCreateTransaction();
+  const createBudgetFromScratchMutation = useCreateBudgetFromScratchWithCards();
+  const duplicateBudgetMutation = useDuplicateBudgetWithCards();
+  const isCreating =
+    createBudgetFromScratchMutation.isPending || duplicateBudgetMutation.isPending;
   const [selectedCategories, setSelectedCategories] = useState<
     CategoryAllocation[]
   >([]);
@@ -514,16 +516,6 @@ export default function CreateBudgetModal({
         allocatedAmount: cat.allocatedAmount,
       }));
 
-      // If we're duplicating and there is at least one debit card in the copy/add set,
-      // we should not auto-create the default "Main" debit card for the new budget.
-      const hasDebitCardsToCopy = cardsToInclude.some(
-        (card) =>
-          card.cardType === CardType.DEBIT ||
-          card.cardType === CardType.BUSINESS_DEBIT,
-      );
-      const shouldCreateDefaultDebitCard = !hasDebitCardsToCopy;
-
-      // Convert income entries to the format expected by the API
       const incomes = incomeEntries.map((entry) => ({
         amount: entry.amount,
         source: entry.source,
@@ -532,86 +524,35 @@ export default function CreateBudgetModal({
         frequency: entry.frequency,
       }));
 
-      const created = await createBudgetMutation.mutateAsync({
+      const cardsPayload = cardsToInclude.map((card) => ({
+        name: card.name,
+        cardType: card.cardType,
+        spendingLimit: card.spendingLimit,
+        userId: card.userId,
+      }));
+
+      const mutation = initialBudget ? duplicateBudgetMutation : createBudgetFromScratchMutation;
+      const created = await mutation.mutateAsync({
         ...data,
         categoryAllocations,
-        incomes: shouldCreateDefaultDebitCard ? incomes : undefined,
-        shouldCreateDefaultDebitCard,
+        incomes,
+        cardsToInclude: cardsPayload,
       });
 
-      // Create any cards the user added or chose to copy (from cardsToInclude)
-      const newBudgetId = created.budget.id;
-      
-      if (cardsToInclude.length > 0 && newBudgetId) {
-        const createdCards: Array<{ id: string; name: string; cardType: CardType }> = [];
-        const failedCards: string[] = [];
-        for (const card of cardsToInclude) {
-          try {
-            const createdCard = await createCardMutation.mutateAsync({
-              name: card.name,
-              cardType: card.cardType,
-              spendingLimit: card.spendingLimit,
-              userId: card.userId,
-              budgetId: newBudgetId,
-            });
+      if (created.failedCards.length > 0) {
+        toast.error(
+          `Budget created, but ${created.failedCards.length} card(s) could not be added: ${created.failedCards.join(", ")}`
+        );
+      }
 
-            createdCards.push({
-              id: createdCard.id,
-              name: createdCard.name,
-              cardType: createdCard.cardType,
-            });
-          } catch {
-            failedCards.push(card.name);
-          }
-        }
+      if (created.incomesSkipped && created.failedCards.length > 0) {
+        toast.error("Income transactions were skipped because card creation/copying failed.");
+      }
 
-        if (failedCards.length > 0) {
-          toast.error(
-            `Budget created, but ${failedCards.length} card(s) could not be added: ${failedCards.join(", ")}`,
-          );
-        }
-
-        // If we skipped creating the default debit card at budget-creation time,
-        // create/link INCOME transactions only after the debit cards exist.
-        if (!shouldCreateDefaultDebitCard) {
-          const debitCards = createdCards.filter(
-            (c) =>
-              c.cardType === CardType.DEBIT ||
-              c.cardType === CardType.BUSINESS_DEBIT,
-          );
-
-          const debitCardToUse =
-            debitCards.find((c) => c.name === "Main") ?? debitCards[0];
-
-          if (!debitCardToUse) {
-            toast.error(
-              "Budget created, but income transactions could not be linked because no debit card was created successfully."
-            );
-          } else {
-            const failedIncomes: string[] = [];
-            for (const income of incomes) {
-              try {
-                await createTransactionMutation.mutateAsync({
-                  name: income.source,
-                  description: income.description,
-                  amount: income.amount,
-                  budgetId: newBudgetId,
-                  cardId: debitCardToUse.id,
-                  transactionType: TransactionType.INCOME,
-                  occurredAt: new Date(),
-                });
-              } catch {
-                failedIncomes.push(income.source);
-              }
-            }
-
-            if (failedIncomes.length > 0) {
-              toast.error(
-                `Budget created, but ${failedIncomes.length} income transaction(s) could not be created: ${failedIncomes.join(", ")}`
-              );
-            }
-          }
-        }
+      if (created.failedIncomes.length > 0) {
+        toast.error(
+          `Budget created, but ${created.failedIncomes.length} income transaction(s) could not be created: ${created.failedIncomes.join(", ")}`
+        );
       }
 
       resetModal();
@@ -814,11 +755,11 @@ export default function CreateBudgetModal({
                 <Button
                   type="submit"
                   disabled={
-                    createBudgetMutation.isPending || !isAllocationStepValid()
+                    isCreating || !isAllocationStepValid()
                   }
                   onClick={handleSubmit(onSubmit)}
                 >
-                  {createBudgetMutation.isPending
+                  {isCreating
                     ? "Creating..."
                     : "Create Budget"}
                 </Button>

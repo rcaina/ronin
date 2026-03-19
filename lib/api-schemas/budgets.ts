@@ -1,4 +1,4 @@
-import { PeriodType, StrategyType, CategoryType } from "@prisma/client"
+import { PeriodType, StrategyType, CategoryType, CardType } from "@prisma/client"
 import { z } from "zod"
 
 export const createBudgetSchema = z.object({
@@ -50,6 +50,66 @@ export const createBudgetSchema = z.object({
     .optional(),
 })
 
+const cardToIncludeSchema = z.object({
+  name: z.string().min(1, "Card name is required"),
+  cardType: z.nativeEnum(CardType),
+  spendingLimit: z.coerce.number().optional(),
+  userId: z.string().min(1, "User id is required"),
+})
+
+// Budget + cards + incomes in a single call. Cards are created first;
+// if any card creation/copy fails, income creation is skipped.
+export const createBudgetWithCardsSchema = z.object({
+  name: z.string().min(1, "Budget name is required"),
+  strategy: z.enum([StrategyType.ZERO_SUM, StrategyType.FIFTY_THIRTY_TWENTY]),
+  isRecurring: z.boolean(),
+  period: z.enum([PeriodType.WEEKLY, PeriodType.MONTHLY, PeriodType.QUARTERLY, PeriodType.YEARLY, PeriodType.ONE_TIME]),
+  startAt: z.string()
+    .transform((val) => {
+      // Handle date-only strings like '2025-06-20'
+      if (/^\d{4}-\d{2}-\d{2}$/.exec(val)) {
+        return `${val}T00:00:00.000Z`;
+      }
+      return val;
+    })
+    .pipe(z.string().datetime("Invalid start date format")),
+  endAt: z.string()
+    .transform((val) => {
+      // Handle date-only strings like '2025-06-20'
+      if (/^\d{4}-\d{2}-\d{2}$/.exec(val)) {
+        return `${val}T00:00:00.000Z`;
+      }
+      return val;
+    })
+    .pipe(z.string().datetime("Invalid end date format")),
+  categoryAllocations: z.array(z.object({
+    name: z.string().min(1, "Category name is required"),
+    group: z.nativeEnum(CategoryType),
+    allocatedAmount: z.coerce.number().min(0, "Allocated amount must be non-negative"),
+  })).optional(),
+  incomes: z
+    .array(
+      z.object({
+        amount: z.coerce.number().positive("Income amount must be positive"),
+        source: z.string().min(1, "Income source is required"),
+        description: z.string().optional(),
+        isPlanned: z.boolean(),
+        frequency: z.enum([
+          PeriodType.WEEKLY,
+          PeriodType.MONTHLY,
+          PeriodType.QUARTERLY,
+          PeriodType.YEARLY,
+          PeriodType.ONE_TIME,
+        ]),
+      }),
+    )
+    .min(1, "At least one income is required")
+    .optional(),
+  cardsToInclude: z.array(cardToIncludeSchema).optional(),
+})
+
 export const updateBudgetSchema = createBudgetSchema.partial()
 
 export type CreateBudgetSchema = z.infer<typeof createBudgetSchema> 
+
+export type CreateBudgetWithCardsSchema = z.infer<typeof createBudgetWithCardsSchema>

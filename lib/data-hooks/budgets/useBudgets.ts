@@ -8,6 +8,8 @@ import {
   markBudgetArchived,
   reactivateBudget,
   createBudget,
+  createBudgetFromScratchWithCards,
+  duplicateBudgetWithCards,
   duplicateBudget,
 } from "../services/budgets";
 import type { UpdateBudgetData } from "@/lib/api-services/budgets";
@@ -87,6 +89,31 @@ export const useCreateBudget = () => {
 
   return useMutation<CreateBudgetResponse, Error, CreateBudgetVariables>({
     mutationFn: createBudget,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["budgets"] });
+    },
+  });
+};
+
+type CreateBudgetWithCardsVariables = Parameters<typeof createBudgetFromScratchWithCards>[0];
+type CreateBudgetWithCardsResponse = Awaited<ReturnType<typeof createBudgetFromScratchWithCards>>;
+
+export const useCreateBudgetFromScratchWithCards = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<CreateBudgetWithCardsResponse, Error, CreateBudgetWithCardsVariables>({
+    mutationFn: createBudgetFromScratchWithCards,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["budgets"] });
+    },
+  });
+};
+
+export const useDuplicateBudgetWithCards = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<CreateBudgetWithCardsResponse, Error, CreateBudgetWithCardsVariables>({
+    mutationFn: duplicateBudgetWithCards,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },

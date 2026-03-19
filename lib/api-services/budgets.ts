@@ -4,7 +4,8 @@ import { formatBudget, formatBudgetCategories } from "../db/converter"
 import type { PrismaClientTx } from "../prisma"
 import type { UpdateBudgetCategoryData } from "../data-hooks/budgets/useBudgetCategories"
 import type { z } from "zod"
-import type { createBudgetSchema } from "../api-schemas/budgets"
+import type { createBudgetSchema, createBudgetWithCardsSchema } from "../api-schemas/budgets"
+import { createCard as createCardService } from "./cards"
 
 export interface CreateBudgetData {
   name: string
@@ -28,6 +29,35 @@ export interface CreateBudgetData {
     isPlanned: boolean
     frequency: PeriodType
   }>
+}
+
+export interface CardToIncludeData {
+  name: string
+  cardType: CardType
+  spendingLimit?: number
+  userId: string
+}
+
+export interface CreateBudgetWithCardsData {
+  name: string
+  strategy: StrategyType
+  period: PeriodType
+  startAt: string
+  endAt: string
+  isRecurring: boolean
+  categoryAllocations?: Array<{
+    name: string
+    group: CategoryType
+    allocatedAmount: number
+  }>
+  incomes?: Array<{
+    amount: number
+    source: string
+    description?: string
+    isPlanned: boolean
+    frequency: PeriodType
+  }>
+  cardsToInclude?: CardToIncludeData[]
 }
 
 export interface UpdateBudgetData {
@@ -237,6 +267,152 @@ export async function createBudget(
   }
 
   return budget
+}
+
+async function createBudgetWithCardsAndIncomes(
+  tx: PrismaClientTx,
+  data: z.infer<typeof createBudgetWithCardsSchema>,
+  user: User & { accountId: string }
+) {
+  const budget = await tx.budget.create({
+    data: {
+      name: data.name,
+      strategy: data.strategy,
+      period: data.period,
+      startAt: new Date(data.startAt),
+      endAt: new Date(data.endAt),
+      isRecurring: data.isRecurring,
+      accountId: user.accountId,
+    },
+  })
+
+  const failedCards: string[] = []
+  const createdCards: Card[] = []
+
+  // Create cards first (best effort). If any card fails, we skip income creation.
+  const cardsToInclude = data.cardsToInclude ?? []
+  for (const card of cardsToInclude) {
+    try {
+      const createdCard = await createCardService(tx, { ...card, budgetId: budget.id }, user)
+      createdCards.push(createdCard)
+    } catch {
+      failedCards.push(card.name)
+    }
+  }
+
+  // Ensure we have a debit card to attach incomes to.
+  const debitCards = createdCards.filter(
+    (c) => c.cardType === CardType.DEBIT || c.cardType === CardType.BUSINESS_DEBIT,
+  )
+  let debitCardToUse = debitCards.find((c) => c.name === "Main") ?? debitCards[0] ?? null
+
+  if (!debitCardToUse) {
+    try {
+      const defaultDebitCard = await createCardService(
+        tx,
+        {
+          name: "Main",
+          cardType: CardType.DEBIT,
+          userId: user.id,
+          budgetId: budget.id,
+        },
+        user,
+      )
+      createdCards.push(defaultDebitCard)
+      debitCardToUse = defaultDebitCard
+    } catch {
+      failedCards.push("Main")
+      debitCardToUse = null
+    }
+  }
+
+  // Create budget category allocations
+  if (data.categoryAllocations && data.categoryAllocations.length > 0) {
+    // Fetch all default categories to match against (same behavior as `createBudget`)
+    const defaultCategories = await tx.category.findMany({
+      where: {
+        budgetId: null,
+        defaultCategoryId: null,
+        deleted: null,
+      },
+    })
+
+    const defaultCategoryMap = new Map<string, string>()
+    defaultCategories.forEach((cat) => {
+      const key = `${cat.name}|${cat.group}`
+      defaultCategoryMap.set(key, cat.id)
+    })
+
+    for (const { name, group, allocatedAmount } of data.categoryAllocations) {
+      const key = `${name}|${group}`
+      const defaultCategoryId = defaultCategoryMap.get(key) ?? null
+
+      await tx.category.create({
+        data: {
+          budgetId: budget.id,
+          name,
+          group,
+          allocatedAmount,
+          defaultCategoryId,
+        },
+      })
+    }
+  }
+
+  const failedIncomes: string[] = []
+
+  // Requirement: if any card creation/copy fails, incomes should not be created.
+  const incomesToCreate = data.incomes ?? []
+  const debitCardId = debitCardToUse?.id
+  const shouldCreateIncomes =
+    failedCards.length === 0 && debitCardId && incomesToCreate.length > 0
+
+  if (shouldCreateIncomes) {
+    for (const income of incomesToCreate) {
+      try {
+        await tx.transaction.create({
+          data: {
+            name: income.source,
+            description: income.description,
+            amount: income.amount, // Positive amount for income
+            budgetId: budget.id,
+            cardId: debitCardId,
+            accountId: user.accountId,
+            userId: user.id,
+            transactionType: TransactionType.INCOME,
+            categoryId: null, // Income transactions don't have categories
+            occurredAt: new Date(),
+          },
+        })
+      } catch {
+        failedIncomes.push(income.source)
+      }
+    }
+  }
+
+  return {
+    message: "Budget created successfully",
+    budget,
+    failedCards,
+    failedIncomes,
+    incomesSkipped: failedCards.length > 0,
+  }
+}
+
+export async function createBudgetFromScratchWithCards(
+  tx: PrismaClientTx,
+  data: z.infer<typeof createBudgetWithCardsSchema>,
+  user: User & { accountId: string }
+) {
+  return createBudgetWithCardsAndIncomes(tx, data, user)
+}
+
+export async function duplicateBudgetWithCards(
+  tx: PrismaClientTx,
+  data: z.infer<typeof createBudgetWithCardsSchema>,
+  user: User & { accountId: string }
+) {
+  return createBudgetWithCardsAndIncomes(tx, data, user)
 }
 
 export async function updateBudget(
