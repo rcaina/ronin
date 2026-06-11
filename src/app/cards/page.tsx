@@ -48,6 +48,7 @@ const CardsPage = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [showCardPaymentModal, setShowCardPaymentModal] = useState(false);
+  const [activeOwner, setActiveOwner] = useState<string>("all");
 
   // Map API cards to component cards
   const cards: Card[] = useMemo(() => {
@@ -216,22 +217,58 @@ const CardsPage = () => {
     return { totalSpent, totalLimit, activeCards, creditCards };
   }, [cards]);
 
+  // Build a tab per card owner. Only surface tabs when more than one person
+  // owns cards; a single owner just shows everything (no tabs needed).
+  const ownerTabs = useMemo(() => {
+    const byOwner = new Map<
+      string,
+      { id: string; label: string; count: number }
+    >();
+    for (const card of cards) {
+      const existing = byOwner.get(card.userId);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        byOwner.set(card.userId, {
+          id: card.userId,
+          label: card.user,
+          count: 1,
+        });
+      }
+    }
+    const owners = Array.from(byOwner.values());
+    if (owners.length <= 1) return [];
+    return [{ id: "all", label: "All", count: cards.length }, ...owners];
+  }, [cards]);
+
+  // Guard against a stale selection (e.g. the selected owner's last card was
+  // deleted) by falling back to "all" when the active owner has no tab.
+  const effectiveOwner = useMemo(() => {
+    if (activeOwner === "all") return "all";
+    return ownerTabs.some((tab) => tab.id === activeOwner) ? activeOwner : "all";
+  }, [activeOwner, ownerTabs]);
+
+  const ownerFilteredCards = useMemo(() => {
+    if (effectiveOwner === "all") return cards;
+    return cards.filter((card) => card.userId === effectiveOwner);
+  }, [cards, effectiveOwner]);
+
   // Memoize filtered card arrays
   const creditCardsArray = useMemo(() => {
-    return cards.filter(
+    return ownerFilteredCards.filter(
       (card) => card.type === "credit" || card.type === "business_credit",
     );
-  }, [cards]);
+  }, [ownerFilteredCards]);
 
   const debitCardsArray = useMemo(() => {
-    return cards.filter(
+    return ownerFilteredCards.filter(
       (card) => card.type === "debit" || card.type === "business_debit",
     );
-  }, [cards]);
+  }, [ownerFilteredCards]);
 
   const cashCardsArray = useMemo(() => {
-    return cards.filter((card) => card.type === "cash");
-  }, [cards]);
+    return ownerFilteredCards.filter((card) => card.type === "cash");
+  }, [ownerFilteredCards]);
 
   if (isLoading) {
     return <LoadingSpinner message="Loading cards..." />;
@@ -314,10 +351,40 @@ const CardsPage = () => {
             </div>
 
             {/* Cards Grid */}
-            <div className="mb-6">
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-xl font-semibold tracking-tight text-gray-900">
                 Account cards
               </h2>
+
+              {/* Owner tabs — segmented control (only when >1 person owns cards) */}
+              {ownerTabs.length > 1 && (
+                <div className="scrollbar-hide -mx-2 overflow-x-auto px-2 sm:mx-0 sm:overflow-visible sm:px-0">
+                  <div className="inline-flex rounded-full bg-surface-muted p-1">
+                    {ownerTabs.map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveOwner(tab.id)}
+                        className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
+                          effectiveOwner === tab.id
+                            ? "bg-white text-gray-900 shadow-soft"
+                            : "text-gray-500 hover:text-gray-700"
+                        }`}
+                      >
+                        {tab.label}
+                        <span
+                          className={`rounded-full px-1.5 py-0.5 text-xs font-semibold tabular-nums ${
+                            effectiveOwner === tab.id
+                              ? "bg-secondary/15 text-secondary-700"
+                              : "bg-gray-200/70 text-gray-500"
+                          }`}
+                        >
+                          {tab.count}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
