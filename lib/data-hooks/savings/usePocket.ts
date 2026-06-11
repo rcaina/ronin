@@ -1,12 +1,21 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import type { PocketSummary } from "@/lib/types/savings";
 import type { AllocationSummary } from "@/lib/types/savings";
-import type { CreateAllocationSchema, UpdateAllocationSchema } from "@/lib/api-schemas/savings";
+import type {
+  CreateAllocationSchema,
+  UpdateAllocationSchema,
+} from "@/lib/api-schemas/savings";
 import { pocketsKey } from "./usePockets";
 import { savingsKey } from "./useSavings";
 
-export const pocketKey = (pocketId: string) => [...pocketsKey, pocketId] as const;
+export const pocketKey = (pocketId: string) =>
+  [...pocketsKey, pocketId] as const;
 
 export const usePocket = (pocketId: string) => {
   const { data: session } = useSession();
@@ -49,7 +58,10 @@ export const useCreateAllocation = () => {
   });
 };
 
-const updateAllocation = async (allocationId: string, data: UpdateAllocationSchema) => {
+const updateAllocation = async (
+  allocationId: string,
+  data: UpdateAllocationSchema,
+) => {
   const res = await fetch(`/api/savings/allocations/${allocationId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -63,8 +75,13 @@ export const useUpdateAllocation = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationKey: ["savings", "allocations"],
-    mutationFn: ({ allocationId, data }: { allocationId: string; data: UpdateAllocationSchema }) => 
-      updateAllocation(allocationId, data),
+    mutationFn: ({
+      allocationId,
+      data,
+    }: {
+      allocationId: string;
+      data: UpdateAllocationSchema;
+    }) => updateAllocation(allocationId, data),
     onSuccess: () => {
       // Invalidate all pocket queries and savings queries to refresh allocations
       void qc.invalidateQueries({ queryKey: pocketsKey });
@@ -73,4 +90,3 @@ export const useUpdateAllocation = () => {
     },
   });
 };
-

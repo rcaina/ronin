@@ -1,11 +1,14 @@
-import { type CategoryType } from "@prisma/client"
+import { type CategoryType } from "@prisma/client";
 import type { PrismaClientTx } from "../prisma";
 import type { z } from "zod";
 import type { createCategorySchema } from "../api-schemas/categories";
-import type { GroupedCategories, UpdateCategoryRequest } from "../types/category";
+import type {
+  GroupedCategories,
+  UpdateCategoryRequest,
+} from "../types/category";
 
 export async function getCategories(
-  tx: PrismaClientTx
+  tx: PrismaClientTx,
 ): Promise<GroupedCategories> {
   const categories = await tx.category.findMany({
     where: {
@@ -14,7 +17,7 @@ export async function getCategories(
       defaultCategoryId: null,
     },
     orderBy: {
-      name: 'asc',
+      name: "asc",
     },
   });
 
@@ -25,7 +28,7 @@ export async function getCategories(
     investment: [],
   };
 
-  categories.forEach(category => {
+  categories.forEach((category) => {
     const categoryData = {
       id: category.id,
       name: category.name,
@@ -35,13 +38,13 @@ export async function getCategories(
     };
 
     switch (category.group) {
-      case 'WANTS':
+      case "WANTS":
         grouped.wants.push(categoryData);
         break;
-      case 'NEEDS':
+      case "NEEDS":
         grouped.needs.push(categoryData);
         break;
-      case 'INVESTMENT':
+      case "INVESTMENT":
         grouped.investment.push(categoryData);
         break;
     }
@@ -52,7 +55,7 @@ export async function getCategories(
 
 export async function createCategory(
   tx: PrismaClientTx,
-  data: z.infer<typeof createCategorySchema>
+  data: z.infer<typeof createCategorySchema>,
 ) {
   return await tx.category.create({
     data: {
@@ -63,10 +66,7 @@ export async function createCategory(
   });
 }
 
-export async function deleteCategory(
-  tx: PrismaClientTx,
-  id: string
-) {
+export async function deleteCategory(tx: PrismaClientTx, id: string) {
   return await tx.category.update({
     where: {
       id,
@@ -81,7 +81,7 @@ export async function deleteCategory(
 export async function updateCategory(
   tx: PrismaClientTx,
   id: string,
-  data: UpdateCategoryRequest
+  data: UpdateCategoryRequest,
 ) {
   return await tx.category.update({
     where: {
@@ -93,4 +93,4 @@ export async function updateCategory(
       group: data.group,
     },
   });
-} 
+}

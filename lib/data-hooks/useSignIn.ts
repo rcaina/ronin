@@ -21,14 +21,12 @@ export function useSignIn(): UseSignInReturn {
 
     try {
       await signIn(data);
-      
+
       // Redirect to the main page on successful sign-in
       router.push("/");
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "An error occurred during sign in"
+        err instanceof Error ? err.message : "An error occurred during sign in",
       );
     } finally {
       setIsLoading(false);
@@ -45,4 +43,4 @@ export function useSignIn(): UseSignInReturn {
     error,
     resetError,
   };
-} 
+}

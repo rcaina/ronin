@@ -39,18 +39,18 @@ export const getCardColor = (userId: string): string => {
   if (!userId) {
     return cardColors[0] ?? "bg-gradient-to-br from-blue-600 to-purple-600"; // Default to first color if no ID
   }
-  
+
   // Use the user ID to generate a consistent index
-  const hash = userId.split('').reduce((acc, char) => {
+  const hash = userId.split("").reduce((acc, char) => {
     return char.charCodeAt(0) + ((acc << 5) - acc);
   }, 0);
   const index = Math.abs(hash) % cardColors.length;
-  
+
   const selectedColor = cardColors[index];
   if (!selectedColor) {
     return cardColors[0] ?? "bg-gradient-to-br from-blue-600 to-purple-600"; // Fallback to first color
   }
-  
+
   return selectedColor;
 };
 
@@ -59,7 +59,9 @@ export const getCardColor = (userId: string): string => {
  * @param cardType - The card type from the API
  * @returns The card type for the component
  */
-export const mapCardType = (cardType: string): "credit" | "debit" | "business_credit" | "business_debit" | "cash" => {
+export const mapCardType = (
+  cardType: string,
+): "credit" | "debit" | "business_credit" | "business_debit" | "cash" => {
   switch (cardType) {
     case CardType.CREDIT:
       return "credit";
@@ -72,21 +74,21 @@ export const mapCardType = (cardType: string): "credit" | "debit" | "business_cr
     default:
       return "cash";
   }
-}; 
+};
 
 // Utility function to map API card to component card
 export const mapApiCardToCard = (apiCard: ApiCard): Card => {
-    const cardColor = getCardColor(apiCard.userId);
-    
-    return {
-      id: apiCard.id ?? "",
-      name: apiCard.name,
-      type: mapCardType(apiCard.cardType),
-      amountSpent: apiCard.amountSpent ?? 0,
-      spendingLimit: apiCard.spendingLimit,
-      userId: apiCard.userId,
-      user: apiCard.user?.name ?? "Unknown User",
-      isActive: true, // Placeholder, replace with real status if available
-      color: cardColor,
-    };
+  const cardColor = getCardColor(apiCard.userId);
+
+  return {
+    id: apiCard.id ?? "",
+    name: apiCard.name,
+    type: mapCardType(apiCard.cardType),
+    amountSpent: apiCard.amountSpent ?? 0,
+    spendingLimit: apiCard.spendingLimit,
+    userId: apiCard.userId,
+    user: apiCard.user?.name ?? "Unknown User",
+    isActive: true, // Placeholder, replace with real status if available
+    color: cardColor,
   };
+};

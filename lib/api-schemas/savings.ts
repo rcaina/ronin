@@ -39,6 +39,3 @@ export type CreatePocketSchema = z.infer<typeof createPocketSchema>;
 export type UpdatePocketSchema = z.infer<typeof updatePocketSchema>;
 export type CreateAllocationSchema = z.infer<typeof createAllocationSchema>;
 export type UpdateAllocationSchema = z.infer<typeof updateAllocationSchema>;
-
-
-

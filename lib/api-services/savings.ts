@@ -1,23 +1,28 @@
 import type { User } from "@prisma/client";
 import type { PrismaClientTx } from "@/lib/prisma";
-import type { CreatePocketSchema, CreateSavingsSchema, UpdatePocketSchema, CreateAllocationSchema, UpdateAllocationSchema } from "@/lib/api-schemas/savings";
+import type {
+  CreatePocketSchema,
+  CreateSavingsSchema,
+  UpdatePocketSchema,
+  CreateAllocationSchema,
+  UpdateAllocationSchema,
+} from "@/lib/api-schemas/savings";
 
-export const getSavings = async (
-  tx: PrismaClientTx,
-  accountId: string,
-) => await tx.savings.findMany({
+export const getSavings = async (tx: PrismaClientTx, accountId: string) =>
+  await tx.savings.findMany({
     where: { accountId, deleted: null },
     include: {
       pockets: { include: { allocations: true } },
     },
     orderBy: { createdAt: "desc" },
-  })
-  
+  });
+
 export const createSavings = async (
   tx: PrismaClientTx,
   data: CreateSavingsSchema,
   user: User & { accountId: string },
-) => await tx.savings.create({
+) =>
+  await tx.savings.create({
     data: {
       name: data.name,
       accountId: user.accountId,
@@ -28,12 +33,12 @@ export const createSavings = async (
     },
   });
 
-
 export const getPockets = async (
   tx: PrismaClientTx,
   accountId: string,
   savingsId?: string,
-) => await tx.pocket.findMany({
+) =>
+  await tx.pocket.findMany({
     where: {
       savings: {
         accountId,
@@ -55,7 +60,7 @@ export const createPocket = async (
     where: { id: data.savingsId, accountId: user.accountId, deleted: null },
     select: { id: true },
   });
-  
+
   if (!savings) return null;
 
   return await tx.pocket.create({
@@ -68,40 +73,42 @@ export const createPocket = async (
     },
     include: { allocations: true },
   });
-}
+};
 
 export const getSavingsById = async (
   tx: PrismaClientTx,
   id: string,
   accountId: string,
-) => await tx.savings.findFirst({
-  where: { id, accountId, deleted: null },
-  include: {
-    pockets: {
-      where: { deleted: null },
-      include: { 
-        allocations: true,
+) =>
+  await tx.savings.findFirst({
+    where: { id, accountId, deleted: null },
+    include: {
+      pockets: {
+        where: { deleted: null },
+        include: {
+          allocations: true,
+        },
+        orderBy: { createdAt: "desc" },
       },
-      orderBy: { createdAt: "desc" },
     },
-  },
-});
+  });
 
 export const getPocketById = async (
   tx: PrismaClientTx,
   pocketId: string,
   accountId: string,
-) => await tx.pocket.findFirst({
-  where: {
-    id: pocketId,
-    savings: {
-      accountId,
+) =>
+  await tx.pocket.findFirst({
+    where: {
+      id: pocketId,
+      savings: {
+        accountId,
+        deleted: null,
+      },
       deleted: null,
     },
-    deleted: null,
-  },
-  include: { allocations: true },
-});
+    include: { allocations: true },
+  });
 
 export const updatePocket = async (
   tx: PrismaClientTx,
@@ -134,7 +141,7 @@ export const updatePocket = async (
     },
     include: { allocations: true },
   });
-}
+};
 
 export const deletePocket = async (
   tx: PrismaClientTx,
@@ -162,7 +169,7 @@ export const deletePocket = async (
       deleted: new Date(),
     },
   });
-}
+};
 
 export const createAllocation = async (
   tx: PrismaClientTx,
@@ -205,7 +212,7 @@ export const createAllocation = async (
       },
     },
   });
-}
+};
 
 export const updateAllocation = async (
   tx: PrismaClientTx,
@@ -248,7 +255,9 @@ export const updateAllocation = async (
 
   // Handle occurredAt update
   if (data.occurredAt !== undefined) {
-    updateData.occurredAt = data.occurredAt ? new Date(data.occurredAt) : undefined;
+    updateData.occurredAt = data.occurredAt
+      ? new Date(data.occurredAt)
+      : undefined;
   }
 
   return await tx.allocation.update({
@@ -264,7 +273,7 @@ export const updateAllocation = async (
       },
     },
   });
-}
+};
 
 export const deleteAllocation = async (
   tx: PrismaClientTx,
@@ -291,6 +300,4 @@ export const deleteAllocation = async (
   return await tx.allocation.delete({
     where: { id: allocationId },
   });
-}
-
-
+};

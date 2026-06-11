@@ -16,17 +16,23 @@ import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import { useState, useEffect } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
-import { type CategoryType, TransactionType, CardType } from "@prisma/client";
-import {
-  formatDateUTC,
-  getCategoryBadgeColor,
-  getGroupColor,
-  roundToCents,
-} from "@/lib/utils";
+import { TransactionType, CardType } from "@prisma/client";
+import { formatDateUTC, roundToCents } from "@/lib/utils";
 import { calculateCategorySpent } from "@/lib/utils/spending";
 import { useBudgetDetailStats } from "@/lib/data-hooks/budgets/useBudgetStats";
 import { useBudgetHeader } from "../../../../components/budgets/BudgetHeaderContext";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
+import {
+  CHART_COLORS,
+  GROUP_COLORS,
+  ChartEmptyState,
+  chartAxisProps,
+  chartGridProps,
+  chartTooltipItemStyle,
+  chartTooltipLabelStyle,
+  chartTooltipStyle,
+  formatCompactCurrency,
+} from "@/components/recharts/theme";
 import {
   PieChart,
   Pie,
@@ -36,10 +42,27 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   CartesianGrid,
 } from "recharts";
+
+// Themed chip classes for category groups (matches GROUP_COLORS in the chart theme).
+const getGroupChipClasses = (group?: string) => {
+  switch (String(group ?? "").toUpperCase()) {
+    case "NEEDS":
+      return "bg-[#5b7a9d]/10 text-[#5b7a9d]";
+    case "WANTS":
+      return "bg-secondary-100 text-secondary-800";
+    case "INVESTMENT":
+      return "bg-[#6c9a8b]/10 text-[#6c9a8b]";
+    default:
+      return "bg-gray-100 text-gray-600";
+  }
+};
+
+const getGroupDotColor = (group?: string) =>
+  GROUP_COLORS[String(group ?? "").toUpperCase()] ?? "#9ca3af";
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();
@@ -55,13 +78,13 @@ const BudgetDetailsPage = () => {
     setActions([
       {
         icon: <Plus className="h-4 w-4" />,
-        label: "Add Transaction",
+        label: "Add transaction",
         onClick: () => setIsAddTransactionOpen(true),
         variant: "primary" as const,
       },
       {
         icon: <DollarSign className="h-4 w-4" />,
-        label: "Pay Credit Card",
+        label: "Pay credit card",
         onClick: () => setIsCardPaymentOpen(true),
         variant: "secondary" as const,
       },
@@ -85,10 +108,10 @@ const BudgetDetailsPage = () => {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-surface">
         <div className="text-center">
           <div className="mb-4 text-red-500">
-            <TrendingDown className="mx-auto h-12 w-12" />
+            <TrendingDown className="mx-auto h-12 w-12" strokeWidth={1.5} />
           </div>
           <div className="mb-2 text-lg text-red-600">Error loading budget</div>
           <div className="text-sm text-gray-500">{error.message}</div>
@@ -99,12 +122,14 @@ const BudgetDetailsPage = () => {
 
   if (!budget) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-surface">
         <div className="text-center">
-          <div className="mb-4 text-gray-400">
-            <Target className="mx-auto h-12 w-12" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+            <Target className="h-7 w-7" strokeWidth={1.5} />
           </div>
-          <div className="text-lg text-gray-600">Budget not found</div>
+          <div className="text-lg font-semibold text-gray-900">
+            Budget not found
+          </div>
         </div>
       </div>
     );
@@ -116,29 +141,29 @@ const BudgetDetailsPage = () => {
       case "ACTIVE":
         return {
           status: "Active",
-          color: "text-green-600",
-          bg: "bg-green-50",
+          color: "text-secondary-700",
+          bg: "bg-secondary-100",
           subtitle: "Budget is active",
         };
       case "COMPLETED":
         return {
           status: "Completed",
-          color: "text-blue-600",
-          bg: "bg-blue-50",
+          color: "text-green-600",
+          bg: "bg-green-50",
           subtitle: "Budget period finished",
         };
       case "ARCHIVED":
         return {
           status: "Archived",
           color: "text-gray-600",
-          bg: "bg-gray-50",
+          bg: "bg-gray-100",
           subtitle: "Budget is archived",
         };
       default:
         return {
           status: "Unknown",
           color: "text-gray-600",
-          bg: "bg-gray-50",
+          bg: "bg-gray-100",
           subtitle: "Status unknown",
         };
     }
@@ -195,14 +220,14 @@ const BudgetDetailsPage = () => {
 
   return (
     <>
-      <div className="flex flex-col lg:h-full lg:flex-col">
-        <div className="mx-auto flex w-full flex-col px-2 py-4 pb-32 sm:px-4 sm:py-6 sm:pb-32 lg:flex-1 lg:overflow-hidden lg:px-8 lg:py-4">
+      <div className="flex flex-col bg-surface lg:h-full lg:flex-col">
+        <div className="mx-auto flex w-full flex-col px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:flex-1 lg:overflow-hidden lg:px-8 lg:py-4 lg:pb-8">
           {/* Budget Overview Graphs */}
           <div className="mb-4 grid flex-shrink-0 grid-cols-2 gap-2 sm:mb-6 sm:grid-cols-4 sm:gap-3 lg:gap-4">
             {/* Budget Progress Circular Progress Bar */}
-            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+            <div className="card-surface p-3 sm:p-4">
               <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
-                Budget Progress
+                Budget progress
               </h3>
               {totalIncome > 0 ? (
                 <div className="flex flex-col items-center justify-center">
@@ -218,7 +243,7 @@ const BudgetDetailsPage = () => {
                         cy="60"
                         r="50"
                         fill="none"
-                        stroke="#e5e7eb"
+                        stroke="#f3f4f6"
                         strokeWidth="8"
                       />
                       {/* Progress circle */}
@@ -229,10 +254,10 @@ const BudgetDetailsPage = () => {
                         fill="none"
                         stroke={
                           spendingPercentage > 100
-                            ? "#ef4444"
+                            ? "#dc2626"
                             : spendingPercentage === 100
-                              ? "#10b981"
-                              : "#8b5cf6"
+                              ? "#16a34a"
+                              : CHART_COLORS[0]
                         }
                         strokeWidth="8"
                         strokeLinecap="round"
@@ -244,13 +269,13 @@ const BudgetDetailsPage = () => {
                           (1 - Math.min(spendingPercentage, 100) / 100)
                         }`}
                         style={{
-                          transition: "stroke-dashoffset 0.5s ease-in-out",
+                          transition: "stroke-dashoffset 0.5s ease-out",
                         }}
                       />
                     </svg>
                     {/* Center text */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <div className="text-base font-bold text-gray-900 sm:text-lg">
+                      <div className="text-base font-bold tabular-nums tracking-tight text-gray-900 sm:text-lg">
                         {spendingPercentage.toFixed(1)}%
                       </div>
                       <div className="text-[10px] text-gray-500 sm:text-xs">
@@ -260,19 +285,18 @@ const BudgetDetailsPage = () => {
                   </div>
                 </div>
               ) : (
-                <div className="flex h-[140px] items-center justify-center text-gray-400">
-                  <div className="text-center">
-                    <Target className="mx-auto mb-1 h-6 w-6" />
-                    <p className="text-[10px]">No data</p>
-                  </div>
-                </div>
+                <ChartEmptyState
+                  icon={Target}
+                  message="No data yet"
+                  height={140}
+                />
               )}
             </div>
 
-            {/* Category Spending Pie Chart */}
-            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+            {/* Category Spending Donut Chart */}
+            <div className="card-surface p-3 sm:p-4">
               <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
-                Category Spending
+                Category spending
               </h3>
               {categorySpendingData.length > 0 ? (
                 <>
@@ -284,15 +308,21 @@ const BudgetDetailsPage = () => {
                         cy="50%"
                         labelLine={false}
                         label={false}
-                        outerRadius={50}
-                        fill="#8884d8"
+                        innerRadius={38}
+                        outerRadius={58}
+                        paddingAngle={3}
+                        cornerRadius={4}
                         dataKey="value"
+                        stroke="none"
                       >
                         {categorySpendingData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
                       <Tooltip
+                        contentStyle={chartTooltipStyle}
+                        labelStyle={chartTooltipLabelStyle}
+                        itemStyle={chartTooltipItemStyle}
                         formatter={(
                           value: number | undefined,
                           name?: string,
@@ -312,17 +342,14 @@ const BudgetDetailsPage = () => {
                       />
                     </PieChart>
                   </ChartContainer>
-                  <div className="mt-1 flex flex-wrap justify-center gap-1 text-[9px] sm:text-[10px]">
+                  <div className="mt-1 flex flex-wrap justify-center gap-x-2 gap-y-1 text-[10px]">
                     {categorySpendingData.slice(0, 3).map((item) => (
-                      <div
-                        key={item.name}
-                        className="flex items-center gap-0.5"
-                      >
+                      <div key={item.name} className="flex items-center gap-1">
                         <div
                           className="h-1.5 w-1.5 rounded-full"
                           style={{ backgroundColor: item.color }}
                         />
-                        <span className="text-gray-600">
+                        <span className="text-gray-500">
                           {item.name.length > 8
                             ? item.name.substring(0, 8) + "..."
                             : item.name}
@@ -332,39 +359,64 @@ const BudgetDetailsPage = () => {
                   </div>
                 </>
               ) : (
-                <div className="flex h-[140px] items-center justify-center text-gray-400">
-                  <div className="text-center">
-                    <Target className="mx-auto mb-1 h-6 w-6" />
-                    <p className="text-[10px]">No spending</p>
-                  </div>
-                </div>
+                <ChartEmptyState
+                  icon={Target}
+                  message="No spending yet"
+                  height={140}
+                />
               )}
             </div>
 
             {/* Daily Spending Trend */}
-            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+            <div className="card-surface p-3 sm:p-4">
               <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
-                Daily Spending
+                Daily spending
               </h3>
               {dailySpendingData.length > 0 &&
               dailySpendingData.some((d) => d.spending > 0) ? (
                 <ChartContainer height={140}>
-                  <LineChart data={dailySpendingData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <AreaChart data={dailySpendingData}>
+                    <defs>
+                      <linearGradient
+                        id="budgetDetailDailyFill"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor={CHART_COLORS[0]}
+                          stopOpacity={0.3}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor={CHART_COLORS[0]}
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid {...chartGridProps} />
                     <XAxis
                       dataKey="day"
-                      fontSize={8}
-                      tick={{ fontSize: 8 }}
-                      height={25}
+                      {...chartAxisProps}
+                      fontSize={9}
+                      height={24}
                     />
                     <YAxis
                       tickFormatter={(value: unknown) =>
-                        `$${typeof value === "number" ? (value / 1000).toFixed(0) + "k" : ""}`
+                        typeof value === "number"
+                          ? formatCompactCurrency(value)
+                          : ""
                       }
-                      fontSize={8}
-                      width={35}
+                      {...chartAxisProps}
+                      fontSize={9}
+                      width={38}
                     />
                     <Tooltip
+                      contentStyle={chartTooltipStyle}
+                      labelStyle={chartTooltipLabelStyle}
+                      itemStyle={chartTooltipItemStyle}
                       formatter={(
                         value: number | undefined,
                         payload: unknown,
@@ -380,50 +432,57 @@ const BudgetDetailsPage = () => {
                         ];
                       }}
                     />
-                    <Line
+                    <Area
                       type="monotone"
                       dataKey="spending"
-                      stroke="#8b5cf6"
+                      stroke={CHART_COLORS[0]}
                       strokeWidth={2}
-                      dot={{ fill: "#8b5cf6", r: 2 }}
-                      activeDot={{ r: 4 }}
+                      fill="url(#budgetDetailDailyFill)"
+                      dot={false}
+                      activeDot={{ r: 4, strokeWidth: 0 }}
                     />
-                  </LineChart>
+                  </AreaChart>
                 </ChartContainer>
               ) : (
-                <div className="flex h-[140px] items-center justify-center text-gray-400">
-                  <div className="text-center">
-                    <TrendingUp className="mx-auto mb-1 h-6 w-6" />
-                    <p className="text-[10px]">No data</p>
-                  </div>
-                </div>
+                <ChartEmptyState
+                  icon={TrendingUp}
+                  message="No spending data"
+                  height={140}
+                />
               )}
             </div>
 
             {/* Category Usage Bar Chart */}
-            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+            <div className="card-surface p-3 sm:p-4">
               <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
-                Top Categories
+                Top categories
               </h3>
               {categoryUsageData.length > 0 ? (
                 <ChartContainer height={140}>
                   <BarChart data={categoryUsageData}>
                     <XAxis
                       dataKey="name"
-                      angle={-45}
+                      angle={-35}
                       textAnchor="end"
                       height={40}
-                      fontSize={7}
-                      tick={{ fontSize: 7 }}
+                      {...chartAxisProps}
+                      fontSize={8}
                     />
                     <YAxis
                       tickFormatter={(value: unknown) =>
-                        `$${typeof value === "number" ? (value / 1000).toFixed(0) + "k" : ""}`
+                        typeof value === "number"
+                          ? formatCompactCurrency(value)
+                          : ""
                       }
-                      fontSize={7}
-                      width={35}
+                      {...chartAxisProps}
+                      fontSize={8}
+                      width={38}
                     />
                     <Tooltip
+                      cursor={{ fill: "rgba(185, 161, 94, 0.08)" }}
+                      contentStyle={chartTooltipStyle}
+                      labelStyle={chartTooltipLabelStyle}
+                      itemStyle={chartTooltipItemStyle}
                       formatter={(
                         value: number | undefined,
                         name?: string,
@@ -446,24 +505,23 @@ const BudgetDetailsPage = () => {
                     <Bar
                       dataKey="remaining"
                       stackId="a"
-                      fill="#e5e7eb"
+                      fill="#efeeeb"
                       radius={[0, 0, 0, 0]}
                     />
                     <Bar
                       dataKey="spent"
                       stackId="a"
-                      fill="#8b5cf6"
-                      radius={[2, 2, 0, 0]}
+                      fill={CHART_COLORS[0]}
+                      radius={[6, 6, 0, 0]}
                     />
                   </BarChart>
                 </ChartContainer>
               ) : (
-                <div className="flex h-[140px] items-center justify-center text-gray-400">
-                  <div className="text-center">
-                    <Target className="mx-auto mb-1 h-6 w-6" />
-                    <p className="text-[10px]">No categories</p>
-                  </div>
-                </div>
+                <ChartEmptyState
+                  icon={Target}
+                  message="No categories"
+                  height={140}
+                />
               )}
             </div>
           </div>
@@ -471,49 +529,49 @@ const BudgetDetailsPage = () => {
           {/* Budget Details, Categories Summary, and Budget Summary - Three Columns */}
           <div className="mb-4 grid flex-shrink-0 grid-cols-1 gap-3 sm:mb-4 sm:grid-cols-2 sm:gap-4 lg:mb-4 lg:grid-cols-3">
             {/* Budget Details */}
-            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+            <div className="card-surface p-3 sm:p-4">
               <div className="mb-1.5 flex items-center justify-between sm:mb-2">
-                <h3 className="text-xs font-semibold text-gray-900 sm:text-sm lg:text-base">
-                  Budget Details
+                <h3 className="text-xs font-semibold tracking-tight text-gray-900 sm:text-sm lg:text-base">
+                  Budget details
                 </h3>
                 <button
                   onClick={() => setIsEditBudgetOpen(true)}
-                  className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                  className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
                   title="Edit budget details"
                 >
-                  <EditIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <EditIcon className="h-4 w-4" />
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                 <div>
-                  <span className="text-[10px] text-gray-500 sm:text-xs">
-                    Strategy:
+                  <span className="text-xs font-medium text-gray-500">
+                    Strategy
                   </span>
-                  <p className="text-xs font-medium sm:text-sm">
-                    {budget.strategy.replace("_", " ")}
+                  <p className="text-xs font-medium capitalize sm:text-sm">
+                    {budget.strategy.replace("_", " ").toLowerCase()}
                   </p>
                 </div>
                 <div>
-                  <span className="text-[10px] text-gray-500 sm:text-xs">
-                    Period:
+                  <span className="text-xs font-medium text-gray-500">
+                    Period
                   </span>
-                  <p className="text-xs font-medium sm:text-sm">
-                    {budget.period.replace("_", " ")}
+                  <p className="text-xs font-medium capitalize sm:text-sm">
+                    {budget.period.replace("_", " ").toLowerCase()}
                   </p>
                 </div>
                 <div>
-                  <span className="text-[10px] text-gray-500 sm:text-xs">
-                    Start Date:
+                  <span className="text-xs font-medium text-gray-500">
+                    Start date
                   </span>
-                  <p className="text-xs font-medium sm:text-sm">
+                  <p className="text-xs font-medium tabular-nums sm:text-sm">
                     {formatDateUTC(new Date(budget.startAt).toISOString())}
                   </p>
                 </div>
                 <div>
-                  <span className="text-[10px] text-gray-500 sm:text-xs">
-                    End Date:
+                  <span className="text-xs font-medium text-gray-500">
+                    End date
                   </span>
-                  <p className="text-xs font-medium sm:text-sm">
+                  <p className="text-xs font-medium tabular-nums sm:text-sm">
                     {formatDateUTC(new Date(budget.endAt).toISOString())}
                   </p>
                 </div>
@@ -521,18 +579,18 @@ const BudgetDetailsPage = () => {
             </div>
 
             {/* Categories Summary */}
-            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+            <div className="card-surface p-3 sm:p-4">
               <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-xs font-semibold text-gray-900 sm:text-sm lg:text-base">
-                  Categories Summary
+                <h3 className="text-xs font-semibold tracking-tight text-gray-900 sm:text-sm lg:text-base">
+                  Categories summary
                 </h3>
                 <button
                   onClick={() =>
                     router.push(`/budgets/${String(id)}/categories`)
                   }
-                  className="text-[10px] font-medium text-blue-600 hover:text-blue-700 sm:text-xs"
+                  className="text-[10px] font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800 sm:text-xs"
                 >
-                  View Details
+                  View details
                 </button>
               </div>
 
@@ -552,7 +610,8 @@ const BudgetDetailsPage = () => {
 
                     const totalSpent = roundToCents(
                       categories.reduce(
-                        (sum, cat) => sum + roundToCents(calculateCategorySpent(cat)),
+                        (sum, cat) =>
+                          sum + roundToCents(calculateCategorySpent(cat)),
                         0,
                       ),
                     );
@@ -581,28 +640,31 @@ const BudgetDetailsPage = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-1.5">
                             <div
-                              className={`h-2 w-2 rounded-full ${getGroupColor(group as CategoryType)}`}
+                              className="h-2 w-2 rounded-full"
+                              style={{
+                                backgroundColor: getGroupDotColor(group),
+                              }}
                             ></div>
                             <span className="text-xs font-medium text-gray-900">
                               {getGroupLabel(group)}
                             </span>
-                            <span className="text-[10px] text-gray-500">
+                            <span className="text-[10px] tabular-nums text-gray-500">
                               ({fullyUsedCount}/{categories.length})
                             </span>
                           </div>
                           <div className="text-right">
-                            <div className="text-xs font-medium text-gray-900">
+                            <div className="text-xs font-medium tabular-nums text-gray-900">
                               ${totalSpent.toLocaleString()} / $
                               {totalAllocated.toLocaleString()}
                             </div>
-                            <div className="text-[10px] text-gray-500">
+                            <div className="text-[10px] tabular-nums text-gray-500">
                               {usagePercentage.toFixed(1)}% used
                             </div>
                           </div>
                         </div>
-                        <div className="h-1.5 w-full rounded-full bg-gray-200">
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
                           <div
-                            className={`h-1.5 rounded-full transition-all duration-300 ${
+                            className={`h-1.5 rounded-full transition-all duration-500 ease-out ${
                               usagePercentage === 100
                                 ? "bg-green-500"
                                 : usagePercentage > 100
@@ -621,19 +683,19 @@ const BudgetDetailsPage = () => {
             </div>
 
             {/* Budget Summary */}
-            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
-              <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm lg:text-base">
-                Budget Summary
+            <div className="card-surface p-3 sm:p-4">
+              <h3 className="mb-2 text-xs font-semibold tracking-tight text-gray-900 sm:text-sm lg:text-base">
+                Budget summary
               </h3>
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <div>
                   <div className="mb-0.5 flex items-center gap-1.5">
-                    <DollarSign className="h-3 w-3 text-green-500 sm:h-4 sm:w-4" />
-                    <span className="text-[10px] text-gray-500 sm:text-xs">
-                      Total Income
+                    <DollarSign className="h-3 w-3 text-green-600 sm:h-4 sm:w-4" />
+                    <span className="text-xs font-medium text-gray-500">
+                      Total income
                     </span>
                   </div>
-                  <div className="text-sm font-bold text-gray-900 sm:text-base">
+                  <div className="text-sm font-bold tabular-nums tracking-tight text-gray-900 sm:text-base">
                     ${totalIncome.toLocaleString()}
                   </div>
                   <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
@@ -665,27 +727,27 @@ const BudgetDetailsPage = () => {
                 <div>
                   <div className="mb-0.5 flex items-center gap-1.5">
                     <TrendingDown className="h-3 w-3 text-red-500 sm:h-4 sm:w-4" />
-                    <span className="text-[10px] text-gray-500 sm:text-xs">
-                      Total Spent
+                    <span className="text-xs font-medium text-gray-500">
+                      Total spent
                     </span>
                   </div>
-                  <div className="text-sm font-bold text-gray-900 sm:text-base">
+                  <div className="text-sm font-bold tabular-nums tracking-tight text-gray-900 sm:text-base">
                     ${totalSpent.toLocaleString()}
                   </div>
-                  <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
+                  <div className="mt-0.5 text-[9px] tabular-nums text-gray-400 sm:text-[10px]">
                     {spendingPercentage.toFixed(1)}% of budget
                   </div>
                 </div>
 
                 <div>
                   <div className="mb-0.5 flex items-center gap-1.5">
-                    <TrendingUp className="h-3 w-3 text-blue-500 sm:h-4 sm:w-4" />
-                    <span className="text-[10px] text-gray-500 sm:text-xs">
+                    <TrendingUp className="h-3 w-3 text-secondary-600 sm:h-4 sm:w-4" />
+                    <span className="text-xs font-medium text-gray-500">
                       Remaining
                     </span>
                   </div>
                   <div
-                    className={`text-sm font-bold sm:text-base ${
+                    className={`text-sm font-bold tabular-nums tracking-tight sm:text-base ${
                       totalRemaining >= 0 ? "text-gray-900" : "text-red-600"
                     }`}
                   >
@@ -705,12 +767,12 @@ const BudgetDetailsPage = () => {
                         className={`h-1.5 w-1.5 rounded-full ${budgetStatusDisplay.color.replace("text-", "bg-")} m-0.5 sm:m-0.5 sm:h-2 sm:w-2`}
                       ></div>
                     </div>
-                    <span className="text-[10px] text-gray-500 sm:text-xs">
+                    <span className="text-xs font-medium text-gray-500">
                       Status
                     </span>
                   </div>
                   <div
-                    className={`text-sm font-bold sm:text-base ${budgetStatusDisplay.color}`}
+                    className={`text-sm font-bold tracking-tight sm:text-base ${budgetStatusDisplay.color}`}
                   >
                     {budgetStatusDisplay.status}
                   </div>
@@ -723,18 +785,18 @@ const BudgetDetailsPage = () => {
           </div>
 
           {/* Recent Transactions Summary */}
-          <div className="mb-4 flex min-h-0 flex-1 flex-col rounded-xl border bg-white p-3 shadow-sm sm:mb-4 sm:p-4">
+          <div className="card-surface mb-4 flex min-h-0 flex-1 flex-col p-3 sm:mb-4 sm:p-4">
             <div className="mb-3 flex flex-shrink-0 items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
-                Recent Transactions
+              <h3 className="text-sm font-semibold tracking-tight text-gray-900 sm:text-base lg:text-lg">
+                Recent transactions
               </h3>
               <button
                 onClick={() =>
                   router.push(`/budgets/${String(id)}/transactions`)
                 }
-                className="text-xs font-medium text-blue-600 hover:text-blue-700 sm:text-sm"
+                className="text-xs font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800 sm:text-sm"
               >
-                View All
+                View all
               </button>
             </div>
 
@@ -754,11 +816,11 @@ const BudgetDetailsPage = () => {
                   return (
                     <div className="py-6 text-center">
                       <p className="text-sm text-gray-500">
-                        No transactions yet
+                        No transactions yet — add your first one.
                       </p>
                       <button
                         onClick={() => setIsAddTransactionOpen(true)}
-                        className="mt-2 text-xs font-medium text-blue-600 hover:text-blue-700"
+                        className="mt-2 text-xs font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800"
                       >
                         Add your first transaction
                       </button>
@@ -782,36 +844,36 @@ const BudgetDetailsPage = () => {
                 return recentTransactions.map((transaction) => (
                   <div
                     key={transaction.id}
-                    className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-3"
+                    className="flex items-center justify-between rounded-xl border border-gray-100 bg-surface p-3"
                   >
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
                         <span className="text-sm font-medium text-gray-900">
-                          {transaction.name ?? "Unnamed Transaction"}
+                          {transaction.name ?? "Unnamed transaction"}
                         </span>
                         <span
-                          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                             transaction.transactionType ===
                             TransactionType.CARD_PAYMENT
-                              ? "bg-gray-200 text-gray-500"
-                              : transaction.categoryName
-                                ? getCategoryBadgeColor(
-                                    transaction.categoryGroup,
-                                  )
-                                : getCategoryBadgeColor()
+                              ? "bg-gray-100 text-gray-500"
+                              : getGroupChipClasses(
+                                  transaction.categoryName
+                                    ? transaction.categoryGroup
+                                    : undefined,
+                                )
                           }`}
                         >
                           {transaction.transactionType ===
                           TransactionType.CARD_PAYMENT
-                            ? "Card Payment"
-                            : (transaction.categoryName ?? "No Category")}
+                            ? "Card payment"
+                            : (transaction.categoryName ?? "No category")}
                         </span>
                         {transaction.description && (
                           <div className="group relative flex-shrink-0">
                             <Info className="h-4 w-4 cursor-help text-gray-400" />
-                            <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                            <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
                               {transaction.description}
-                              <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                              <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-primary-950/90"></div>
                             </div>
                           </div>
                         )}
@@ -828,7 +890,7 @@ const BudgetDetailsPage = () => {
                     </div>
                     <div className="text-right">
                       <div
-                        className={`text-sm font-semibold ${
+                        className={`text-sm font-semibold tabular-nums ${
                           transaction.transactionType === TransactionType.RETURN
                             ? "text-green-600"
                             : ""

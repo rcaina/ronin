@@ -1,7 +1,22 @@
-import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { getTransactions, createTransaction, updateTransaction, deleteTransaction, createCardPayment } from "../services/transactions";
-import type { CreateTransactionRequest, UpdateTransactionRequest, TransactionWithRelations } from "@/lib/types/transaction";
+import {
+  getTransactions,
+  createTransaction,
+  updateTransaction,
+  deleteTransaction,
+  createCardPayment,
+} from "../services/transactions";
+import type {
+  CreateTransactionRequest,
+  UpdateTransactionRequest,
+  TransactionWithRelations,
+} from "@/lib/types/transaction";
 import type { CreateCardPaymentSchema } from "@/lib/api-schemas/transactions";
 
 export const useTransactions = (page = 1, limit = 20) => {
@@ -57,16 +72,28 @@ export const useCreateTransaction = () => {
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
       // Invalidate and refetch card transactions if cardId is provided
       if (variables.cardId) {
-        void queryClient.invalidateQueries({ queryKey: ["cards", variables.cardId, "transactions"] });
-        void queryClient.invalidateQueries({ queryKey: ["cards", variables.cardId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["cards", variables.cardId, "transactions"],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["cards", variables.cardId],
+        });
       }
       // Invalidate and refetch budget transactions for the specific budget
       if (variables.budgetId) {
-        void queryClient.invalidateQueries({ queryKey: ["budgetTransactions", variables.budgetId] });
-        void queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId] });
-        void queryClient.invalidateQueries({ queryKey: ["budgetCategories", variables.budgetId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["budgetTransactions", variables.budgetId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["budget", variables.budgetId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["budgetCategories", variables.budgetId],
+        });
         // Also invalidate budget cards for this budget
-        void queryClient.invalidateQueries({ queryKey: ["budgetCards", variables.budgetId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["budgetCards", variables.budgetId],
+        });
       }
     },
   });
@@ -76,22 +103,40 @@ export const useUpdateTransaction = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateTransactionRequest }) => updateTransaction(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateTransactionRequest;
+    }) => updateTransaction(id, data),
     onSuccess: (_, variables) => {
       // Invalidate and refetch transactions
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
       // Invalidate and refetch card transactions if cardId is provided
       if (variables.data.cardId) {
-        void queryClient.invalidateQueries({ queryKey: ["cards", variables.data.cardId, "transactions"] });
-        void queryClient.invalidateQueries({ queryKey: ["cards", variables.data.cardId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["cards", variables.data.cardId, "transactions"],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["cards", variables.data.cardId],
+        });
       }
       // Invalidate and refetch budget transactions for the specific budget
       if (variables.data.budgetId) {
-        void queryClient.invalidateQueries({ queryKey: ["budgetTransactions", variables.data.budgetId] });
-        void queryClient.invalidateQueries({ queryKey: ["budget", variables.data.budgetId] });
-        void queryClient.invalidateQueries({ queryKey: ["budgetCategories", variables.data.budgetId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["budgetTransactions", variables.data.budgetId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["budget", variables.data.budgetId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["budgetCategories", variables.data.budgetId],
+        });
         // Also invalidate budget cards for this budget
-        void queryClient.invalidateQueries({ queryKey: ["budgetCards", variables.data.budgetId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["budgetCards", variables.data.budgetId],
+        });
       }
     },
   });
@@ -101,17 +146,26 @@ export const useDeleteTransaction = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: { id: string; budgetId?: string }) => deleteTransaction(data.id),
+    mutationFn: (data: { id: string; budgetId?: string }) =>
+      deleteTransaction(data.id),
     onSuccess: (_, variables) => {
       // Invalidate and refetch transactions
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
       // Invalidate and refetch budget transactions for the specific budget
       if (variables.budgetId) {
-        void queryClient.invalidateQueries({ queryKey: ["budgetTransactions", variables.budgetId] });
-        void queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId] });
-        void queryClient.invalidateQueries({ queryKey: ["budgetCategories", variables.budgetId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["budgetTransactions", variables.budgetId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["budget", variables.budgetId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["budgetCategories", variables.budgetId],
+        });
         // Also invalidate budget cards for this budget
-        void queryClient.invalidateQueries({ queryKey: ["budgetCards", variables.budgetId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["budgetCards", variables.budgetId],
+        });
       }
     },
   });
@@ -126,25 +180,41 @@ export const useCreateCardPayment = () => {
       // Invalidate and refetch both transactions and cards
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
       void queryClient.invalidateQueries({ queryKey: ["cards"] });
-      
+
       // Invalidate card transactions for both cards involved in the payment
       if (variables.fromCardId) {
-        void queryClient.invalidateQueries({ queryKey: ["cards", variables.fromCardId, "transactions"] });
-        void queryClient.invalidateQueries({ queryKey: ["cards", variables.fromCardId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["cards", variables.fromCardId, "transactions"],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["cards", variables.fromCardId],
+        });
       }
       if (variables.toCardId) {
-        void queryClient.invalidateQueries({ queryKey: ["cards", variables.toCardId, "transactions"] });
-        void queryClient.invalidateQueries({ queryKey: ["cards", variables.toCardId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["cards", variables.toCardId, "transactions"],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["cards", variables.toCardId],
+        });
       }
-      
+
       // If this card payment involves a budget, invalidate budget queries
       if (variables.budgetId) {
-        void queryClient.invalidateQueries({ queryKey: ["budgetTransactions", variables.budgetId] });
-        void queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId] });
-        void queryClient.invalidateQueries({ queryKey: ["budgetCategories", variables.budgetId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["budgetTransactions", variables.budgetId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["budget", variables.budgetId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["budgetCategories", variables.budgetId],
+        });
         // Also invalidate budget cards for this budget
-        void queryClient.invalidateQueries({ queryKey: ["budgetCards", variables.budgetId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["budgetCards", variables.budgetId],
+        });
       }
     },
   });
-}; 
+};

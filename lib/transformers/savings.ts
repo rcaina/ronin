@@ -21,24 +21,23 @@ type PocketWithAllocationsLite = {
   allocations?: AllocationLite[];
 };
 
-export function toPocketSummary(pocket: PocketWithAllocationsLite): PocketSummary {
+export function toPocketSummary(
+  pocket: PocketWithAllocationsLite,
+): PocketSummary {
   const total = (pocket.allocations ?? []).reduce((sum, a) => {
-    const amount = typeof a.amount === 'number' && !isNaN(a.amount) ? a.amount : 0;
+    const amount =
+      typeof a.amount === "number" && !isNaN(a.amount) ? a.amount : 0;
     // Subtract if it's a withdrawal, add if it's a deposit
     return sum + (a.withdrawal ? -amount : amount);
   }, 0);
-  
+
   // Sort allocations by most recent first (use occurredAt if available, otherwise createdAt)
   const sortedAllocations = [...(pocket.allocations ?? [])].sort((a, b) => {
-    const dateA = a.occurredAt
-      ? a.occurredAt.getTime()
-      : a.createdAt.getTime();
-    const dateB = b.occurredAt
-      ? b.occurredAt.getTime()
-      : b.createdAt.getTime();
+    const dateA = a.occurredAt ? a.occurredAt.getTime() : a.createdAt.getTime();
+    const dateB = b.occurredAt ? b.occurredAt.getTime() : b.createdAt.getTime();
     return dateB - dateA; // Most recent first
   });
-  
+
   return {
     id: pocket.id,
     name: pocket.name,
@@ -49,7 +48,8 @@ export function toPocketSummary(pocket: PocketWithAllocationsLite): PocketSummar
     goalDate: pocket.goalDate ? pocket.goalDate.toISOString() : null,
     goalNote: pocket.goalNote ?? null,
     allocations: sortedAllocations.map((a) => {
-      const amount = typeof a.amount === 'number' && !isNaN(a.amount) ? a.amount : 0;
+      const amount =
+        typeof a.amount === "number" && !isNaN(a.amount) ? a.amount : 0;
       return {
         id: a.id,
         amount,
@@ -62,10 +62,11 @@ export function toPocketSummary(pocket: PocketWithAllocationsLite): PocketSummar
   };
 }
 
-export function toPocketSummaryList(pockets: PocketWithAllocationsLite[]): PocketSummary[] {
+export function toPocketSummaryList(
+  pockets: PocketWithAllocationsLite[],
+): PocketSummary[] {
   return pockets.map(toPocketSummary);
 }
-
 
 export type SavingsWithRelationsLite = {
   id: string;
@@ -75,10 +76,13 @@ export type SavingsWithRelationsLite = {
   pockets: PocketWithAllocationsLite[];
 };
 
-export function toSavingsSummary(savings: SavingsWithRelationsLite): SavingsSummary {
+export function toSavingsSummary(
+  savings: SavingsWithRelationsLite,
+): SavingsSummary {
   const pocketSummaries = toPocketSummaryList(savings.pockets);
   const total = pocketSummaries.reduce((sum, p) => {
-    const pocketTotal = typeof p.total === 'number' && !isNaN(p.total) ? p.total : 0;
+    const pocketTotal =
+      typeof p.total === "number" && !isNaN(p.total) ? p.total : 0;
     return sum + pocketTotal;
   }, 0);
   return {
@@ -91,7 +95,9 @@ export function toSavingsSummary(savings: SavingsWithRelationsLite): SavingsSumm
   };
 }
 
-export function toSavingsSummaryList(list: SavingsWithRelationsLite[]): SavingsSummary[] {
+export function toSavingsSummaryList(
+  list: SavingsWithRelationsLite[],
+): SavingsSummary[] {
   return list.map(toSavingsSummary);
 }
 
@@ -108,9 +114,9 @@ export function toAllocationSummary(allocation: {
     amount: allocation.amount,
     withdrawal: allocation.withdrawal ?? false,
     note: allocation.note ?? undefined,
-    occurredAt: allocation.occurredAt ? allocation.occurredAt.toISOString() : undefined,
+    occurredAt: allocation.occurredAt
+      ? allocation.occurredAt.toISOString()
+      : undefined,
     createdAt: allocation.createdAt.toISOString(),
   };
 }
-
-

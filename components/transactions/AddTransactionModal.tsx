@@ -27,7 +27,7 @@ export default function AddTransactionModal({
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
           <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto">
             <TransactionForm
               onClose={onClose}

@@ -74,7 +74,7 @@ const PocketDetailPage = () => {
   // Set the header action button
   useEffect(() => {
     setAction({
-      label: "Add Allocation",
+      label: "Add allocation",
       onClick: () => setIsAddingAllocation(true),
       icon: <Plus className="h-3 w-3 sm:h-4 sm:w-4" />,
     });
@@ -201,10 +201,12 @@ const PocketDetailPage = () => {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="mb-4 text-red-500">
-            <AlertCircle className="mx-auto h-12 w-12" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500">
+            <AlertCircle className="h-7 w-7" strokeWidth={1.5} />
           </div>
-          <div className="mb-2 text-lg text-red-600">Error loading pocket</div>
+          <div className="mb-2 text-lg font-semibold text-gray-900">
+            Error loading pocket
+          </div>
           <div className="text-sm text-gray-500">{errorMessage}</div>
         </div>
       </div>
@@ -216,64 +218,59 @@ const PocketDetailPage = () => {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="mb-4 text-gray-400">
-            <PiggyBank className="mx-auto h-12 w-12" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+            <PiggyBank className="h-7 w-7" strokeWidth={1.5} />
           </div>
-          <div className="text-lg text-gray-600">Pocket not found</div>
+          <div className="text-lg font-semibold text-gray-900">
+            Pocket not found
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <div className="mx-auto w-full flex-shrink-0 px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
+    <div className="flex h-full flex-col overflow-hidden bg-surface">
+      <div className="mx-auto w-full flex-shrink-0 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-4">
         {/* Stats Cards */}
-        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">
           <StatsCard
-            title="Total Saved"
+            title="Total saved"
             value={formatCurrency(totalAllocated)}
             subtitle="Current balance"
-            icon={
-              <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
-            }
-            iconColor="text-green-500"
+            icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
+            iconColor="text-green-600"
             valueColor="text-green-600"
           />
 
           <StatsCard
-            title="Total Allocations"
+            title="Total allocations"
             value={totalAllocations}
             subtitle="Allocations made"
-            icon={<PiggyBank className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />}
-            iconColor="text-blue-500"
-            valueColor="text-blue-600"
+            icon={<PiggyBank className="h-4 w-4 sm:h-5 sm:w-5" />}
+            iconColor="text-secondary-600"
           />
 
           {goalAmount > 0 && (
             <>
               <StatsCard
-                title="Goal Progress"
+                title="Goal progress"
                 value={`${goalProgressPercentage.toFixed(0)}%`}
                 subtitle={`${formatCurrency(totalAllocated)} / ${formatCurrency(goalAmount)}`}
-                icon={
-                  <Target className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
-                }
-                iconColor="text-purple-500"
+                icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
+                iconColor="text-secondary-600"
                 valueColor={
                   goalProgressPercentage >= 100
                     ? "text-green-600"
-                    : "text-purple-600"
+                    : "text-gray-900"
                 }
               />
 
               <StatsCard
-                title="Goal Amount"
+                title="Goal amount"
                 value={formatCurrency(goalAmount)}
                 subtitle="Target amount"
-                icon={
-                  <Target className="h-4 w-4 text-gray-500 sm:h-5 sm:w-5" />
-                }
+                icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
                 iconColor="text-gray-500"
               />
             </>
@@ -282,18 +279,18 @@ const PocketDetailPage = () => {
 
         {/* Progress Bar */}
         {goalAmount > 0 && (
-          <div className="mb-6 rounded-xl border bg-white p-3 shadow-sm sm:p-6">
-            <div className="mb-2 flex items-center justify-between sm:mb-4">
-              <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
-                Goal Progress
+          <div className="card-surface mb-6 p-4 sm:p-5">
+            <div className="mb-3 flex items-center justify-between sm:mb-4">
+              <h3 className="text-sm font-semibold text-gray-900">
+                Goal progress
               </h3>
-              <span className="text-xs text-gray-500 sm:text-sm">
+              <span className="text-xs font-medium tabular-nums text-gray-500">
                 {goalProgressPercentage.toFixed(1)}% complete
               </span>
             </div>
-            <div className="h-2 w-full rounded-full bg-gray-200 sm:h-3">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 sm:h-3">
               <div
-                className={`h-2 rounded-full transition-all duration-300 sm:h-3 ${
+                className={`h-full rounded-full transition-all duration-500 ease-out ${
                   goalProgressPercentage >= 100
                     ? "bg-green-500"
                     : "bg-secondary"
@@ -307,10 +304,10 @@ const PocketDetailPage = () => {
 
       {/* Allocations Section - Scrollable */}
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto w-full px-2 pb-20 sm:px-4 sm:pb-24 lg:px-8 lg:pb-32">
-          <div className="rounded-xl border bg-white p-3 pb-8 shadow-sm sm:p-6 sm:pb-12">
+        <div className="mx-auto w-full px-4 pb-28 sm:px-6 lg:px-8 lg:pb-8">
+          <div className="card-surface p-4 sm:p-6">
             <div className="mb-4">
-              <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
+              <h3 className="text-sm font-semibold text-gray-900 sm:text-base">
                 Allocations
               </h3>
             </div>
@@ -321,10 +318,10 @@ const PocketDetailPage = () => {
                 pocket.allocations.map((allocation) => (
                   <div
                     key={allocation.id}
-                    className={`rounded-lg border p-3 transition-colors ${
+                    className={`rounded-xl border p-3 transition-colors duration-200 ${
                       editingAllocationId === allocation.id
-                        ? "border-blue-200 bg-blue-50"
-                        : "border-gray-200 bg-gray-50"
+                        ? "border-secondary-200 bg-secondary-50"
+                        : "border-gray-200/70 bg-surface"
                     }`}
                   >
                     {editingAllocationId === allocation.id ? (
@@ -339,7 +336,7 @@ const PocketDetailPage = () => {
                           </div>
                         </div>
                         <div>
-                          <label className="mb-1 block text-xs font-medium text-gray-700">
+                          <label className="mb-1 block text-xs font-medium text-gray-500">
                             Note
                           </label>
                           <textarea
@@ -347,12 +344,12 @@ const PocketDetailPage = () => {
                             onChange={(e) => setEditingNote(e.target.value)}
                             placeholder="Add a note about this allocation..."
                             rows={2}
-                            className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="mb-1 block text-xs font-medium text-gray-700">
+                            <label className="mb-1 block text-xs font-medium text-gray-500">
                               Amount
                             </label>
                             <input
@@ -361,13 +358,13 @@ const PocketDetailPage = () => {
                               min="0.01"
                               value={editingAmount}
                               onChange={(e) => setEditingAmount(e.target.value)}
-                              className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm tabular-nums focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                               placeholder="Amount"
                             />
                           </div>
                           <div>
-                            <label className="mb-1 block text-xs font-medium text-gray-700">
-                              Occurred At (optional)
+                            <label className="mb-1 block text-xs font-medium text-gray-500">
+                              Occurred at (optional)
                             </label>
                             <input
                               type="date"
@@ -375,7 +372,7 @@ const PocketDetailPage = () => {
                               onChange={(e) =>
                                 setEditingOccurredAt(e.target.value)
                               }
-                              className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                             />
                           </div>
                         </div>
@@ -407,9 +404,9 @@ const PocketDetailPage = () => {
                               : formatDateUTC(allocation.createdAt)}
                           </p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <span
-                            className={`font-medium ${
+                            className={`font-medium tabular-nums ${
                               allocation.withdrawal
                                 ? "text-red-600"
                                 : "text-green-600"
@@ -421,7 +418,7 @@ const PocketDetailPage = () => {
                             onClick={() =>
                               handleStartEditAllocation(allocation)
                             }
-                            className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                            className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
                             title="Edit allocation"
                           >
                             <Edit className="h-4 w-4" />
@@ -430,7 +427,7 @@ const PocketDetailPage = () => {
                             onClick={() =>
                               handleDeleteAllocation(allocation.id)
                             }
-                            className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
+                            className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                             title="Remove allocation"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -441,11 +438,20 @@ const PocketDetailPage = () => {
                   </div>
                 ))
               ) : (
-                <div className="flex h-32 items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50">
-                  <div className="text-center text-sm text-gray-500">
-                    <p>No allocations yet</p>
-                    <p>Click &quot;Add Allocation&quot; to create one</p>
+                <div className="flex flex-col items-center justify-center gap-3 p-8 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+                    <PiggyBank className="h-7 w-7" strokeWidth={1.5} />
                   </div>
+                  <h4 className="text-base font-semibold text-gray-900">
+                    No allocations yet
+                  </h4>
+                  <p className="text-sm text-gray-500">
+                    Add your first allocation to start tracking this pocket
+                  </p>
+                  <Button onClick={() => setIsAddingAllocation(true)}>
+                    <Plus className="h-4 w-4" />
+                    <span>Add allocation</span>
+                  </Button>
                 </div>
               )}
             </div>

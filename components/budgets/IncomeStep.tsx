@@ -61,13 +61,13 @@ export default function IncomeStep({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           {totalIncome > 0 && (
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+            <div className="rounded-xl border border-secondary-200 bg-secondary-50 p-3">
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2 text-sm">
-                  <span className="font-medium text-blue-700">
+                  <span className="font-medium text-secondary-700">
                     Total Income:
                   </span>
-                  <span className="font-semibold text-blue-900">
+                  <span className="font-semibold text-secondary-900">
                     ${totalIncome.toLocaleString()}
                   </span>
                 </div>

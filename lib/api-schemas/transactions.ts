@@ -11,7 +11,10 @@ export const createTransactionSchema = z.object({
   cardId: z.string().optional(),
   createdAt: z.string().optional(),
   occurredAt: z.string().optional(),
-  transactionType: z.nativeEnum(TransactionType).optional().default(TransactionType.REGULAR),
+  transactionType: z
+    .nativeEnum(TransactionType)
+    .optional()
+    .default(TransactionType.REGULAR),
 });
 
 // Schema for card payment transactions
@@ -41,4 +44,4 @@ export const updateTransactionSchema = z.object({
 // Export inferred types for convenience
 export type CreateTransactionSchema = z.infer<typeof createTransactionSchema>;
 export type UpdateTransactionSchema = z.infer<typeof updateTransactionSchema>;
-export type CreateCardPaymentSchema = z.infer<typeof createCardPaymentSchema>; 
+export type CreateCardPaymentSchema = z.infer<typeof createCardPaymentSchema>;

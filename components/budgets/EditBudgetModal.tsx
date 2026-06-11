@@ -130,8 +130,8 @@ export default function EditBudgetModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 backdrop-blur-sm">
+      <div className="w-full max-w-md animate-scale-in rounded-2xl bg-white p-6 shadow-lifted">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">Edit Budget</h2>
           <button
@@ -156,7 +156,7 @@ export default function EditBudgetModal({
               id="name"
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               placeholder="Enter budget name"
               required
             />
@@ -181,7 +181,7 @@ export default function EditBudgetModal({
                     onChange={(e) =>
                       handleInputChange("strategy", e.target.value)
                     }
-                    className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                    className="mr-3 h-4 w-4 text-secondary-600 focus:ring-secondary"
                   />
                   <div className="flex items-center">
                     {getStrategyIcon(strategy)}
@@ -213,7 +213,7 @@ export default function EditBudgetModal({
                     onChange={(e) =>
                       handleInputChange("period", e.target.value)
                     }
-                    className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                    className="mr-3 h-4 w-4 text-secondary-600 focus:ring-secondary"
                   />
                   <span className="text-sm font-medium text-gray-900">
                     {getPeriodLabel(period)}
@@ -238,7 +238,7 @@ export default function EditBudgetModal({
                   id="startAt"
                   value={formData.startAt}
                   onChange={(e) => handleInputChange("startAt", e.target.value)}
-                  className="block w-full cursor-pointer rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="block w-full cursor-pointer rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                   required
                   min="1900-01-01"
                   max="2100-12-31"
@@ -259,7 +259,7 @@ export default function EditBudgetModal({
                   id="endAt"
                   value={formData.endAt}
                   onChange={(e) => handleInputChange("endAt", e.target.value)}
-                  className="block w-full cursor-pointer rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="block w-full cursor-pointer rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                   required
                   min="1900-01-01"
                   max="2100-12-31"

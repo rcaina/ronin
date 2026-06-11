@@ -8,7 +8,7 @@ const prisma =
     datasources: {
       db: {
         url:
-          process.env.NODE_ENV === 'production'
+          process.env.NODE_ENV === "production"
             ? process.env.DATABASE_URL_POOLING
             : process.env.DATABASE_URL,
       },
@@ -19,4 +19,7 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
 export default prisma;
 
-export type PrismaClientTx = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+export type PrismaClientTx = Omit<
+  PrismaClient,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>;

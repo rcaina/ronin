@@ -29,26 +29,25 @@ const PageHeader = ({
   actions,
 }: PageHeaderProps) => {
   return (
-    <div className="fixed left-0 right-0 top-16 z-[30] border-b bg-white shadow-sm lg:sticky lg:top-0">
-      <div className="mx-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+    <div className="fixed left-0 right-0 top-16 z-[30] border-b border-gray-200/70 bg-white/90 backdrop-blur-md lg:sticky lg:top-0">
+      <div className="mx-auto px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
         <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <div className="flex items-center">
             {backButton && (
               <button
                 onClick={backButton.onClick}
-                className="mr-3 flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 sm:mr-4"
+                className="mr-3 flex h-9 w-9 items-center justify-center rounded-xl text-gray-500 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 sm:mr-4"
+                aria-label="Go back"
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
             )}
             <div>
-              <h1 className="text-xl font-bold text-gray-900 sm:text-2xl lg:text-3xl">
+              <h1 className="text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl">
                 {title}
               </h1>
               {description && (
-                <p className="mt-1 text-sm text-gray-500 sm:text-base">
-                  {description}
-                </p>
+                <p className="mt-0.5 text-sm text-gray-500">{description}</p>
               )}
             </div>
           </div>

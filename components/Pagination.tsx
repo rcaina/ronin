@@ -1,5 +1,4 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Button from "./Button";
 
 interface PaginationProps {
   currentPage: number;
@@ -74,33 +73,31 @@ const Pagination = ({
 
   return (
     <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-      <div className="text-sm text-gray-700">
-        Showing <span className="font-medium">{startItem}</span> to{" "}
-        <span className="font-medium">{endItem}</span> of{" "}
-        <span className="font-medium">{totalCount}</span> results
+      <div className="text-sm tabular-nums text-gray-500">
+        Showing <span className="font-medium text-gray-900">{startItem}</span>{" "}
+        to <span className="font-medium text-gray-900">{endItem}</span> of{" "}
+        <span className="font-medium text-gray-900">{totalCount}</span> results
       </div>
 
-      <div className="flex items-center space-x-1">
+      <div className="flex items-center gap-1">
         {/* Previous button */}
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={!hasPreviousPage}
-          className="flex items-center space-x-1"
+          className="flex items-center gap-1 rounded-full px-3 py-2 text-sm font-medium text-gray-600 transition-all duration-200 ease-out hover:bg-surface-muted hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
         >
           <ChevronLeft className="h-4 w-4" />
           <span className="hidden sm:inline">Previous</span>
-        </Button>
+        </button>
 
         {/* Page numbers */}
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center gap-1">
           {getPageNumbers().map((page, index) => {
             if (page === "...") {
               return (
                 <span
                   key={`ellipsis-${index}`}
-                  className="px-3 py-2 text-sm text-gray-500"
+                  className="px-2 py-2 text-sm text-gray-400"
                 >
                   ...
                 </span>
@@ -111,34 +108,30 @@ const Pagination = ({
             const isCurrentPage = pageNumber === currentPage;
 
             return (
-              <Button
+              <button
                 key={pageNumber}
-                variant={isCurrentPage ? "primary" : "ghost"}
-                size="sm"
                 onClick={() => onPageChange(pageNumber)}
-                className={`min-w-[2.5rem] ${
+                className={`min-w-[2.5rem] rounded-full px-3 py-2 text-sm font-medium tabular-nums transition-all duration-200 ease-out active:scale-[0.98] ${
                   isCurrentPage
-                    ? "bg-blue-600 text-white hover:bg-blue-700"
-                    : "text-gray-700 hover:bg-gray-100"
+                    ? "bg-secondary text-primary-950 shadow-soft"
+                    : "text-gray-600 hover:bg-surface-muted hover:text-gray-900"
                 }`}
               >
                 {pageNumber}
-              </Button>
+              </button>
             );
           })}
         </div>
 
         {/* Next button */}
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={!hasNextPage}
-          className="flex items-center space-x-1"
+          className="flex items-center gap-1 rounded-full px-3 py-2 text-sm font-medium text-gray-600 transition-all duration-200 ease-out hover:bg-surface-muted hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
         >
           <span className="hidden sm:inline">Next</span>
           <ChevronRight className="h-4 w-4" />
-        </Button>
+        </button>
       </div>
     </div>
   );

@@ -1,24 +1,24 @@
-import { type NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from "next/server";
 
-  import { auth } from '@/server/auth'
-import prisma from '../prisma'
-import type { User } from '@prisma/client'
+import { auth } from "@/server/auth";
+import prisma from "../prisma";
+import type { User } from "@prisma/client";
 
 // Type helper for handlers that will receive the Request and user object
 type HandlerWithUser = (
   req: NextRequest,
   context: { params: Promise<Record<string, string>> },
   user: User & { accountId: string },
-) => Promise<Response>
+) => Promise<Response>;
 
 // This factory allows you to pass handlers for each HTTP method
 type MethodHandlers = Partial<{
-  GET: HandlerWithUser
-  POST: HandlerWithUser
-  PUT: HandlerWithUser
-  DELETE: HandlerWithUser
-  PATCH: HandlerWithUser
-}>
+  GET: HandlerWithUser;
+  POST: HandlerWithUser;
+  PUT: HandlerWithUser;
+  DELETE: HandlerWithUser;
+  PATCH: HandlerWithUser;
+}>;
 
 export function withUser(handlers: MethodHandlers) {
   return async function (
@@ -28,7 +28,7 @@ export function withUser(handlers: MethodHandlers) {
     const session = await auth();
 
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Make sure user exists in DB
@@ -36,25 +36,28 @@ export function withUser(handlers: MethodHandlers) {
       where: {
         id: session.user.id,
       },
-    })
+    });
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Add accountId from session to user object
     const userWithAccountId = {
       ...user,
       accountId: session.user.accountId,
-    }
+    };
 
-    const method = req.method as keyof MethodHandlers
-    const handler = handlers[method]
+    const method = req.method as keyof MethodHandlers;
+    const handler = handlers[method];
 
     if (!handler) {
-      return NextResponse.json({ error: 'Method Not Allowed' }, { status: 405 })
+      return NextResponse.json(
+        { error: "Method Not Allowed" },
+        { status: 405 },
+      );
     }
 
-    return handler(req, context, userWithAccountId)
-  }
+    return handler(req, context, userWithAccountId);
+  };
 }

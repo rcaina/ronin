@@ -12,7 +12,7 @@ export function cn(...inputs: ClassValue[]) {
  * @returns The rounded number
  */
 export function roundToCents(value: number | null | undefined): number {
-  if (value == null || typeof value !== 'number' || isNaN(value)) {
+  if (value == null || typeof value !== "number" || isNaN(value)) {
     return 0;
   }
   return Math.round(value * 100) / 100;
@@ -50,7 +50,7 @@ export function formatCurrency(amount: number): string {
 export function calculateAdjustedIncome(
   amount: number,
   incomeFrequency: PeriodType,
-  budgetPeriod: PeriodType
+  budgetPeriod: PeriodType,
 ): number {
   // If frequencies match, return the original amount
   if (incomeFrequency === budgetPeriod) {
@@ -105,14 +105,15 @@ export const getGroupColor = (group?: CategoryType) => {
   if (!group) {
     return "bg-black text-white";
   }
-  
+
+  // Matches GROUP_COLORS in components/recharts/theme.tsx so chips and charts agree.
   switch (group) {
     case CategoryType.NEEDS:
-      return "bg-blue-500";
+      return "bg-[#5b7a9d]";
     case CategoryType.WANTS:
-      return "bg-purple-500";
+      return "bg-secondary";
     case CategoryType.INVESTMENT:
-      return "bg-green-500";
+      return "bg-[#6c9a8b]";
     default:
       return "bg-gray-500";
   }
@@ -127,14 +128,15 @@ export const getCategoryBadgeColor = (group?: CategoryType) => {
   if (!group) {
     return "bg-black text-white";
   }
-  
+
+  // Matches GROUP_COLORS in components/recharts/theme.tsx so chips and charts agree.
   switch (group) {
     case CategoryType.NEEDS:
-      return "bg-blue-100 text-blue-800";
+      return "bg-[#5b7a9d]/15 text-[#46627f]";
     case CategoryType.WANTS:
-      return "bg-purple-100 text-purple-600";
+      return "bg-secondary-100 text-secondary-800";
     case CategoryType.INVESTMENT:
-      return "bg-green-100 text-green-800";
+      return "bg-[#6c9a8b]/15 text-[#52796c]";
     default:
       return "bg-gray-100 text-gray-800";
   }
@@ -145,7 +147,9 @@ export const getCategoryBadgeColor = (group?: CategoryType) => {
  * @param dateString - ISO date string (e.g., "2024-01-15T00:00:00.000Z") or date string (e.g., "2024-01-15") or Date object
  * @returns Local Date object with the correct date, or null if invalid
  */
-export function parseLocalDate(dateString: string | Date | null | undefined): Date | null {
+export function parseLocalDate(
+  dateString: string | Date | null | undefined,
+): Date | null {
   if (!dateString) return null;
 
   // If it's already a Date object, extract the date parts using local methods
@@ -153,7 +157,7 @@ export function parseLocalDate(dateString: string | Date | null | undefined): Da
     return new Date(
       dateString.getFullYear(),
       dateString.getMonth(),
-      dateString.getDate()
+      dateString.getDate(),
     );
   }
 
@@ -165,13 +169,22 @@ export function parseLocalDate(dateString: string | Date | null | undefined): Da
   if (dateStr.includes("T")) {
     // ISO date string - extract date part
     const datePart = dateStr.split("T")[0] ?? "";
-    [year, month, day] = datePart.split("-").map(Number) as [number, number, number];
+    [year, month, day] = datePart.split("-").map(Number) as [
+      number,
+      number,
+      number,
+    ];
   } else {
     // Simple date string (YYYY-MM-DD)
-    [year, month, day] = dateStr.split("-").map(Number) as [number, number, number];
+    [year, month, day] = dateStr.split("-").map(Number) as [
+      number,
+      number,
+      number,
+    ];
   }
 
-  if (!year || !month || !day || isNaN(year) || isNaN(month) || isNaN(day)) return null;
+  if (!year || !month || !day || isNaN(year) || isNaN(month) || isNaN(day))
+    return null;
 
   // Create local date to avoid timezone issues
   return new Date(year, month - 1, day);
@@ -186,10 +199,18 @@ export function formatDateUTC(dateString: string): string {
   if (dateString.includes("T")) {
     // ISO date string - extract date part
     const datePart = dateString.split("T")[0] ?? "";
-    [year, month, day] = datePart.split("-").map(Number) as [number, number, number];
+    [year, month, day] = datePart.split("-").map(Number) as [
+      number,
+      number,
+      number,
+    ];
   } else {
     // Simple date string (YYYY-MM-DD)
-    [year, month, day] = dateString.split("-").map(Number) as [number, number, number];
+    [year, month, day] = dateString.split("-").map(Number) as [
+      number,
+      number,
+      number,
+    ];
   }
 
   if (!year || !month || !day) return "";

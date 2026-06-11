@@ -51,14 +51,15 @@ export default function CategoriesStep({
     }
   };
 
+  // Matches GROUP_COLORS in components/recharts/theme.tsx.
   const getGroupTitleColor = (group: CategoryType) => {
     switch (group) {
       case CategoryType.NEEDS:
-        return "text-red-700";
+        return "text-[#46627f]";
       case CategoryType.WANTS:
-        return "text-blue-700";
+        return "text-secondary-700";
       case CategoryType.INVESTMENT:
-        return "text-green-700";
+        return "text-[#52796c]";
       default:
         return "text-gray-700";
     }
@@ -206,7 +207,7 @@ export default function CategoriesStep({
                           className={`flex items-center space-x-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
                             isSelected
                               ? "border-green-500 bg-green-50 text-green-700 hover:border-green-600 hover:bg-green-100"
-                              : "hover:bg-secondary/5 border-gray-200 bg-white text-gray-700 hover:border-secondary hover:text-secondary"
+                              : "border-gray-200 bg-white text-gray-700 hover:border-secondary hover:bg-secondary/5 hover:text-secondary"
                           }`}
                           title={
                             isSelected

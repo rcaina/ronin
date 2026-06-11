@@ -15,4 +15,4 @@ export const useBudget = (id: string, excludeCardPayments?: boolean) => {
   });
 
   return query;
-}; 
+};

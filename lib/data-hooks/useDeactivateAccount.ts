@@ -19,16 +19,16 @@ export function useLeaveAccount(): UseDeactivateAccountReturn {
 
     try {
       await deleteAccount(password);
-      
+
       // Sign out the user and redirect to sign-in page
       await signOut({ callbackUrl: "/sign-in" });
-      
+
       return;
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "An error occurred while leaving the account"
+          : "An error occurred while leaving the account",
       );
       throw err; // Re-throw to allow the component to handle it
     } finally {

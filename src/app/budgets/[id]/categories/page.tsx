@@ -26,6 +26,16 @@ import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderC
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
 import {
+  CHART_COLORS,
+  GROUP_COLORS,
+  ChartEmptyState,
+  chartAxisProps,
+  chartTooltipItemStyle,
+  chartTooltipLabelStyle,
+  chartTooltipStyle,
+  formatCompactCurrency,
+} from "@/components/recharts/theme";
+import {
   PieChart,
   Pie,
   Cell,
@@ -58,8 +68,8 @@ function OverlapBarShape(props: {
         y={y}
         width={width}
         height={height}
-        fill="rgba(229, 231, 235, 0.7)"
-        rx={2}
+        fill="#efeeeb"
+        rx={4}
         ry={0}
       />
       <rect
@@ -67,8 +77,8 @@ function OverlapBarShape(props: {
         y={spentY}
         width={width}
         height={spentHeight}
-        fill="#8b5cf6"
-        rx={2}
+        fill={CHART_COLORS[0]}
+        rx={4}
         ry={0}
       />
     </g>
@@ -93,7 +103,7 @@ const BudgetCategoriesPage = () => {
     setActions([
       {
         icon: <Plus className="h-4 w-4" />,
-        label: "Add Transaction",
+        label: "Add transaction",
         onClick: () => setIsAddTransactionOpen(true),
         variant: "primary" as const,
       },
@@ -241,8 +251,8 @@ const BudgetCategoriesPage = () => {
         value: `$${allocationDifference}`,
         subtitle: "left to allocate",
         icon: <HandCoins className="h-4 w-4" />,
-        iconColor: "text-blue-500",
-        valueColor: "text-blue-600",
+        iconColor: "text-secondary-600",
+        valueColor: "text-secondary-700",
       };
     } else {
       // When over allocated, show the amount over allocated
@@ -269,17 +279,17 @@ const BudgetCategoriesPage = () => {
       };
     }
 
-    // Helper to get color based on group
+    // Helper to get color based on group (shared chart theme)
     const getGroupColor = (group: CategoryType) => {
       switch (group) {
         case CategoryType.NEEDS:
-          return "#3b82f6"; // blue-500
+          return GROUP_COLORS.NEEDS!;
         case CategoryType.WANTS:
-          return "#a855f7"; // purple-500
+          return GROUP_COLORS.WANTS!;
         case CategoryType.INVESTMENT:
-          return "#22c55e"; // green-500
+          return GROUP_COLORS.INVESTMENT!;
         default:
-          return "#6b7280"; // gray-500
+          return "#9ca3af";
       }
     };
 
@@ -308,17 +318,17 @@ const BudgetCategoriesPage = () => {
       {
         name: "Needs",
         value: groupAllocationMap.get(CategoryType.NEEDS) ?? 0,
-        color: "#3b82f6", // blue-500
+        color: GROUP_COLORS.NEEDS!,
       },
       {
         name: "Wants",
         value: groupAllocationMap.get(CategoryType.WANTS) ?? 0,
-        color: "#a855f7", // purple-500
+        color: GROUP_COLORS.WANTS!,
       },
       {
         name: "Investment",
         value: groupAllocationMap.get(CategoryType.INVESTMENT) ?? 0,
-        color: "#22c55e", // green-500
+        color: GROUP_COLORS.INVESTMENT!,
       },
     ].filter((item) => item.value > 0);
 
@@ -382,7 +392,7 @@ const BudgetCategoriesPage = () => {
   // Show error state if there's an error with budget or categories
   if (budgetError || categoriesError) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-surface">
         <div className="text-center">
           <div className="mb-4 text-red-500">
             <AlertCircle className="mx-auto h-12 w-12" />
@@ -405,27 +415,30 @@ const BudgetCategoriesPage = () => {
   // Show not found state if budget doesn't exist
   if (!budget) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-surface">
         <div className="text-center">
-          <div className="mb-4 text-gray-400">
-            <Target className="mx-auto h-12 w-12" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+            <Target className="h-7 w-7" strokeWidth={1.5} />
           </div>
-          <div className="text-lg text-gray-600">Budget not found</div>
+          <div className="text-lg font-semibold text-gray-900">
+            Budget not found
+          </div>
         </div>
       </div>
     );
   }
 
+  // Group accent classes derived from the shared chart theme (GROUP_COLORS)
   const getGroupColor = (group: CategoryType) => {
     switch (group) {
       case CategoryType.NEEDS:
-        return "bg-blue-500";
+        return "bg-[#5b7a9d]";
       case CategoryType.WANTS:
-        return "bg-purple-500";
+        return "bg-[#b9a15e]";
       case CategoryType.INVESTMENT:
-        return "bg-green-500";
+        return "bg-[#6c9a8b]";
       default:
-        return "bg-gray-500";
+        return "bg-gray-400";
     }
   };
 
@@ -448,14 +461,14 @@ const BudgetCategoriesPage = () => {
 
   return (
     <>
-      <div className="flex flex-col lg:h-full lg:flex-col">
-        <div className="mx-auto flex w-full flex-col px-2 py-4 pb-32 sm:px-4 sm:py-6 sm:pb-32 lg:flex-1 lg:px-8 lg:py-4 lg:pb-4">
+      <div className="flex flex-col bg-surface lg:h-full lg:flex-col">
+        <div className="mx-auto flex w-full flex-col px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:flex-1 lg:px-8 lg:py-4 lg:pb-8">
           {/* Charts and Summary Card - 4 items in one row */}
           <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-4">
-            {/* Graph 1: All Categories by Allocated Amount (Pie Chart) */}
-            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+            {/* Graph 1: All Categories by Allocated Amount (Donut Chart) */}
+            <div className="card-surface p-3 sm:p-4">
               <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
-                All Categories
+                All categories
               </h3>
               {chartData.allCategoriesData.length > 0 ? (
                 <>
@@ -467,15 +480,21 @@ const BudgetCategoriesPage = () => {
                         cy="50%"
                         labelLine={false}
                         label={false}
-                        outerRadius={50}
-                        fill="#8884d8"
+                        innerRadius={38}
+                        outerRadius={58}
+                        paddingAngle={3}
+                        cornerRadius={4}
                         dataKey="value"
+                        stroke="none"
                       >
                         {chartData.allCategoriesData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
                       <Tooltip
+                        contentStyle={chartTooltipStyle}
+                        labelStyle={chartTooltipLabelStyle}
+                        itemStyle={chartTooltipItemStyle}
                         formatter={(
                           value: number | undefined,
                           _name: unknown,
@@ -483,7 +502,9 @@ const BudgetCategoriesPage = () => {
                         ) => {
                           if (value === undefined) return ["", ""];
                           // Recharts passes the raw data point as entry.payload for Pie
-                          const payload = (entry as { payload?: { fullName?: string } })?.payload;
+                          const payload = (
+                            entry as { payload?: { fullName?: string } }
+                          )?.payload;
                           const fullName = payload?.fullName ?? "";
                           const total = chartData.allCategoriesData.reduce(
                             (sum, item) => sum + item.value,
@@ -509,7 +530,7 @@ const BudgetCategoriesPage = () => {
                           className="h-1.5 w-1.5 rounded-full"
                           style={{ backgroundColor: item.color }}
                         />
-                        <span className="text-gray-600">{item.name}</span>
+                        <span className="text-gray-500">{item.name}</span>
                       </div>
                     ))}
                     {chartData.allCategoriesData.length > 6 && (
@@ -520,19 +541,14 @@ const BudgetCategoriesPage = () => {
                   </div>
                 </>
               ) : (
-                <div className="flex h-[160px] items-center justify-center text-gray-400">
-                  <div className="text-center">
-                    <Target className="mx-auto mb-1 h-8 w-8" />
-                    <p className="text-xs">No allocations</p>
-                  </div>
-                </div>
+                <ChartEmptyState icon={Target} message="No allocations" />
               )}
             </div>
 
             {/* Graph 2: Spending vs Allocated by Group */}
-            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+            <div className="card-surface p-3 sm:p-4">
               <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
-                Spending vs Allocated
+                Spending vs allocated
               </h3>
               {chartData.groupSpendingData.length > 0 ? (
                 <ChartContainer height={200}>
@@ -543,34 +559,46 @@ const BudgetCategoriesPage = () => {
                   >
                     <XAxis
                       dataKey="name"
-                      fontSize={8}
-                      tick={{ fontSize: 8 }}
-                      height={30}
+                      {...chartAxisProps}
+                      fontSize={9}
+                      height={24}
                     />
                     <YAxis
                       tickFormatter={(value: unknown) =>
-                        `$${typeof value === "number" ? (value / 1000).toFixed(0) + "k" : ""}`
+                        typeof value === "number"
+                          ? formatCompactCurrency(value)
+                          : ""
                       }
-                      fontSize={8}
+                      {...chartAxisProps}
+                      fontSize={9}
                       width={40}
                     />
                     <Tooltip
+                      cursor={{ fill: "rgba(185, 161, 94, 0.08)" }}
                       content={({ active, payload: tooltipPayload }) => {
                         type PayloadItem = {
-                          payload?: { name: string; allocated: number; spent: number };
+                          payload?: {
+                            name: string;
+                            allocated: number;
+                            spent: number;
+                          };
                         };
-                        const first = (tooltipPayload as PayloadItem[] | undefined)?.[0];
+                        const first = (
+                          tooltipPayload as PayloadItem[] | undefined
+                        )?.[0];
                         if (!active || !first?.payload) return null;
-                        const { name: groupName, allocated, spent } = first.payload;
+                        const {
+                          name: groupName,
+                          allocated,
+                          spent,
+                        } = first.payload;
                         return (
-                          <div className="rounded border border-gray-200 bg-white px-2 py-1.5 shadow-sm">
-                            <div className="mb-1 text-xs font-medium text-gray-700">
-                              {groupName}
-                            </div>
-                            <div className="text-xs text-gray-600">
+                          <div style={chartTooltipStyle}>
+                            <div style={chartTooltipLabelStyle}>{groupName}</div>
+                            <div style={chartTooltipItemStyle}>
                               Allocated: ${allocated.toLocaleString()}
                             </div>
-                            <div className="text-xs text-gray-600">
+                            <div style={chartTooltipItemStyle}>
                               Spent: ${spent.toLocaleString()}
                             </div>
                           </div>
@@ -583,23 +611,23 @@ const BudgetCategoriesPage = () => {
                         <div className="flex justify-center gap-4">
                           <div className="flex items-center gap-1.5">
                             <div
-                              className="h-3 w-3 rounded-sm"
+                              className="h-2.5 w-2.5 rounded-full"
                               style={{
-                                backgroundColor: "rgba(139, 92, 246, 1)",
+                                backgroundColor: CHART_COLORS[0],
                               }}
                             />
-                            <span className="text-[10px] text-gray-700">
+                            <span className="text-[10px] text-gray-500">
                               Spent
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <div
-                              className="h-3 w-3 rounded-sm"
+                              className="h-2.5 w-2.5 rounded-full"
                               style={{
-                                backgroundColor: "rgba(229, 231, 235, 0.7)",
+                                backgroundColor: "#efeeeb",
                               }}
                             />
-                            <span className="text-[10px] text-gray-700">
+                            <span className="text-[10px] text-gray-500">
                               Allocated
                             </span>
                           </div>
@@ -615,19 +643,14 @@ const BudgetCategoriesPage = () => {
                   </BarChart>
                 </ChartContainer>
               ) : (
-                <div className="flex h-[160px] items-center justify-center text-gray-400">
-                  <div className="text-center">
-                    <Target className="mx-auto mb-1 h-8 w-8" />
-                    <p className="text-xs">No data</p>
-                  </div>
-                </div>
+                <ChartEmptyState icon={Target} message="No data yet" />
               )}
             </div>
 
-            {/* Graph 3: Wants/Needs/Investments Allocation Pie Chart */}
-            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+            {/* Graph 3: Wants/Needs/Investments Allocation Donut Chart */}
+            <div className="card-surface p-3 sm:p-4">
               <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
-                Allocation by Group
+                Allocation by group
               </h3>
               {chartData.groupAllocationData.length > 0 ? (
                 <>
@@ -639,15 +662,21 @@ const BudgetCategoriesPage = () => {
                         cy="50%"
                         labelLine={false}
                         label={false}
-                        outerRadius={50}
-                        fill="#8884d8"
+                        innerRadius={38}
+                        outerRadius={58}
+                        paddingAngle={3}
+                        cornerRadius={4}
                         dataKey="value"
+                        stroke="none"
                       >
                         {chartData.groupAllocationData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
                       <Tooltip
+                        contentStyle={chartTooltipStyle}
+                        labelStyle={chartTooltipLabelStyle}
+                        itemStyle={chartTooltipItemStyle}
                         formatter={(
                           value: number | undefined,
                           name?: string,
@@ -674,38 +703,33 @@ const BudgetCategoriesPage = () => {
                           className="h-2 w-2 rounded-full"
                           style={{ backgroundColor: item.color }}
                         />
-                        <span className="text-gray-600">{item.name}</span>
+                        <span className="text-gray-500">{item.name}</span>
                       </div>
                     ))}
                   </div>
                 </>
               ) : (
-                <div className="flex h-[160px] items-center justify-center text-gray-400">
-                  <div className="text-center">
-                    <Target className="mx-auto mb-1 h-8 w-8" />
-                    <p className="text-xs">No allocations</p>
-                  </div>
-                </div>
+                <ChartEmptyState icon={Target} message="No allocations" />
               )}
             </div>
 
             {/* Summary Stats Card - Combined */}
-            <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
+            <div className="card-surface p-3 sm:p-4">
               <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
                 Summary
               </h3>
               <div className="space-y-2">
                 {/* Allocation Status */}
-                <div className="flex items-center justify-between border-b pb-2">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                   <div className="flex items-center gap-1.5">
                     {allocationStatus.icon}
-                    <span className="text-[10px] text-gray-600 sm:text-xs">
+                    <span className="text-[10px] font-medium text-gray-500 sm:text-xs">
                       Allocation
                     </span>
                   </div>
                   <div className="text-right">
                     <div
-                      className={`text-xs font-semibold sm:text-sm ${allocationStatus.valueColor}`}
+                      className={`text-xs font-semibold tabular-nums sm:text-sm ${allocationStatus.valueColor}`}
                     >
                       {allocationStatus.value}
                     </div>
@@ -716,38 +740,38 @@ const BudgetCategoriesPage = () => {
                 </div>
 
                 {/* Completed Categories */}
-                <div className="flex items-center justify-between border-b pb-2">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                   <div className="flex items-center gap-1.5">
                     <CheckCircle className="h-3 w-3 text-green-500 sm:h-4 sm:w-4" />
-                    <span className="text-[10px] text-gray-600 sm:text-xs">
+                    <span className="text-[10px] font-medium text-gray-500 sm:text-xs">
                       Completed
                     </span>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs font-semibold text-green-600 sm:text-sm">
+                    <div className="text-xs font-semibold tabular-nums text-green-600 sm:text-sm">
                       {completedCategories}
                     </div>
-                    <div className="text-[9px] text-gray-500 sm:text-[10px]">
+                    <div className="text-[9px] tabular-nums text-gray-500 sm:text-[10px]">
                       of {totalCategories}
                     </div>
                   </div>
                 </div>
 
                 {/* Categories Over Budget */}
-                <div className="group relative flex items-center justify-between border-b pb-2">
+                <div className="group relative flex items-center justify-between border-b border-gray-100 pb-2">
                   <div className="flex items-center gap-1.5">
                     {categoriesOverBudget > 0 ? (
                       <AlertCircle className="h-3 w-3 text-red-500 sm:h-4 sm:w-4" />
                     ) : (
                       <CheckCircle className="h-3 w-3 text-green-500 sm:h-4 sm:w-4" />
                     )}
-                    <span className="text-[10px] text-gray-600 sm:text-xs">
-                      Over Budget
+                    <span className="text-[10px] font-medium text-gray-500 sm:text-xs">
+                      Over budget
                     </span>
                   </div>
                   <div className="text-right">
                     <div
-                      className={`text-xs font-semibold sm:text-sm ${
+                      className={`text-xs font-semibold tabular-nums sm:text-sm ${
                         categoriesOverBudget > 0
                           ? "text-red-600"
                           : "text-green-600"
@@ -762,11 +786,11 @@ const BudgetCategoriesPage = () => {
 
                   {/* Tooltip for over budget categories */}
                   {getOverBudgetSubtitle().tooltip && (
-                    <div className="absolute left-1/2 top-full z-10 mt-2 min-w-[200px] -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 shadow-lg transition-opacity duration-200 group-hover:opacity-100">
+                    <div className="absolute left-1/2 top-full z-10 mt-2 min-w-[200px] -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
                       <div className="mb-2 flex items-center gap-2">
-                        <Info className="h-4 w-4 text-blue-300" />
+                        <Info className="h-4 w-4 text-secondary-300" />
                         <span className="font-medium">
-                          Categories Over Budget:
+                          Categories over budget:
                         </span>
                       </div>
                       <div className="space-y-1">
@@ -776,14 +800,14 @@ const BudgetCategoriesPage = () => {
                             className="flex justify-between gap-4 text-xs"
                           >
                             <span className="text-gray-200">{cat.name}</span>
-                            <span className="text-red-300">
+                            <span className="tabular-nums text-red-300">
                               ${(cat.amount - (cat.allocated ?? 0)).toFixed(2)}{" "}
                               over
                             </span>
                           </div>
                         ))}
                       </div>
-                      <div className="absolute bottom-full left-1/2 h-0 w-0 -translate-x-1/2 transform border-b-4 border-l-4 border-r-4 border-transparent border-b-gray-900"></div>
+                      <div className="absolute bottom-full left-1/2 h-0 w-0 -translate-x-1/2 transform border-b-4 border-l-4 border-r-4 border-transparent border-b-primary-950/90"></div>
                     </div>
                   )}
                 </div>
@@ -792,12 +816,12 @@ const BudgetCategoriesPage = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <DollarSign className="h-3 w-3 text-green-500 sm:h-4 sm:w-4" />
-                    <span className="text-[10px] text-gray-600 sm:text-xs">
-                      Total Income
+                    <span className="text-[10px] font-medium text-gray-500 sm:text-xs">
+                      Total income
                     </span>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs font-semibold text-green-600 sm:text-sm">
+                    <div className="text-xs font-semibold tabular-nums text-green-600 sm:text-sm">
                       ${totalIncome.toLocaleString()}
                     </div>
                     <div className="text-[9px] text-gray-500 sm:text-[10px]">

@@ -65,9 +65,12 @@ export const authConfig = {
         },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password || 
-            typeof credentials.email !== "string" || 
-            typeof credentials.password !== "string") {
+        if (
+          !credentials?.email ||
+          !credentials?.password ||
+          typeof credentials.email !== "string" ||
+          typeof credentials.password !== "string"
+        ) {
           return null;
         }
 
@@ -162,7 +165,7 @@ export const authConfig = {
         token.deleted = user.deleted;
         token.hasBudget = user.hasBudget;
       }
-      
+
       // Always check the current budget count for the user
       if (token?.accountId) {
         try {
@@ -174,15 +177,14 @@ export const authConfig = {
           });
           token.hasBudget = budgetCount > 0;
         } catch (error) {
-          console.error('Error checking budget count in JWT callback:', error);
+          console.error("Error checking budget count in JWT callback:", error);
           // Fallback to existing hasBudget value if database query fails
         }
       }
-      
+
       return token;
     },
     async session({ session, token }) {
-      
       if (token) {
         session.user.id = token.id;
         session.user.email = token.email!;
@@ -194,7 +196,7 @@ export const authConfig = {
         session.user.deleted = token.deleted;
         session.user.hasBudget = token.hasBudget;
       }
-      
+
       return session;
     },
   },

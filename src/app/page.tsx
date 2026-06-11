@@ -10,6 +10,16 @@ import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
 import {
+  CHART_COLORS,
+  STATUS_COLORS,
+  ChartEmptyState,
+  chartAxisProps,
+  chartTooltipItemStyle,
+  chartTooltipLabelStyle,
+  chartTooltipStyle,
+  formatCompactCurrency,
+} from "@/components/recharts/theme";
+import {
   PieChart,
   Pie,
   Cell,
@@ -113,12 +123,12 @@ export default function HomePage() {
     {
       name: "Spent",
       value: totalSpent,
-      color: "#ef4444", // red-500
+      color: CHART_COLORS[0], // brand gold
     },
     {
       name: "Remaining",
       value: Math.max(0, totalRemaining),
-      color: "#3b82f6", // blue-500
+      color: CHART_COLORS[2], // sage
     },
   ];
 
@@ -307,11 +317,11 @@ export default function HomePage() {
         budgetIncome > 0 ? roundToCents((budgetSpent / budgetIncome) * 100) : 0;
 
       // Determine status color
-      let statusColor = "#10b981"; // green
+      let statusColor: string = STATUS_COLORS.positive;
       if (utilization > 90) {
-        statusColor = "#ef4444"; // red
+        statusColor = STATUS_COLORS.negative;
       } else if (utilization > 75) {
-        statusColor = "#f59e0b"; // yellow/amber
+        statusColor = STATUS_COLORS.warning;
       }
 
       return {
@@ -349,7 +359,7 @@ export default function HomePage() {
   )[0];
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
+    <div className="flex h-screen flex-col bg-surface">
       <PageHeader
         title={`Welcome back, ${session?.user?.name?.split(" ")[0] ?? "User"}! 👋`}
         description={`Here's your financial overview for ${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}`}
@@ -357,83 +367,114 @@ export default function HomePage() {
 
       <div className="flex-1 overflow-hidden pt-4 sm:pt-20 lg:pt-0">
         <div className="h-full overflow-y-auto">
-          <div className="mx-auto w-full px-2 py-2 sm:px-4 sm:py-3 lg:px-8 lg:py-2">
-            {/* Financial Overview Charts */}
-            <div className="mb-3 grid grid-cols-2 gap-2 sm:mb-4 sm:grid-cols-4 sm:gap-3 lg:gap-4">
-              {/* Income Breakdown Pie Chart */}
-              <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
-                <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
-                  Income Breakdown
+          <div className="mx-auto w-full px-4 py-4 pb-28 sm:px-6 lg:px-8 lg:pb-8">
+            {/* Financial Overview Charts — swipeable row on mobile, grid on larger screens */}
+            <div className="scrollbar-hide mb-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 xl:grid-cols-4">
+              {/* Income Breakdown Donut Chart */}
+              <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">
+                  Income breakdown
                 </h3>
                 <div className="mb-1 flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] text-gray-500 sm:text-xs">
-                      Total Income
+                    <p className="text-xs font-medium text-gray-500">
+                      Total income
                     </p>
-                    <p className="text-sm font-bold text-green-600 sm:text-base">
+                    <p className="text-sm font-bold tabular-nums tracking-tight text-green-600 sm:text-base">
                       ${totalIncome.toLocaleString()}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] text-gray-500 sm:text-xs">
-                      Spent
-                    </p>
-                    <p className="text-sm font-bold text-red-600 sm:text-base">
+                    <p className="text-xs font-medium text-gray-500">Spent</p>
+                    <p className="text-sm font-bold tabular-nums tracking-tight text-gray-900 sm:text-base">
                       ${totalSpent.toLocaleString()}
                     </p>
                   </div>
                 </div>
-                <ChartContainer height={140}>
-                  <PieChart>
-                    <Pie
-                      data={incomeBreakdownData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={35}
-                      outerRadius={55}
-                      paddingAngle={2}
-                      dataKey="value"
-                      label={({ name, percent }) =>
-                        percent ? `${name}: ${(percent * 100).toFixed(0)}%` : ""
-                      }
-                    >
-                      {incomeBreakdownData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+                {totalIncome > 0 || totalSpent > 0 ? (
+                  <>
+                    <ChartContainer height={130}>
+                      <PieChart>
+                        <Pie
+                          data={incomeBreakdownData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={false}
+                          innerRadius={38}
+                          outerRadius={58}
+                          paddingAngle={3}
+                          cornerRadius={4}
+                          dataKey="value"
+                          stroke="none"
+                        >
+                          {incomeBreakdownData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={chartTooltipStyle}
+                          labelStyle={chartTooltipLabelStyle}
+                          itemStyle={chartTooltipItemStyle}
+                          formatter={(value: number | undefined) =>
+                            value !== undefined
+                              ? `$${value.toLocaleString()}`
+                              : ""
+                          }
+                        />
+                      </PieChart>
+                    </ChartContainer>
+                    <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs">
+                      {incomeBreakdownData.map((item) => (
+                        <div
+                          key={item.name}
+                          className="flex items-center gap-1.5"
+                        >
+                          <div
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          <span className="text-gray-500">{item.name}</span>
+                        </div>
                       ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value: number | undefined) =>
-                        value !== undefined ? `$${value.toLocaleString()}` : ""
-                      }
-                    />
-                  </PieChart>
-                </ChartContainer>
+                    </div>
+                  </>
+                ) : (
+                  <ChartEmptyState icon={Target} message="No data yet" />
+                )}
               </div>
 
               {/* Spending by Category Bar Chart */}
-              <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
-                <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
-                  Top Spending Categories
+              <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">
+                  Top spending categories
                 </h3>
                 {categorySpendingData.length > 0 ? (
-                  <ChartContainer height={140}>
+                  <ChartContainer height={200}>
                     <BarChart data={categorySpendingData}>
                       <XAxis
                         dataKey="name"
-                        angle={-45}
+                        angle={-35}
                         textAnchor="end"
-                        height={60}
-                        fontSize={10}
+                        height={48}
+                        {...chartAxisProps}
+                        fontSize={9}
                       />
                       <YAxis
                         tickFormatter={(value: unknown) =>
                           typeof value === "number"
-                            ? `$${value.toLocaleString()}`
-                            : String(value)
+                            ? formatCompactCurrency(value)
+                            : ""
                         }
-                        fontSize={10}
+                        {...chartAxisProps}
+                        fontSize={9}
+                        width={42}
                       />
                       <Tooltip
+                        cursor={{ fill: "rgba(185, 161, 94, 0.08)" }}
+                        contentStyle={chartTooltipStyle}
+                        labelStyle={chartTooltipLabelStyle}
+                        itemStyle={chartTooltipItemStyle}
                         formatter={(value: unknown) =>
                           typeof value === "number"
                             ? `$${value.toLocaleString()}`
@@ -442,44 +483,47 @@ export default function HomePage() {
                       />
                       <Bar
                         dataKey="value"
-                        fill="#ef4444"
-                        radius={[4, 4, 0, 0]}
+                        fill={CHART_COLORS[0]}
+                        radius={[6, 6, 0, 0]}
                       />
                     </BarChart>
                   </ChartContainer>
                 ) : (
-                  <div className="flex h-[140px] items-center justify-center">
-                    <p className="text-[10px] text-gray-500 sm:text-xs">
-                      No spending data available
-                    </p>
-                  </div>
+                  <ChartEmptyState icon={Receipt} message="No spending yet" />
                 )}
               </div>
 
               {/* Spending by Budget Period Bar Chart */}
-              <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
-                <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
-                  Spending by Budget Period
+              <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">
+                  Spending by budget period
                 </h3>
                 {periodSpendingData.length > 0 ? (
-                  <ChartContainer height={140}>
+                  <ChartContainer height={200}>
                     <BarChart data={periodSpendingData}>
                       <XAxis
                         dataKey="name"
-                        angle={-45}
+                        angle={-35}
                         textAnchor="end"
-                        height={60}
-                        fontSize={10}
+                        height={48}
+                        {...chartAxisProps}
+                        fontSize={9}
                       />
                       <YAxis
                         tickFormatter={(value: unknown) =>
                           typeof value === "number"
-                            ? `$${value.toLocaleString()}`
-                            : String(value)
+                            ? formatCompactCurrency(value)
+                            : ""
                         }
-                        fontSize={10}
+                        {...chartAxisProps}
+                        fontSize={9}
+                        width={42}
                       />
                       <Tooltip
+                        cursor={{ fill: "rgba(185, 161, 94, 0.08)" }}
+                        contentStyle={chartTooltipStyle}
+                        labelStyle={chartTooltipLabelStyle}
+                        itemStyle={chartTooltipItemStyle}
                         formatter={(value: unknown, name?: string) => {
                           if (name === "spent") {
                             return typeof value === "number"
@@ -497,27 +541,23 @@ export default function HomePage() {
                       />
                       <Bar
                         dataKey="spent"
-                        fill="#ef4444"
-                        radius={[4, 4, 0, 0]}
+                        fill={CHART_COLORS[0]}
+                        radius={[6, 6, 0, 0]}
                       />
                     </BarChart>
                   </ChartContainer>
                 ) : (
-                  <div className="flex h-[140px] items-center justify-center">
-                    <p className="text-[10px] text-gray-500 sm:text-xs">
-                      No spending data available
-                    </p>
-                  </div>
+                  <ChartEmptyState icon={Target} message="No spending yet" />
                 )}
               </div>
 
               {/* Budget Utilization & Time Remaining Bar Chart */}
-              <div className="rounded-xl border bg-white p-2 shadow-sm sm:p-3">
-                <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
-                  Budget Utilization & Time
+              <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">
+                  Budget utilization & time
                 </h3>
                 {budgetUtilizationData.length > 0 ? (
-                  <ChartContainer height={140}>
+                  <ChartContainer height={200}>
                     <BarChart
                       data={budgetUtilizationData}
                       layout="vertical"
@@ -527,18 +567,24 @@ export default function HomePage() {
                         type="number"
                         tickFormatter={(value: unknown) =>
                           typeof value === "number"
-                            ? `$${value.toLocaleString()}`
-                            : String(value)
+                            ? formatCompactCurrency(value)
+                            : ""
                         }
-                        fontSize={10}
+                        {...chartAxisProps}
+                        fontSize={9}
                       />
                       <YAxis
                         type="category"
                         dataKey="name"
                         width={55}
-                        fontSize={10}
+                        {...chartAxisProps}
+                        fontSize={9}
                       />
                       <Tooltip
+                        cursor={{ fill: "rgba(185, 161, 94, 0.08)" }}
+                        contentStyle={chartTooltipStyle}
+                        labelStyle={chartTooltipLabelStyle}
+                        itemStyle={chartTooltipItemStyle}
                         formatter={(value: unknown, name?: string) => {
                           if (name === "remaining") {
                             return typeof value === "number"
@@ -555,14 +601,14 @@ export default function HomePage() {
                               typeof value === "number" ? value : 0;
                             return [
                               `${numValue} day${numValue !== 1 ? "s" : ""}`,
-                              "Days Remaining",
+                              "Days remaining",
                             ];
                           }
                           return [String(value), name ?? ""];
                         }}
                         labelFormatter={(label) => `Budget: ${label}`}
                       />
-                      <Bar dataKey="remaining" radius={[0, 4, 4, 0]}>
+                      <Bar dataKey="remaining" radius={[0, 6, 6, 0]}>
                         {budgetUtilizationData.map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
@@ -573,11 +619,7 @@ export default function HomePage() {
                     </BarChart>
                   </ChartContainer>
                 ) : (
-                  <div className="flex h-[140px] items-center justify-center">
-                    <p className="text-[10px] text-gray-500 sm:text-xs">
-                      No budget data available
-                    </p>
-                  </div>
+                  <ChartEmptyState icon={Target} message="No budgets yet" />
                 )}
               </div>
             </div>
@@ -586,37 +628,37 @@ export default function HomePage() {
             <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3 lg:gap-4">
               {/* Recent Activity */}
               <div className="lg:col-span-2">
-                <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4">
-                  <div className="mb-2 flex flex-col items-start justify-between gap-2 sm:mb-3 sm:flex-row sm:items-center">
-                    <h2 className="text-sm font-semibold text-gray-900 sm:text-base">
-                      Recent Activity
+                <div className="card-surface p-4 sm:p-5">
+                  <div className="mb-3 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+                    <h2 className="text-sm font-semibold text-gray-900">
+                      Recent activity
                     </h2>
                     <Link
                       href="/transactions"
-                      className="flex items-center space-x-1 text-[10px] text-secondary hover:text-primary sm:text-xs"
+                      className="flex items-center gap-1 text-xs font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800"
                     >
-                      <span>View All</span>
-                      <ArrowRight className="h-3 w-3 sm:h-3 sm:w-3" />
+                      <span>View all</span>
+                      <ArrowRight className="h-3 w-3" />
                     </Link>
                   </div>
 
                   {recentTransactions.length > 0 ? (
-                    <div className="space-y-2 sm:space-y-2">
+                    <div className="space-y-2">
                       {recentTransactions.map((transaction) => (
                         <div
                           key={transaction.id}
-                          className="flex items-center justify-between rounded-lg bg-gray-50 p-2 sm:p-2.5"
+                          className="flex items-center justify-between rounded-xl bg-surface p-2 sm:p-2.5"
                         >
-                          <div className="flex items-center space-x-2 sm:space-x-2">
-                            <div className="bg-secondary/10 flex h-6 w-6 items-center justify-center rounded-full sm:h-7 sm:w-7">
-                              <Receipt className="h-3 w-3 text-secondary sm:h-3.5 sm:w-3.5" />
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10">
+                              <Receipt className="h-3.5 w-3.5 text-secondary-600" />
                             </div>
                             <div>
                               <p className="text-xs font-medium text-gray-900 sm:text-sm">
                                 {transaction.name ?? "Unnamed transaction"}
                               </p>
-                              <p className="text-[10px] text-gray-500 sm:text-xs">
-                                {transaction.category?.name ?? "No Category"}•{" "}
+                              <p className="text-xs text-gray-500">
+                                {transaction.category?.name ?? "No category"} •{" "}
                                 {new Date(
                                   transaction.createdAt,
                                 ).toLocaleDateString()}
@@ -624,7 +666,7 @@ export default function HomePage() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs font-medium text-gray-900 sm:text-sm">
+                            <p className="text-xs font-medium tabular-nums text-gray-900 sm:text-sm">
                               ${Number(transaction.amount).toFixed(2)}
                             </p>
                           </div>
@@ -632,12 +674,14 @@ export default function HomePage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="py-4 text-center sm:py-5">
-                      <Receipt className="mx-auto mb-2 h-6 w-6 text-gray-300 sm:mb-2 sm:h-8 sm:w-8" />
-                      <p className="text-xs text-gray-500 sm:text-sm">
+                    <div className="py-5 text-center">
+                      <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+                        <Receipt className="h-6 w-6" strokeWidth={1.5} />
+                      </div>
+                      <p className="text-sm text-gray-500">
                         No recent transactions
                       </p>
-                      <p className="text-[10px] text-gray-400 sm:text-xs">
+                      <p className="text-xs text-gray-400">
                         Start adding transactions to see them here
                       </p>
                     </div>
@@ -646,28 +690,28 @@ export default function HomePage() {
               </div>
 
               {/* Quick Actions & Insights */}
-              <div className="space-y-3 sm:space-y-3">
+              <div className="space-y-3 sm:space-y-4">
                 {/* Quick Actions */}
-                <div className="rounded-xl border bg-white p-3 shadow-sm sm:p-4">
-                  <h2 className="mb-2 text-sm font-semibold text-gray-900 sm:mb-3 sm:text-base">
-                    Quick Actions
+                <div className="card-surface p-4 sm:p-5">
+                  <h2 className="mb-3 text-sm font-semibold text-gray-900">
+                    Quick actions
                   </h2>
-                  <div className="space-y-1.5 sm:space-y-2">
+                  <div className="space-y-2">
                     {mostRecentBudget && (
                       <button
                         onClick={() =>
                           router.push(`/budgets/${mostRecentBudget.id}`)
                         }
-                        className="group flex w-full items-center space-x-2 rounded-lg border p-1.5 text-left transition-colors hover:bg-accent sm:space-x-2 sm:p-2"
+                        className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10 active:scale-[0.98]"
                       >
-                        <div className="bg-secondary/10 flex h-6 w-6 items-center justify-center rounded-full sm:h-7 sm:w-7">
-                          <Target className="h-3.5 w-3.5 text-secondary group-hover:text-white sm:h-4 sm:w-4" />
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10">
+                          <Target className="h-3.5 w-3.5 text-secondary-600" />
                         </div>
                         <div>
                           <p className="text-xs font-medium text-gray-900 sm:text-sm">
-                            Current Budget
+                            Current budget
                           </p>
-                          <p className="text-[10px] text-gray-500 sm:text-xs">
+                          <p className="text-xs text-gray-500">
                             {mostRecentBudget.name}
                           </p>
                         </div>
@@ -676,16 +720,16 @@ export default function HomePage() {
 
                     <button
                       onClick={() => router.push("/budgets")}
-                      className="flex w-full items-center space-x-2 rounded-lg border p-1.5 text-left transition-colors hover:bg-accent sm:space-x-2 sm:p-2"
+                      className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10 active:scale-[0.98]"
                     >
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 sm:h-7 sm:w-7">
-                        <Plus className="h-3 w-3 text-blue-600 sm:h-3.5 sm:w-3.5" />
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10">
+                        <Plus className="h-3.5 w-3.5 text-secondary-600" />
                       </div>
                       <div>
                         <p className="text-xs font-medium text-gray-900 sm:text-sm">
-                          Create Budget
+                          Create budget
                         </p>
-                        <p className="text-[10px] text-gray-500 sm:text-xs">
+                        <p className="text-xs text-gray-500">
                           Set up a new budget plan
                         </p>
                       </div>
@@ -693,16 +737,16 @@ export default function HomePage() {
 
                     <button
                       onClick={() => router.push("/transactions")}
-                      className="flex w-full items-center space-x-2 rounded-lg border p-1.5 text-left transition-colors hover:bg-accent sm:space-x-2 sm:p-2"
+                      className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10 active:scale-[0.98]"
                     >
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-100 sm:h-7 sm:w-7">
-                        <Receipt className="h-3 w-3 text-green-600 sm:h-3.5 sm:w-3.5" />
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10">
+                        <Receipt className="h-3.5 w-3.5 text-secondary-600" />
                       </div>
                       <div>
                         <p className="text-xs font-medium text-gray-900 sm:text-sm">
-                          Add Transaction
+                          Add transaction
                         </p>
-                        <p className="text-[10px] text-gray-500 sm:text-xs">
+                        <p className="text-xs text-gray-500">
                           Record a new expense
                         </p>
                       </div>
@@ -711,14 +755,14 @@ export default function HomePage() {
                 </div>
 
                 {/* Financial Tips */}
-                <div className="from-secondary/10 rounded-xl border bg-gradient-to-br to-blue-500/10 p-3 sm:p-4">
-                  <div className="mb-1.5 flex items-center space-x-2 sm:mb-2">
-                    <Sparkles className="h-3.5 w-3.5 text-secondary sm:h-4 sm:w-4" />
-                    <h3 className="text-xs font-semibold text-gray-900 sm:text-sm">
-                      Financial Tip
+                <div className="rounded-2xl border border-gray-200/70 bg-gradient-to-br from-secondary/10 to-accent/20 p-4 shadow-card sm:p-5">
+                  <div className="mb-2 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-secondary-600" />
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      Financial tip
                     </h3>
                   </div>
-                  <p className="text-[10px] text-gray-600 sm:text-xs">
+                  <p className="text-xs text-gray-600">
                     {spendingPercentage > 90
                       ? "You're over budget! Consider reviewing your spending habits and cutting back on non-essential expenses."
                       : spendingPercentage > 75

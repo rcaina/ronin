@@ -29,20 +29,25 @@ export default function DeleteConfirmationModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="mx-4 max-w-md rounded-lg bg-white p-6 shadow-xl">
-        <div className="mb-4 flex items-center">
-          <AlertTriangle className="mr-3 h-6 w-6 text-red-500" />
-          <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md animate-scale-in rounded-2xl bg-white p-6 shadow-lifted">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-50">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+          </div>
+          <h3 className="text-lg font-semibold tracking-tight text-gray-900">
+            {title}
+          </h3>
         </div>
         <p className="mb-6 text-sm text-gray-500">
           {message.replace("{itemName}", itemName)}
         </p>
-        <div className="flex space-x-3">
+        <div className="flex gap-3">
           <Button
+            variant="outline"
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex-1"
           >
             {cancelText}
           </Button>
@@ -50,7 +55,7 @@ export default function DeleteConfirmationModal({
             variant="danger"
             onClick={onConfirm}
             disabled={isLoading}
-            className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex-1"
           >
             {isLoading ? loadingText : confirmText}
           </Button>

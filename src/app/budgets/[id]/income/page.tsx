@@ -53,7 +53,7 @@ export default function IncomePage() {
     setActions([
       {
         icon: <Plus className="h-4 w-4" />,
-        label: "Add Income",
+        label: "Add income",
         onClick: () => setIsAddModalOpen(true),
         variant: "primary" as const,
       },
@@ -139,12 +139,14 @@ export default function IncomePage() {
 
   if (!budget) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-surface">
         <div className="text-center">
-          <div className="mb-4 text-gray-400">
-            <Target className="mx-auto h-12 w-12" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+            <Target className="h-7 w-7" strokeWidth={1.5} />
           </div>
-          <div className="text-lg text-gray-600">Budget not found</div>
+          <div className="text-lg font-semibold text-gray-900">
+            Budget not found
+          </div>
         </div>
       </div>
     );
@@ -166,8 +168,8 @@ export default function IncomePage() {
 
   return (
     <>
-      <div className="h-full overflow-y-auto">
-        <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
+      <div className="h-full overflow-y-auto bg-surface">
+        <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:px-8 lg:py-4 lg:pb-8">
           {/* Search and Filters */}
           <div className="space-y-4">
             {/* Search Bar */}
@@ -178,29 +180,29 @@ export default function IncomePage() {
                 placeholder="Search income transactions..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-10 py-3 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-gray-300 bg-white px-10 py-3 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               />
             </div>
 
             {/* Total Income Summary */}
-            <div className="rounded-xl border-0 bg-gradient-to-br from-green-500 via-emerald-500 to-green-600 p-6 shadow-lg sm:p-8">
+            <div className="rounded-2xl bg-primary p-6 shadow-card sm:p-8">
               <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:text-left">
-                <div className="rounded-full bg-white/20 p-3 backdrop-blur-sm sm:p-4">
-                  <DollarSign className="h-6 w-6 text-white sm:h-8 sm:w-8" />
+                <div className="rounded-full bg-secondary/20 p-3 sm:p-4">
+                  <DollarSign className="h-6 w-6 text-secondary sm:h-8 sm:w-8" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-white/90 sm:text-xl">
-                    Total Income
+                  <h3 className="text-lg font-semibold tracking-tight text-white/90 sm:text-xl">
+                    Total income
                   </h3>
-                  <p className="text-2xl font-bold text-white sm:text-4xl">
+                  <p className="text-2xl font-bold tracking-tight tabular-nums text-white sm:text-4xl">
                     {formatCurrency(totalIncome)}
                   </p>
-                  <p className="text-sm text-white/80 sm:text-base">
+                  <p className="text-sm text-white/70 sm:text-base">
                     From {incomeTransactions.length} income transaction
                     {incomeTransactions.length !== 1 ? "s" : ""}
                   </p>
                 </div>
-                <div className="hidden rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm sm:block">
+                <div className="hidden rounded-full bg-white/10 px-4 py-2 sm:block">
                   <span className="text-sm font-medium text-white">
                     {budget.period.charAt(0).toUpperCase() +
                       budget.period.slice(1).toLowerCase()}
@@ -211,20 +213,22 @@ export default function IncomePage() {
           </div>
 
           {/* Income List */}
-          <div className="mt-4 rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6">
+          <div className="card-surface mt-4 p-3 sm:p-4 lg:p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
-                Income Transactions ({filteredTransactions.length})
+              <h3 className="text-base font-semibold tracking-tight text-gray-900 sm:text-lg">
+                Income transactions ({filteredTransactions.length})
               </h3>
             </div>
 
             {filteredTransactions.length === 0 ? (
-              <div className="py-12 text-center">
-                <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-4 text-lg font-medium text-gray-900">
+              <div className="flex flex-col items-center py-12 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+                  <DollarSign className="h-7 w-7" strokeWidth={1.5} />
+                </div>
+                <h3 className="mt-4 text-lg font-semibold text-gray-900">
                   No income transactions
                 </h3>
-                <p className="mt-2 text-gray-500">
+                <p className="mt-2 text-sm text-gray-500">
                   {searchQuery
                     ? "No income transactions match your search."
                     : "Get started by adding your first income transaction."}
@@ -235,7 +239,7 @@ export default function IncomePage() {
                     className="mt-4"
                   >
                     <Plus className="mr-2 h-4 w-4" />
-                    Add Income
+                    Add income
                   </Button>
                 )}
               </div>
@@ -244,7 +248,7 @@ export default function IncomePage() {
                 {filteredTransactions.map((transaction) => (
                   <div
                     key={transaction.id}
-                    className="group rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-md sm:p-6"
+                    className="group rounded-xl border border-gray-200/70 bg-white p-4 transition-all duration-200 ease-out hover:shadow-soft sm:p-6"
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="flex-1">
@@ -259,7 +263,7 @@ export default function IncomePage() {
                           <div className="flex items-center space-x-2 opacity-100 transition-opacity sm:hidden">
                             <button
                               onClick={() => handleDeleteIncome(transaction)}
-                              className="rounded-lg p-2 text-red-300 transition-colors hover:bg-gray-100 hover:text-red-600"
+                              className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                               title="Delete income transaction"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -276,7 +280,7 @@ export default function IncomePage() {
                         <div className="flex flex-col gap-3 text-sm text-gray-500 sm:flex-row sm:items-center sm:gap-6">
                           <div className="flex items-center gap-2">
                             <DollarSign className="h-4 w-4" />
-                            <span className="font-medium text-gray-900">
+                            <span className="font-medium tabular-nums text-gray-900">
                               {formatCurrency(transaction.amount)}
                             </span>
                           </div>
@@ -302,10 +306,10 @@ export default function IncomePage() {
                       </div>
 
                       {/* Action Icons - Desktop */}
-                      <div className="hidden items-center justify-end space-x-2 opacity-0 transition-opacity group-hover:opacity-100 sm:flex">
+                      <div className="hidden items-center justify-end space-x-2 opacity-100 transition-opacity sm:flex lg:opacity-0 lg:group-hover:opacity-100">
                         <button
                           onClick={() => handleDeleteIncome(transaction)}
-                          className="rounded p-1 text-red-300 transition-colors hover:bg-gray-100 hover:text-red-600"
+                          className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                           title="Delete income transaction"
                         >
                           <Trash2 className="h-4 w-4" />

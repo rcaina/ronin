@@ -55,4 +55,4 @@ export function useSignUp(): UseSignUpReturn {
     error,
     resetError,
   };
-} 
+}

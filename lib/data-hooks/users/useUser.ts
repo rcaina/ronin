@@ -8,7 +8,11 @@ export const useUpdateProfile = () => {
 
   return useMutation({
     mutationFn: updateProfile,
-    onSuccess: (updatedUser: { name: string; email: string | null; phone: string | null }) => {
+    onSuccess: (updatedUser: {
+      name: string;
+      email: string | null;
+      phone: string | null;
+    }) => {
       // Update the session with the new user data
       if (updateSession) {
         void updateSession({

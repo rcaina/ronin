@@ -5,9 +5,14 @@ import type {
   UpdateCategoryRequest,
 } from "@/lib/types/category";
 
-export const getCategories = async (): Promise<GroupedCategories> => fetch("/api/categories").then((res) => res.json()) as Promise<GroupedCategories>
+export const getCategories = async (): Promise<GroupedCategories> =>
+  fetch("/api/categories").then((res) =>
+    res.json(),
+  ) as Promise<GroupedCategories>;
 
-export const createCategory = async (data: CreateCategoryRequest): Promise<Category> => {
+export const createCategory = async (
+  data: CreateCategoryRequest,
+): Promise<Category> => {
   const response = await fetch("/api/categories", {
     method: "POST",
     headers: {
@@ -21,7 +26,10 @@ export const createCategory = async (data: CreateCategoryRequest): Promise<Categ
   return response.json() as Promise<Category>;
 };
 
-export const updateCategory = async (id: string, data: UpdateCategoryRequest): Promise<Category> => {
+export const updateCategory = async (
+  id: string,
+  data: UpdateCategoryRequest,
+): Promise<Category> => {
   const response = await fetch(`/api/categories/${id}`, {
     method: "PUT",
     headers: {
@@ -43,7 +51,3 @@ export const deleteCategory = async (id: string): Promise<void> => {
     throw new Error(`Failed to delete category: ${response.statusText}`);
   }
 };
-
-
-
-

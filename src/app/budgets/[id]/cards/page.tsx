@@ -84,19 +84,19 @@ const BudgetCardsPage = () => {
     setActions([
       {
         icon: <Plus className="h-4 w-4" />,
-        label: "Add Transaction",
+        label: "Add transaction",
         onClick: () => setShowAddTransactionModal(true),
         variant: "primary" as const,
       },
       {
         icon: <DollarSign className="h-4 w-4" />,
-        label: "Pay Credit Card",
+        label: "Pay credit card",
         onClick: () => setShowCardPaymentModal(true),
         variant: "secondary" as const,
       },
       {
         icon: <CreditCard className="h-4 w-4" />,
-        label: "Add Card",
+        label: "Add card",
         onClick: () => setShowAddCardModal(true),
         variant: "secondary" as const,
       },
@@ -311,7 +311,7 @@ const BudgetCardsPage = () => {
   // Show error state if there's an error with budget or cards
   if (budgetError || cardsError) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-surface">
         <div className="text-center">
           <div className="mb-4 text-red-500">
             <AlertCircle className="mx-auto h-12 w-12" />
@@ -332,12 +332,14 @@ const BudgetCardsPage = () => {
   // Show not found state if budget doesn't exist
   if (!budget) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-surface">
         <div className="text-center">
-          <div className="mb-4 text-gray-400">
-            <Target className="mx-auto h-12 w-12" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+            <Target className="h-7 w-7" strokeWidth={1.5} />
           </div>
-          <div className="text-lg text-gray-600">Budget not found</div>
+          <div className="text-lg font-semibold text-gray-900">
+            Budget not found
+          </div>
         </div>
       </div>
     );
@@ -345,55 +347,44 @@ const BudgetCardsPage = () => {
 
   return (
     <>
-      <div className="h-full overflow-y-auto">
-        <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
+      <div className="h-full overflow-y-auto bg-surface">
+        <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:px-8 lg:py-4 lg:pb-8">
           {/* Overview Stats */}
           <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
             <StatsCard
-              title="Total Spent"
+              title="Total spent"
               value={`$${totalSpent.toLocaleString()}`}
               subtitle="Across budget cards"
-              icon={
-                <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-green-500"
+              icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
+              iconColor="text-green-600"
             />
 
             <StatsCard
-              title="Credit Limit"
+              title="Credit limit"
               value={`$${totalLimit.toLocaleString()}`}
               subtitle="Available credit"
-              icon={
-                <CreditCard className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-blue-500"
+              icon={<CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />}
             />
 
             <StatsCard
-              title="Active Cards"
+              title="Active cards"
               value={activeCards}
               subtitle={`${cards.length - activeCards} inactive`}
-              icon={
-                <Shield className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-purple-500"
+              icon={<Shield className="h-4 w-4 sm:h-5 sm:w-5" />}
             />
 
             <StatsCard
-              title="Credit Cards"
+              title="Credit cards"
               value={creditCards}
               subtitle={`${cards.length - creditCards} debit & cash cards`}
-              icon={
-                <CreditCard className="h-4 w-4 text-indigo-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-indigo-500"
+              icon={<CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />}
             />
           </div>
 
           {/* Cards Grid */}
           <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Budget Cards
+            <h2 className="text-xl font-semibold tracking-tight text-gray-900">
+              Budget cards
             </h2>
           </div>
 
@@ -536,9 +527,11 @@ const BudgetCardsPage = () => {
             {/* Empty State - only show if no cards */}
             {cards.length === 0 && (
               <div className="col-span-full text-center">
-                <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-white py-12">
-                  <CreditCard className="mb-4 h-12 w-12 text-gray-400" />
-                  <h3 className="mb-2 text-lg font-medium text-gray-900">
+                <div className="card-surface flex flex-col items-center justify-center py-12">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+                    <CreditCard className="h-7 w-7" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="mb-2 text-lg font-semibold text-gray-900">
                     No budget cards yet
                   </h3>
                   <p className="mb-6 text-sm text-gray-500">
@@ -546,7 +539,7 @@ const BudgetCardsPage = () => {
                   </p>
                   <Button onClick={handleAddCard} variant="primary">
                     <Plus className="h-4 w-4" />
-                    Add Card
+                    Add card
                   </Button>
                 </div>
               </div>
@@ -558,7 +551,7 @@ const BudgetCardsPage = () => {
       {/* Add Card Modal */}
       {showAddCardModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm"
           onClick={handleCancelAdd}
         >
           <div

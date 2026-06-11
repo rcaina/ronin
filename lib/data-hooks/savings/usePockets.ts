@@ -1,4 +1,10 @@
-import { keepPreviousData, useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import type { PocketSummary, UpdatePocketData } from "@/lib/types/savings";
 import type { CreatePocketSchema } from "@/lib/api-schemas/savings";
@@ -6,7 +12,8 @@ import { getPockets, addPocket } from "../services/pockets";
 import { savingsKey } from "./useSavings";
 
 export const pocketsKey = ["savings", "pockets"] as const;
-export const pocketsKeyBySavings = (savingsId?: string) => [...pocketsKey, savingsId ?? "all"] as const;
+export const pocketsKeyBySavings = (savingsId?: string) =>
+  [...pocketsKey, savingsId ?? "all"] as const;
 
 export const usePockets = (savingsId?: string) => {
   const { data: session } = useSession();
@@ -39,18 +46,24 @@ export const useCreatePocket = () => {
     mutationFn: (data: CreatePocketSchema) => addPocket(data),
     onSettled: (_data, _error, variables) => {
       // refresh pockets for the specific savings and overall savings totals
-      const savingsId = (variables as CreatePocketSchema | undefined)?.savingsId;
+      const savingsId = (variables as CreatePocketSchema | undefined)
+        ?.savingsId;
       if (savingsId) {
         void qc.invalidateQueries({ queryKey: pocketsKeyBySavings(savingsId) });
-        void qc.invalidateQueries({ queryKey: ["savings", "account", savingsId] });
+        void qc.invalidateQueries({
+          queryKey: ["savings", "account", savingsId],
+        });
       }
       void qc.invalidateQueries({ queryKey: savingsKey });
     },
     onSuccess: (_data, variables) => {
-      const savingsId = (variables as CreatePocketSchema | undefined)?.savingsId;
+      const savingsId = (variables as CreatePocketSchema | undefined)
+        ?.savingsId;
       if (savingsId) {
         void qc.invalidateQueries({ queryKey: pocketsKeyBySavings(savingsId) });
-        void qc.invalidateQueries({ queryKey: ["savings", "account", savingsId] });
+        void qc.invalidateQueries({
+          queryKey: ["savings", "account", savingsId],
+        });
       }
       void qc.invalidateQueries({ queryKey: savingsKey });
     },
@@ -78,7 +91,13 @@ export const useUpdatePocket = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationKey: pocketsKey,
-    mutationFn: ({ pocketId, data }: { pocketId: string; data: UpdatePocketData }) => updatePocket(pocketId, data),
+    mutationFn: ({
+      pocketId,
+      data,
+    }: {
+      pocketId: string;
+      data: UpdatePocketData;
+    }) => updatePocket(pocketId, data),
     onSuccess: () => {
       // Invalidate all pocket queries and savings queries
       void qc.invalidateQueries({ queryKey: pocketsKey });
@@ -120,5 +139,3 @@ export const useDeleteAllocation = () => {
     },
   });
 };
-
-

@@ -6,9 +6,7 @@ import { z } from "zod";
 import { X, Check } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useUpdateTransaction } from "@/lib/data-hooks/transactions/useTransactions";
-import {
-  useBudgetCategories,
-} from "@/lib/data-hooks/budgets/useBudgetCategories";
+import { useBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
@@ -117,7 +115,7 @@ export default function InlineTransactionEdit({
   };
 
   return (
-    <div className="group flex items-center justify-between bg-blue-50 px-3 py-3 sm:px-6 sm:py-4">
+    <div className="group flex items-center justify-between bg-secondary-50 px-3 py-3 sm:px-6 sm:py-4">
       <div className="flex min-w-0 flex-1 items-center space-x-3 sm:space-x-4">
         <div
           className={`h-3 w-3 flex-shrink-0 rounded-full ${getGroupColor(transaction.category?.group ?? CategoryType.NEEDS)}`}
@@ -132,7 +130,7 @@ export default function InlineTransactionEdit({
                 type="text"
                 {...register("name")}
                 placeholder="Transaction name"
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                 disabled={isUpdating}
               />
             </div>
@@ -152,7 +150,7 @@ export default function InlineTransactionEdit({
                     className={`w-24 rounded-md border py-2 pl-8 pr-3 text-sm focus:outline-none focus:ring-1 ${
                       errors.amount
                         ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                        : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        : "border-gray-300 focus:border-secondary focus:ring-secondary"
                     }`}
                     disabled={isUpdating}
                   />
@@ -163,7 +161,7 @@ export default function InlineTransactionEdit({
                 <input
                   type="checkbox"
                   {...register("isReturn")}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="h-4 w-4 rounded border-gray-300 text-secondary-600 focus:ring-secondary"
                   disabled={isUpdating}
                 />
                 <span className="text-xs text-gray-600">Return</span>
@@ -180,7 +178,7 @@ export default function InlineTransactionEdit({
                 className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
                   errors.budgetId
                     ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                    : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    : "border-gray-300 focus:border-secondary focus:ring-secondary"
                 }`}
                 disabled={isUpdating}
               >
@@ -205,7 +203,7 @@ export default function InlineTransactionEdit({
                 className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
                   errors.categoryId
                     ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                    : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    : "border-gray-300 focus:border-secondary focus:ring-secondary"
                 }`}
                 disabled={isUpdating}
               >
@@ -217,8 +215,8 @@ export default function InlineTransactionEdit({
                     const availableAmount = allocatedAmount - spentAmount;
                     return (
                       <option key={budgetCategory.id} value={budgetCategory.id}>
-                        {budgetCategory.name} (
-                        {formatCurrency(availableAmount)} available)
+                        {budgetCategory.name} ({formatCurrency(availableAmount)}{" "}
+                        available)
                       </option>
                     );
                   },
@@ -248,7 +246,7 @@ export default function InlineTransactionEdit({
               <input
                 type="date"
                 {...register("occurredAt")}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                 disabled={isUpdating}
               />
             </div>
@@ -257,7 +255,7 @@ export default function InlineTransactionEdit({
               <div className="text-xs text-gray-500">Card</div>
               <select
                 {...register("cardId")}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                 disabled={isUpdating}
               >
                 <option value="">No card</option>
@@ -277,7 +275,7 @@ export default function InlineTransactionEdit({
               {...register("description")}
               placeholder="Description (optional)"
               rows={1}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               disabled={isUpdating}
             />
           </div>

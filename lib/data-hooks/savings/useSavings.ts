@@ -1,4 +1,10 @@
-import { keepPreviousData, useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import type { SavingsSummary } from "@/lib/types/savings";
 import { addSavings, getSavings } from "../services/savings";
@@ -22,26 +28,25 @@ export const useSavings = () => {
   });
 };
 
-
 export const useSavingsMutations = () => {
-
-  const isSaving  = useIsMutating({
-    mutationKey: savingsKey,
-  }) > 0
+  const isSaving =
+    useIsMutating({
+      mutationKey: savingsKey,
+    }) > 0;
 
   return {
     addSavings: useCreateSavings,
     isSaving,
-  }
+  };
 };
 
 export const useCreateSavings = () => {
   const qc = useQueryClient();
-  
+
   return useMutation({
     mutationKey: savingsKey,
     //call hook to create savings
-    mutationFn: (data: CreateSavingsSchema) =>  addSavings(data),
+    mutationFn: (data: CreateSavingsSchema) => addSavings(data),
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: savingsKey });
     },
@@ -49,7 +54,7 @@ export const useCreateSavings = () => {
       void qc.invalidateQueries({ queryKey: savingsKey });
     },
   });
-}
+};
 
 export const useSavingsAccount = (id: string) => {
   const { data: session } = useSession();
@@ -66,4 +71,3 @@ export const useSavingsAccount = (id: string) => {
     staleTime: 2 * 60 * 1000,
   });
 };
-

@@ -22,13 +22,13 @@ export default function CardsStep({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3 rounded-lg bg-blue-50 p-4 text-sm text-blue-800">
+      <div className="flex items-start gap-3 rounded-xl bg-secondary-50 p-4 text-sm text-secondary-800">
         <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
         <div>
           <p className="font-medium">
             Cards are optional and can be managed later.
           </p>
-          <p className="mt-1 text-xs text-blue-900/80">
+          <p className="mt-1 text-xs text-secondary-900/80">
             We&apos;ll always create a main debit card for your budget so income
             has somewhere to land. Add cards below or remove any you don&apos;t
             want; you can also manage cards from the Cards tab after the budget
@@ -80,7 +80,7 @@ export default function CardsStep({
                       <span className="font-medium">
                         {card.user.firstName && card.user.lastName
                           ? `${card.user.firstName} ${card.user.lastName}`
-                          : card.user.name ?? "Unknown user"}
+                          : (card.user.name ?? "Unknown user")}
                       </span>
                     </p>
                   )}
@@ -102,14 +102,12 @@ export default function CardsStep({
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white px-4 py-8 text-center">
           <CreditCard className="mb-3 h-8 w-8 text-gray-300" />
           <p className="text-sm font-medium text-gray-900">
-            {isDuplicating
-              ? "No cards will be copied"
-              : "No cards added yet"}
+            {isDuplicating ? "No cards will be copied" : "No cards added yet"}
           </p>
           <p className="mt-1 max-w-sm text-xs text-gray-500">
             {isDuplicating
               ? "Add new cards below or continue without copying any."
-              : "We'll create a default debit card named \"Main\". Add more below or continue."}
+              : 'We\'ll create a default debit card named "Main". Add more below or continue.'}
           </p>
         </div>
       )}
@@ -128,9 +126,9 @@ export default function CardsStep({
       )}
 
       <p className="mt-2 text-xs text-gray-500">
-        When you click <span className="font-semibold">Continue</span>, you&apos;ll
-        move on. You can always adjust cards later from the budget&apos;s Cards
-        page.
+        When you click <span className="font-semibold">Continue</span>,
+        you&apos;ll move on. You can always adjust cards later from the
+        budget&apos;s Cards page.
       </p>
     </div>
   );

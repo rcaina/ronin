@@ -19,16 +19,16 @@ export function useDeleteAccount(): UseDeleteAccountReturn {
 
     try {
       await deleteAccount(password);
-      
+
       // Sign out the user and redirect to sign-in page
       await signOut({ callbackUrl: "/sign-in" });
-      
+
       return;
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "An error occurred during account deletion"
+          : "An error occurred during account deletion",
       );
       throw err; // Re-throw to allow the component to handle it
     } finally {

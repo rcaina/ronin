@@ -1,18 +1,24 @@
-import { HttpError } from '@/lib/errors'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import type { User } from '@prisma/client'
+import { HttpError } from "@/lib/errors";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import type { User } from "@prisma/client";
 
 type HandlerWithUser = (
   req: NextRequest,
   context: { params: Promise<Record<string, string>> },
   user: User & { accountId: string },
-) => Promise<Response>
+) => Promise<Response>;
 
-export function withUserErrorHandling(handler: HandlerWithUser): HandlerWithUser {
-  return async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
+export function withUserErrorHandling(
+  handler: HandlerWithUser,
+): HandlerWithUser {
+  return async (
+    req: NextRequest,
+    context: { params: Promise<Record<string, string>> },
+    user: User & { accountId: string },
+  ) => {
     try {
-      return await handler(req, context, user)
+      return await handler(req, context, user);
     } catch (error) {
       if (error instanceof HttpError) {
         return NextResponse.json(
@@ -21,13 +27,13 @@ export function withUserErrorHandling(handler: HandlerWithUser): HandlerWithUser
             ...(error.details && { details: error.details }),
           },
           { status: error.statusCode },
-        )
+        );
       }
-      console.error('Unhandled API error', error)
+      console.error("Unhandled API error", error);
       return NextResponse.json(
-        { error: 'Internal Server Error' },
+        { error: "Internal Server Error" },
         { status: 500 },
-      )
+      );
     }
-  }
-} 
+  };
+}

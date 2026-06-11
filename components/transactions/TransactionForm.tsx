@@ -10,9 +10,7 @@ import {
   useCreateTransaction,
   useUpdateTransaction,
 } from "@/lib/data-hooks/transactions/useTransactions";
-import {
-  useBudgetCategories,
-} from "@/lib/data-hooks/budgets/useBudgetCategories";
+import { useBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
@@ -270,7 +268,7 @@ export default function TransactionForm({
               id="transactionName"
               {...register("name")}
               placeholder="e.g., Grocery shopping, Gas station"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               disabled={isPending}
             />
           </div>
@@ -296,7 +294,7 @@ export default function TransactionForm({
                 className={`w-full rounded-md border py-2 pl-8 pr-3 text-sm focus:outline-none focus:ring-1 ${
                   errors.amount
                     ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                    : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    : "border-gray-300 focus:border-secondary focus:ring-secondary"
                 }`}
                 disabled={isPending}
               />
@@ -322,7 +320,7 @@ export default function TransactionForm({
               className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
                 errors.transactionType
                   ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                  : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  : "border-gray-300 focus:border-secondary focus:ring-secondary"
               }`}
               disabled={isPending}
             >
@@ -356,7 +354,7 @@ export default function TransactionForm({
                 className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
                   errors.budgetId
                     ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                    : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    : "border-gray-300 focus:border-secondary focus:ring-secondary"
                 }`}
                 disabled={isPending}
               >
@@ -390,7 +388,7 @@ export default function TransactionForm({
                 </span>
                 {!selectedBudgetId && (
                   <div className="group relative">
-                    <Info className="h-4 w-4 text-blue-500" />
+                    <Info className="h-4 w-4 text-secondary-600" />
                     <div className="absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg bg-gray-900 p-2 text-xs text-white group-hover:block">
                       Select a budget to see available categories.
                     </div>
@@ -406,7 +404,7 @@ export default function TransactionForm({
                       ? "border-red-300 focus:border-red-500 focus:ring-red-500"
                       : !selectedBudgetId && !isIncomeTransaction
                         ? "cursor-not-allowed border-gray-300 bg-gray-100 text-gray-500"
-                        : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        : "border-gray-300 focus:border-secondary focus:ring-secondary"
                   }`}
                   disabled={
                     isPending || (!selectedBudgetId && !isIncomeTransaction)
@@ -423,11 +421,15 @@ export default function TransactionForm({
                   </option>
                   {budgetCategories.map(
                     (budgetCategory: BudgetCategoryWithCategory) => {
-                      const allocatedAmount = budgetCategory.allocatedAmount ?? 0;
+                      const allocatedAmount =
+                        budgetCategory.allocatedAmount ?? 0;
                       const spentAmount = budgetCategory.spentAmount ?? 0;
                       const availableAmount = allocatedAmount - spentAmount;
                       return (
-                        <option key={budgetCategory.id} value={budgetCategory.id}>
+                        <option
+                          key={budgetCategory.id}
+                          value={budgetCategory.id}
+                        >
                           {budgetCategory.name} (
                           {formatCurrency(availableAmount)} available)
                         </option>
@@ -451,8 +453,8 @@ export default function TransactionForm({
                     <div className="group relative">
                       <Info className="h-4 w-4 text-gray-400" />
                       <div className="absolute bottom-full right-0 mb-2 hidden w-64 rounded-lg bg-gray-900 p-2 text-xs text-white group-hover:block">
-                        No categories found for this budget. Please add categories
-                        to your budget first.
+                        No categories found for this budget. Please add
+                        categories to your budget first.
                         <div className="absolute right-2 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
                       </div>
                     </div>
@@ -479,7 +481,7 @@ export default function TransactionForm({
               type="date"
               id="occurredAt"
               {...register("occurredAt")}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               disabled={isPending}
             />
           </div>
@@ -495,7 +497,7 @@ export default function TransactionForm({
             <select
               id="cardId"
               {...register("cardId")}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               disabled={isPending}
             >
               <option value="">Select a payment method</option>
@@ -520,7 +522,7 @@ export default function TransactionForm({
               {...register("description")}
               placeholder="Additional details about this transaction"
               rows={2}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               disabled={isPending}
             />
           </div>

@@ -13,7 +13,10 @@ interface BudgetCard extends Card {
   amountSpent: number;
 }
 
-const getBudgetCards = async (budgetId: string, excludeCardPayments?: boolean): Promise<BudgetCard[]> => {
+const getBudgetCards = async (
+  budgetId: string,
+  excludeCardPayments?: boolean,
+): Promise<BudgetCard[]> => {
   const url = excludeCardPayments
     ? `/api/budgets/${budgetId}/cards?excludeCardPayments=true`
     : `/api/budgets/${budgetId}/cards`;
@@ -24,7 +27,10 @@ const getBudgetCards = async (budgetId: string, excludeCardPayments?: boolean): 
   return response.json() as Promise<BudgetCard[]>;
 };
 
-export const useBudgetCards = (budgetId: string, excludeCardPayments?: boolean) => {
+export const useBudgetCards = (
+  budgetId: string,
+  excludeCardPayments?: boolean,
+) => {
   const { data: session } = useSession();
 
   const query = useQuery<BudgetCard[]>({

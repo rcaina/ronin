@@ -6,6 +6,16 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import StatsCard from "@/components/StatsCard";
 import { AlertCircle, PiggyBank, Target, DollarSign } from "lucide-react";
 import { roundToCents } from "@/lib/utils";
+import { ChartContainer } from "@/components/recharts/ChartWrapper";
+import {
+  CHART_COLORS,
+  ChartEmptyState,
+  chartTooltipItemStyle,
+  chartTooltipLabelStyle,
+  chartTooltipStyle,
+  formatChartCurrency,
+} from "@/components/recharts/theme";
+import { PieChart, Pie, Cell, Tooltip } from "recharts";
 
 const SavingsCategoriesPage = () => {
   const { id } = useParams();
@@ -62,6 +72,12 @@ const SavingsCategoriesPage = () => {
       return false;
     }).length ?? 0;
 
+  // Donut breakdown of savings by pocket (uses data already on the page)
+  const pocketBreakdownData =
+    savings?.pockets
+      ?.filter((p) => typeof p.total === "number" && p.total > 0)
+      .map((p) => ({ name: p.name, value: p.total })) ?? [];
+
   // Show loading state
   if (savingsLoading) {
     return <LoadingSpinner message="Loading savings account..." />;
@@ -78,10 +94,10 @@ const SavingsCategoriesPage = () => {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="mb-4 text-red-500">
-            <AlertCircle className="mx-auto h-12 w-12" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500">
+            <AlertCircle className="h-7 w-7" strokeWidth={1.5} />
           </div>
-          <div className="mb-2 text-lg text-red-600">
+          <div className="mb-2 text-lg font-semibold text-gray-900">
             Error loading savings account
           </div>
           <div className="text-sm text-gray-500">{errorMessage}</div>
@@ -95,91 +111,159 @@ const SavingsCategoriesPage = () => {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="mb-4 text-gray-400">
-            <PiggyBank className="mx-auto h-12 w-12" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+            <PiggyBank className="h-7 w-7" strokeWidth={1.5} />
           </div>
-          <div className="text-lg text-gray-600">Savings account not found</div>
+          <div className="text-lg font-semibold text-gray-900">
+            Savings account not found
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
+    <div className="h-full overflow-y-auto bg-surface">
+      <div className="mx-auto w-full px-4 py-4 pb-28 sm:px-6 sm:py-6 lg:px-8 lg:py-4 lg:pb-8">
         {/* Stats Cards */}
-        <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
+        <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:gap-4 lg:grid-cols-4 lg:gap-6">
           <StatsCard
-            title="Total Saved"
+            title="Total saved"
             value={`$${totalSaved.toFixed(2).toLocaleString()}`}
             subtitle="Across all pockets"
-            icon={
-              <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
-            }
-            iconColor="text-green-500"
+            icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
+            iconColor="text-green-600"
             valueColor="text-green-600"
           />
 
           <StatsCard
-            title="Total Pockets"
+            title="Total pockets"
             value={totalPockets}
             subtitle="Categories created"
-            icon={<PiggyBank className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />}
-            iconColor="text-blue-500"
-            valueColor="text-blue-600"
+            icon={<PiggyBank className="h-4 w-4 sm:h-5 sm:w-5" />}
+            iconColor="text-secondary-600"
           />
 
           {totalGoalAmount > 0 && (
             <StatsCard
-              title="Goal Progress"
+              title="Goal progress"
               value={`${totalProgressPercentage.toFixed(0)}%`}
               subtitle={`${pocketsReachedGoal}/${pocketsWithGoals} goals reached`}
-              icon={
-                <Target className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-purple-500"
+              icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
+              iconColor="text-secondary-600"
               valueColor={
                 totalProgressPercentage >= 100
                   ? "text-green-600"
-                  : "text-purple-600"
+                  : "text-gray-900"
               }
             />
           )}
 
           {totalGoalAmount > 0 && (
             <StatsCard
-              title="Total Goal"
+              title="Total goal"
               value={`$${totalGoalAmount.toFixed(2).toLocaleString()}`}
               subtitle="Combined goal amount"
-              icon={<Target className="h-4 w-4 text-gray-500 sm:h-5 sm:w-5" />}
+              icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
               iconColor="text-gray-500"
             />
           )}
         </div>
 
-        {/* Overall Progress Bar */}
-        {totalGoalAmount > 0 && (
-          <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-8 sm:p-6">
-            <div className="mb-2 flex items-center justify-between sm:mb-4">
-              <h3 className="text-sm font-semibold text-gray-900 sm:text-base lg:text-lg">
-                Overall Goal Progress
-              </h3>
-              <span className="text-xs text-gray-500 sm:text-sm">
-                {totalProgressPercentage.toFixed(1)}% complete
-              </span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-gray-200 sm:h-3">
-              <div
-                className={`h-2 rounded-full transition-all duration-300 sm:h-3 ${
-                  totalProgressPercentage >= 100
-                    ? "bg-green-500"
-                    : "bg-secondary"
-                }`}
-                style={{ width: `${totalProgressPercentage}%` }}
-              ></div>
-            </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+          {/* Savings by pocket donut */}
+          <div className="card-surface p-4 sm:p-5">
+            <h3 className="mb-2 text-sm font-semibold text-gray-900">
+              Savings by pocket
+            </h3>
+            {pocketBreakdownData.length > 0 ? (
+              <>
+                <ChartContainer height={170}>
+                  <PieChart>
+                    <Pie
+                      data={pocketBreakdownData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={false}
+                      innerRadius={42}
+                      outerRadius={64}
+                      paddingAngle={3}
+                      cornerRadius={4}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {pocketBreakdownData.map((entry, index) => (
+                        <Cell
+                          key={`pocket-cell-${index}`}
+                          fill={CHART_COLORS[index % CHART_COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={chartTooltipStyle}
+                      labelStyle={chartTooltipLabelStyle}
+                      itemStyle={chartTooltipItemStyle}
+                      formatter={(value: number | undefined, name?: string) => {
+                        if (value === undefined) return ["", name ?? ""];
+                        const total = pocketBreakdownData.reduce(
+                          (sum, item) => sum + item.value,
+                          0,
+                        );
+                        const percentage =
+                          total > 0 ? (value / total) * 100 : 0;
+                        return [
+                          `${formatChartCurrency(value)} (${percentage.toFixed(1)}%)`,
+                          name ?? "",
+                        ];
+                      }}
+                    />
+                  </PieChart>
+                </ChartContainer>
+                <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs">
+                  {pocketBreakdownData.map((item, index) => (
+                    <div key={item.name} className="flex items-center gap-1.5">
+                      <div
+                        className="h-2 w-2 rounded-full"
+                        style={{
+                          backgroundColor:
+                            CHART_COLORS[index % CHART_COLORS.length],
+                        }}
+                      />
+                      <span className="text-gray-500">{item.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <ChartEmptyState icon={PiggyBank} message="No savings yet" />
+            )}
           </div>
-        )}
+
+          {/* Overall Progress Bar */}
+          {totalGoalAmount > 0 && (
+            <div className="card-surface p-4 sm:p-5">
+              <div className="mb-3 flex items-center justify-between sm:mb-4">
+                <h3 className="text-sm font-semibold text-gray-900">
+                  Overall goal progress
+                </h3>
+                <span className="text-xs font-medium tabular-nums text-gray-500">
+                  {totalProgressPercentage.toFixed(1)}% complete
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 sm:h-3">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ease-out ${
+                    totalProgressPercentage >= 100
+                      ? "bg-green-500"
+                      : "bg-secondary"
+                  }`}
+                  style={{ width: `${totalProgressPercentage}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

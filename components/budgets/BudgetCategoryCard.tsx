@@ -145,10 +145,10 @@ export default function BudgetCategoryCard({
           e.dataTransfer.setData("text/plain", budgetCategory.id);
           e.dataTransfer.effectAllowed = "move";
         }}
-        className={`group relative cursor-grab overflow-hidden rounded-xl border p-4 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md active:cursor-grabbing ${
+        className={`group relative cursor-grab overflow-hidden rounded-2xl border p-4 shadow-card transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lifted active:cursor-grabbing ${
           editingCategoryId === budgetCategory.id
-            ? "border-blue-200 bg-blue-50"
-            : "bg-white"
+            ? "border-secondary-300 bg-secondary-50"
+            : "border-gray-200/70 bg-white hover:border-gray-300/80"
         }`}
       >
         {/* Drag Handle */}
@@ -166,7 +166,7 @@ export default function BudgetCategoryCard({
                 type="text"
                 value={editingName}
                 onChange={(e) => setEditingName(e.target.value)}
-                className="rounded-md border border-gray-300 px-2 py-1 text-base font-semibold text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="rounded-xl border border-gray-300 px-2 py-1 text-base font-semibold text-gray-900 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                 placeholder="Category name"
               />
             </div>
@@ -178,17 +178,17 @@ export default function BudgetCategoryCard({
           <div className="flex items-center space-x-2">
             {/* Action Icons - Only visible on hover when not editing */}
             {editingCategoryId !== budgetCategory.id && (
-              <div className="flex items-center space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="flex items-center space-x-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
                 <button
                   onClick={handleStartEditCategory}
-                  className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                  className="rounded-lg p-1.5 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
                   title="Edit category"
                 >
                   <Edit className="h-4 w-4" />
                 </button>
                 <button
                   onClick={handleDeleteCategory}
-                  className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
+                  className="rounded-lg p-1.5 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                   title="Delete category"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -196,12 +196,12 @@ export default function BudgetCategoryCard({
               </div>
             )}
             <span
-              className={`rounded-full px-2 py-1 text-xs font-medium ${
+              className={`rounded-full px-2.5 py-0.5 text-xs font-medium tabular-nums ${
                 categoryPercentage === 100
-                  ? "bg-green-100 text-green-800"
+                  ? "bg-green-50 text-green-700"
                   : categoryPercentage > 100
-                    ? "bg-red-100 text-red-800"
-                    : "bg-yellow-100 text-yellow-800"
+                    ? "bg-red-50 text-red-700"
+                    : "bg-secondary-100 text-secondary-800"
               }`}
             >
               {categoryPercentage.toFixed(0)}%
@@ -232,7 +232,7 @@ export default function BudgetCategoryCard({
                         setEditingAmount(value);
                       }
                     }}
-                    className="w-20 rounded-md border border-gray-300 px-1 py-0.5 text-right text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-20 rounded-lg border border-gray-300 px-1 py-0.5 text-right text-sm tabular-nums focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                   />
                 </div>
               ) : (
@@ -259,9 +259,9 @@ export default function BudgetCategoryCard({
             </div>
           </div>
 
-          <div className="h-2 w-full rounded-full bg-gray-200">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
             <div
-              className={`h-2 rounded-full transition-all duration-300 ${
+              className={`h-2 rounded-full transition-all duration-500 ease-out ${
                 categoryPercentage === 100
                   ? "bg-green-500"
                   : categoryPercentage > 100
@@ -329,7 +329,7 @@ export default function BudgetCategoryCard({
                 <div className="text-center">
                   <button
                     onClick={handleViewAllTransactions}
-                    className="cursor-pointer text-center text-xs text-blue-600 transition-colors hover:text-blue-800 hover:underline"
+                    className="cursor-pointer text-center text-xs font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800 hover:underline"
                     title={`View all ${budgetCategory.transactions.length} transactions for ${budgetCategory.name}`}
                   >
                     View all transactions

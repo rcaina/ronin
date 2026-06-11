@@ -10,18 +10,7 @@ import type { ReactNode } from "react";
  *   value="$5,000"
  *   subtitle="Across 3 active budgets"
  *   icon={<DollarSign className="h-4 w-4" />}
- *   iconColor="text-green-500"
- * />
- *
- * <StatsCard
- *   title="Days Remaining"
- *   value={15}
- *   subtitle="Ending soon"
- *   icon={<Calendar className="h-4 w-4" />}
- *   iconColor="text-orange-500"
- *   valueColor="text-orange-600"
- *   hover={true}
- *   onClick={() => console.log('Card clicked')}
+ *   iconColor="text-green-600"
  * />
  * ```
  */
@@ -42,14 +31,17 @@ const StatsCard = ({
   value,
   subtitle,
   icon,
-  iconColor = "text-gray-500",
+  iconColor = "text-secondary-600",
   valueColor = "text-gray-900",
   className = "",
   onClick,
   hover = false,
 }: StatsCardProps) => {
-  const baseClasses = "rounded-xl border bg-white p-3 shadow-sm sm:p-4 lg:p-6";
-  const hoverClasses = hover ? "transition-all hover:shadow-md" : "";
+  const baseClasses = "card-surface p-4 sm:p-5";
+  const hoverClasses =
+    hover || onClick
+      ? "transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lifted"
+      : "";
   const clickableClasses = onClick ? "cursor-pointer" : "";
 
   return (
@@ -57,19 +49,27 @@ const StatsCard = ({
       className={`${baseClasses} ${hoverClasses} ${clickableClasses} ${className}`}
       onClick={onClick}
     >
-      <div className="mb-2 flex items-center justify-between sm:mb-3 lg:mb-4">
-        <h3 className="text-xs font-medium text-gray-500 sm:text-sm">
-          {title}
-        </h3>
+      <div className="flex items-center gap-3">
         {icon && (
-          <div className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`}>{icon}</div>
+          <div
+            className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-surface-muted ${iconColor}`}
+          >
+            {icon}
+          </div>
         )}
-      </div>
-      <div className={`text-lg font-bold sm:text-xl lg:text-2xl ${valueColor}`}>
-        {value}
+        <div className="min-w-0">
+          <h3 className="truncate text-xs font-medium text-gray-500">
+            {title}
+          </h3>
+          <div
+            className={`truncate text-lg font-bold tabular-nums tracking-tight sm:text-xl ${valueColor}`}
+          >
+            {value}
+          </div>
+        </div>
       </div>
       {subtitle && (
-        <div className="mt-1 text-xs text-gray-500 sm:text-sm">{subtitle}</div>
+        <div className="mt-2 truncate text-xs text-gray-500">{subtitle}</div>
       )}
     </div>
   );

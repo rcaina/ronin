@@ -45,10 +45,15 @@ export interface IncomeEntry {
   frequency: PeriodType;
 }
 
-export type StepType = "basic" | "income" | "cards" | "categories" | "allocation";
+export type StepType =
+  | "basic"
+  | "income"
+  | "cards"
+  | "categories"
+  | "allocation";
 
 export interface Step {
   step: StepType;
   label: string;
   description: string;
-} 
+}

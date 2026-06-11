@@ -14,13 +14,13 @@ export default function CategoryViewToggle({
   onViewChange,
 }: CategoryViewToggleProps) {
   return (
-    <div className="flex items-center space-x-1 rounded-lg border border-gray-300 bg-white p-1">
+    <div className="inline-flex items-center rounded-full bg-surface-muted p-1">
       <button
         onClick={() => onViewChange("grid")}
-        className={`flex items-center space-x-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+        className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
           view === "grid"
-            ? "bg-blue-50 text-blue-700"
-            : "text-gray-600 hover:bg-gray-50"
+            ? "bg-white text-gray-900 shadow-soft"
+            : "text-gray-500 hover:text-gray-700"
         }`}
         title="Grid view"
       >
@@ -29,10 +29,10 @@ export default function CategoryViewToggle({
       </button>
       <button
         onClick={() => onViewChange("list")}
-        className={`flex items-center space-x-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+        className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
           view === "list"
-            ? "bg-blue-50 text-blue-700"
-            : "text-gray-600 hover:bg-gray-50"
+            ? "bg-white text-gray-900 shadow-soft"
+            : "text-gray-500 hover:text-gray-700"
         }`}
         title="List view"
       >

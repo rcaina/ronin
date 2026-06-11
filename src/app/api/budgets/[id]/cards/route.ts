@@ -7,15 +7,26 @@ import { ensureBudgetOwnership, validateBudgetId } from "@/lib/utils/auth";
 import { getBudgetCards } from "@/lib/api-services/budgets";
 
 export const GET = withUser({
-  GET: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
-    const { id } = await context.params;
-    const budgetId = validateBudgetId(id);
-    await ensureBudgetOwnership(budgetId, user.accountId);
+  GET: withUserErrorHandling(
+    async (
+      req: NextRequest,
+      context: { params: Promise<Record<string, string>> },
+      user: User & { accountId: string },
+    ) => {
+      const { id } = await context.params;
+      const budgetId = validateBudgetId(id);
+      await ensureBudgetOwnership(budgetId, user.accountId);
 
-    const excludeCardPayments = req.nextUrl.searchParams.get('excludeCardPayments') === 'true';
+      const excludeCardPayments =
+        req.nextUrl.searchParams.get("excludeCardPayments") === "true";
 
-    const budgetCards = await getBudgetCards(prisma, budgetId, excludeCardPayments);
-    
-    return NextResponse.json(budgetCards, { status: 200 });
-  })
+      const budgetCards = await getBudgetCards(
+        prisma,
+        budgetId,
+        excludeCardPayments,
+      );
+
+      return NextResponse.json(budgetCards, { status: 200 });
+    },
+  ),
 });
