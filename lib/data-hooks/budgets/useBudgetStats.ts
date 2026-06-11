@@ -12,19 +12,10 @@ import {
   flattenBudgetTransactions,
 } from "@/lib/utils/spending";
 
+import { CHART_COLORS, GROUP_COLORS } from "@/components/recharts/theme";
+
 // Palette for the per-category pie chart on the budget detail page.
-const CATEGORY_COLORS = [
-  "#3b82f6", // blue-500
-  "#a855f7", // purple-500
-  "#10b981", // green-500
-  "#f59e0b", // amber-500
-  "#ef4444", // red-500
-  "#06b6d4", // cyan-500
-  "#ec4899", // pink-500
-  "#8b5cf6", // violet-500
-  "#14b8a6", // teal-500
-  "#f97316", // orange-500
-];
+const CATEGORY_COLORS = CHART_COLORS;
 
 /**
  * Aggregate statistics for the budgets list page, computed across the active
@@ -69,17 +60,17 @@ export const useBudgetStats = (
       {
         name: "Needs",
         value: roundToCents(spendingByGroup[CategoryType.NEEDS] ?? 0),
-        color: "#3b82f6",
+        color: GROUP_COLORS.NEEDS!,
       },
       {
         name: "Wants",
         value: roundToCents(spendingByGroup[CategoryType.WANTS] ?? 0),
-        color: "#a855f7",
+        color: GROUP_COLORS.WANTS!,
       },
       {
         name: "Investment",
         value: roundToCents(spendingByGroup[CategoryType.INVESTMENT] ?? 0),
-        color: "#10b981",
+        color: GROUP_COLORS.INVESTMENT!,
       },
     ].filter((item) => item.value > 0);
 

@@ -1,41 +1,62 @@
-import { TransactionType, type Budget, type Card, type Category, type Transaction } from "@prisma/client";
+import {
+  TransactionType,
+  type Budget,
+  type Card,
+  type Category,
+  type Transaction,
+} from "@prisma/client";
 
 // budget region
 
-export const formatBudget = (budget: Budget & { 
-  categories: (Category & { transactions: Transaction[] })[];
-  cards?: Card[];
-}) => {
+export const formatBudget = (
+  budget: Budget & {
+    categories: (Category & { transactions: Transaction[] })[];
+    cards?: Card[];
+  },
+) => {
   return {
     ...budget,
-    categories: budget.categories?.map(category => ({
-      ...category,
-      transactions: category.transactions || [],
-    })) || [],
+    categories:
+      budget.categories?.map((category) => ({
+        ...category,
+        transactions: category.transactions || [],
+      })) || [],
     cards: budget.cards ?? [],
   };
 };
 
-export const formatBudgetCategories = (categories: (Category & { transactions: { id: string; name: string | null; description: string | null; amount: number, transactionType: TransactionType; createdAt: Date }[] })[]) => {
+export const formatBudgetCategories = (
+  categories: (Category & {
+    transactions: {
+      id: string;
+      name: string | null;
+      description: string | null;
+      amount: number;
+      transactionType: TransactionType;
+      createdAt: Date;
+    }[];
+  })[],
+) => {
   // Calculate spent amount for each category
-  return categories.map(category => ({
+  return categories.map((category) => ({
     ...category,
-    spentAmount: category.transactions?.reduce((sum, transaction) => {
-      switch (transaction.transactionType) {
-        case TransactionType.RETURN:
-          // Returns reduce spending (positive amount = refund received)
-          return sum - (transaction.amount || 0);
-        case TransactionType.INCOME:
-        case TransactionType.CARD_PAYMENT:
-          // Income and card payments are money movement, not category spending
-          return sum;
-        default:
-          // Regular transactions: positive = purchases (increase spending)
-          return sum + (transaction.amount || 0);
-      }
-    }, 0) || 0,
+    spentAmount:
+      category.transactions?.reduce((sum, transaction) => {
+        switch (transaction.transactionType) {
+          case TransactionType.RETURN:
+            // Returns reduce spending (positive amount = refund received)
+            return sum - (transaction.amount || 0);
+          case TransactionType.INCOME:
+          case TransactionType.CARD_PAYMENT:
+            // Income and card payments are money movement, not category spending
+            return sum;
+          default:
+            // Regular transactions: positive = purchases (increase spending)
+            return sum + (transaction.amount || 0);
+        }
+      }, 0) || 0,
     // Keep transactions for UI display
-    transactions: category.transactions.map(transaction => ({
+    transactions: category.transactions.map((transaction) => ({
       id: transaction.id,
       name: transaction.name,
       description: transaction.description,

@@ -67,8 +67,8 @@ export default function AddAllocationModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="mx-4 w-full max-w-md rounded-lg bg-white shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 backdrop-blur-sm">
+      <div className="mx-4 w-full max-w-md animate-scale-in rounded-2xl bg-white shadow-lifted">
         <div className="flex items-center justify-between border-b p-5">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
@@ -158,7 +158,7 @@ export default function AddAllocationModal({
                 id="withdrawal"
                 checked={withdrawal}
                 onChange={(e) => setWithdrawal(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="h-4 w-4 rounded border-gray-300 text-secondary-600 focus:ring-secondary"
               />
               <label
                 htmlFor="withdrawal"

@@ -150,10 +150,10 @@ export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
     <>
       <div
         onClick={handleCardClick}
-        className={`group relative overflow-hidden rounded-xl border p-6 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md ${
+        className={`group relative overflow-hidden p-5 sm:p-6 ${
           editingPocketId === pocket.id
-            ? "border-blue-200 bg-blue-50"
-            : "cursor-pointer bg-white"
+            ? "rounded-2xl border border-secondary-200 bg-secondary-50 shadow-card"
+            : "card-interactive cursor-pointer"
         }`}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -163,24 +163,24 @@ export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
                 type="text"
                 value={editingName}
                 onChange={(e) => setEditingName(e.target.value)}
-                className="rounded-md border border-gray-300 px-2 py-1 text-lg font-semibold text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-xl border border-gray-300 px-3 py-1.5 text-lg font-semibold tracking-tight text-gray-900 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                 placeholder="Pocket name"
               />
             </div>
           ) : (
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold tracking-tight text-gray-900">
               {pocket.name}
             </h3>
           )}
           <div className="flex items-center space-x-2">
             {editingPocketId !== pocket.id ? (
-              <div className="flex items-center space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="flex items-center gap-0.5 opacity-100 transition-opacity duration-200 lg:opacity-0 lg:group-hover:opacity-100">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleStartEditPocket();
                   }}
-                  className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                  className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
                   title="Edit pocket"
                 >
                   <Edit className="h-4 w-4" />
@@ -190,21 +190,21 @@ export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
                     e.stopPropagation();
                     handleDeletePocket();
                   }}
-                  className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
+                  className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                   title="Delete pocket"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center gap-0.5">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     void handleSavePocket();
                   }}
                   disabled={updatePocketMutation.isPending}
-                  className="rounded p-1 text-green-600 transition-colors hover:bg-green-100 disabled:opacity-50"
+                  className="rounded-lg p-2 text-green-600 transition-colors duration-200 hover:bg-green-50 disabled:opacity-50"
                   title="Save changes"
                 >
                   ✓
@@ -215,7 +215,7 @@ export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
                     handleCancelEditPocket();
                   }}
                   disabled={updatePocketMutation.isPending}
-                  className="rounded p-1 text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
+                  className="rounded-lg p-2 text-gray-600 transition-colors duration-200 hover:bg-gray-100 disabled:opacity-50"
                   title="Cancel editing"
                 >
                   ✕
@@ -228,15 +228,19 @@ export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
         <div className="space-y-3">
           <div>
             <div className="mb-1 flex justify-between text-sm">
-              <span className="text-gray-500">Total Saved</span>
-              <span className="font-medium">
+              <span className="text-xs font-medium text-gray-500">
+                Total saved
+              </span>
+              <span className="font-medium tabular-nums text-gray-900">
                 ${totalAllocated.toFixed(2).toLocaleString()}
               </span>
             </div>
             {(goalAmount > 0 || editingPocketId === pocket.id) && (
               <>
                 <div className="mb-1 flex justify-between text-sm">
-                  <span className="text-gray-500">Goal Amount</span>
+                  <span className="text-xs font-medium text-gray-500">
+                    Goal amount
+                  </span>
                   {editingPocketId === pocket.id ? (
                     <div className="flex items-center space-x-1">
                       <span className="text-sm text-gray-500">$</span>
@@ -255,20 +259,22 @@ export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
                             setEditingGoalAmount(value);
                           }
                         }}
-                        className="w-20 rounded-md border border-gray-300 px-1 py-0.5 text-right text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-20 rounded-xl border border-gray-300 px-2 py-0.5 text-right text-sm tabular-nums focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                       />
                     </div>
                   ) : (
-                    <span className="font-medium">
+                    <span className="font-medium tabular-nums text-gray-900">
                       ${goalAmount.toFixed(2).toLocaleString()}
                     </span>
                   )}
                 </div>
                 {goalAmount > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Progress</span>
+                    <span className="text-xs font-medium text-gray-500">
+                      Progress
+                    </span>
                     <span
-                      className={`font-medium ${
+                      className={`font-medium tabular-nums ${
                         goalProgressPercentage >= 100
                           ? "text-green-600"
                           : "text-gray-900"
@@ -283,9 +289,9 @@ export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
           </div>
 
           {goalAmount > 0 && (
-            <div className="h-2 w-full rounded-full bg-gray-200">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
               <div
-                className={`h-2 rounded-full transition-all duration-300 ${
+                className={`h-2 rounded-full transition-all duration-500 ease-out ${
                   goalProgressPercentage >= 100
                     ? "bg-green-500"
                     : "bg-secondary"
@@ -300,15 +306,15 @@ export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
 
         {/* Allocations List */}
         {pocket.allocations && pocket.allocations.length > 0 && (
-          <div className="mt-4 border-t pt-4">
-            <h4 className="mb-2 text-sm font-medium text-gray-700">
+          <div className="mt-4 border-t border-gray-100 pt-4">
+            <h4 className="mb-2 text-xs font-medium text-gray-500">
               Allocations
             </h4>
             <div className="space-y-2">
               {pocket.allocations.slice(0, 5).map((allocation) => (
                 <div
                   key={allocation.id}
-                  className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-2 text-sm"
+                  className="flex items-center justify-between rounded-xl border border-gray-100 bg-surface p-2 text-sm"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-gray-900">
@@ -322,7 +328,7 @@ export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
                   </div>
                   <div className="flex items-center space-x-2">
                     <span
-                      className={`font-medium ${
+                      className={`font-medium tabular-nums ${
                         allocation.withdrawal
                           ? "text-red-600"
                           : "text-green-600"
@@ -342,7 +348,7 @@ export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
                         e.stopPropagation();
                         handleDeleteAllocation(allocation.id);
                       }}
-                      className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
+                      className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                       title="Remove allocation"
                     >
                       <Trash2 className="h-3 w-3" />
@@ -360,7 +366,7 @@ export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
         )}
 
         {pocket.allocations && pocket.allocations.length === 0 && (
-          <div className="mt-4 border-t pt-4 text-center">
+          <div className="mt-4 border-t border-gray-100 pt-4 text-center">
             <p className="text-sm text-gray-500">No allocations yet</p>
           </div>
         )}

@@ -1,13 +1,22 @@
 import type { BudgetWithRelations, SerializedBudget } from "@/lib/types/budget";
-import type { UpdateBudgetData, CreateBudgetData, CreateBudgetWithCardsData } from "@/lib/types/budget";
+import type {
+  UpdateBudgetData,
+  CreateBudgetData,
+  CreateBudgetWithCardsData,
+} from "@/lib/types/budget";
 import type { BudgetStatus } from "@prisma/client";
 
-export const getBudgets = async (status?: BudgetStatus, excludeCardPayments?: boolean): Promise<BudgetWithRelations[]> => {
+export const getBudgets = async (
+  status?: BudgetStatus,
+  excludeCardPayments?: boolean,
+): Promise<BudgetWithRelations[]> => {
   const params = new URLSearchParams();
-  if (status) params.append('status', status);
-  if (excludeCardPayments) params.append('excludeCardPayments', 'true');
-  
-  const url = params.toString() ? `/api/budgets?${params.toString()}` : "/api/budgets";
+  if (status) params.append("status", status);
+  if (excludeCardPayments) params.append("excludeCardPayments", "true");
+
+  const url = params.toString()
+    ? `/api/budgets?${params.toString()}`
+    : "/api/budgets";
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch budgets: ${response.statusText}`);
@@ -17,11 +26,16 @@ export const getBudgets = async (status?: BudgetStatus, excludeCardPayments?: bo
   return Array.isArray(data) ? (data as BudgetWithRelations[]) : [];
 };
 
-export const getBudget = async (id: string, excludeCardPayments?: boolean): Promise<BudgetWithRelations> => {
+export const getBudget = async (
+  id: string,
+  excludeCardPayments?: boolean,
+): Promise<BudgetWithRelations> => {
   const params = new URLSearchParams();
-  if (excludeCardPayments) params.append('excludeCardPayments', 'true');
-  
-  const url = params.toString() ? `/api/budgets/${id}?${params.toString()}` : `/api/budgets/${id}`;
+  if (excludeCardPayments) params.append("excludeCardPayments", "true");
+
+  const url = params.toString()
+    ? `/api/budgets/${id}?${params.toString()}`
+    : `/api/budgets/${id}`;
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch budget: ${response.statusText}`);
@@ -29,27 +43,30 @@ export const getBudget = async (id: string, excludeCardPayments?: boolean): Prom
   return response.json() as Promise<BudgetWithRelations>;
 };
 
-export const updateBudget = async (id: string, data: UpdateBudgetData): Promise<BudgetWithRelations> => {
+export const updateBudget = async (
+  id: string,
+  data: UpdateBudgetData,
+): Promise<BudgetWithRelations> => {
   const response = await fetch(`/api/budgets/${id}`, {
-    method: 'PUT',
+    method: "PUT",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(data),
   });
-  
+
   if (!response.ok) {
     throw new Error(`Failed to update budget: ${response.statusText}`);
   }
-  
+
   return response.json() as Promise<BudgetWithRelations>;
 };
 
 export const deleteBudget = async (id: string): Promise<void> => {
   const response = await fetch(`/api/budgets/${id}`, {
-    method: 'DELETE',
+    method: "DELETE",
   });
-  
+
   if (!response.ok) {
     throw new Error(`Failed to delete budget: ${response.statusText}`);
   }
@@ -57,19 +74,21 @@ export const deleteBudget = async (id: string): Promise<void> => {
 
 export const markBudgetCompleted = async (id: string): Promise<void> => {
   const response = await fetch(`/api/budgets/${id}/complete`, {
-    method: 'POST',
+    method: "POST",
   });
-  
+
   if (!response.ok) {
-    throw new Error(`Failed to mark budget as completed: ${response.statusText}`);
+    throw new Error(
+      `Failed to mark budget as completed: ${response.statusText}`,
+    );
   }
 };
 
 export const markBudgetArchived = async (id: string): Promise<void> => {
   const response = await fetch(`/api/budgets/${id}/archive`, {
-    method: 'POST',
+    method: "POST",
   });
-  
+
   if (!response.ok) {
     throw new Error(`Failed to archive budget: ${response.statusText}`);
   }
@@ -77,9 +96,9 @@ export const markBudgetArchived = async (id: string): Promise<void> => {
 
 export const reactivateBudget = async (id: string): Promise<void> => {
   const response = await fetch(`/api/budgets/${id}/reactivate`, {
-    method: 'POST',
+    method: "POST",
   });
-  
+
   if (!response.ok) {
     throw new Error(`Failed to reactivate budget: ${response.statusText}`);
   }
@@ -100,17 +119,20 @@ export const createBudget = async (
     throw new Error(`Failed to create budget: ${response.statusText}`);
   }
 
-  return (await response.json()) as { message: string; budget: SerializedBudget };
+  return (await response.json()) as {
+    message: string;
+    budget: SerializedBudget;
+  };
 };
 
 export const createBudgetFromScratchWithCards = async (
   data: CreateBudgetWithCardsData,
 ): Promise<{
-  message: string
-  budget: SerializedBudget
-  failedCards: string[]
-  failedIncomes: string[]
-  incomesSkipped: boolean
+  message: string;
+  budget: SerializedBudget;
+  failedCards: string[];
+  failedIncomes: string[];
+  incomesSkipped: boolean;
 }> => {
   const response = await fetch("/api/budgets/create-from-scratch", {
     method: "POST",
@@ -118,29 +140,29 @@ export const createBudgetFromScratchWithCards = async (
       "Content-Type": "application/json",
     },
     body: JSON.stringify(data),
-  })
+  });
 
   if (!response.ok) {
-    throw new Error(`Failed to create budget: ${response.statusText}`)
+    throw new Error(`Failed to create budget: ${response.statusText}`);
   }
 
   return (await response.json()) as {
-    message: string
-    budget: SerializedBudget
-    failedCards: string[]
-    failedIncomes: string[]
-    incomesSkipped: boolean
-  }
-}
+    message: string;
+    budget: SerializedBudget;
+    failedCards: string[];
+    failedIncomes: string[];
+    incomesSkipped: boolean;
+  };
+};
 
 export const duplicateBudgetWithCards = async (
   data: CreateBudgetWithCardsData,
 ): Promise<{
-  message: string
-  budget: SerializedBudget
-  failedCards: string[]
-  failedIncomes: string[]
-  incomesSkipped: boolean
+  message: string;
+  budget: SerializedBudget;
+  failedCards: string[];
+  failedIncomes: string[];
+  incomesSkipped: boolean;
 }> => {
   const response = await fetch("/api/budgets/duplicate", {
     method: "POST",
@@ -148,20 +170,20 @@ export const duplicateBudgetWithCards = async (
       "Content-Type": "application/json",
     },
     body: JSON.stringify(data),
-  })
+  });
 
   if (!response.ok) {
-    throw new Error(`Failed to duplicate budget: ${response.statusText}`)
+    throw new Error(`Failed to duplicate budget: ${response.statusText}`);
   }
 
   return (await response.json()) as {
-    message: string
-    budget: SerializedBudget
-    failedCards: string[]
-    failedIncomes: string[]
-    incomesSkipped: boolean
-  }
-}
+    message: string;
+    budget: SerializedBudget;
+    failedCards: string[];
+    failedIncomes: string[];
+    incomesSkipped: boolean;
+  };
+};
 
 export const duplicateBudget = async (
   budgetId: string,
@@ -177,5 +199,8 @@ export const duplicateBudget = async (
     throw new Error(`Failed to duplicate budget: ${response.statusText}`);
   }
 
-  return (await response.json()) as { message: string; budget: SerializedBudget };
+  return (await response.json()) as {
+    message: string;
+    budget: SerializedBudget;
+  };
 };

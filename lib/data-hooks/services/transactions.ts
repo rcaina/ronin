@@ -1,11 +1,9 @@
-import type { 
-  CreateTransactionRequest, 
-  UpdateTransactionRequest, 
-  TransactionWithRelations 
+import type {
+  CreateTransactionRequest,
+  UpdateTransactionRequest,
+  TransactionWithRelations,
 } from "@/lib/types/transaction";
 import type { CreateCardPaymentSchema } from "@/lib/api-schemas/transactions";
-
-
 
 interface CardPaymentResponse {
   message: string;
@@ -16,7 +14,10 @@ interface CardPaymentResponse {
   errors?: Array<{ message: string }>;
 }
 
-export const getTransactions = async (page = 1, limit = 20): Promise<{
+export const getTransactions = async (
+  page = 1,
+  limit = 20,
+): Promise<{
   transactions: TransactionWithRelations[];
   pagination: {
     page: number;
@@ -31,12 +32,12 @@ export const getTransactions = async (page = 1, limit = 20): Promise<{
     page: page.toString(),
     limit: limit.toString(),
   });
-  
+
   const response = await fetch(`/api/transactions?${params}`);
   if (!response.ok) {
     throw new Error("Failed to fetch transactions");
   }
-  
+
   return response.json() as Promise<{
     transactions: TransactionWithRelations[];
     pagination: {
@@ -50,7 +51,9 @@ export const getTransactions = async (page = 1, limit = 20): Promise<{
   }>;
 };
 
-export const createTransaction = async (data: CreateTransactionRequest): Promise<TransactionWithRelations> => {
+export const createTransaction = async (
+  data: CreateTransactionRequest,
+): Promise<TransactionWithRelations> => {
   const response = await fetch("/api/transactions", {
     method: "POST",
     headers: {
@@ -66,7 +69,10 @@ export const createTransaction = async (data: CreateTransactionRequest): Promise
   return response.json() as Promise<TransactionWithRelations>;
 };
 
-export const updateTransaction = async (id: string, data: UpdateTransactionRequest): Promise<TransactionWithRelations> => {
+export const updateTransaction = async (
+  id: string,
+  data: UpdateTransactionRequest,
+): Promise<TransactionWithRelations> => {
   const response = await fetch(`/api/transactions/${id}`, {
     method: "PUT",
     headers: {
@@ -79,8 +85,11 @@ export const updateTransaction = async (id: string, data: UpdateTransactionReque
     throw new Error("Failed to update transaction");
   }
 
-  const result = await response.json() as { message: string; transaction: TransactionWithRelations };
-  
+  const result = (await response.json()) as {
+    message: string;
+    transaction: TransactionWithRelations;
+  };
+
   if (!result.transaction) {
     throw new Error("No transaction returned from server");
   }
@@ -97,7 +106,9 @@ export const deleteTransaction = async (id: string): Promise<void> => {
   }
 };
 
-export const createCardPayment = async (data: CreateCardPaymentSchema): Promise<{
+export const createCardPayment = async (
+  data: CreateCardPaymentSchema,
+): Promise<{
   fromTransaction: TransactionWithRelations;
   toTransaction: TransactionWithRelations;
 }> => {
@@ -109,7 +120,7 @@ export const createCardPayment = async (data: CreateCardPaymentSchema): Promise<
     body: JSON.stringify(data),
   });
 
-  const result = await response.json() as CardPaymentResponse;
+  const result = (await response.json()) as CardPaymentResponse;
 
   if (!response.ok) {
     throw new Error(result.message ?? "Failed to create card payment");
@@ -120,4 +131,4 @@ export const createCardPayment = async (data: CreateCardPaymentSchema): Promise<
   }
 
   return result.result;
-}; 
+};

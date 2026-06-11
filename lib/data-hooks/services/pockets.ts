@@ -5,10 +5,9 @@ export const getPockets = (savingsId?: string) => {
   return fetch(`/api/savings/pockets${query}`);
 };
 
-export const addPocket = (data: CreatePocketSchema) => fetch("/api/savings/pockets", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(data),
-});
-
-
+export const addPocket = (data: CreatePocketSchema) =>
+  fetch("/api/savings/pockets", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });

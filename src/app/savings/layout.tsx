@@ -41,7 +41,7 @@ function PocketDetailLayoutContent({ children }: { children: ReactNode }) {
   }, [pathname, id, pocketId, savings, pocket]);
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
+    <div className="flex h-screen flex-col bg-surface">
       {pageHeaderConfig && (
         <PageHeader
           title={pageHeaderConfig.title}
@@ -77,7 +77,7 @@ function PocketDetailLayoutContent({ children }: { children: ReactNode }) {
 
 function DefaultLayoutContent({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
+    <div className="flex h-screen flex-col bg-surface">
       <div className="flex-1 overflow-hidden">{children}</div>
     </div>
   );

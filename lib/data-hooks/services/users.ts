@@ -1,6 +1,11 @@
-import type { UpdateProfileRequest, UpdateProfileResponse } from "@/lib/types/user";
+import type {
+  UpdateProfileRequest,
+  UpdateProfileResponse,
+} from "@/lib/types/user";
 
-export const updateProfile = async (data: UpdateProfileRequest): Promise<UpdateProfileResponse> => {
+export const updateProfile = async (
+  data: UpdateProfileRequest,
+): Promise<UpdateProfileResponse> => {
   const response = await fetch("/api/users/profile", {
     method: "PUT",
     headers: {
@@ -10,7 +15,7 @@ export const updateProfile = async (data: UpdateProfileRequest): Promise<UpdateP
   });
 
   if (!response.ok) {
-    const errorData = await response.json() as { message: string };
+    const errorData = (await response.json()) as { message: string };
     throw new Error(errorData.message);
   }
 

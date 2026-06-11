@@ -87,7 +87,7 @@ const BudgetTransactionsPage = () => {
     setActions([
       {
         icon: <Plus className="h-4 w-4" />,
-        label: "Add Transaction",
+        label: "Add transaction",
         onClick: () => setShowAddTransactionModal(true),
         variant: "primary" as const,
       },
@@ -436,7 +436,7 @@ const BudgetTransactionsPage = () => {
   // Show error state if there's an error with budget or transactions
   if (budgetError || transactionsError) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-surface">
         <div className="text-center">
           <div className="mb-4 text-red-500">
             <AlertCircle className="mx-auto h-12 w-12" />
@@ -457,12 +457,14 @@ const BudgetTransactionsPage = () => {
   // Show not found state if budget doesn't exist
   if (!budget) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-surface">
         <div className="text-center">
-          <div className="mb-4 text-gray-400">
-            <Target className="mx-auto h-12 w-12" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+            <Target className="h-7 w-7" strokeWidth={1.5} />
           </div>
-          <div className="text-lg text-gray-600">Budget not found</div>
+          <div className="text-lg font-semibold text-gray-900">
+            Budget not found
+          </div>
         </div>
       </div>
     );
@@ -470,8 +472,8 @@ const BudgetTransactionsPage = () => {
 
   return (
     <>
-      <div className="h-full overflow-y-auto">
-        <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
+      <div className="h-full overflow-y-auto bg-surface">
+        <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:px-8 lg:py-4 lg:pb-8">
           {/* Stats Cards */}
           <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
             <StatsCard
@@ -481,11 +483,9 @@ const BudgetTransactionsPage = () => {
                 hasActiveFilters ? "Filtered results" : "Total transactions"
               }
               icon={<Receipt className="h-4 w-4" />}
-              iconColor="text-blue-500"
-              valueColor="text-blue-600"
             />
             <StatsCard
-              title="Total Spent"
+              title="Total spent"
               value={formatCurrency(totalSpent)}
               subtitle={
                 hasActiveFilters
@@ -493,23 +493,22 @@ const BudgetTransactionsPage = () => {
                   : "All transactions"
               }
               icon={<TrendingDown className="h-4 w-4" />}
-              iconColor="text-green-500"
-              valueColor="text-green-600"
+              iconColor="text-green-600"
             />
           </div>
           {/* Filters and Search */}
-          <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-6 sm:p-4 lg:p-6">
+          <div className="card-surface mb-4 p-3 sm:mb-6 sm:p-4 lg:p-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Filter className="h-4 w-4 text-gray-500" />
-                <h3 className="text-sm font-medium text-gray-700">Filters</h3>
+                <h3 className="text-sm font-semibold text-gray-900">Filters</h3>
               </div>
               {hasActiveFilters && (
                 <Button
                   onClick={clearAllFilters}
                   variant="ghost"
                   size="sm"
-                  className="text-xs text-blue-600 hover:text-blue-800"
+                  className="text-xs text-secondary-700 hover:text-secondary-800"
                 >
                   Clear all filters
                 </Button>
@@ -525,7 +524,7 @@ const BudgetTransactionsPage = () => {
                   placeholder="Search transactions, amounts, descriptions..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-xl border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                 />
               </div>
 
@@ -533,11 +532,11 @@ const BudgetTransactionsPage = () => {
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <div className="mb-1 flex items-center space-x-2">
-                    <label className="block text-xs font-medium text-gray-700">
-                      Category Type
+                    <label className="block text-xs font-medium text-gray-500">
+                      Category type
                     </label>
                     {selectedCategoryType !== "all" && (
-                      <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                      <span className="inline-flex items-center rounded-full bg-secondary-100 px-2 py-0.5 text-xs font-medium text-secondary-800">
                         Filtered
                       </span>
                     )}
@@ -549,9 +548,9 @@ const BudgetTransactionsPage = () => {
                         e.target.value as CategoryType | "all",
                       )
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                   >
-                    <option value="all">All Types</option>
+                    <option value="all">All types</option>
                     <option value={CategoryType.WANTS}>Wants</option>
                     <option value={CategoryType.NEEDS}>Needs</option>
                     <option value={CategoryType.INVESTMENT}>Investments</option>
@@ -560,11 +559,11 @@ const BudgetTransactionsPage = () => {
 
                 <div>
                   <div className="mb-1 flex items-center space-x-2">
-                    <label className="block text-xs font-medium text-gray-700">
+                    <label className="block text-xs font-medium text-gray-500">
                       Category
                     </label>
                     {selectedCategory !== "all" && (
-                      <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                      <span className="inline-flex items-center rounded-full bg-secondary-100 px-2 py-0.5 text-xs font-medium text-secondary-800">
                         Filtered
                       </span>
                     )}
@@ -572,14 +571,14 @@ const BudgetTransactionsPage = () => {
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                     title={
                       selectedCategory !== "all"
                         ? `Viewing transactions for ${categories.find((c) => c.actualCategoryId === selectedCategory)?.name ?? "selected category"}`
                         : "Select a category to filter transactions"
                     }
                   >
-                    <option value="all">All Categories</option>
+                    <option value="all">All categories</option>
                     {categories.map((category) => (
                       <option
                         key={category.id}
@@ -592,16 +591,16 @@ const BudgetTransactionsPage = () => {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-700">
+                  <label className="mb-1 block text-xs font-medium text-gray-500">
                     Card
                   </label>
                   <select
                     value={selectedCard}
                     onChange={(e) => setSelectedCard(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                   >
-                    <option value="all">All Cards</option>
-                    <option value="no-card">No Card</option>
+                    <option value="all">All cards</option>
+                    <option value="no-card">No card</option>
                     {availableCards.map((card) => (
                       <option key={card.id} value={card.id}>
                         {card.displayName}
@@ -611,8 +610,8 @@ const BudgetTransactionsPage = () => {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-700">
-                    Sort By
+                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                    Sort by
                   </label>
                   <select
                     value={`${sortBy}-${sortOrder}`}
@@ -623,12 +622,12 @@ const BudgetTransactionsPage = () => {
                       setSortBy(newSortBy);
                       setSortOrder(newSortOrder);
                     }}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                   >
-                    <option value="date-desc">Date (Newest)</option>
-                    <option value="date-asc">Date (Oldest)</option>
-                    <option value="amount-desc">Amount (High to Low)</option>
-                    <option value="amount-asc">Amount (Low to High)</option>
+                    <option value="date-desc">Date (newest)</option>
+                    <option value="date-asc">Date (oldest)</option>
+                    <option value="amount-desc">Amount (high to low)</option>
+                    <option value="amount-asc">Amount (low to high)</option>
                     <option value="name-asc">Name (A-Z)</option>
                     <option value="name-desc">Name (Z-A)</option>
                   </select>
@@ -647,17 +646,17 @@ const BudgetTransactionsPage = () => {
 
           {/* Bulk Actions Bar */}
           {selectedTransactions.size > 0 && (
-            <div className="mb-4 rounded-xl border bg-blue-50 p-3 shadow-sm sm:mb-6 sm:p-4">
+            <div className="mb-4 rounded-2xl border border-secondary-200/70 bg-secondary-50 p-3 shadow-soft sm:mb-6 sm:p-4">
               <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4">
-                  <span className="text-sm font-medium text-blue-900">
+                  <span className="text-sm font-medium text-secondary-900">
                     {selectedTransactions.size} transaction
                     {selectedTransactions.size !== 1 ? "s" : ""} selected
                   </span>
                   <Button
                     variant="ghost"
                     onClick={() => setSelectedTransactions(new Set())}
-                    className="text-sm text-blue-600 hover:text-blue-800"
+                    className="text-sm text-secondary-700 hover:text-secondary-800"
                   >
                     Clear selection
                   </Button>
@@ -670,7 +669,7 @@ const BudgetTransactionsPage = () => {
                     disabled={deleteTransactionMutation.isPending}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Selected
+                    Delete selected
                   </Button>
                 </div>
               </div>
@@ -678,8 +677,8 @@ const BudgetTransactionsPage = () => {
           )}
 
           {/* Transactions List */}
-          <div className="rounded-xl border bg-white shadow-sm">
-            <div className="border-b px-3 py-3 sm:px-6 sm:py-4">
+          <div className="card-surface overflow-hidden">
+            <div className="border-b border-gray-100 px-3 py-3 sm:px-6 sm:py-4">
               <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
                 <div className="flex items-center space-x-2">
                   <label className="flex items-center space-x-2 text-sm text-gray-600">
@@ -695,15 +694,15 @@ const BudgetTransactionsPage = () => {
                         ).length > 0
                       }
                       onChange={handleSelectAll}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="h-4 w-4 rounded border-gray-300 text-secondary-600 focus:ring-secondary"
                     />
-                    <span>Select All</span>
+                    <span>Select all</span>
                   </label>
                 </div>
               </div>
             </div>
 
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-gray-100">
               {filteredAndSortedTransactions.length > 0 ? (
                 filteredAndSortedTransactions.map((transaction) => {
                   // Check if this transaction is being edited
@@ -724,7 +723,7 @@ const BudgetTransactionsPage = () => {
                   return (
                     <div
                       key={transaction.id}
-                      className="group flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-3 hover:bg-gray-100 sm:p-4"
+                      className="group flex items-center justify-between p-3 transition-colors duration-200 hover:bg-surface sm:p-4"
                     >
                       <div className="flex min-w-0 flex-1 items-center space-x-3 sm:space-x-4">
                         <input
@@ -734,7 +733,7 @@ const BudgetTransactionsPage = () => {
                             handleSelectTransaction(transaction.id)
                           }
                           disabled={isEditing}
-                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                          className="h-4 w-4 rounded border-gray-300 text-secondary-600 focus:ring-secondary disabled:opacity-50"
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center space-x-2">
@@ -770,9 +769,9 @@ const BudgetTransactionsPage = () => {
                             {transaction.description && (
                               <div className="group relative flex-shrink-0">
                                 <Info className="h-4 w-4 cursor-help text-gray-400" />
-                                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
                                   {transaction.description}
-                                  <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                                  <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-primary-950/90"></div>
                                 </div>
                               </div>
                             )}
@@ -787,24 +786,24 @@ const BudgetTransactionsPage = () => {
 
                       <div className="flex items-center space-x-2 sm:space-x-4">
                         {/* Action Icons - Always visible on mobile, hover on desktop */}
-                        <div className="flex items-center space-x-1 opacity-100 transition-opacity sm:space-x-2 sm:opacity-0 sm:group-hover:opacity-100">
+                        <div className="flex items-center space-x-1 opacity-100 transition-opacity sm:space-x-2 lg:opacity-0 lg:group-hover:opacity-100">
                           <button
                             onClick={() => handleCopyTransaction(transaction)}
-                            className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                            className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
                             title="Copy transaction"
                           >
                             <Copy className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleEditTransaction(transaction)}
-                            className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                            className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
                             title="Edit transaction"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteTransaction(transaction)}
-                            className="rounded p-1 text-red-300 transition-colors hover:bg-gray-100 hover:text-red-600"
+                            className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                             title="Delete transaction"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -813,7 +812,7 @@ const BudgetTransactionsPage = () => {
 
                         <div className="text-right">
                           <div
-                            className={`text-sm font-semibold ${
+                            className={`text-sm font-semibold tabular-nums ${
                               transaction.transactionType ===
                               TransactionType.RETURN
                                 ? "text-green-600" // Return transactions in green
@@ -844,9 +843,11 @@ const BudgetTransactionsPage = () => {
                   );
                 })
               ) : (
-                <div className="px-3 py-12 text-center sm:px-6">
-                  <DollarSign className="mx-auto mb-4 h-12 w-12 text-gray-300" />
-                  <h3 className="mb-2 text-lg font-medium text-gray-900">
+                <div className="flex flex-col items-center px-3 py-12 text-center sm:px-6">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+                    <DollarSign className="h-7 w-7" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="mb-2 text-lg font-semibold text-gray-900">
                     {searchTerm ||
                     selectedCategory !== "all" ||
                     selectedCategoryType !== "all" ||
@@ -854,7 +855,7 @@ const BudgetTransactionsPage = () => {
                       ? "No matching transactions"
                       : "No transactions yet"}
                   </h3>
-                  <p className="text-gray-500">
+                  <p className="text-sm text-gray-500">
                     {searchTerm ||
                     selectedCategory !== "all" ||
                     selectedCategoryType !== "all" ||
@@ -863,7 +864,7 @@ const BudgetTransactionsPage = () => {
                       : "Start adding transactions to see them here"}
                   </p>
                   <p className="mt-4 text-sm text-gray-400">
-                    Use the &ldquo;Add Transaction&rdquo; button in the header
+                    Use the &ldquo;Add transaction&rdquo; button in the header
                     to get started
                   </p>
                 </div>

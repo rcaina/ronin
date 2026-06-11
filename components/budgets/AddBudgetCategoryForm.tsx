@@ -72,7 +72,7 @@ export default function AddBudgetCategoryForm({
             className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
               errors.categoryName
                 ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                : "border-gray-300 focus:border-secondary focus:ring-secondary"
             }`}
             disabled={isLoading}
           />
@@ -105,7 +105,7 @@ export default function AddBudgetCategoryForm({
               className={`w-full rounded-md border py-2 pl-8 pr-3 text-sm focus:outline-none focus:ring-1 ${
                 errors.allocatedAmount
                   ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                  : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  : "border-gray-300 focus:border-secondary focus:ring-secondary"
               }`}
               disabled={isLoading}
             />

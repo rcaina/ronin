@@ -1,4 +1,9 @@
-import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import {
   getBudgets,
@@ -21,7 +26,10 @@ type CreateBudgetResponse = Awaited<ReturnType<typeof createBudget>>;
 type DuplicateBudgetVariables = Parameters<typeof duplicateBudget>[0];
 type DuplicateBudgetResponse = Awaited<ReturnType<typeof duplicateBudget>>;
 
-export const useBudgets = (status?: BudgetStatus, excludeCardPayments?: boolean) => {
+export const useBudgets = (
+  status?: BudgetStatus,
+  excludeCardPayments?: boolean,
+) => {
   const { data: session } = useSession();
 
   const query = useQuery({
@@ -40,20 +48,20 @@ export const useBudgets = (status?: BudgetStatus, excludeCardPayments?: boolean)
 };
 
 export const useActiveBudgets = (excludeCardPayments?: boolean) => {
-  return useBudgets('ACTIVE', excludeCardPayments);
+  return useBudgets("ACTIVE", excludeCardPayments);
 };
 
 export const useCompletedBudgets = (excludeCardPayments?: boolean) => {
-  return useBudgets('COMPLETED', excludeCardPayments);
+  return useBudgets("COMPLETED", excludeCardPayments);
 };
 
 export const useArchivedBudgets = (excludeCardPayments?: boolean) => {
-  return useBudgets('ARCHIVED', excludeCardPayments);
+  return useBudgets("ARCHIVED", excludeCardPayments);
 };
 
 export const useMarkBudgetCompleted = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: markBudgetCompleted,
     onSuccess: () => {
@@ -64,7 +72,7 @@ export const useMarkBudgetCompleted = () => {
 
 export const useMarkBudgetArchived = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: markBudgetArchived,
     onSuccess: () => {
@@ -75,7 +83,7 @@ export const useMarkBudgetArchived = () => {
 
 export const useReactivateBudget = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: reactivateBudget,
     onSuccess: () => {
@@ -95,13 +103,21 @@ export const useCreateBudget = () => {
   });
 };
 
-type CreateBudgetWithCardsVariables = Parameters<typeof createBudgetFromScratchWithCards>[0];
-type CreateBudgetWithCardsResponse = Awaited<ReturnType<typeof createBudgetFromScratchWithCards>>;
+type CreateBudgetWithCardsVariables = Parameters<
+  typeof createBudgetFromScratchWithCards
+>[0];
+type CreateBudgetWithCardsResponse = Awaited<
+  ReturnType<typeof createBudgetFromScratchWithCards>
+>;
 
 export const useCreateBudgetFromScratchWithCards = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<CreateBudgetWithCardsResponse, Error, CreateBudgetWithCardsVariables>({
+  return useMutation<
+    CreateBudgetWithCardsResponse,
+    Error,
+    CreateBudgetWithCardsVariables
+  >({
     mutationFn: createBudgetFromScratchWithCards,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
@@ -112,7 +128,11 @@ export const useCreateBudgetFromScratchWithCards = () => {
 export const useDuplicateBudgetWithCards = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<CreateBudgetWithCardsResponse, Error, CreateBudgetWithCardsVariables>({
+  return useMutation<
+    CreateBudgetWithCardsResponse,
+    Error,
+    CreateBudgetWithCardsVariables
+  >({
     mutationFn: duplicateBudgetWithCards,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
@@ -124,10 +144,13 @@ export const useUpdateBudget = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateBudgetData }) => updateBudget(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UpdateBudgetData }) =>
+      updateBudget(id, data),
     onSuccess: (_, variables) => {
       // Invalidate both the specific budget and the budgets list
-      void queryClient.invalidateQueries({ queryKey: ["budget", variables.id] });
+      void queryClient.invalidateQueries({
+        queryKey: ["budget", variables.id],
+      });
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },
   });
@@ -154,6 +177,3 @@ export const useDuplicateBudget = () => {
     },
   });
 };
-
-
-

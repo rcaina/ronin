@@ -72,8 +72,8 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
   return (
     <>
       {/* Create User Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div className="mx-4 max-w-md rounded-lg bg-white p-6 shadow-xl">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 backdrop-blur-sm">
+        <div className="mx-4 max-w-md animate-scale-in rounded-2xl bg-white p-6 shadow-lifted">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-medium text-gray-900">
               Create New User
@@ -102,7 +102,7 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
                     })
                   }
                   required
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                 />
               </div>
 
@@ -120,7 +120,7 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
                     })
                   }
                   required
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                 />
               </div>
               <div>
@@ -137,7 +137,7 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
                     })
                   }
                   required
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                 />
               </div>
 
@@ -157,7 +157,7 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
                     }
                     required
                     minLength={6}
-                    className="block w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="block w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                   />
                   <button
                     type="button"
@@ -186,7 +186,7 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
                     role: e.target.value as Role,
                   })
                 }
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               >
                 <option value={Role.MEMBER}>Member</option>
                 <option value={Role.ADMIN}>Admin</option>
@@ -222,8 +222,8 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
 
       {/* Created User Success Modal */}
       {createdUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="mx-4 max-w-md rounded-lg bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 backdrop-blur-sm">
+          <div className="mx-4 max-w-md animate-scale-in rounded-2xl bg-white p-6 shadow-lifted">
             <div className="mb-4 flex items-center">
               <div className="mr-3 rounded-full bg-green-100 p-2">
                 <UserIcon className="h-5 w-5 text-green-600" />

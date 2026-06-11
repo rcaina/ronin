@@ -42,16 +42,17 @@ const CategoriesPage = () => {
       }
     : undefined;
 
+  // Aligned with GROUP_COLORS from components/recharts/theme.tsx
   const getGroupColor = (group: CategoryType) => {
     switch (group) {
       case CategoryType.NEEDS:
-        return "bg-blue-500";
+        return "bg-[#5b7a9d]";
       case CategoryType.WANTS:
-        return "bg-purple-500";
+        return "bg-[#b9a15e]";
       case CategoryType.INVESTMENT:
-        return "bg-green-500";
+        return "bg-[#6c9a8b]";
       default:
-        return "bg-gray-500";
+        return "bg-gray-400";
     }
   };
 
@@ -104,7 +105,7 @@ const CategoriesPage = () => {
   // Show error state
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-surface">
         <div className="text-center">
           <div className="mb-4 text-red-500">
             <AlertCircle className="mx-auto h-12 w-12" />
@@ -124,12 +125,12 @@ const CategoriesPage = () => {
 
   return (
     <>
-      <div className="flex h-screen flex-col bg-gray-50">
+      <div className="flex h-screen flex-col bg-surface">
         <PageHeader
           title="Categories"
           description="Manage your template categories"
           action={{
-            label: "Add Category",
+            label: "Add category",
             onClick: handleAddCategoryClick,
             icon: <Plus className="h-4 w-4" />,
           }}
@@ -137,7 +138,7 @@ const CategoriesPage = () => {
 
         <div className="flex-1 overflow-hidden pt-4 lg:pt-0">
           <div className="h-full overflow-y-auto">
-            <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
+            <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 sm:pb-28 lg:px-8 lg:py-4 lg:pb-8">
               <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex-1">
                   <div className="relative w-full">
@@ -148,12 +149,12 @@ const CategoriesPage = () => {
                         placeholder="Search categories..."
                         value={localSearchQuery}
                         onChange={(e) => setLocalSearchQuery(e.target.value)}
-                        className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-10 text-sm text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full rounded-xl border border-gray-300 bg-white py-2 pl-10 pr-10 text-sm text-gray-900 placeholder-gray-500 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                       />
                       {localSearchQuery && (
                         <button
                           onClick={clearSearch}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-gray-400 transition-colors duration-200 hover:text-gray-600"
                         >
                           <X className="h-4 w-4" />
                         </button>
@@ -186,15 +187,15 @@ const CategoriesPage = () => {
 
       {/* Add Category Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md animate-scale-in rounded-2xl bg-white p-6 shadow-lifted">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Add Category
+              <h2 className="text-xl font-semibold tracking-tight text-gray-900">
+                Add category
               </h2>
               <button
                 onClick={handleCloseAddModal}
-                className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
               >
                 ✕
               </button>

@@ -406,7 +406,7 @@ const TransactionsPage = () => {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-surface">
         <div className="text-center">
           <div className="mb-4 text-red-500">
             <AlertCircle className="mx-auto h-12 w-12" />
@@ -421,12 +421,12 @@ const TransactionsPage = () => {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
+    <div className="flex h-screen flex-col bg-surface">
       <PageHeader
         title="Transactions"
         description="Track and manage your financial transactions"
         action={{
-          label: "Add Transaction",
+          label: "Add transaction",
           onClick: () => setShowAddTransactionModal(true),
           icon: <Plus className="h-4 w-4" />,
         }}
@@ -434,21 +434,21 @@ const TransactionsPage = () => {
 
       <div className="flex-1 overflow-hidden pt-4 sm:pt-20 lg:pt-0">
         <div className="h-full overflow-y-auto">
-          <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
+          <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 sm:pb-28 lg:px-8 lg:py-4 lg:pb-8">
             {/* Overview Stats */}
             <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
               <StatsCard
-                title="Total Transactions"
+                title="Total transactions"
                 value={stats.totalTransactions}
                 subtitle="All time"
                 icon={
-                  <DollarSign className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
+                  <DollarSign className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
                 }
-                iconColor="text-blue-500"
+                iconColor="text-secondary-600"
               />
 
               <StatsCard
-                title="Total Amount"
+                title="Total amount"
                 value={formatCurrency(stats.totalAmount)}
                 subtitle="All time"
                 icon={
@@ -458,39 +458,41 @@ const TransactionsPage = () => {
               />
 
               <StatsCard
-                title="Average Transaction"
+                title="Average transaction"
                 value={formatCurrency(stats.averageAmount)}
                 subtitle="Per transaction"
                 icon={
-                  <TrendingUp className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
+                  <TrendingUp className="h-4 w-4 text-green-600 sm:h-5 sm:w-5" />
                 }
-                iconColor="text-green-500"
+                iconColor="text-green-600"
               />
 
               <StatsCard
-                title="This Month"
+                title="This month"
                 value={formatCurrency(stats.thisMonthAmount)}
                 subtitle={`${stats.thisMonthTransactions} transactions`}
                 icon={
-                  <Calendar className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
+                  <Calendar className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
                 }
-                iconColor="text-purple-500"
+                iconColor="text-secondary-600"
               />
             </div>
 
             {/* Filters and Search */}
-            <div className="mb-4 rounded-xl border bg-white p-3 shadow-sm sm:mb-6 sm:p-4 lg:p-6">
+            <div className="card-surface mb-4 p-3 sm:mb-6 sm:p-4 lg:p-6">
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Filter className="h-4 w-4 text-gray-500" />
-                  <h3 className="text-sm font-medium text-gray-700">Filters</h3>
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Filters
+                  </h3>
                 </div>
                 {hasActiveFilters && (
                   <Button
                     onClick={clearAllFilters}
                     variant="ghost"
                     size="sm"
-                    className="text-xs text-blue-600 hover:text-blue-800"
+                    className="text-xs text-secondary-700 hover:text-secondary-800"
                   >
                     Clear all filters
                   </Button>
@@ -508,15 +510,15 @@ const TransactionsPage = () => {
                     onChange={(e) =>
                       handleFilterChange("search", e.target.value)
                     }
-                    className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-xl border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                   />
                 </div>
 
                 {/* Filter Row 1: Date Range */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">
-                      Start Date
+                    <label className="mb-1 block text-xs font-medium text-gray-500">
+                      Start date
                     </label>
                     <input
                       type="date"
@@ -524,13 +526,13 @@ const TransactionsPage = () => {
                       onChange={(e) =>
                         handleFilterChange("startDate", e.target.value)
                       }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                     />
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">
-                      End Date
+                    <label className="mb-1 block text-xs font-medium text-gray-500">
+                      End date
                     </label>
                     <input
                       type="date"
@@ -538,13 +540,13 @@ const TransactionsPage = () => {
                       onChange={(e) =>
                         handleFilterChange("endDate", e.target.value)
                       }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                     />
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">
-                      Sort By
+                    <label className="mb-1 block text-xs font-medium text-gray-500">
+                      Sort by
                     </label>
                     <select
                       value={`${sortBy}-${sortOrder}`}
@@ -555,7 +557,7 @@ const TransactionsPage = () => {
                         setSortBy(newSortBy);
                         setSortOrder(newSortOrder);
                       }}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                     >
                       <option value="date-desc">Date (Newest)</option>
                       <option value="date-asc">Date (Oldest)</option>
@@ -567,8 +569,8 @@ const TransactionsPage = () => {
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">
-                      Per Page
+                    <label className="mb-1 block text-xs font-medium text-gray-500">
+                      Per page
                     </label>
                     <select
                       value={pageSize}
@@ -576,7 +578,7 @@ const TransactionsPage = () => {
                         setPageSize(parseInt(e.target.value));
                         setCurrentPage(1); // Reset to first page when changing page size
                       }}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                     >
                       <option value="10">10 per page</option>
                       <option value="20">20 per page</option>
@@ -589,7 +591,7 @@ const TransactionsPage = () => {
                 {/* Filter Row 2: Categories and Budgets */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">
+                    <label className="mb-1 block text-xs font-medium text-gray-500">
                       Category
                     </label>
                     <select
@@ -597,7 +599,7 @@ const TransactionsPage = () => {
                       onChange={(e) =>
                         handleFilterChange("category", e.target.value)
                       }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                     >
                       <option value="all">All Categories</option>
                       {categories.map((category) => (
@@ -609,7 +611,7 @@ const TransactionsPage = () => {
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">
+                    <label className="mb-1 block text-xs font-medium text-gray-500">
                       Budget
                     </label>
                     <select
@@ -617,7 +619,7 @@ const TransactionsPage = () => {
                       onChange={(e) =>
                         handleFilterChange("budget", e.target.value)
                       }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                     >
                       <option value="all">All Budgets</option>
                       <option value="no-budget">No Budget</option>
@@ -630,7 +632,7 @@ const TransactionsPage = () => {
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">
+                    <label className="mb-1 block text-xs font-medium text-gray-500">
                       Card
                     </label>
                     <select
@@ -638,7 +640,7 @@ const TransactionsPage = () => {
                       onChange={(e) =>
                         handleFilterChange("card", e.target.value)
                       }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                     >
                       <option value="all">All Cards</option>
                       <option value="no-card">No Card</option>
@@ -662,17 +664,17 @@ const TransactionsPage = () => {
 
             {/* Bulk Actions Bar */}
             {selectedTransactions.size > 0 && (
-              <div className="mb-4 rounded-xl border bg-blue-50 p-3 shadow-sm sm:mb-6 sm:p-4">
+              <div className="mb-4 rounded-2xl border border-secondary-200 bg-secondary-50 p-3 shadow-soft sm:mb-6 sm:p-4">
                 <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4">
-                    <span className="text-sm font-medium text-blue-900">
+                    <span className="text-sm font-medium tabular-nums text-secondary-800">
                       {selectedTransactions.size} transaction
                       {selectedTransactions.size !== 1 ? "s" : ""} selected
                     </span>
                     <Button
                       variant="ghost"
                       onClick={() => setSelectedTransactions(new Set())}
-                      className="text-sm text-blue-600 hover:text-blue-800"
+                      className="text-sm text-secondary-700 hover:text-secondary-800"
                     >
                       Clear selection
                     </Button>
@@ -685,7 +687,7 @@ const TransactionsPage = () => {
                       disabled={deleteTransactionMutation.isPending}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Delete Selected
+                      Delete selected
                     </Button>
                   </div>
                 </div>
@@ -693,8 +695,8 @@ const TransactionsPage = () => {
             )}
 
             {/* Transactions List */}
-            <div className="rounded-xl border bg-white shadow-sm">
-              <div className="border-b px-3 py-3 sm:px-6 sm:py-4">
+            <div className="card-surface overflow-hidden">
+              <div className="border-b border-gray-100 px-3 py-3 sm:px-6 sm:py-4">
                 <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
                   <div className="flex items-center space-x-2">
                     <label className="flex items-center space-x-2 text-sm text-gray-600">
@@ -710,15 +712,15 @@ const TransactionsPage = () => {
                           ).length > 0
                         }
                         onChange={handleSelectAll}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="h-4 w-4 rounded border-gray-300 text-secondary-600 focus:ring-secondary"
                       />
-                      <span>Select All</span>
+                      <span>Select all</span>
                     </label>
                   </div>
                 </div>
               </div>
 
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y divide-gray-100">
                 {filteredAndSortedTransactions.length > 0 ? (
                   filteredAndSortedTransactions.map((transaction) => {
                     // Check if this transaction is being edited
@@ -739,7 +741,7 @@ const TransactionsPage = () => {
                     return (
                       <div
                         key={transaction.id}
-                        className="group flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-3 hover:bg-gray-100 sm:p-4"
+                        className="group flex items-center justify-between p-3 transition-colors duration-200 hover:bg-surface sm:p-4"
                       >
                         <div className="flex min-w-0 flex-1 items-center space-x-3 sm:space-x-4">
                           <input
@@ -749,7 +751,7 @@ const TransactionsPage = () => {
                               handleSelectTransaction(transaction.id)
                             }
                             disabled={isEditing}
-                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                            className="h-4 w-4 rounded border-gray-300 text-secondary-600 focus:ring-secondary disabled:opacity-50"
                           />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center space-x-2">
@@ -757,9 +759,9 @@ const TransactionsPage = () => {
                                 {transaction.name ?? "Unnamed transaction"}
                               </span>
                               <span
-                                className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                                   transaction.transactionType === "CARD_PAYMENT"
-                                    ? "bg-black text-white"
+                                    ? "bg-primary text-white"
                                     : transaction.category
                                       ? getCategoryBadgeColor(
                                           transaction.category.group,
@@ -808,17 +810,17 @@ const TransactionsPage = () => {
 
                         <div className="flex items-center space-x-2 sm:space-x-4">
                           {/* Action Icons - Always visible on mobile, hover on desktop */}
-                          <div className="flex items-center space-x-1 opacity-100 transition-opacity sm:space-x-2 sm:opacity-0 sm:group-hover:opacity-100">
+                          <div className="flex items-center gap-0.5 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
                             <button
                               onClick={() => handleCopyTransaction(transaction)}
-                              className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                              className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
                               title="Copy transaction"
                             >
                               <Copy className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleEditTransaction(transaction)}
-                              className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                              className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
                               title="Edit transaction"
                             >
                               <Edit className="h-4 w-4" />
@@ -827,7 +829,7 @@ const TransactionsPage = () => {
                               onClick={() =>
                                 handleDeleteTransaction(transaction)
                               }
-                              className="rounded p-1 text-red-300 transition-colors hover:bg-gray-100 hover:text-red-600"
+                              className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                               title="Delete transaction"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -836,7 +838,7 @@ const TransactionsPage = () => {
 
                           <div className="text-right">
                             <div
-                              className={`text-sm font-semibold ${
+                              className={`text-sm font-semibold tabular-nums ${
                                 transaction.transactionType === "RETURN" ||
                                 transaction.transactionType === "INCOME" ||
                                 transaction.amount < 0
@@ -861,14 +863,16 @@ const TransactionsPage = () => {
                     );
                   })
                 ) : (
-                  <div className="px-3 py-12 text-center sm:px-6">
-                    <DollarSign className="mx-auto mb-4 h-12 w-12 text-gray-300" />
-                    <h3 className="mb-2 text-lg font-medium text-gray-900">
+                  <div className="flex flex-col items-center gap-3 px-3 py-12 text-center sm:px-6">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+                      <DollarSign className="h-7 w-7" strokeWidth={1.5} />
+                    </div>
+                    <h3 className="text-lg font-semibold tracking-tight text-gray-900">
                       {hasActiveFilters
                         ? "No matching transactions"
                         : "No transactions yet"}
                     </h3>
-                    <p className="text-gray-500">
+                    <p className="text-sm text-gray-500">
                       {hasActiveFilters
                         ? "Try adjusting your search or filter criteria"
                         : "Start adding transactions to see them here"}
@@ -877,10 +881,10 @@ const TransactionsPage = () => {
                       onClick={() => setShowAddTransactionModal(true)}
                       variant="primary"
                       size="md"
-                      className="mt-4"
+                      className="mt-1"
                     >
                       <Plus className="mr-2 h-4 w-4" />
-                      Add Transaction
+                      Add transaction
                     </Button>
                   </div>
                 )}
@@ -889,7 +893,7 @@ const TransactionsPage = () => {
 
             {/* Pagination */}
             {pagination && pagination.totalPages > 1 && (
-              <div className="mt-6 rounded-xl border bg-white p-4 shadow-sm">
+              <div className="card-surface mt-6 p-4">
                 <Pagination
                   currentPage={pagination.page}
                   totalPages={pagination.totalPages}

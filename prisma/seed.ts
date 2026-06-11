@@ -1,4 +1,11 @@
-import { CategoryType, PeriodType, PrismaClient, Role, StrategyType, CardType } from '@prisma/client';
+import {
+  CategoryType,
+  PeriodType,
+  PrismaClient,
+  Role,
+  StrategyType,
+  CardType,
+} from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -7,14 +14,14 @@ async function main() {
   const demoAccount = await prisma.account.create({
     data: {
       id: "1",
-      name: 'Demo Company',
+      name: "Demo Company",
     },
   });
 
   const startupAccount = await prisma.account.create({
     data: {
       id: "2",
-      name: 'Startup Inc',
+      name: "Startup Inc",
     },
   });
 
@@ -22,36 +29,36 @@ async function main() {
   const users = [
     {
       id: "1",
-      name: 'Renzo Caina',
-      firstName: 'Renzo',
-      lastName: 'Caina',
-      email: 'renzocainaedge@gmail.com',
-      password: '$2b$10$cw37Jw26QNhLEgWU5ai./urzX82WmFwu4Lp4qI5apPH7YqDyzKmh6', // In production, use proper password hashing
+      name: "Renzo Caina",
+      firstName: "Renzo",
+      lastName: "Caina",
+      email: "renzocainaedge@gmail.com",
+      password: "$2b$10$cw37Jw26QNhLEgWU5ai./urzX82WmFwu4Lp4qI5apPH7YqDyzKmh6", // In production, use proper password hashing
       role: Role.ADMIN,
-      phone: '+1234567890',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
+      phone: "+1234567890",
+      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
     },
     {
       id: "2",
-      name: 'Jane Smith',
-      firstName: 'Jane',
-      lastName: 'Smith',
-      email: 'jane@demo.com',
-      password: '$2b$10$cw37Jw26QNhLEgWU5ai./urzX82WmFwu4Lp4qI5apPH7YqDyzKmh6',
+      name: "Jane Smith",
+      firstName: "Jane",
+      lastName: "Smith",
+      email: "jane@demo.com",
+      password: "$2b$10$cw37Jw26QNhLEgWU5ai./urzX82WmFwu4Lp4qI5apPH7YqDyzKmh6",
       role: Role.MEMBER,
-      phone: '+1987654321',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane',
+      phone: "+1987654321",
+      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jane",
     },
     {
       id: "3",
-      name: 'Bob Wilson',
-      firstName: 'Bob',
-      lastName: 'Wilson',
-      email: 'bob@startup.com',
-      password: '$2b$10$cw37Jw26QNhLEgWU5ai./urzX82WmFwu4Lp4qI5apPH7YqDyzKmh6',
+      name: "Bob Wilson",
+      firstName: "Bob",
+      lastName: "Wilson",
+      email: "bob@startup.com",
+      password: "$2b$10$cw37Jw26QNhLEgWU5ai./urzX82WmFwu4Lp4qI5apPH7YqDyzKmh6",
       role: Role.ADMIN,
-      phone: '+1122334455',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob',
+      phone: "+1122334455",
+      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Bob",
     },
   ];
 
@@ -88,28 +95,28 @@ async function main() {
   const budgets = [
     {
       id: "1",
-      name: 'Demo Budget',
+      name: "Demo Budget",
       createdAt: new Date(),
       accountId: demoAccount.id,
       strategy: StrategyType.ZERO_SUM,
-      startAt: new Date('2024-01-01'),
-      endAt: new Date('2024-12-31'),
+      startAt: new Date("2024-01-01"),
+      endAt: new Date("2024-12-31"),
       period: PeriodType.MONTHLY,
     },
     {
       id: "2",
-      name: 'Startup Budget',
+      name: "Startup Budget",
       createdAt: new Date(),
       accountId: startupAccount.id,
       strategy: StrategyType.FIFTY_THIRTY_TWENTY,
-      startAt: new Date('2024-01-01'),
-      endAt: new Date('2024-12-31'),
+      startAt: new Date("2024-01-01"),
+      endAt: new Date("2024-12-31"),
       period: PeriodType.MONTHLY,
     },
   ];
 
   for (const budget of budgets) {
-    await prisma.budget.create({ 
+    await prisma.budget.create({
       data: budget,
     });
   }
@@ -118,43 +125,43 @@ async function main() {
   const categories = [
     {
       id: "1",
-      name: 'Housing',
-      createdAt: new Date(),  
+      name: "Housing",
+      createdAt: new Date(),
       group: CategoryType.NEEDS,
     },
     {
       id: "2",
-      name: 'Food & Groceries',
+      name: "Food & Groceries",
       createdAt: new Date(),
       group: CategoryType.NEEDS,
     },
     {
       id: "3",
-      name: 'Transportation',
+      name: "Transportation",
       createdAt: new Date(),
       group: CategoryType.NEEDS,
     },
     {
       id: "4",
-      name: 'Entertainment',
+      name: "Entertainment",
       createdAt: new Date(),
       group: CategoryType.WANTS,
     },
     {
       id: "5",
-      name: 'Shopping',
+      name: "Shopping",
       createdAt: new Date(),
       group: CategoryType.WANTS,
     },
     {
       id: "6",
-      name: 'Investments',
+      name: "Investments",
       createdAt: new Date(),
       group: CategoryType.INVESTMENT,
     },
     {
       id: "7",
-      name: 'Emergency Fund',
+      name: "Emergency Fund",
       createdAt: new Date(),
       group: CategoryType.INVESTMENT,
     },
@@ -173,22 +180,106 @@ async function main() {
 
   // Create budget-specific categories (with budgetId) and store their IDs
   const budgetCategories = [
-    // Demo Budget Categories  
-    { budgetId: "1", name: 'Housing', group: CategoryType.NEEDS, allocatedAmount: 1500, txCategoryId: "bc1" },
-    { budgetId: "1", name: 'Food & Groceries', group: CategoryType.NEEDS, allocatedAmount: 600, txCategoryId: "bc2" },
-    { budgetId: "1", name: 'Transportation', group: CategoryType.NEEDS, allocatedAmount: 400, txCategoryId: "bc3" },
-    { budgetId: "1", name: 'Entertainment', group: CategoryType.WANTS, allocatedAmount: 300, txCategoryId: "bc4" },
-    { budgetId: "1", name: 'Shopping', group: CategoryType.WANTS, allocatedAmount: 200, txCategoryId: "bc5" },
-    { budgetId: "1", name: 'Investments', group: CategoryType.INVESTMENT, allocatedAmount: 1000, txCategoryId: "bc6" },
-    { budgetId: "1", name: 'Emergency Fund', group: CategoryType.INVESTMENT, allocatedAmount: 500, txCategoryId: "bc7" },
+    // Demo Budget Categories
+    {
+      budgetId: "1",
+      name: "Housing",
+      group: CategoryType.NEEDS,
+      allocatedAmount: 1500,
+      txCategoryId: "bc1",
+    },
+    {
+      budgetId: "1",
+      name: "Food & Groceries",
+      group: CategoryType.NEEDS,
+      allocatedAmount: 600,
+      txCategoryId: "bc2",
+    },
+    {
+      budgetId: "1",
+      name: "Transportation",
+      group: CategoryType.NEEDS,
+      allocatedAmount: 400,
+      txCategoryId: "bc3",
+    },
+    {
+      budgetId: "1",
+      name: "Entertainment",
+      group: CategoryType.WANTS,
+      allocatedAmount: 300,
+      txCategoryId: "bc4",
+    },
+    {
+      budgetId: "1",
+      name: "Shopping",
+      group: CategoryType.WANTS,
+      allocatedAmount: 200,
+      txCategoryId: "bc5",
+    },
+    {
+      budgetId: "1",
+      name: "Investments",
+      group: CategoryType.INVESTMENT,
+      allocatedAmount: 1000,
+      txCategoryId: "bc6",
+    },
+    {
+      budgetId: "1",
+      name: "Emergency Fund",
+      group: CategoryType.INVESTMENT,
+      allocatedAmount: 500,
+      txCategoryId: "bc7",
+    },
     // Startup Budget Categories
-    { budgetId: "2", name: 'Housing', group: CategoryType.NEEDS, allocatedAmount: 2000, txCategoryId: "bc8" },
-    { budgetId: "2", name: 'Food & Groceries', group: CategoryType.NEEDS, allocatedAmount: 800, txCategoryId: "bc9" },
-    { budgetId: "2", name: 'Transportation', group: CategoryType.NEEDS, allocatedAmount: 600, txCategoryId: "bc10" },
-    { budgetId: "2", name: 'Entertainment', group: CategoryType.WANTS, allocatedAmount: 500, txCategoryId: "bc11" },
-    { budgetId: "2", name: 'Shopping', group: CategoryType.WANTS, allocatedAmount: 400, txCategoryId: "bc12" },
-    { budgetId: "2", name: 'Investments', group: CategoryType.INVESTMENT, allocatedAmount: 2000, txCategoryId: "bc13" },
-    { budgetId: "2", name: 'Emergency Fund', group: CategoryType.INVESTMENT, allocatedAmount: 700, txCategoryId: "bc14" },
+    {
+      budgetId: "2",
+      name: "Housing",
+      group: CategoryType.NEEDS,
+      allocatedAmount: 2000,
+      txCategoryId: "bc8",
+    },
+    {
+      budgetId: "2",
+      name: "Food & Groceries",
+      group: CategoryType.NEEDS,
+      allocatedAmount: 800,
+      txCategoryId: "bc9",
+    },
+    {
+      budgetId: "2",
+      name: "Transportation",
+      group: CategoryType.NEEDS,
+      allocatedAmount: 600,
+      txCategoryId: "bc10",
+    },
+    {
+      budgetId: "2",
+      name: "Entertainment",
+      group: CategoryType.WANTS,
+      allocatedAmount: 500,
+      txCategoryId: "bc11",
+    },
+    {
+      budgetId: "2",
+      name: "Shopping",
+      group: CategoryType.WANTS,
+      allocatedAmount: 400,
+      txCategoryId: "bc12",
+    },
+    {
+      budgetId: "2",
+      name: "Investments",
+      group: CategoryType.INVESTMENT,
+      allocatedAmount: 2000,
+      txCategoryId: "bc13",
+    },
+    {
+      budgetId: "2",
+      name: "Emergency Fund",
+      group: CategoryType.INVESTMENT,
+      allocatedAmount: 700,
+      txCategoryId: "bc14",
+    },
   ];
 
   const categoryIdMap = new Map<string, string>();
@@ -203,21 +294,21 @@ async function main() {
   // Create cards
   const cards = [
     {
-      name: 'Main Credit Card',
+      name: "Main Credit Card",
       userId: "1",
       cardType: CardType.CREDIT,
       amountSpent: 1200,
       spendingLimit: 5000,
     },
     {
-      name: 'Debit Card',
+      name: "Debit Card",
       userId: "1",
       cardType: CardType.DEBIT,
       amountSpent: 800,
       spendingLimit: null,
     },
     {
-      name: 'Business Credit Card',
+      name: "Business Credit Card",
       userId: "3",
       cardType: CardType.BUSINESS_CREDIT,
       amountSpent: 2500,
@@ -234,59 +325,59 @@ async function main() {
   // Create savings accounts with pockets
   const personalSavings = await prisma.savings.create({
     data: {
-      name: 'Personal Savings',
+      name: "Personal Savings",
       accountId: demoAccount.id,
-      userId: '1',
+      userId: "1",
     },
   });
 
   const personalEmergencyPocket = await prisma.pocket.create({
     data: {
       savingsId: personalSavings.id,
-      name: 'Emergency Fund',
+      name: "Emergency Fund",
       goalAmount: 5000,
-      goalNote: '3-6 months of expenses',
+      goalNote: "3-6 months of expenses",
     },
   });
   const personalVacationPocket = await prisma.pocket.create({
     data: {
       savingsId: personalSavings.id,
-      name: 'Vacation',
+      name: "Vacation",
       goalAmount: 2000,
-      goalNote: 'Trip to the beach',
+      goalNote: "Trip to the beach",
     },
   });
 
   const businessSavings = await prisma.savings.create({
     data: {
-      name: 'Business Savings',
+      name: "Business Savings",
       accountId: startupAccount.id,
-      userId: '3',
+      userId: "3",
     },
   });
 
   const businessTaxReservePocket = await prisma.pocket.create({
     data: {
       savingsId: businessSavings.id,
-      name: 'Tax Reserve',
+      name: "Tax Reserve",
       goalAmount: 10000,
-      goalNote: 'Quarterly estimated taxes',
+      goalNote: "Quarterly estimated taxes",
     },
   });
   const businessEquipmentPocket = await prisma.pocket.create({
     data: {
       savingsId: businessSavings.id,
-      name: 'Equipment Fund',
+      name: "Equipment Fund",
       goalAmount: 8000,
-      goalNote: 'New laptops and peripherals',
+      goalNote: "New laptops and peripherals",
     },
   });
 
   // Create transactions
   const transactions = [
     {
-      name: 'Rent Payment',
-      description: 'Monthly rent for apartment',
+      name: "Rent Payment",
+      description: "Monthly rent for apartment",
       amount: 1500,
       createdAt: new Date(),
       budgetId: "1",
@@ -295,8 +386,8 @@ async function main() {
       userId: "1",
     },
     {
-      name: 'Grocery Shopping',
-      description: 'Weekly groceries at Walmart',
+      name: "Grocery Shopping",
+      description: "Weekly groceries at Walmart",
       amount: 120,
       createdAt: new Date(),
       budgetId: "1",
@@ -305,8 +396,8 @@ async function main() {
       userId: "1",
     },
     {
-      name: 'Gas Station',
-      description: 'Fuel for car',
+      name: "Gas Station",
+      description: "Fuel for car",
       amount: 45,
       createdAt: new Date(),
       budgetId: "1",
@@ -315,8 +406,8 @@ async function main() {
       userId: "1",
     },
     {
-      name: 'Movie Tickets',
-      description: 'Weekend movie with friends',
+      name: "Movie Tickets",
+      description: "Weekend movie with friends",
       amount: 35,
       createdAt: new Date(),
       budgetId: "1",
@@ -325,8 +416,8 @@ async function main() {
       userId: "1",
     },
     {
-      name: 'Online Shopping',
-      description: 'New clothes from Amazon',
+      name: "Online Shopping",
+      description: "New clothes from Amazon",
       amount: 85,
       createdAt: new Date(),
       budgetId: "1",
@@ -335,8 +426,8 @@ async function main() {
       userId: "1",
     },
     {
-      name: 'Stock Investment',
-      description: 'Monthly stock purchase',
+      name: "Stock Investment",
+      description: "Monthly stock purchase",
       amount: 500,
       createdAt: new Date(),
       budgetId: "1",
@@ -345,8 +436,8 @@ async function main() {
       userId: "1",
     },
     {
-      name: 'Business Office Rent',
-      description: 'Monthly office space rental',
+      name: "Business Office Rent",
+      description: "Monthly office space rental",
       amount: 2000,
       createdAt: new Date(),
       budgetId: "2",
@@ -355,8 +446,8 @@ async function main() {
       userId: "3",
     },
     {
-      name: 'Business Lunch',
-      description: 'Client meeting lunch',
+      name: "Business Lunch",
+      description: "Client meeting lunch",
       amount: 75,
       createdAt: new Date(),
       budgetId: "2",
@@ -366,8 +457,8 @@ async function main() {
     },
     // Personal savings deposits
     {
-      name: 'Savings Deposit',
-      description: 'Transfer to savings',
+      name: "Savings Deposit",
+      description: "Transfer to savings",
       amount: 300,
       createdAt: new Date(),
       budgetId: "1",
@@ -376,8 +467,8 @@ async function main() {
       userId: "1",
     },
     {
-      name: 'Savings Deposit',
-      description: 'Transfer to savings',
+      name: "Savings Deposit",
+      description: "Transfer to savings",
       amount: 200,
       createdAt: new Date(),
       budgetId: "1",
@@ -387,8 +478,8 @@ async function main() {
     },
     // Business savings deposit
     {
-      name: 'Business Savings Deposit',
-      description: 'Transfer to business savings',
+      name: "Business Savings Deposit",
+      description: "Transfer to business savings",
       amount: 1500,
       createdAt: new Date(),
       budgetId: "2",
@@ -398,12 +489,24 @@ async function main() {
     },
   ];
 
-  const createdTransactions = [] as { id: string; amount: number; accountId: string; userId: string; budgetId: string }[];
+  const createdTransactions = [] as {
+    id: string;
+    amount: number;
+    accountId: string;
+    userId: string;
+    budgetId: string;
+  }[];
   for (const transaction of transactions) {
     const created = await prisma.transaction.create({
       data: transaction,
     });
-    createdTransactions.push({ id: created.id, amount: created.amount, accountId: created.accountId, userId: created.userId, budgetId: created.budgetId });
+    createdTransactions.push({
+      id: created.id,
+      amount: created.amount,
+      accountId: created.accountId,
+      userId: created.userId,
+      budgetId: created.budgetId,
+    });
   }
 
   // Create allocations for pockets (independent of transactions)
@@ -411,28 +514,28 @@ async function main() {
   await prisma.allocation.create({
     data: {
       pocketId: personalEmergencyPocket.id,
-      userId: '1',
+      userId: "1",
       amount: 200,
       withdrawal: false,
-      note: 'Initial emergency fund deposit',
+      note: "Initial emergency fund deposit",
     },
   });
   await prisma.allocation.create({
     data: {
       pocketId: personalVacationPocket.id,
-      userId: '1',
+      userId: "1",
       amount: 100,
       withdrawal: false,
-      note: 'Initial vacation fund deposit',
+      note: "Initial vacation fund deposit",
     },
   });
   await prisma.allocation.create({
     data: {
       pocketId: personalEmergencyPocket.id,
-      userId: '1',
+      userId: "1",
       amount: 200,
       withdrawal: false,
-      note: 'Additional emergency fund deposit',
+      note: "Additional emergency fund deposit",
     },
   });
 
@@ -440,23 +543,23 @@ async function main() {
   await prisma.allocation.create({
     data: {
       pocketId: businessTaxReservePocket.id,
-      userId: '3',
+      userId: "3",
       amount: 1000,
       withdrawal: false,
-      note: 'Quarterly tax reserve deposit',
+      note: "Quarterly tax reserve deposit",
     },
   });
   await prisma.allocation.create({
     data: {
       pocketId: businessEquipmentPocket.id,
-      userId: '3',
+      userId: "3",
       amount: 500,
       withdrawal: false,
-      note: 'Equipment fund deposit',
+      note: "Equipment fund deposit",
     },
   });
 
-  console.log('Database has been seeded. 🌱');
+  console.log("Database has been seeded. 🌱");
 }
 
 main()
@@ -466,4 +569,4 @@ main()
   })
   .finally(() => {
     void prisma.$disconnect();
-  }); 
+  });

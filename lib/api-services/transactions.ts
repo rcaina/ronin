@@ -1,11 +1,15 @@
-import {  type User, TransactionType } from "@prisma/client"
-import type { CreateTransactionSchema, UpdateTransactionSchema, CreateCardPaymentSchema } from "@/lib/api-schemas/transactions"
-import type { PrismaClientTx } from "../prisma"
+import { type User, TransactionType } from "@prisma/client";
+import type {
+  CreateTransactionSchema,
+  UpdateTransactionSchema,
+  CreateCardPaymentSchema,
+} from "@/lib/api-schemas/transactions";
+import type { PrismaClientTx } from "../prisma";
 
 export const getTransactions = async (
   tx: PrismaClientTx,
   accountId: string,
-  pagination?: { page: number; limit: number; offset: number }
+  pagination?: { page: number; limit: number; offset: number },
 ) => {
   const where = {
     accountId,
@@ -47,12 +51,12 @@ export const getTransactions = async (
     });
     return { transactions, totalCount: transactions.length };
   }
-}
+};
 
 export const createTransaction = async (
   tx: PrismaClientTx,
   data: CreateTransactionSchema,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) => {
   // Create the transaction first
   const transaction = await tx.transaction.create({
@@ -61,7 +65,10 @@ export const createTransaction = async (
       description: data.description,
       amount: data.amount,
       budgetId: data.budgetId,
-      categoryId: data.categoryId && data.categoryId.trim() !== "" ? data.categoryId : null,
+      categoryId:
+        data.categoryId && data.categoryId.trim() !== ""
+          ? data.categoryId
+          : null,
       cardId: data.cardId && data.cardId.trim() !== "" ? data.cardId : null,
       accountId: user.accountId,
       userId: user.id,
@@ -79,15 +86,14 @@ export const createTransaction = async (
     },
   });
 
-
   return transaction;
-}
+};
 
 export async function updateTransaction(
   tx: PrismaClientTx,
   id: string,
   data: UpdateTransactionSchema,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
   return await tx.transaction.update({
     where: {
@@ -100,7 +106,10 @@ export async function updateTransaction(
       description: data.description,
       amount: data.amount,
       budgetId: data.budgetId,
-      categoryId: data.categoryId && data.categoryId.trim() !== "" ? data.categoryId : null,
+      categoryId:
+        data.categoryId && data.categoryId.trim() !== ""
+          ? data.categoryId
+          : null,
       cardId: data.cardId && data.cardId.trim() !== "" ? data.cardId : null,
       createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
       occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
@@ -114,13 +123,13 @@ export async function updateTransaction(
       },
       Budget: true,
     },
-  })
+  });
 }
 
 export async function deleteTransaction(
   tx: PrismaClientTx,
   id: string,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
   return await tx.transaction.update({
     where: {
@@ -131,13 +140,13 @@ export async function deleteTransaction(
     data: {
       deleted: new Date(),
     },
-  })
+  });
 }
 
 export async function createCardPayment(
   tx: PrismaClientTx,
   data: CreateCardPaymentSchema,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
   // Create two linked transactions, both storing the positive payment amount
   // (enforced by createCardPaymentSchema). Card balance math interprets a
@@ -202,4 +211,4 @@ export async function createCardPayment(
     fromTransaction,
     toTransaction,
   };
-} 
+}

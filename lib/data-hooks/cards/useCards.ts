@@ -1,7 +1,23 @@
-import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { getCards, getCard, getCardTransactions, createCard, updateCard, deleteCard } from "../services/cards";
-import type { Card as ApiCard, CreateCardRequest, UpdateCardRequest } from "@/lib/types/card";
+import {
+  getCards,
+  getCard,
+  getCardTransactions,
+  createCard,
+  updateCard,
+  deleteCard,
+} from "../services/cards";
+import type {
+  Card as ApiCard,
+  CreateCardRequest,
+  UpdateCardRequest,
+} from "@/lib/types/card";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 
 export const useCards = (excludeCardPayments?: boolean, budgetId?: string) => {
@@ -28,9 +44,13 @@ export const useCreateCard = () => {
       void queryClient.invalidateQueries({ queryKey: ["cards"] });
       // Also invalidate budget cards if budgetId is provided
       if (variables.budgetId) {
-        void queryClient.invalidateQueries({ queryKey: ["budgetCards", variables.budgetId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["budgetCards", variables.budgetId],
+        });
         // Invalidate the specific budget to refresh budget pages
-        void queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["budget", variables.budgetId],
+        });
       }
     },
   });
@@ -40,7 +60,7 @@ export const useUpdateCard = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateCardRequest }) => 
+    mutationFn: ({ id, data }: { id: string; data: UpdateCardRequest }) =>
       updateCard(id, data),
     onSuccess: () => {
       // Invalidate and refetch cards
@@ -95,4 +115,4 @@ export const useCardTransactions = (id: string) => {
   });
 
   return query;
-}; 
+};

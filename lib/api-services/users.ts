@@ -1,20 +1,23 @@
-import { Role, type PrismaClient, type User } from "@prisma/client"
-import bcrypt from "bcryptjs"
-import type { PrismaClientTx } from "../prisma"
-import type { z } from "zod"
-import type { createUserSchema, updateProfileSchema } from "../api-schemas/users"
-import { NextResponse } from "next/server"
+import { Role, type PrismaClient, type User } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import type { PrismaClientTx } from "../prisma";
+import type { z } from "zod";
+import type {
+  createUserSchema,
+  updateProfileSchema,
+} from "../api-schemas/users";
+import { NextResponse } from "next/server";
 
 export async function createUser(
   tx: PrismaClientTx,
   data: z.infer<typeof createUserSchema>,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
   // Check if user is admin
   if (user.role !== Role.ADMIN) {
     return NextResponse.json(
       { message: "Only administrators can create users" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -22,11 +25,11 @@ export async function createUser(
   const existingUser = await findUserByEmail(tx, data.email);
 
   if (existingUser) {
-    throw new Error("User with this email already exists")
+    throw new Error("User with this email already exists");
   }
 
   // Hash password
-  const hashedPassword = await bcrypt.hash(data.password, 12)
+  const hashedPassword = await bcrypt.hash(data.password, 12);
 
   // Create the user
   const createdUser = await tx.user.create({
@@ -38,7 +41,7 @@ export async function createUser(
       password: hashedPassword,
       role: data.role as Role,
     },
-  })
+  });
 
   // Link user to the account
   await tx.accountUser.create({
@@ -46,14 +49,17 @@ export async function createUser(
       userId: user.id,
       accountId: user.accountId,
     },
-  })
+  });
 
-  return createdUser
+  return createdUser;
 }
 
 export async function getAccountUsers(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
-  accountId: string
+  tx: Omit<
+    PrismaClient,
+    "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+  >,
+  accountId: string,
 ) {
   const accountUsers = await tx.accountUser.findMany({
     where: {
@@ -71,24 +77,27 @@ export async function getAccountUsers(
         },
       },
     },
-  })
+  });
 
-  return accountUsers.map(au => au.user)
+  return accountUsers.map((au) => au.user);
 }
 
 export async function findUserByEmail(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
-  email: string
+  tx: Omit<
+    PrismaClient,
+    "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+  >,
+  email: string,
 ) {
   return await tx.user.findUnique({
     where: { email },
-  })
+  });
 }
 
 export async function deleteUserAccount(
   tx: PrismaClientTx,
   user: User & { accountId: string },
-  password: string
+  password: string,
 ) {
   // Get the account to check if user is the only user
   const account = await tx.account.findUnique({
@@ -103,19 +112,21 @@ export async function deleteUserAccount(
   });
 
   if (!account) {
-    throw new Error('Account not found');
+    throw new Error("Account not found");
   }
 
   // Verify user password
   const verifiedUser = await bcrypt.compare(password, user.password ?? "");
 
   if (!verifiedUser) {
-    throw new Error('Invalid password');
+    throw new Error("Invalid password");
   }
 
   // Check if this is the only active user in the account
   const isAdmin = user.role === Role.ADMIN;
-  const activeUsersCount = account.users.filter(au => au.user.deleted === null).length;
+  const activeUsersCount = account.users.filter(
+    (au) => au.user.deleted === null,
+  ).length;
 
   if (isAdmin && activeUsersCount === 1) {
     // If this is the only active user and they're admin, delete the entire account and all related data
@@ -172,9 +183,10 @@ export async function deleteUserAccount(
   }
 
   return {
-    message: isAdmin && activeUsersCount === 1 
-      ? 'Account deleted successfully' 
-      : 'User deactivated successfully',
+    message:
+      isAdmin && activeUsersCount === 1
+        ? "Account deleted successfully"
+        : "User deactivated successfully",
     deletedEntireAccount: isAdmin && activeUsersCount === 1,
   };
 }
@@ -182,7 +194,7 @@ export async function deleteUserAccount(
 export async function updateUserProfile(
   tx: PrismaClientTx,
   data: z.infer<typeof updateProfileSchema>,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
   // Check if email is being updated and if it already exists
   if (data.email && data.email !== user.email) {
@@ -216,4 +228,4 @@ export async function updateUserProfile(
   });
 
   return updatedUser;
-} 
+}

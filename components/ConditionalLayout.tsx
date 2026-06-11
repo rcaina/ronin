@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState, createContext, useContext } from "react";
 import SideNav from "./SideNav";
 import MobileHeader from "./MobileHeader";
+import MobileBottomNav from "./MobileBottomNav";
 import LoadingSpinner from "./LoadingSpinner";
 
 // Create context for main navigation state
@@ -83,9 +84,12 @@ export default function ConditionalLayout({
           setIsMainNavCollapsed: setIsCollapsed,
         }}
       >
-        <main className="bg-gray/90 flex h-screen text-black">
+        <main className="flex h-screen bg-surface text-gray-900">
           {/* Mobile Header - only visible on mobile */}
           <MobileHeader />
+
+          {/* Mobile Bottom Tab Bar - primary mobile navigation */}
+          <MobileBottomNav />
 
           {/* Desktop Side Navigation - hidden on mobile */}
           <div className="hidden lg:block">
@@ -99,7 +103,7 @@ export default function ConditionalLayout({
           <div
             className={`flex flex-1 flex-col overflow-y-auto overflow-x-hidden transition-all duration-300 lg:overflow-hidden ${
               isCollapsed ? "lg:ml-16" : "lg:ml-64"
-            } pt-32 lg:pt-0`}
+            } pb-16 pt-32 lg:pb-0 lg:pt-0`}
           >
             {children}
           </div>

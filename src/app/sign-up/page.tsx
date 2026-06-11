@@ -300,7 +300,7 @@ export default function SignUp() {
             <button
               type="submit"
               disabled={isLoading}
-              className="hover:bg-secondary/80 group relative flex w-full justify-center rounded-md border border-transparent bg-secondary px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="group relative flex w-full justify-center rounded-md border border-transparent bg-secondary px-4 py-2 text-sm font-medium text-white hover:bg-secondary/80 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoading ? "Creating account..." : "Sign up"}
             </button>

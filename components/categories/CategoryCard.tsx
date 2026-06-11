@@ -98,10 +98,10 @@ export default function CategoryCard({
   return (
     <>
       <div
-        className={`group relative overflow-hidden rounded-xl border p-6 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md ${
+        className={`card-surface group relative overflow-hidden p-5 transition-all duration-200 ease-out sm:p-6 ${
           editingCategoryId === category.id
-            ? "border-blue-200 bg-blue-50"
-            : "bg-white"
+            ? "border-secondary-200 bg-secondary-50"
+            : "hover:shadow-lifted"
         }`}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -110,7 +110,7 @@ export default function CategoryCard({
               type="text"
               value={editingName}
               onChange={(e) => setEditingName(e.target.value)}
-              className="rounded-md border border-gray-300 px-2 py-1 text-lg font-semibold text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="rounded-xl border border-gray-300 px-3 py-1.5 text-lg font-semibold text-gray-900 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               placeholder="Category name"
             />
           ) : (
@@ -118,7 +118,7 @@ export default function CategoryCard({
               <div
                 className={`h-3 w-3 rounded-full ${getGroupColor(category.group)}`}
               />
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold tracking-tight text-gray-900">
                 {category.name}
               </h3>
             </div>
@@ -126,28 +126,28 @@ export default function CategoryCard({
           <div className="flex items-center space-x-2">
             {/* Action Icons - Only visible on hover when not editing */}
             {editingCategoryId !== category.id ? (
-              <div className="flex items-center space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="flex items-center gap-0.5 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
                 <button
                   onClick={handleStartEditCategory}
-                  className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                  className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
                   title="Edit category"
                 >
                   <Edit className="h-4 w-4" />
                 </button>
                 <button
                   onClick={handleDeleteCategory}
-                  className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
+                  className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                   title="Delete category"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center gap-0.5">
                 <button
                   onClick={handleSaveCategory}
                   disabled={updateCategoryMutation.isPending}
-                  className="rounded p-1 text-green-600 transition-colors hover:bg-green-100 disabled:opacity-50"
+                  className="rounded-lg p-2 text-green-600 transition-colors duration-200 hover:bg-green-50 disabled:opacity-50"
                   title="Save changes"
                 >
                   ✓
@@ -155,7 +155,7 @@ export default function CategoryCard({
                 <button
                   onClick={handleCancelEditCategory}
                   disabled={updateCategoryMutation.isPending}
-                  className="rounded p-1 text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
+                  className="rounded-lg p-2 text-gray-500 transition-colors duration-200 hover:bg-gray-100 disabled:opacity-50"
                   title="Cancel editing"
                 >
                   ✕

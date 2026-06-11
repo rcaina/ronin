@@ -8,11 +8,11 @@ import { calculateCardFinancials } from "./card-financials";
 export async function getCards(
   tx: PrismaClientTx,
   params: URLSearchParams,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
-  const excludeCardPayments = params.get('excludeCardPayments') === 'true';
-  const budgetId = params.get('budgetId');
-  
+  const excludeCardPayments = params.get("excludeCardPayments") === "true";
+  const budgetId = params.get("budgetId");
+
   // Get all users in the same account
   const accountUsers = await tx.accountUser.findMany({
     where: {
@@ -23,7 +23,7 @@ export async function getCards(
     },
   });
 
-  const userIds = accountUsers.map(au => au.userId);
+  const userIds = accountUsers.map((au) => au.userId);
 
   const cards = await tx.card.findMany({
     where: {
@@ -47,8 +47,8 @@ export async function getCards(
           deleted: null,
           ...(excludeCardPayments && {
             transactionType: {
-              not: TransactionType.CARD_PAYMENT
-            }
+              not: TransactionType.CARD_PAYMENT,
+            },
           }),
         },
         select: {
@@ -68,13 +68,13 @@ export async function getCardById(
   tx: PrismaClientTx,
   id: string,
   accountId: string,
-  excludeCardPayments = false
+  excludeCardPayments = false,
 ) {
   const card = await tx.card.findFirst({
     where: {
       id,
       deleted: null,
-      user:{
+      user: {
         accountUsers: {
           some: {
             accountId: accountId,
@@ -97,8 +97,8 @@ export async function getCardById(
           deleted: null,
           ...(excludeCardPayments && {
             transactionType: {
-              not: TransactionType.CARD_PAYMENT
-            }
+              not: TransactionType.CARD_PAYMENT,
+            },
           }),
         },
         select: {
@@ -120,7 +120,7 @@ export async function getCardById(
 export async function createCard(
   tx: PrismaClientTx,
   data: z.infer<typeof createCardSchema>,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
   // Verify that the requested userId belongs to the same account
   const accountUser = await tx.accountUser.findFirst({
@@ -149,7 +149,7 @@ export async function updateCard(
   tx: PrismaClientTx,
   id: string,
   data: z.infer<typeof updateCardSchema>,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
   // If we're changing the userId, verify the new user belongs to the same account
   if (data.userId) {
@@ -188,7 +188,9 @@ export async function updateCard(
     data: {
       ...(data.name && { name: data.name }),
       ...(data.cardType && { cardType: data.cardType }),
-      ...(data.spendingLimit !== undefined && { spendingLimit: data.spendingLimit }),
+      ...(data.spendingLimit !== undefined && {
+        spendingLimit: data.spendingLimit,
+      }),
       ...(data.budgetId && { budgetId: data.budgetId }),
       ...(data.userId && { userId: data.userId }),
     },
@@ -198,7 +200,7 @@ export async function updateCard(
 export async function deleteCard(
   tx: PrismaClientTx,
   id: string,
-  userId: string
+  userId: string,
 ) {
   return await tx.card.update({
     where: {
@@ -214,34 +216,32 @@ export async function deleteCard(
 
 //transactions region
 
-export const getCardTransactions = async (
-  tx: PrismaClientTx,
-  cardId: string,
-) => await tx.transaction.findMany({
-  where: {
-    cardId,
-    deleted: null,
-  },
-  include: {
-    category: true,
-    Budget: true,
-    card: {
-      select: {
-        id: true,
-        name: true,
-        cardType: true,
+export const getCardTransactions = async (tx: PrismaClientTx, cardId: string) =>
+  await tx.transaction.findMany({
+    where: {
+      cardId,
+      deleted: null,
+    },
+    include: {
+      category: true,
+      Budget: true,
+      card: {
+        select: {
+          id: true,
+          name: true,
+          cardType: true,
+        },
+      },
+      user: {
+        select: {
+          id: true,
+          name: true,
+          firstName: true,
+          lastName: true,
+        },
       },
     },
-    user: {
-      select: {
-        id: true,
-        name: true,
-        firstName: true,
-        lastName: true,
-      },
+    orderBy: {
+      createdAt: "desc",
     },
-  },
-  orderBy: {
-    createdAt: "desc",
-  },
-});
+  });

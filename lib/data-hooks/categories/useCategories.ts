@@ -1,6 +1,19 @@
-import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getCategories, deleteCategory, createCategory, updateCategory } from "@/lib/data-hooks/services/categories";
-import type { CreateCategoryRequest, GroupedCategories } from "@/lib/types/category";
+import {
+  keepPreviousData,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
+  getCategories,
+  deleteCategory,
+  createCategory,
+  updateCategory,
+} from "@/lib/data-hooks/services/categories";
+import type {
+  CreateCategoryRequest,
+  GroupedCategories,
+} from "@/lib/types/category";
 import { useSession } from "next-auth/react";
 import { CategoryType } from "@prisma/client";
 
@@ -33,8 +46,13 @@ export const useCreateCategory = () => {
 export const useUpdateCategory = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { name: string; group: CategoryType } }) =>
-      updateCategory(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { name: string; group: CategoryType };
+    }) => updateCategory(id, data),
     onMutate: async ({ id, data }) => {
       // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
       await queryClient.cancelQueries({ queryKey: ["categories"] });
@@ -43,51 +61,67 @@ export const useUpdateCategory = () => {
       const previousCategories = queryClient.getQueryData(["categories"]);
 
       // Optimistically update to the new value
-      queryClient.setQueryData(["categories"], (old: GroupedCategories | undefined) => {
-        if (!old) return old;
+      queryClient.setQueryData(
+        ["categories"],
+        (old: GroupedCategories | undefined) => {
+          if (!old) return old;
 
-        const updatedCategories: GroupedCategories = { ...old };
-        
-        // Remove from old group
-        if (data.group !== old.wants.find((cat) => cat.id === id)?.group) {
-          updatedCategories.wants = old.wants.filter((cat) => cat.id !== id);
-        }
-        if (data.group !== old.needs.find((cat) => cat.id === id)?.group) {
-          updatedCategories.needs = old.needs.filter((cat) => cat.id !== id);
-        }
-        if (data.group !== old.investment.find((cat) => cat.id === id)?.group) {
-          updatedCategories.investment = old.investment.filter((cat) => cat.id !== id);
-        }
+          const updatedCategories: GroupedCategories = { ...old };
 
-        // Add to new group
-        const categoryToUpdate = [
-          ...(old.wants || []),
-          ...(old.needs || []),
-          ...(old.investment || []),
-        ].find((cat) => cat.id === id);
-
-        if (categoryToUpdate) {
-          const updatedCategory = {
-            ...categoryToUpdate,
-            name: data.name,
-            group: data.group,
-          };
-
-          switch (data.group) {
-            case CategoryType.WANTS:
-              updatedCategories.wants = [...(updatedCategories.wants || []), updatedCategory];
-              break;
-            case CategoryType.NEEDS:
-              updatedCategories.needs = [...(updatedCategories.needs || []), updatedCategory];
-              break;
-            case CategoryType.INVESTMENT:
-              updatedCategories.investment = [...(updatedCategories.investment || []), updatedCategory];
-              break;
+          // Remove from old group
+          if (data.group !== old.wants.find((cat) => cat.id === id)?.group) {
+            updatedCategories.wants = old.wants.filter((cat) => cat.id !== id);
           }
-        }
+          if (data.group !== old.needs.find((cat) => cat.id === id)?.group) {
+            updatedCategories.needs = old.needs.filter((cat) => cat.id !== id);
+          }
+          if (
+            data.group !== old.investment.find((cat) => cat.id === id)?.group
+          ) {
+            updatedCategories.investment = old.investment.filter(
+              (cat) => cat.id !== id,
+            );
+          }
 
-        return updatedCategories;
-      });
+          // Add to new group
+          const categoryToUpdate = [
+            ...(old.wants || []),
+            ...(old.needs || []),
+            ...(old.investment || []),
+          ].find((cat) => cat.id === id);
+
+          if (categoryToUpdate) {
+            const updatedCategory = {
+              ...categoryToUpdate,
+              name: data.name,
+              group: data.group,
+            };
+
+            switch (data.group) {
+              case CategoryType.WANTS:
+                updatedCategories.wants = [
+                  ...(updatedCategories.wants || []),
+                  updatedCategory,
+                ];
+                break;
+              case CategoryType.NEEDS:
+                updatedCategories.needs = [
+                  ...(updatedCategories.needs || []),
+                  updatedCategory,
+                ];
+                break;
+              case CategoryType.INVESTMENT:
+                updatedCategories.investment = [
+                  ...(updatedCategories.investment || []),
+                  updatedCategory,
+                ];
+                break;
+            }
+          }
+
+          return updatedCategories;
+        },
+      );
 
       // Return a context object with the snapshotted value
       return { previousCategories };
@@ -116,6 +150,3 @@ export const useDeleteCategory = () => {
     },
   });
 };
-
-
-

@@ -98,14 +98,14 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
+    <div className="flex h-screen flex-col bg-surface">
       <PageHeader
         title="Settings"
         description="Manage your account preferences and security"
       />
 
       <div className="flex-1 overflow-auto">
-        <div className="mx-auto px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mx-auto px-4 py-4 pb-28 sm:px-6 lg:px-8 lg:pb-8">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
             {/* Sidebar Navigation */}
             <div className="lg:col-span-1">
@@ -116,10 +116,10 @@ const SettingsPage = () => {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      className={`flex w-full items-center rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ease-out ${
                         activeTab === tab.id
-                          ? "bg-secondary text-black/90"
-                          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                          ? "bg-secondary/15 text-secondary-700"
+                          : "text-gray-600 hover:bg-surface-muted hover:text-gray-900"
                       }`}
                     >
                       <Icon className="mr-3 h-5 w-5" />
@@ -132,7 +132,7 @@ const SettingsPage = () => {
 
             {/* Main Content */}
             <div className="lg:col-span-3">
-              <div className="rounded-xl border bg-white shadow-sm">
+              <div className="card-surface">
                 {/* Profile Tab */}
                 {activeTab === "profile" && (
                   <div className="p-6">
@@ -147,7 +147,7 @@ const SettingsPage = () => {
                         {/* 2x2 Grid for Name, Email, and Phone */}
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700">
+                            <label className="block text-xs font-medium text-gray-500">
                               Full Name
                             </label>
                             <input
@@ -159,11 +159,11 @@ const SettingsPage = () => {
                                   name: e.target.value,
                                 })
                               }
-                              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700">
+                            <label className="block text-xs font-medium text-gray-500">
                               Email
                             </label>
                             <input
@@ -175,11 +175,11 @@ const SettingsPage = () => {
                                   email: e.target.value,
                                 })
                               }
-                              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700">
+                            <label className="block text-xs font-medium text-gray-500">
                               Phone
                             </label>
                             <input
@@ -191,14 +191,14 @@ const SettingsPage = () => {
                                   phone: e.target.value,
                                 })
                               }
-                              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                             />
                           </div>
                         </div>
 
                         {/* Bio field taking full width */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">
+                          <label className="block text-xs font-medium text-gray-500">
                             Bio
                           </label>
                           <textarea
@@ -210,13 +210,13 @@ const SettingsPage = () => {
                               })
                             }
                             rows={3}
-                            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                           />
                         </div>
 
                         {/* Error message */}
                         {updateProfileMutation.error && (
-                          <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                          <div className="rounded-xl border border-red-200 bg-red-50 p-3">
                             <p className="text-sm text-red-600">
                               {updateProfileMutation.error.message}
                             </p>
@@ -239,23 +239,23 @@ const SettingsPage = () => {
                             <Save className="mr-2 h-4 w-4" />
                             {updateProfileMutation.isPending
                               ? "Saving..."
-                              : "Save Changes"}
+                              : "Save changes"}
                           </Button>
                         </div>
                       </div>
                     ) : (
-                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                      <div className="rounded-xl border border-gray-200/70 bg-surface p-4">
                         <div className="mb-6 flex items-center justify-between">
-                          <h2 className="text-xl font-semibold text-gray-900">
-                            Profile Information
+                          <h2 className="text-xl font-semibold tracking-tight text-gray-900">
+                            Profile information
                           </h2>
                           {!isEditingProfile && (
                             <button
                               onClick={() => setIsEditingProfile(true)}
-                              className="inline-flex items-center rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-accent"
+                              className="inline-flex items-center rounded-xl bg-secondary px-3 py-2 text-sm font-medium text-primary-950 shadow-soft transition-all duration-200 ease-out hover:bg-secondary-600 active:scale-[0.98]"
                             >
                               <Edit className="mr-2 h-4 w-4" />
-                              Edit Profile
+                              Edit profile
                             </button>
                           )}
                         </div>
@@ -263,7 +263,7 @@ const SettingsPage = () => {
                           {/* 2x2 Grid for Name, Email, Role */}
                           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
-                              <label className="block text-sm font-medium text-gray-700">
+                              <label className="block text-xs font-medium text-gray-500">
                                 Full Name
                               </label>
                               <p className="mt-1 text-sm text-gray-900">
@@ -271,7 +271,7 @@ const SettingsPage = () => {
                               </p>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700">
+                              <label className="block text-xs font-medium text-gray-500">
                                 Email
                               </label>
                               <p className="mt-1 text-sm text-gray-900">
@@ -279,7 +279,7 @@ const SettingsPage = () => {
                               </p>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700">
+                              <label className="block text-xs font-medium text-gray-500">
                                 Role
                               </label>
                               <p className="mt-1 text-sm text-gray-900">
@@ -287,7 +287,7 @@ const SettingsPage = () => {
                               </p>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700">
+                              <label className="block text-xs font-medium text-gray-500">
                                 Phone
                               </label>
                               <p className="mt-1 text-sm text-gray-900">
@@ -298,7 +298,7 @@ const SettingsPage = () => {
 
                           {/* Bio field taking full width */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700">
+                            <label className="block text-xs font-medium text-gray-500">
                               Bio
                             </label>
                             <p className="mt-1 text-sm text-gray-900">
@@ -310,14 +310,14 @@ const SettingsPage = () => {
                     )}
 
                     {/* Back to Welcome Section */}
-                    <div className="mt-8 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <div className="mt-8 rounded-xl border border-gray-200/70 bg-surface p-4">
                       <div className="mb-4 flex items-center justify-between">
-                        <h3 className="text-lg font-medium text-gray-900">
-                          Getting Started
+                        <h3 className="text-lg font-semibold tracking-tight text-gray-900">
+                          Getting started
                         </h3>
                         <Button onClick={() => router.push("/welcome")}>
                           <Home className="mr-2 h-4 w-4" />
-                          Back to Welcome Page
+                          Back to welcome page
                         </Button>
                       </div>
                       <p className="text-sm text-gray-600">
@@ -331,27 +331,25 @@ const SettingsPage = () => {
                 {/* Security Tab */}
                 {activeTab === "security" && (
                   <div className="p-6">
-                    <h2 className="mb-6 text-xl font-semibold text-gray-900">
-                      Security Settings
+                    <h2 className="mb-6 text-xl font-semibold tracking-tight text-gray-900">
+                      Security settings
                     </h2>
 
                     <div className="space-y-6">
                       {/* Change Password - Coming Soon */}
-                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                      <div className="rounded-xl border border-gray-200/70 bg-surface p-4">
                         <div className="mb-4 flex items-center justify-between">
-                          <h3 className="text-lg font-medium text-gray-900">
-                            Change Password
+                          <h3 className="text-lg font-semibold tracking-tight text-gray-900">
+                            Change password
                           </h3>
-                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-                            Coming Soon
+                          <span className="inline-flex items-center rounded-full bg-secondary-100 px-2.5 py-0.5 text-xs font-medium text-secondary-800">
+                            Coming soon
                           </span>
                         </div>
                         <div className="flex items-start space-x-3">
                           <div className="flex-shrink-0">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
-                              <span className="text-sm font-medium text-blue-600">
-                                🔒
-                              </span>
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-muted">
+                              <span className="text-sm font-medium">🔒</span>
                             </div>
                           </div>
                           <div className="flex-1">
@@ -365,33 +363,33 @@ const SettingsPage = () => {
                       </div>
 
                       {/* Sign Out */}
-                      <div className="rounded-lg border border-gray-200 p-4">
+                      <div className="rounded-xl border border-gray-200/70 p-4">
                         <div className="mb-4 flex items-center justify-between">
-                          <h3 className="text-lg font-medium text-gray-900">
-                            Session Management
+                          <h3 className="text-lg font-semibold tracking-tight text-gray-900">
+                            Session management
                           </h3>
                           <button
                             onClick={handleSignOut}
-                            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-black/60"
+                            className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-soft transition-all duration-200 ease-out hover:bg-primary-800 active:scale-[0.98]"
                           >
-                            Sign Out
+                            Sign out
                           </button>
                         </div>
                       </div>
 
                       {/* Delete Account / Leave Account */}
                       {session?.user?.role === Role.ADMIN ? (
-                        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
                           <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-lg font-medium text-gray-900">
-                              Delete Account
+                            <h3 className="text-lg font-semibold tracking-tight text-gray-900">
+                              Delete account
                             </h3>
                             <button
                               onClick={() => setShowDeleteAccountModal(true)}
-                              className="inline-flex items-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700"
+                              className="inline-flex items-center rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-soft transition-all duration-200 ease-out hover:bg-red-700 active:scale-[0.98]"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              Delete Account
+                              Delete account
                             </button>
                           </div>
                           <div className="flex items-start space-x-3">
@@ -413,17 +411,17 @@ const SettingsPage = () => {
                           </div>
                         </div>
                       ) : (
-                        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
                           <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-lg font-medium text-gray-900">
-                              Deactivate Account
+                            <h3 className="text-lg font-semibold tracking-tight text-gray-900">
+                              Deactivate account
                             </h3>
                             <button
                               onClick={() => setShowLeaveAccountModal(true)}
-                              className="inline-flex items-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700"
+                              className="inline-flex items-center rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-soft transition-all duration-200 ease-out hover:bg-red-700 active:scale-[0.98]"
                             >
                               <LogOut className="mr-2 h-4 w-4" />
-                              Deactivate Account
+                              Deactivate account
                             </button>
                           </div>
                           <div className="flex items-start space-x-3">
@@ -460,7 +458,7 @@ const SettingsPage = () => {
 
                     <div className="space-y-6">
                       {/* Theme */}
-                      <div className="rounded-lg border border-gray-200 p-4">
+                      <div className="rounded-xl border border-gray-200/70 p-4">
                         <h3 className="mb-4 text-lg font-medium text-gray-900">
                           Theme
                         </h3>
@@ -481,7 +479,7 @@ const SettingsPage = () => {
                                     theme: e.target.value,
                                   })
                                 }
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                                className="h-4 w-4 text-secondary-600 focus:ring-secondary"
                               />
                               <span className="text-sm capitalize text-gray-700">
                                 {theme}
@@ -492,7 +490,7 @@ const SettingsPage = () => {
                       </div>
 
                       {/* Currency */}
-                      <div className="rounded-lg border border-gray-200 p-4">
+                      <div className="rounded-xl border border-gray-200/70 p-4">
                         <h3 className="mb-4 text-lg font-medium text-gray-900">
                           Currency
                         </h3>
@@ -504,7 +502,7 @@ const SettingsPage = () => {
                               currency: e.target.value,
                             })
                           }
-                          className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="block w-full rounded-xl border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                         >
                           <option value="USD">USD - US Dollar</option>
                           <option value="EUR">EUR - Euro</option>
@@ -524,7 +522,7 @@ const SettingsPage = () => {
                     </h2>
 
                     <div className="space-y-6">
-                      <div className="rounded-lg border border-gray-200 p-4">
+                      <div className="rounded-xl border border-gray-200/70 p-4">
                         <h3 className="mb-4 text-lg font-medium text-gray-900">
                           Email Notifications
                         </h3>
@@ -550,7 +548,7 @@ const SettingsPage = () => {
                                       },
                                     })
                                   }
-                                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  className="h-4 w-4 rounded border-gray-300 text-secondary-600 focus:ring-secondary"
                                 />
                               </label>
                             ),
@@ -570,7 +568,7 @@ const SettingsPage = () => {
 
                     <div className="space-y-6">
                       {/* Current Plan */}
-                      <div className="rounded-lg border border-gray-200 p-4">
+                      <div className="rounded-xl border border-gray-200/70 p-4">
                         <h3 className="mb-4 text-lg font-medium text-gray-900">
                           Current Plan
                         </h3>
@@ -590,20 +588,20 @@ const SettingsPage = () => {
                       </div>
 
                       {/* Payment Method */}
-                      <div className="rounded-lg border border-gray-200 p-4">
+                      <div className="rounded-xl border border-gray-200/70 p-4">
                         <h3 className="mb-4 text-lg font-medium text-gray-900">
                           Payment Method
                         </h3>
                         <p className="text-sm text-gray-500">
                           No payment method added yet.
                         </p>
-                        <button className="mt-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-accent">
-                          Add Payment Method
+                        <button className="mt-2 rounded-xl bg-secondary px-4 py-2 text-sm font-medium text-primary-950 shadow-soft transition-all duration-200 ease-out hover:bg-secondary-600 active:scale-[0.98]">
+                          Add payment method
                         </button>
                       </div>
 
                       {/* Billing History */}
-                      <div className="rounded-lg border border-gray-200 p-4">
+                      <div className="rounded-xl border border-gray-200/70 p-4">
                         <h3 className="mb-4 text-lg font-medium text-gray-900">
                           Billing History
                         </h3>
@@ -619,28 +617,28 @@ const SettingsPage = () => {
                 {activeTab === "users" && (
                   <div className="p-6">
                     <div className="mb-6 flex items-center justify-between">
-                      <h2 className="text-xl font-semibold text-gray-900">
-                        User Management
+                      <h2 className="text-xl font-semibold tracking-tight text-gray-900">
+                        User management
                       </h2>
                       <button
                         onClick={() => setShowCreateUserModal(true)}
-                        className="inline-flex items-center rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-black/90 shadow-sm transition-colors hover:bg-accent"
+                        className="inline-flex items-center rounded-xl bg-secondary px-3 py-2 text-sm font-medium text-primary-950 shadow-soft transition-all duration-200 ease-out hover:bg-secondary-600 active:scale-[0.98]"
                       >
                         <Plus className="mr-2 h-4 w-4" />
-                        Add User
+                        Add user
                       </button>
                     </div>
 
-                    <div className="rounded-lg border border-gray-200 p-4">
-                      <h3 className="mb-4 text-lg font-medium text-gray-900">
-                        Account Users
+                    <div className="rounded-xl border border-gray-200/70 p-4">
+                      <h3 className="mb-4 text-lg font-semibold tracking-tight text-gray-900">
+                        Account users
                       </h3>
                       <p className="text-sm text-gray-500">
                         Manage users in your account. Only administrators can
                         create new users.
                       </p>
-                      <div className="mt-4 rounded-md bg-blue-50 p-3">
-                        <p className="text-sm text-blue-700">
+                      <div className="mt-4 rounded-xl bg-secondary-50 p-3">
+                        <p className="text-sm text-secondary-800">
                           <strong>Note:</strong> New users are created with a
                           default password that you&apos;ll need to share with
                           them manually.

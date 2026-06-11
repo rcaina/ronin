@@ -21,8 +21,8 @@ const LoadingSpinner = ({
   };
 
   return (
-    <div className={`flex ${className} items-center justify-center bg-gray-50`}>
-      <div className="text-center">
+    <div className={`flex ${className} items-center justify-center bg-surface`}>
+      <div className="animate-fade-in text-center">
         <div
           className={`relative mx-auto ${logoSize === "lg" ? "mb-6" : "mb-4"}`}
         >
@@ -32,17 +32,17 @@ const LoadingSpinner = ({
               alt="Ronin Logo"
               width={128}
               height={128}
-              className="h-full w-full rounded-full"
+              className="h-full w-full animate-pulse rounded-full ring-4 ring-secondary/20"
               priority
             />
           </div>
         </div>
         {showWelcome && (
-          <h2 className="mb-2 text-2xl font-bold text-gray-900">
+          <h2 className="mb-2 text-2xl font-semibold tracking-tight text-gray-900">
             Welcome to Ronin
           </h2>
         )}
-        <div className="text-lg text-gray-600">{message}</div>
+        <div className="text-sm font-medium text-gray-500">{message}</div>
       </div>
     </div>
   );

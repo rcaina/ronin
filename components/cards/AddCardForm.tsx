@@ -111,7 +111,7 @@ export default function AddCardForm({
             className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
               errors.name
                 ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                : "border-gray-300 focus:border-secondary focus:ring-secondary"
             }`}
             disabled={isLoading}
           />
@@ -135,7 +135,7 @@ export default function AddCardForm({
               className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
                 errors.userId
                   ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                  : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  : "border-gray-300 focus:border-secondary focus:ring-secondary"
               }`}
               disabled={isLoading || loadingUsers}
             >
@@ -168,7 +168,7 @@ export default function AddCardForm({
             className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
               errors.cardType
                 ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                : "border-gray-300 focus:border-secondary focus:ring-secondary"
             }`}
             disabled={isLoading}
           >
@@ -204,7 +204,7 @@ export default function AddCardForm({
               placeholder="0.00"
               min="0"
               step="0.01"
-              className="w-full rounded-md border border-gray-300 py-2 pl-8 pr-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 py-2 pl-8 pr-3 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               disabled={isLoading}
             />
           </div>

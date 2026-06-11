@@ -152,14 +152,24 @@ export default function CreateBudgetModal({
   const createBudgetFromScratchMutation = useCreateBudgetFromScratchWithCards();
   const duplicateBudgetMutation = useDuplicateBudgetWithCards();
   const isCreating =
-    createBudgetFromScratchMutation.isPending || duplicateBudgetMutation.isPending;
+    createBudgetFromScratchMutation.isPending ||
+    duplicateBudgetMutation.isPending;
   const [selectedCategories, setSelectedCategories] = useState<
     CategoryAllocation[]
   >([]);
   const [currentStep, setCurrentStep] = useState<StepType>("basic");
   const [cardsToInclude, setCardsToInclude] = useState<CardToInclude[]>([]);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
-  const [users, setUsers] = useState<Array<{ id: string; name: string; firstName: string; lastName: string; email: string | null; role: string }>>([]);
+  const [users, setUsers] = useState<
+    Array<{
+      id: string;
+      name: string;
+      firstName: string;
+      lastName: string;
+      email: string | null;
+      role: string;
+    }>
+  >([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [incomeEntries, setIncomeEntries] = useState<IncomeEntry[]>([
     {
@@ -288,7 +298,14 @@ export default function CreateBudgetModal({
 
       setShowAddCardModal(false);
       setLoadingUsers(true);
-      type UserRow = { id: string; name: string; firstName: string; lastName: string; email: string | null; role: string };
+      type UserRow = {
+        id: string;
+        name: string;
+        firstName: string;
+        lastName: string;
+        email: string | null;
+        role: string;
+      };
       void fetch("/api/users")
         .then(async (res) => (res.ok ? ((await res.json()) as UserRow[]) : []))
         .then((data) => setUsers(Array.isArray(data) ? data : []))
@@ -531,7 +548,9 @@ export default function CreateBudgetModal({
         userId: card.userId,
       }));
 
-      const mutation = initialBudget ? duplicateBudgetMutation : createBudgetFromScratchMutation;
+      const mutation = initialBudget
+        ? duplicateBudgetMutation
+        : createBudgetFromScratchMutation;
       const created = await mutation.mutateAsync({
         ...data,
         categoryAllocations,
@@ -541,17 +560,19 @@ export default function CreateBudgetModal({
 
       if (created.failedCards.length > 0) {
         toast.error(
-          `Budget created, but ${created.failedCards.length} card(s) could not be added: ${created.failedCards.join(", ")}`
+          `Budget created, but ${created.failedCards.length} card(s) could not be added: ${created.failedCards.join(", ")}`,
         );
       }
 
       if (created.incomesSkipped && created.failedCards.length > 0) {
-        toast.error("Income transactions were skipped because card creation/copying failed.");
+        toast.error(
+          "Income transactions were skipped because card creation/copying failed.",
+        );
       }
 
       if (created.failedIncomes.length > 0) {
         toast.error(
-          `Budget created, but ${created.failedIncomes.length} income transaction(s) could not be created: ${created.failedIncomes.join(", ")}`
+          `Budget created, but ${created.failedIncomes.length} income transaction(s) could not be created: ${created.failedIncomes.join(", ")}`,
         );
       }
 
@@ -616,8 +637,8 @@ export default function CreateBudgetModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="mx-4 flex h-[70vh] w-full max-w-4xl flex-col rounded-lg bg-white shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 backdrop-blur-sm">
+      <div className="mx-4 flex h-[70vh] w-full max-w-4xl animate-scale-in flex-col rounded-2xl bg-white shadow-lifted">
         {/* Header - Full Width */}
         <div className="flex flex-shrink-0 items-center justify-between border-b p-6">
           <div>
@@ -754,14 +775,10 @@ export default function CreateBudgetModal({
               {currentStep === "allocation" ? (
                 <Button
                   type="submit"
-                  disabled={
-                    isCreating || !isAllocationStepValid()
-                  }
+                  disabled={isCreating || !isAllocationStepValid()}
                   onClick={handleSubmit(onSubmit)}
                 >
-                  {isCreating
-                    ? "Creating..."
-                    : "Create Budget"}
+                  {isCreating ? "Creating..." : "Create Budget"}
                 </Button>
               ) : (
                 <Button

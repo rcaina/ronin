@@ -14,7 +14,7 @@ async function handleCatchAll(request: NextRequest, context: CatchAllContext) {
   if (!session) {
     return NextResponse.json(
       { error: "Please sign in to access this resource." },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -24,7 +24,7 @@ async function handleCatchAll(request: NextRequest, context: CatchAllContext) {
       path: fullPath,
       method: request.method,
     },
-    { status: 404 }
+    { status: 404 },
   );
 }
 

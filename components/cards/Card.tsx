@@ -30,7 +30,7 @@ const getUtilizationPercentage = (
 
 const getUtilizationColor = (percentage: number) => {
   if (percentage > 80) return "text-red-600";
-  if (percentage > 60) return "text-yellow-600";
+  if (percentage > 60) return "text-amber-600";
   return "text-green-600";
 };
 
@@ -45,23 +45,29 @@ const CardComponent = ({
 }: CardProps) => {
   return (
     <div
-      className={`group relative cursor-pointer overflow-hidden rounded-xl border bg-white shadow-sm transition-all hover:shadow-md ${
+      className={`card-interactive group relative cursor-pointer overflow-hidden ${
         !card.isActive ? "opacity-60" : ""
       }`}
       onClick={() => onClick?.(card)}
     >
-      {/* Card Header */}
-      <div className={`${card.color} p-6 text-white`}>
-        <div className="mb-4 flex items-center justify-between">
+      {/* Card face — styled like a physical payment card */}
+      <div className={`relative overflow-hidden ${card.color} p-5 text-white`}>
+        {/* Soft decorative shapes */}
+        <div className="pointer-events-none absolute -right-10 -top-16 h-40 w-40 rounded-full bg-white/10" />
+        <div className="pointer-events-none absolute -bottom-20 -left-8 h-36 w-36 rounded-full bg-black/10" />
+
+        <div className="relative mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {getCardTypeIcon(card.type)}
-            <span className="text-sm font-medium uppercase">{card.type}</span>
+            <span className="text-xs font-semibold uppercase tracking-widest text-white/90">
+              {card.type}
+            </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
-              className={`rounded-md p-1 transition-opacity ${
+              className={`rounded-lg p-1.5 transition-all duration-200 ${
                 canEdit
-                  ? "opacity-0 hover:bg-white/20 group-hover:opacity-100"
+                  ? "opacity-100 hover:bg-white/20 lg:opacity-0 lg:group-hover:opacity-100"
                   : "cursor-not-allowed opacity-50"
               }`}
               onClick={(e) => {
@@ -78,27 +84,20 @@ const CardComponent = ({
 
             {canEdit && (
               <button
-                className={`rounded-md p-1 transition-opacity ${
-                  canEdit
-                    ? "opacity-0 hover:bg-white/20 group-hover:opacity-100"
-                    : "cursor-not-allowed opacity-50"
-                }`}
+                className="rounded-lg p-1.5 opacity-100 transition-all duration-200 hover:bg-white/20 lg:opacity-0 lg:group-hover:opacity-100"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (canEdit) {
-                    onEdit?.(card);
-                  }
+                  onEdit?.(card);
                 }}
-                title={canEdit ? "Edit" : "Only owner can edit"}
-                disabled={!canEdit}
+                title="Edit"
               >
                 <Edit className="h-4 w-4" />
               </button>
             )}
             <button
-              className={`rounded-md p-1 text-red-300 transition-opacity ${
+              className={`rounded-lg p-1.5 transition-all duration-200 ${
                 canEdit
-                  ? "opacity-0 hover:bg-white/20 hover:text-red-500 group-hover:opacity-100"
+                  ? "opacity-100 hover:bg-white/20 hover:text-red-200 lg:opacity-0 lg:group-hover:opacity-100"
                   : "cursor-not-allowed opacity-50"
               }`}
               onClick={(e) => {
@@ -115,38 +114,51 @@ const CardComponent = ({
           </div>
         </div>
 
-        {/* Card Details */}
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-white/80">Owner</div>
-          <div className="font-semibold">{card.user}</div>
+        {/* Chip */}
+        <div className="relative mb-5">
+          <div className="h-7 w-9 rounded-md bg-gradient-to-br from-accent-100 to-secondary-400 shadow-soft">
+            <div className="mx-auto mt-2 h-3 w-6 rounded-sm border border-secondary-700/40" />
+          </div>
+        </div>
+
+        {/* Card holder */}
+        <div className="relative flex items-end justify-between">
+          <div>
+            <div className="text-[10px] font-medium uppercase tracking-widest text-white/70">
+              Owner
+            </div>
+            <div className="text-sm font-semibold tracking-wide">
+              {card.user}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Card Info */}
-      <div className="p-6">
+      <div className="p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">{card.name}</h3>
+          <h3 className="text-base font-semibold tracking-tight text-gray-900">
+            {card.name}
+          </h3>
           {/* Status Badge */}
-          <div className="flex items-center justify-between">
-            <span
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                card.isActive
-                  ? "bg-green-100 text-green-800"
-                  : "bg-gray-100 text-gray-800"
-              }`}
-            >
-              {card.isActive ? "Active" : "Inactive"}
-            </span>
-          </div>
+          <span
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              card.isActive
+                ? "bg-green-50 text-green-700"
+                : "bg-gray-100 text-gray-600"
+            }`}
+          >
+            {card.isActive ? "Active" : "Inactive"}
+          </span>
         </div>
 
         {/* Balance and Limit */}
         <div className="space-y-3">
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             {card.spendingLimit && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">Limit</span>
-                <span className="font-semibold text-gray-900">
+                <span className="font-semibold tabular-nums text-gray-900">
                   {formatCurrency(card.spendingLimit)}
                 </span>
               </div>
@@ -154,7 +166,7 @@ const CardComponent = ({
             {!general && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">Spent</span>
-                <span className="font-semibold text-red-500">
+                <span className="font-semibold tabular-nums text-gray-900">
                   {formatCurrency(card.amountSpent)}
                 </span>
               </div>
@@ -169,7 +181,7 @@ const CardComponent = ({
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">Available</span>
                     <span
-                      className={`font-semibold ${
+                      className={`font-semibold tabular-nums ${
                         available >= 0 ? "text-green-600" : "text-red-600"
                       }`}
                     >
@@ -183,10 +195,10 @@ const CardComponent = ({
           {/* Utilization Bar */}
           {card.spendingLimit && !general && (
             <div>
-              <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="text-gray-500">Utilization</span>
+              <div className="mb-1.5 flex items-center justify-between text-xs">
+                <span className="font-medium text-gray-500">Utilization</span>
                 <span
-                  className={`font-medium ${getUtilizationColor(
+                  className={`font-medium tabular-nums ${getUtilizationColor(
                     getUtilizationPercentage(
                       card.amountSpent,
                       card.spendingLimit,
@@ -200,9 +212,9 @@ const CardComponent = ({
                   %
                 </span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+              <div className="h-2 overflow-hidden rounded-full bg-gray-100">
                 <div
-                  className={`h-full rounded-full transition-all ${
+                  className={`h-full rounded-full transition-all duration-500 ease-out ${
                     getUtilizationPercentage(
                       card.amountSpent,
                       card.spendingLimit,
@@ -212,7 +224,7 @@ const CardComponent = ({
                             card.amountSpent,
                             card.spendingLimit,
                           ) > 60
-                        ? "bg-yellow-500"
+                        ? "bg-amber-500"
                         : "bg-green-500"
                   }`}
                   style={{

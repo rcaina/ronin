@@ -41,7 +41,9 @@ export const signIn = async (data: SignInRequest): Promise<void> => {
   }
 };
 
-export const createUser = async (data: CreateUserRequest): Promise<CreateUserResponse> => {
+export const createUser = async (
+  data: CreateUserRequest,
+): Promise<CreateUserResponse> => {
   const response = await fetch("/api/users", {
     method: "POST",
     headers: {
@@ -57,7 +59,9 @@ export const createUser = async (data: CreateUserRequest): Promise<CreateUserRes
   return response.json() as Promise<CreateUserResponse>;
 };
 
-export const deleteAccount = async (password: string): Promise<DeleteAccountResponse> => {
+export const deleteAccount = async (
+  password: string,
+): Promise<DeleteAccountResponse> => {
   const response = await fetch("/api/users/delete-account", {
     method: "DELETE",
     headers: {
@@ -67,7 +71,7 @@ export const deleteAccount = async (password: string): Promise<DeleteAccountResp
   });
 
   if (!response.ok) {
-    const errorData = await response.json() as { error?: string };
+    const errorData = (await response.json()) as { error?: string };
     throw new Error(errorData.error ?? "Failed to delete account");
   }
 

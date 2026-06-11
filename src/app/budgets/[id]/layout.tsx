@@ -86,7 +86,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const finalDescription = dynamicDescription ?? pageHeaderConfig?.description;
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
+    <div className="flex h-screen flex-col bg-surface">
       {pageHeaderConfig && (
         <PageHeader
           title={finalTitle}
@@ -102,7 +102,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
       <BudgetPageNavigation />
 
-      <div className={`flex-1 overflow-y-auto overflow-x-hidden ${contentPadding} lg:pt-0`}>
+      <div
+        className={`flex-1 overflow-y-auto overflow-x-hidden ${contentPadding} lg:pt-0`}
+      >
         {children}
       </div>
     </div>

@@ -3,29 +3,32 @@ import prisma from "../prisma";
 
 /**
  * Checks if an email is allowed based on the AUTH_ALLOWED_EMAILS environment variable.
- * 
+ *
  * @param email - The email address to check
  * @returns true if the email is allowed, false otherwise
  */
 export const isEmailAllowed = (email: string): boolean => {
   const allowedEmails = process.env.AUTH_ALLOWED_EMAILS;
-  
+
   // If no allowed emails are configured, allow all emails
   if (!allowedEmails) {
     return true;
   }
-  
+
   // Parse the comma-separated list of allowed emails
   const allowedEmailList = allowedEmails
-    .split(',')
+    .split(",")
     .map((email) => email.trim().toLowerCase())
     .filter((email) => email.length > 0);
-  
+
   // Check if the provided email is in the allowed list
   return allowedEmailList.includes(email.toLowerCase());
-}
+};
 
-export const ensureBudgetOwnership = async (id: string, accountId: string): Promise<void> => {
+export const ensureBudgetOwnership = async (
+  id: string,
+  accountId: string,
+): Promise<void> => {
   const budget = await prisma.budget.findUnique({
     where: {
       id,
@@ -35,15 +38,21 @@ export const ensureBudgetOwnership = async (id: string, accountId: string): Prom
   });
 
   if (!budget) {
-    throw new HttpError("Budget does not exist or is not in user's account", 404);
+    throw new HttpError(
+      "Budget does not exist or is not in user's account",
+      404,
+    );
   }
 };
 
-export const ensureCardAccountOwnership = async (id: string, accountId: string): Promise<void> => {  
+export const ensureCardAccountOwnership = async (
+  id: string,
+  accountId: string,
+): Promise<void> => {
   const card = await prisma.card.findUnique({
     where: {
       id,
-      user:{
+      user: {
         accountUsers: {
           some: {
             accountId: accountId,
@@ -57,7 +66,7 @@ export const ensureCardAccountOwnership = async (id: string, accountId: string):
 
   if (!card) {
     throw new HttpError("Card does not exist or is not in user's account", 404);
-  } 
+  }
 };
 
 export const validateBudgetId = (id: unknown): string => {
@@ -87,7 +96,10 @@ export const validateCardId = (id: unknown): string => {
   return idString;
 };
 
-export const ensureCardUserOwnership = async (id: string, userId: string): Promise<void> => {
+export const ensureCardUserOwnership = async (
+  id: string,
+  userId: string,
+): Promise<void> => {
   // ensure card exists and belongs to the specified user not just the account
   const card = await prisma.card.findUnique({
     where: {
@@ -105,7 +117,10 @@ export const ensureCardUserOwnership = async (id: string, userId: string): Promi
   }
 };
 
-export const ensureTransactionAccountOwnership = async (id: string, accountId: string): Promise<void> => {
+export const ensureTransactionAccountOwnership = async (
+  id: string,
+  accountId: string,
+): Promise<void> => {
   const transaction = await prisma.transaction.findUnique({
     where: {
       id,
@@ -115,7 +130,10 @@ export const ensureTransactionAccountOwnership = async (id: string, accountId: s
   });
 
   if (!transaction) {
-    throw new HttpError("Transaction does not exist or is not in user's account", 404);
+    throw new HttpError(
+      "Transaction does not exist or is not in user's account",
+      404,
+    );
   }
 };
 
@@ -137,7 +155,10 @@ export const validateSavingsId = (id: unknown): string => {
   return idString;
 };
 
-export const ensureSavingsAccountOwnership = async (id: string, accountId: string): Promise<void> => {
+export const ensureSavingsAccountOwnership = async (
+  id: string,
+  accountId: string,
+): Promise<void> => {
   const savings = await prisma.savings.findUnique({
     where: {
       id,
@@ -147,7 +168,10 @@ export const ensureSavingsAccountOwnership = async (id: string, accountId: strin
   });
 
   if (!savings) {
-    throw new HttpError("Savings account does not exist or is not in user's account", 404);
+    throw new HttpError(
+      "Savings account does not exist or is not in user's account",
+      404,
+    );
   }
 };
 
@@ -160,7 +184,10 @@ export const validateAllocationId = (id: unknown): string => {
   return idString;
 };
 
-export const ensurePocketOwnership = async (id: string, accountId: string): Promise<void> => {
+export const ensurePocketOwnership = async (
+  id: string,
+  accountId: string,
+): Promise<void> => {
   const pocket = await prisma.pocket.findUnique({
     where: {
       id,
@@ -170,9 +197,12 @@ export const ensurePocketOwnership = async (id: string, accountId: string): Prom
       },
     },
   });
-  
+
   if (!pocket) {
-    throw new HttpError("Pocket does not exist or is not in user's account", 404);
+    throw new HttpError(
+      "Pocket does not exist or is not in user's account",
+      404,
+    );
   }
 };
 

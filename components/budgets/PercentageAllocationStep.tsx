@@ -97,12 +97,12 @@ export default function PercentageAllocationStep({
   return (
     <div className="space-y-6">
       {/* 50/30/20 rule info */}
-      <div className="rounded-lg bg-blue-50 p-4">
+      <div className="rounded-xl bg-secondary-50 p-4">
         <div>
-          <h3 className="text-sm font-medium text-blue-900">
+          <h3 className="text-sm font-medium text-secondary-900">
             50/30/20 Budget Rule
           </h3>
-          <p className="text-sm text-blue-700">
+          <p className="text-sm text-secondary-700">
             Recommended allocation: 50% to needs, 30% to wants, and 20% to
             investments. You can adjust amounts as needed, but consider the
             recommended percentages.

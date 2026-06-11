@@ -7,13 +7,19 @@ import { ensureBudgetOwnership, validateBudgetId } from "@/lib/utils/auth";
 import { getBudgetTransactions } from "@/lib/api-services/budgets";
 
 export const GET = withUser({
-  GET: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
-    const { id } = await context.params;
-    const budgetId = validateBudgetId(id);
-    await ensureBudgetOwnership(budgetId, user.accountId);
-    
-    const budgetTransactions = await getBudgetTransactions(prisma, budgetId);
-    
-    return NextResponse.json(budgetTransactions, { status: 200 });
-  })
+  GET: withUserErrorHandling(
+    async (
+      req: NextRequest,
+      context: { params: Promise<Record<string, string>> },
+      user: User & { accountId: string },
+    ) => {
+      const { id } = await context.params;
+      const budgetId = validateBudgetId(id);
+      await ensureBudgetOwnership(budgetId, user.accountId);
+
+      const budgetTransactions = await getBudgetTransactions(prisma, budgetId);
+
+      return NextResponse.json(budgetTransactions, { status: 200 });
+    },
+  ),
 });

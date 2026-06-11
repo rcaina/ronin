@@ -50,23 +50,27 @@ export default function BudgetPageNavigation() {
   ];
 
   return (
-    <div className="hidden border-b border-gray-200 bg-primary lg:block">
-      <nav className="mx-auto flex w-full overflow-x-auto px-4 sm:px-6 lg:px-8">
-        {budgetNavItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex shrink-0 items-center gap-2 px-3 py-3 text-sm font-medium transition-colors sm:px-4 ${
-                isActive ? "text-accent" : "text-white hover:text-secondary"
-              }`}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
+    <div className="hidden bg-surface lg:block">
+      <nav className="scrollbar-hide mx-auto w-full overflow-x-auto px-4 py-2 sm:px-6 lg:px-8">
+        <div className="inline-flex rounded-full bg-surface-muted p-1">
+          {budgetNavItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
+                  isActive
+                    ? "bg-white text-gray-900 shadow-soft"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
       </nav>
     </div>
   );

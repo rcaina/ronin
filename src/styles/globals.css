@@ -4,11 +4,30 @@
 
 @layer base {
   :root {
-    --foreground: 0, 0, 0;
-    --background: 214, 219, 220;
+    --foreground: 17, 24, 39;
+    --background: 247, 247, 245;
+    /* Brand tokens — mirrored in tailwind.config.ts color scales. */
     --color-primary: #0e0e10;
     --color-secondary: #b9a15e;
     --color-accent: #fce5a0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: rgb(var(--background));
+    color: rgb(var(--foreground));
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Consistent, accessible focus rings across the app. */
+  :focus-visible {
+    outline: 2px solid var(--color-secondary);
+    outline-offset: 2px;
   }
 }
 
@@ -17,12 +36,33 @@
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
+@layer components {
+  /* Standard surface card — use for all panels, charts, and list items. */
+  .card-surface {
+    @apply rounded-2xl border border-gray-200/70 bg-white shadow-card;
+  }
+
+  /* Interactive variant — adds smooth hover lift. */
+  .card-interactive {
+    @apply card-surface transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-gray-300/80 hover:shadow-lifted;
+  }
+}
+
 @layer utilities {
   .scrollbar-hide {
-    -ms-overflow-style: none;  /* Internet Explorer 10+ */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+    scrollbar-width: none; /* Firefox */
   }
   .scrollbar-hide::-webkit-scrollbar {
-    display: none;  /* Safari and Chrome */
+    display: none; /* Safari and Chrome */
+  }
+
+  /* Respect users who prefer reduced motion. */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-in,
+    .animate-fade-in-up,
+    .animate-scale-in {
+      animation: none;
+    }
   }
 }

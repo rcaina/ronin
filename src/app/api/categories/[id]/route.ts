@@ -8,35 +8,48 @@ import { updateCategorySchema } from "@/lib/api-schemas/categories";
 import { validateCategoryId } from "@/lib/utils/auth";
 
 export const PUT = withUser({
-  PUT: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, _user: User & { accountId: string }) => {
-    const { id } = await context.params;
-    const categoryId = validateCategoryId(id);
+  PUT: withUserErrorHandling(
+    async (
+      req: NextRequest,
+      context: { params: Promise<Record<string, string>> },
+      _user: User & { accountId: string },
+    ) => {
+      const { id } = await context.params;
+      const categoryId = validateCategoryId(id);
 
+      const body = (await req.json()) as { name: string; group: string };
+      const validatedData = updateCategorySchema.parse(body);
 
-    const body = await req.json() as { name: string; group: string };
-    const validatedData = updateCategorySchema.parse(body);
-    
-    return await prisma.$transaction(async (tx) => {
-      const updatedCategory = await updateCategory(tx, categoryId, {
-        name: validatedData.name,
-        group: validatedData.group as CategoryType,
+      return await prisma.$transaction(async (tx) => {
+        const updatedCategory = await updateCategory(tx, categoryId, {
+          name: validatedData.name,
+          group: validatedData.group as CategoryType,
+        });
+
+        return NextResponse.json(updatedCategory, { status: 200 });
       });
-
-      return NextResponse.json(updatedCategory, { status: 200 });
-    });
-  }),
-}); 
-
+    },
+  ),
+});
 
 export const DELETE = withUser({
-  DELETE: withUserErrorHandling(async (_req: NextRequest, context: { params: Promise<Record<string, string>> }, _user: User & { accountId: string }) => {
-    const { id } = await context.params;
-    const categoryId = validateCategoryId(id);
-    
-    return await prisma.$transaction(async (tx) => {
-      await deleteCategory(tx, categoryId);
-      
-      return NextResponse.json({ message: "Category deleted" }, { status: 200 });
-    });
-  }),
+  DELETE: withUserErrorHandling(
+    async (
+      _req: NextRequest,
+      context: { params: Promise<Record<string, string>> },
+      _user: User & { accountId: string },
+    ) => {
+      const { id } = await context.params;
+      const categoryId = validateCategoryId(id);
+
+      return await prisma.$transaction(async (tx) => {
+        await deleteCategory(tx, categoryId);
+
+        return NextResponse.json(
+          { message: "Category deleted" },
+          { status: 200 },
+        );
+      });
+    },
+  ),
 });

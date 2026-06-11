@@ -248,19 +248,19 @@ const CardsPage = () => {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
+    <div className="flex h-screen flex-col bg-surface">
       <PageHeader
         title="Cards"
         description="View and manage credit and debit cards in your account"
         actions={[
           {
-            label: "Add Card",
+            label: "Add card",
             onClick: handleAddCard,
             icon: <Plus className="h-4 w-4" />,
             variant: "primary",
           },
           {
-            label: "Pay Credit Card",
+            label: "Pay credit card",
             onClick: () => setShowCardPaymentModal(true),
             icon: <CreditCard className="h-4 w-4" />,
           },
@@ -269,54 +269,54 @@ const CardsPage = () => {
 
       <div className="flex-1 overflow-hidden pt-16 sm:pt-20 lg:pt-0">
         <div className="h-full overflow-y-auto">
-          <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
+          <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8">
             {/* Overview Stats */}
             <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
               <StatsCard
-                title="Total Spent"
+                title="Total spent"
                 value={formatCurrency(totalSpent)}
                 subtitle="Across all cards"
                 icon={
-                  <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
+                  <DollarSign className="h-4 w-4 text-green-600 sm:h-5 sm:w-5" />
                 }
-                iconColor="text-green-500"
+                iconColor="text-green-600"
               />
 
               <StatsCard
-                title="Credit Limit"
+                title="Credit limit"
                 value={formatCurrency(totalLimit)}
                 subtitle="Across credit cards"
                 icon={
-                  <CreditCard className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
+                  <CreditCard className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
                 }
-                iconColor="text-blue-500"
+                iconColor="text-secondary-600"
               />
 
               <StatsCard
-                title="Active Cards"
+                title="Active cards"
                 value={activeCards}
                 subtitle={`${cards.length - activeCards} inactive`}
                 icon={
-                  <Shield className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
+                  <Shield className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
                 }
-                iconColor="text-purple-500"
+                iconColor="text-secondary-600"
               />
 
               <StatsCard
-                title="Credit Cards"
+                title="Credit cards"
                 value={creditCards}
                 subtitle={`${cards.length - creditCards} debit & cash cards`}
                 icon={
-                  <CreditCard className="h-4 w-4 text-indigo-500 sm:h-5 sm:w-5" />
+                  <CreditCard className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
                 }
-                iconColor="text-indigo-500"
+                iconColor="text-secondary-600"
               />
             </div>
 
             {/* Cards Grid */}
             <div className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Account Cards
+              <h2 className="text-xl font-semibold tracking-tight text-gray-900">
+                Account cards
               </h2>
             </div>
 
@@ -462,17 +462,19 @@ const CardsPage = () => {
               {/* Empty State - only show if no cards */}
               {cards.length === 0 && (
                 <div className="col-span-full text-center">
-                  <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-white py-12">
-                    <CreditCard className="mb-4 h-12 w-12 text-gray-400" />
-                    <h3 className="mb-2 text-lg font-medium text-gray-900">
+                  <div className="card-surface flex flex-col items-center justify-center gap-3 p-10">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+                      <CreditCard className="h-7 w-7" strokeWidth={1.5} />
+                    </div>
+                    <h3 className="text-lg font-semibold tracking-tight text-gray-900">
                       No cards yet
                     </h3>
-                    <p className="mb-6 text-sm text-gray-500">
+                    <p className="text-sm text-gray-500">
                       Add your first credit or debit card to get started
                     </p>
                     <Button onClick={handleAddCard} variant="primary">
                       <Plus className="h-4 w-4" />
-                      Add Card
+                      Add card
                     </Button>
                   </div>
                 </div>
@@ -485,11 +487,11 @@ const CardsPage = () => {
       {/* Add Card Modal */}
       {showAddCardModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm"
           onClick={handleCancelAdd}
         >
           <div
-            className="w-full max-w-md transform transition-all"
+            className="w-full max-w-md transform animate-scale-in transition-all"
             onClick={(e) => e.stopPropagation()}
           >
             <AddCardForm

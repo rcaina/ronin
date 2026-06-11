@@ -15,4 +15,4 @@ export const updateCardSchema = z.object({
   spendingLimit: z.number().min(0).optional(),
   budgetId: z.string().min(1).optional(),
   userId: z.string().min(1).optional(),
-}); 
+});

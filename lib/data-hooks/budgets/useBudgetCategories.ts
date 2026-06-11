@@ -1,4 +1,9 @@
-import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import type {
   BudgetCategoryWithCategory,
@@ -6,15 +11,23 @@ import type {
   UpdateBudgetCategoryData,
 } from "@/lib/types/budget";
 
-const getBudgetCategories = async (budgetId: string, searchQuery?: string): Promise<BudgetCategoryWithCategory[]> => {
-  const url = new URL(`/api/budgets/${budgetId}/categories`, window.location.origin);
+const getBudgetCategories = async (
+  budgetId: string,
+  searchQuery?: string,
+): Promise<BudgetCategoryWithCategory[]> => {
+  const url = new URL(
+    `/api/budgets/${budgetId}/categories`,
+    window.location.origin,
+  );
   if (searchQuery?.trim()) {
-    url.searchParams.set('search', searchQuery.trim());
+    url.searchParams.set("search", searchQuery.trim());
   }
-  
+
   const response = await fetch(url.toString());
   if (!response.ok) {
-    throw new Error(`Failed to fetch budget categories: ${response.statusText}`);
+    throw new Error(
+      `Failed to fetch budget categories: ${response.statusText}`,
+    );
   }
   return response.json() as Promise<BudgetCategoryWithCategory[]>;
 };
@@ -35,7 +48,7 @@ export const useBudgetCategories = (budgetId: string, searchQuery?: string) => {
 
 const createBudgetCategory = async (
   budgetId: string,
-  data: CreateBudgetCategoryData
+  data: CreateBudgetCategoryData,
 ): Promise<BudgetCategoryWithCategory> => {
   const response = await fetch(`/api/budgets/${budgetId}/categories`, {
     method: "POST",
@@ -49,38 +62,44 @@ const createBudgetCategory = async (
     throw new Error(`Failed to create budget category: ${response.statusText}`);
   }
 
-  const budgetCategory = await response.json() as BudgetCategoryWithCategory;
+  const budgetCategory = (await response.json()) as BudgetCategoryWithCategory;
   return budgetCategory;
 };
 
 const updateBudgetCategory = async (
   budgetId: string,
   categoryId: string,
-  data: UpdateBudgetCategoryData
+  data: UpdateBudgetCategoryData,
 ): Promise<BudgetCategoryWithCategory> => {
-  const response = await fetch(`/api/budgets/${budgetId}/categories/${categoryId}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
+  const response = await fetch(
+    `/api/budgets/${budgetId}/categories/${categoryId}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
     },
-    body: JSON.stringify(data),
-  });
+  );
 
   if (!response.ok) {
     throw new Error(`Failed to update budget category: ${response.statusText}`);
   }
 
-  const budgetCategory = await response.json() as BudgetCategoryWithCategory;
+  const budgetCategory = (await response.json()) as BudgetCategoryWithCategory;
   return budgetCategory;
 };
 
 const deleteBudgetCategory = async (
   budgetId: string,
-  categoryId: string
+  categoryId: string,
 ): Promise<void> => {
-  const response = await fetch(`/api/budgets/${budgetId}/categories/${categoryId}`, {
-    method: "DELETE",
-  });
+  const response = await fetch(
+    `/api/budgets/${budgetId}/categories/${categoryId}`,
+    {
+      method: "DELETE",
+    },
+  );
 
   if (!response.ok) {
     throw new Error(`Failed to delete budget category: ${response.statusText}`);
@@ -100,7 +119,9 @@ export const useCreateBudgetCategory = () => {
     }) => createBudgetCategory(budgetId, data),
     onSuccess: (_, { budgetId }) => {
       // Invalidate and refetch the budget categories
-      void queryClient.invalidateQueries({ queryKey: ["budgetCategories", budgetId] });
+      void queryClient.invalidateQueries({
+        queryKey: ["budgetCategories", budgetId],
+      });
       // Also invalidate the budgets list
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
       // Invalidate the specific budget to refresh the main page
@@ -124,7 +145,9 @@ export const useUpdateBudgetCategory = () => {
     }) => updateBudgetCategory(budgetId, categoryId, data),
     onSuccess: (_, { budgetId }) => {
       // Invalidate and refetch the budget categories
-      void queryClient.invalidateQueries({ queryKey: ["budgetCategories", budgetId] });
+      void queryClient.invalidateQueries({
+        queryKey: ["budgetCategories", budgetId],
+      });
       // Also invalidate the budgets list
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
       // Invalidate the specific budget to refresh the main page
@@ -146,11 +169,13 @@ export const useDeleteBudgetCategory = () => {
     }) => deleteBudgetCategory(budgetId, categoryId),
     onSuccess: (_, { budgetId }) => {
       // Invalidate and refetch the budget categories
-      void queryClient.invalidateQueries({ queryKey: ["budgetCategories", budgetId] });
+      void queryClient.invalidateQueries({
+        queryKey: ["budgetCategories", budgetId],
+      });
       // Also invalidate the budgets list
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
       // Invalidate the specific budget to refresh the main page
       void queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
     },
   });
-}; 
+};

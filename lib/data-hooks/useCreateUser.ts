@@ -4,7 +4,9 @@ import type { CreateUserRequest } from "@/lib/types/user";
 import type { User } from "@prisma/client";
 
 interface UseCreateUserReturn {
-  createUser: (data: CreateUserRequest) => Promise<{ user: User & { name: string } }>;
+  createUser: (
+    data: CreateUserRequest,
+  ) => Promise<{ user: User & { name: string } }>;
   isLoading: boolean;
   error: string | null;
   resetError: () => void;
@@ -22,7 +24,10 @@ export function useCreateUser(): UseCreateUserReturn {
       const result = await createUser(data);
       return { user: result.user };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "An error occurred while creating user";
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "An error occurred while creating user";
       setError(errorMessage);
       throw err;
     } finally {
@@ -40,4 +45,4 @@ export function useCreateUser(): UseCreateUserReturn {
     error,
     resetError,
   };
-} 
+}

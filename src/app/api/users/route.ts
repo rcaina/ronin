@@ -7,34 +7,46 @@ import { type User } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const GET = withUser({
-  GET: withUserErrorHandling(async (req: NextRequest, _context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
-    return await prisma.$transaction(async (tx) => {
-      const users = await getAccountUsers(tx, user.accountId);
+  GET: withUserErrorHandling(
+    async (
+      req: NextRequest,
+      _context: { params: Promise<Record<string, string>> },
+      user: User & { accountId: string },
+    ) => {
+      return await prisma.$transaction(async (tx) => {
+        const users = await getAccountUsers(tx, user.accountId);
 
-      return NextResponse.json(users, { status: 200 });
-    });
-  }),
+        return NextResponse.json(users, { status: 200 });
+      });
+    },
+  ),
 });
 
 export const POST = withUser({
-  POST: withUserErrorHandling(async (req: NextRequest, _context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
-    const body = await req.json() as unknown;
-    
-    const validationResult = createUserSchema.safeParse(body);
-    if (!validationResult.success) {
-      return NextResponse.json(
-        { 
-          message: "Validation failed", 
-          errors: validationResult.error.errors 
-        },
-        { status: 400 }
-      );
-    }
+  POST: withUserErrorHandling(
+    async (
+      req: NextRequest,
+      _context: { params: Promise<Record<string, string>> },
+      user: User & { accountId: string },
+    ) => {
+      const body = (await req.json()) as unknown;
 
-    return await prisma.$transaction(async (tx) => {
-      const newUser = await createUser(tx, validationResult.data, user);
+      const validationResult = createUserSchema.safeParse(body);
+      if (!validationResult.success) {
+        return NextResponse.json(
+          {
+            message: "Validation failed",
+            errors: validationResult.error.errors,
+          },
+          { status: 400 },
+        );
+      }
 
-      return NextResponse.json(newUser, { status: 201 });
-    });
-  }),
-}); 
+      return await prisma.$transaction(async (tx) => {
+        const newUser = await createUser(tx, validationResult.data, user);
+
+        return NextResponse.json(newUser, { status: 201 });
+      });
+    },
+  ),
+});

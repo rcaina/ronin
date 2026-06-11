@@ -175,7 +175,7 @@ const CardDetailsPage = () => {
     : 0;
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
+    <div className="flex h-screen flex-col bg-surface">
       <PageHeader
         title={card.name}
         description={`${card.cardType.toLowerCase().replace("_", " ")} card details`}
@@ -192,7 +192,7 @@ const CardDetailsPage = () => {
         }}
         actions={[
           {
-            label: "Add Transaction",
+            label: "Add transaction",
             onClick: () => setShowAddTransactionModal(true),
             icon: <Plus className="h-4 w-4" />,
           },
@@ -200,7 +200,7 @@ const CardDetailsPage = () => {
           card.cardType === CardType.BUSINESS_CREDIT
             ? [
                 {
-                  label: "Pay Credit Card",
+                  label: "Pay credit card",
                   onClick: () => setShowCardPaymentModal(true),
                   icon: <CreditCard className="h-4 w-4" />,
                 },
@@ -210,12 +210,12 @@ const CardDetailsPage = () => {
       />
 
       <div className="flex-1 overflow-auto">
-        <div className="mx-auto px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
+        <div className="mx-auto px-2 py-4 pb-28 sm:px-4 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8">
           {/* Card Details Section */}
           <div className="mb-6">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Card Details
+              <h2 className="text-xl font-semibold tracking-tight text-gray-900">
+                Card details
               </h2>
               <div className="flex gap-2">
                 <Button onClick={handleEditCard} variant="secondary" size="sm">
@@ -250,35 +250,35 @@ const CardDetailsPage = () => {
           {/* Card Stats */}
           <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
             <StatsCard
-              title="Total Spent"
+              title="Total spent"
               value={formatCurrency(totalSpent)}
               subtitle="All time"
               icon={
-                <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
+                <DollarSign className="h-4 w-4 text-green-600 sm:h-5 sm:w-5" />
               }
-              iconColor="text-green-500"
+              iconColor="text-green-600"
             />
 
             {mappedCard.spendingLimit && (
               <>
                 <StatsCard
-                  title={isCreditCard ? "Available Credit" : "Available Funds"}
+                  title={isCreditCard ? "Available credit" : "Available funds"}
                   value={formatCurrency(availableAmount)}
                   subtitle={`${utilizationRate.toFixed(1)}% utilized`}
                   icon={
-                    <CreditCard className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
+                    <CreditCard className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
                   }
-                  iconColor="text-blue-500"
+                  iconColor="text-secondary-600"
                 />
 
                 <StatsCard
-                  title={isCreditCard ? "Credit Limit" : "Total Income"}
+                  title={isCreditCard ? "Credit limit" : "Total income"}
                   value={formatCurrency(mappedCard.spendingLimit)}
                   subtitle={isCreditCard ? "Total limit" : "Deposited on card"}
                   icon={
-                    <CreditCard className="h-4 w-4 text-indigo-500 sm:h-5 sm:w-5" />
+                    <CreditCard className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
                   }
-                  iconColor="text-indigo-500"
+                  iconColor="text-secondary-600"
                 />
               </>
             )}
@@ -288,16 +288,16 @@ const CardDetailsPage = () => {
               value={transactions.length}
               subtitle="Total transactions"
               icon={
-                <Calendar className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
+                <Calendar className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
               }
-              iconColor="text-purple-500"
+              iconColor="text-secondary-600"
             />
           </div>
 
           {/* Card Info */}
-          <div className="mb-6 rounded-xl border bg-white p-4 shadow-sm">
-            <h3 className="mb-4 text-lg font-semibold text-gray-900">
-              Card Information
+          <div className="card-surface mb-6 p-4 sm:p-5">
+            <h3 className="mb-4 text-lg font-semibold tracking-tight text-gray-900">
+              Card information
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="flex items-center gap-3">
@@ -331,8 +331,8 @@ const CardDetailsPage = () => {
           {/* Transactions Section */}
           <div className="mb-6">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Recent Transactions
+              <h2 className="text-xl font-semibold tracking-tight text-gray-900">
+                Recent transactions
               </h2>
               <Button
                 onClick={() => setShowAddTransactionModal(true)}
@@ -340,19 +340,21 @@ const CardDetailsPage = () => {
                 size="sm"
               >
                 <Plus className="h-4 w-4" />
-                Add Transaction
+                Add transaction
               </Button>
             </div>
 
             {transactionsLoading ? (
               <LoadingSpinner message="Loading transactions..." />
             ) : transactions.length === 0 ? (
-              <div className="rounded-xl border-2 border-dashed border-gray-300 bg-white py-12 text-center">
-                <Calendar className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-                <h3 className="mb-2 text-lg font-medium text-gray-900">
+              <div className="card-surface flex flex-col items-center gap-3 p-10 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+                  <Calendar className="h-7 w-7" strokeWidth={1.5} />
+                </div>
+                <h3 className="text-lg font-semibold tracking-tight text-gray-900">
                   No transactions yet
                 </h3>
-                <p className="mb-6 text-sm text-gray-500">
+                <p className="text-sm text-gray-500">
                   Add your first transaction to this card to get started
                 </p>
                 <Button
@@ -360,7 +362,7 @@ const CardDetailsPage = () => {
                   variant="primary"
                 >
                   <Plus className="h-4 w-4" />
-                  Add Transaction
+                  Add transaction
                 </Button>
               </div>
             ) : (
@@ -373,7 +375,7 @@ const CardDetailsPage = () => {
                   return (
                     <div
                       key={transaction.id}
-                      className="flex items-center justify-between rounded-lg border bg-white p-4 shadow-sm"
+                      className="card-surface flex items-center justify-between p-4"
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
@@ -394,7 +396,7 @@ const CardDetailsPage = () => {
                           </div>
                           <div className="text-right">
                             <p
-                              className={`font-semibold ${amountDisplay.colorClass}`}
+                              className={`font-semibold tabular-nums ${amountDisplay.colorClass}`}
                             >
                               {amountDisplay.prefix}
                               {formatCurrency(Math.abs(transaction.amount))}
@@ -416,7 +418,7 @@ const CardDetailsPage = () => {
                       onClick={() => router.push(`/transactions?card=${id}`)}
                       variant="secondary"
                     >
-                      View All Transactions
+                      View all transactions
                     </Button>
                   </div>
                 )}

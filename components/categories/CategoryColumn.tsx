@@ -132,13 +132,13 @@ export default function CategoryColumn({
       onDrop={handleDrop}
     >
       {/* Header */}
-      <div className={`rounded-lg border p-3 sm:p-4 ${colorClass}`}>
+      <div className={`rounded-xl border p-3 sm:p-4 ${colorClass}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <Icon className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
             <span className="text-sm font-medium sm:text-base">{label}</span>
           </div>
-          <span className="text-xs font-semibold sm:text-sm">
+          <span className="text-xs font-semibold tabular-nums sm:text-sm">
             {categories.length}
           </span>
         </div>
@@ -149,7 +149,7 @@ export default function CategoryColumn({
         <div className="mb-3 mt-3 sm:mb-4 sm:mt-4">
           <AddItemButton
             onClick={() => onStartAdd(columnKey)}
-            title="Add Template"
+            title="Add template"
             variant="compact"
           />
         </div>
@@ -200,7 +200,7 @@ export default function CategoryColumn({
                   e.dataTransfer.setData("text/plain", category.id);
                   e.dataTransfer.effectAllowed = "move";
                 }}
-                className="group relative cursor-grab overflow-hidden rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md active:cursor-grabbing sm:p-6"
+                className="card-surface group relative cursor-grab overflow-hidden p-4 transition-all duration-200 ease-out hover:shadow-lifted active:cursor-grabbing sm:p-6"
               >
                 {/* Category Type Badge */}
                 <div className="mb-3 flex items-center justify-between sm:mb-4">
@@ -212,17 +212,17 @@ export default function CategoryColumn({
                   </span>
 
                   {/* Action Menu */}
-                  <div className="flex items-center space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div className="flex items-center gap-0.5 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
                     <button
                       onClick={() => onDuplicateCategory(category.id)}
-                      className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                      className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
                       title="Duplicate template"
                     >
                       <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
                     </button>
                     <button
                       onClick={() => onStartEdit(category)}
-                      className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                      className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
                       title="Edit template"
                     >
                       <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -231,7 +231,7 @@ export default function CategoryColumn({
                       onClick={() =>
                         onDeleteCategory(category.id, category.name)
                       }
-                      className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
+                      className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                       title="Delete template"
                     >
                       <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -248,7 +248,7 @@ export default function CategoryColumn({
                 </div>
 
                 {/* Category Name */}
-                <h3 className="mb-2 text-base font-semibold text-gray-900 sm:text-lg">
+                <h3 className="mb-2 text-base font-semibold tracking-tight text-gray-900 sm:text-lg">
                   {category.name}
                 </h3>
 
@@ -257,7 +257,7 @@ export default function CategoryColumn({
                   <span>
                     Created {new Date(category.createdAt).toLocaleDateString()}
                   </span>
-                  <span className="rounded-full bg-gray-100 px-2 py-1 text-xs">
+                  <span className="rounded-full bg-surface-muted px-2.5 py-0.5 text-xs font-medium text-gray-500">
                     Template
                   </span>
                 </div>
@@ -268,7 +268,7 @@ export default function CategoryColumn({
 
         {/* Scroll Shadow Indicator */}
         {showScrollShadow && (
-          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-50 to-transparent" />
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-surface to-transparent" />
         )}
       </div>
     </div>

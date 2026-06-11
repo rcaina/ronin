@@ -151,7 +151,7 @@ export function CardPaymentModal({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
       <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border bg-white p-6 shadow-sm">
         <div className="mb-6 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">
@@ -175,7 +175,7 @@ export function CardPaymentModal({
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
               placeholder="e.g., Credit Card Payment"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
             />
           </div>
 
@@ -188,7 +188,7 @@ export function CardPaymentModal({
               onChange={(e) => handleInputChange("description", e.target.value)}
               placeholder="e.g., Monthly payment for Chase card"
               rows={3}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
             />
           </div>
 
@@ -204,7 +204,7 @@ export function CardPaymentModal({
               value={formData.amount}
               onChange={(e) => handleInputChange("amount", e.target.value)}
               placeholder="0.00"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
             />
           </div>
 
@@ -218,7 +218,7 @@ export function CardPaymentModal({
                 value={formData.budgetId}
                 onChange={(e) => handleInputChange("budgetId", e.target.value)}
                 required
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               >
                 <option value="">Select a budget</option>
                 {budgets.map((budget) => (
@@ -238,7 +238,7 @@ export function CardPaymentModal({
               value={formData.fromCardId}
               onChange={(e) => handleInputChange("fromCardId", e.target.value)}
               required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
             >
               <option value="">Select source card</option>
               {debitCards.map((card) => (
@@ -257,7 +257,7 @@ export function CardPaymentModal({
               value={formData.toCardId}
               onChange={(e) => handleInputChange("toCardId", e.target.value)}
               required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
             >
               <option value="">Select destination card</option>
               {creditCards.map((card) => (
