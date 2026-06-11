@@ -11,6 +11,16 @@ export interface SpendingTransaction {
   amount: number;
   cardId?: string | null;
   createdAt?: string | Date;
+  occurredAt?: string | Date | null;
+}
+
+/**
+ * An inclusive date range. Pass `null` anywhere a window is accepted to mean
+ * "no bound" (count everything).
+ */
+export interface DateWindow {
+  start: Date;
+  end: Date;
 }
 
 export interface SpendingCategory {
@@ -56,22 +66,57 @@ export const sumTransactionSpending = (
     0,
   );
 
-/** Total spending within a single category. */
-export const calculateCategorySpent = (category: SpendingCategory): number =>
-  sumTransactionSpending(category.transactions);
+/**
+ * Effective date of a transaction for time-window filtering: the date it
+ * occurred if recorded, otherwise the date it was created.
+ */
+export const getTransactionDate = (transaction: SpendingTransaction): Date =>
+  new Date(transaction.occurredAt ?? transaction.createdAt ?? 0);
 
-/** Total spending across all categories of a budget. */
-export const calculateBudgetSpent = (budget: SpendingBudget): number =>
+/**
+ * Whether a transaction falls within a date window. A `null` window means
+ * "no bound" — every transaction is included.
+ */
+export const isWithinWindow = (
+  transaction: SpendingTransaction,
+  window: DateWindow | null,
+): boolean => {
+  if (!window) return true;
+  const date = getTransactionDate(transaction);
+  return date >= window.start && date <= window.end;
+};
+
+/** Total spending within a single category, limited to a date window. */
+export const calculateCategorySpentInWindow = (
+  category: SpendingCategory,
+  window: DateWindow | null,
+): number =>
+  (category.transactions ?? []).reduce(
+    (sum, transaction) =>
+      isWithinWindow(transaction, window)
+        ? sum + getTransactionSpending(transaction)
+        : sum,
+    0,
+  );
+
+/** Total spending across all categories of a budget, limited to a window. */
+export const calculateBudgetSpentInWindow = (
+  budget: SpendingBudget,
+  window: DateWindow | null,
+): number =>
   (budget.categories ?? []).reduce(
-    (sum, category) => sum + calculateCategorySpent(category),
+    (sum, category) => sum + calculateCategorySpentInWindow(category, window),
     0,
   );
 
 /**
- * Total income for a budget: the sum of INCOME transactions that sit on a
- * debit (or business debit) card.
+ * Total income for a budget within a date window: the sum of INCOME
+ * transactions on a debit (or business debit) card whose date falls in range.
  */
-export const calculateTotalIncome = (budget: IncomeBudget): number => {
+export const calculateTotalIncomeInWindow = (
+  budget: IncomeBudget,
+  window: DateWindow | null,
+): number => {
   const debitCardIds = new Set(
     (budget.cards ?? [])
       .filter(
@@ -86,13 +131,29 @@ export const calculateTotalIncome = (budget: IncomeBudget): number => {
     if (
       transaction.transactionType === TransactionType.INCOME &&
       transaction.cardId &&
-      debitCardIds.has(transaction.cardId)
+      debitCardIds.has(transaction.cardId) &&
+      isWithinWindow(transaction, window)
     ) {
       return sum + transaction.amount;
     }
     return sum;
   }, 0);
 };
+
+/** Total spending within a single category (all time). */
+export const calculateCategorySpent = (category: SpendingCategory): number =>
+  calculateCategorySpentInWindow(category, null);
+
+/** Total spending across all categories of a budget (all time). */
+export const calculateBudgetSpent = (budget: SpendingBudget): number =>
+  calculateBudgetSpentInWindow(budget, null);
+
+/**
+ * Total income for a budget (all time): the sum of INCOME transactions that
+ * sit on a debit (or business debit) card.
+ */
+export const calculateTotalIncome = (budget: IncomeBudget): number =>
+  calculateTotalIncomeInWindow(budget, null);
 
 /** Spending percentage (spent / income * 100), guarding divide-by-zero. */
 export const calculateSpendingPercentage = (

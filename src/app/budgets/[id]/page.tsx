@@ -222,11 +222,11 @@ const BudgetDetailsPage = () => {
     <>
       <div className="flex flex-col bg-surface lg:h-full lg:flex-col">
         <div className="mx-auto flex w-full flex-col px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:flex-1 lg:overflow-hidden lg:px-8 lg:py-4 lg:pb-8">
-          {/* Budget Overview Graphs */}
-          <div className="mb-4 grid flex-shrink-0 grid-cols-2 gap-2 sm:mb-6 sm:grid-cols-4 sm:gap-3 lg:gap-4">
+          {/* Budget Overview Graphs — swipeable row on mobile, grid on larger screens */}
+          <div className="scrollbar-hide mb-4 flex flex-shrink-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:mb-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:overflow-visible sm:pb-0 lg:grid-cols-4 lg:gap-4">
             {/* Budget Progress Circular Progress Bar */}
-            <div className="card-surface p-3 sm:p-4">
-              <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
+            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
+              <h3 className="mb-2 text-sm font-semibold text-gray-900">
                 Budget progress
               </h3>
               {totalIncome > 0 ? (
@@ -294,8 +294,8 @@ const BudgetDetailsPage = () => {
             </div>
 
             {/* Category Spending Donut Chart */}
-            <div className="card-surface p-3 sm:p-4">
-              <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
+            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
+              <h3 className="mb-2 text-sm font-semibold text-gray-900">
                 Category spending
               </h3>
               {categorySpendingData.length > 0 ? (
@@ -368,8 +368,8 @@ const BudgetDetailsPage = () => {
             </div>
 
             {/* Daily Spending Trend */}
-            <div className="card-surface p-3 sm:p-4">
-              <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
+            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
+              <h3 className="mb-2 text-sm font-semibold text-gray-900">
                 Daily spending
               </h3>
               {dailySpendingData.length > 0 &&
@@ -453,8 +453,8 @@ const BudgetDetailsPage = () => {
             </div>
 
             {/* Category Usage Bar Chart */}
-            <div className="card-surface p-3 sm:p-4">
-              <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
+            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
+              <h3 className="mb-2 text-sm font-semibold text-gray-900">
                 Top categories
               </h3>
               {categoryUsageData.length > 0 ? (

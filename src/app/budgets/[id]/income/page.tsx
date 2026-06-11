@@ -7,8 +7,7 @@ import {
   Plus,
   Trash2,
   DollarSign,
-  Calendar,
-  Clock,
+  HandCoins,
   Target,
 } from "lucide-react";
 import { CardType } from "@prisma/client";
@@ -170,54 +169,51 @@ export default function IncomePage() {
     <>
       <div className="h-full overflow-y-auto bg-surface">
         <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:px-8 lg:py-4 lg:pb-8">
-          {/* Search and Filters */}
-          <div className="space-y-4">
-            {/* Search Bar */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search income transactions..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 bg-white px-10 py-3 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-              />
-            </div>
-
-            {/* Total Income Summary */}
-            <div className="rounded-2xl bg-primary p-6 shadow-card sm:p-8">
-              <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:text-left">
-                <div className="rounded-full bg-secondary/20 p-3 sm:p-4">
-                  <DollarSign className="h-6 w-6 text-secondary sm:h-8 sm:w-8" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold tracking-tight text-white/90 sm:text-xl">
-                    Total income
-                  </h3>
-                  <p className="text-2xl font-bold tracking-tight tabular-nums text-white sm:text-4xl">
-                    {formatCurrency(totalIncome)}
-                  </p>
-                  <p className="text-sm text-white/70 sm:text-base">
-                    From {incomeTransactions.length} income transaction
-                    {incomeTransactions.length !== 1 ? "s" : ""}
-                  </p>
-                </div>
-                <div className="hidden rounded-full bg-white/10 px-4 py-2 sm:block">
-                  <span className="text-sm font-medium text-white">
-                    {budget.period.charAt(0).toUpperCase() +
-                      budget.period.slice(1).toLowerCase()}
-                  </span>
-                </div>
+          {/* Total Income Hero */}
+          <div className="animate-fade-in-up rounded-4xl bg-primary p-6 shadow-card sm:p-8">
+            <div className="flex items-center gap-4 sm:gap-5">
+              <div className="rounded-full bg-secondary/20 p-3 sm:p-4">
+                <DollarSign className="h-6 w-6 text-secondary sm:h-8 sm:w-8" />
               </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-white/70 sm:text-sm">
+                  Total income
+                </p>
+                <p className="text-2xl font-bold tabular-nums tracking-tight text-white sm:text-4xl">
+                  {formatCurrency(totalIncome)}
+                </p>
+                <p className="mt-0.5 text-xs text-white/70 sm:text-sm">
+                  From {incomeTransactions.length} income transaction
+                  {incomeTransactions.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <span className="flex-shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium capitalize text-white sm:px-4 sm:py-2 sm:text-sm">
+                {budget.period.replace("_", " ").toLowerCase()}
+              </span>
             </div>
           </div>
 
+          {/* Search */}
+          <div className="relative mt-4">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search income transactions..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-xl border border-gray-300 bg-white px-10 py-3 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+            />
+          </div>
+
           {/* Income List */}
-          <div className="card-surface mt-4 p-3 sm:p-4 lg:p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-semibold tracking-tight text-gray-900 sm:text-lg">
-                Income transactions ({filteredTransactions.length})
+          <div className="card-surface mt-4 p-4 sm:p-5 lg:p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-gray-900 sm:text-base">
+                Income transactions
               </h3>
+              <span className="rounded-full bg-secondary/15 px-2.5 py-0.5 text-xs font-medium tabular-nums text-secondary-700">
+                {filteredTransactions.length}
+              </span>
             </div>
 
             {filteredTransactions.length === 0 ? (
@@ -244,69 +240,40 @@ export default function IncomePage() {
                 )}
               </div>
             ) : (
-              <div className="space-y-4">
-                {filteredTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="group rounded-xl border border-gray-200/70 bg-white p-4 transition-all duration-200 ease-out hover:shadow-soft sm:p-6"
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="flex-1">
-                        <div className="mb-2 flex flex-wrap items-start justify-between gap-2 sm:gap-3">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="text-base font-semibold text-gray-900 sm:text-lg">
-                              {transaction.name ?? "Unnamed Income"}
-                            </h4>
-                          </div>
+              <div className="space-y-2">
+                {filteredTransactions.map((transaction) => {
+                  const meta = [
+                    transaction.occurredAt
+                      ? new Date(transaction.occurredAt).toLocaleDateString()
+                      : new Date(transaction.createdAt).toLocaleDateString(),
+                    transaction.card?.name,
+                    transaction.description,
+                  ]
+                    .filter(Boolean)
+                    .join(" • ");
 
-                          {/* Action Icons */}
-                          <div className="flex items-center space-x-2 opacity-100 transition-opacity sm:hidden">
-                            <button
-                              onClick={() => handleDeleteIncome(transaction)}
-                              className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
-                              title="Delete income transaction"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
+                  return (
+                    <div
+                      key={transaction.id}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-gray-200/70 bg-white p-3 transition-all duration-200 ease-out hover:shadow-soft sm:p-4"
+                    >
+                      <div className="flex min-w-0 flex-1 items-center gap-3">
+                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-green-50 text-green-600">
+                          <HandCoins className="h-4 w-4" />
                         </div>
-
-                        {transaction.description && (
-                          <p className="mb-3 text-sm text-gray-600 sm:text-base">
-                            {transaction.description}
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-gray-900 sm:text-base">
+                            {transaction.name ?? "Unnamed income"}
                           </p>
-                        )}
-
-                        <div className="flex flex-col gap-3 text-sm text-gray-500 sm:flex-row sm:items-center sm:gap-6">
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="h-4 w-4" />
-                            <span className="font-medium tabular-nums text-gray-900">
-                              {formatCurrency(transaction.amount)}
-                            </span>
-                          </div>
-
-                          {transaction.occurredAt && (
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4" />
-                              <span>
-                                {new Date(
-                                  transaction.occurredAt,
-                                ).toLocaleDateString()}
-                              </span>
-                            </div>
-                          )}
-
-                          {transaction.card && (
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4" />
-                              <span>{transaction.card.name}</span>
-                            </div>
-                          )}
+                          <p className="truncate text-xs text-gray-500 sm:text-sm">
+                            {meta}
+                          </p>
                         </div>
                       </div>
-
-                      {/* Action Icons - Desktop */}
-                      <div className="hidden items-center justify-end space-x-2 opacity-100 transition-opacity sm:flex lg:opacity-0 lg:group-hover:opacity-100">
+                      <div className="flex flex-shrink-0 items-center gap-1">
+                        <span className="text-sm font-semibold tabular-nums text-green-600 sm:text-base">
+                          +{formatCurrency(transaction.amount)}
+                        </span>
                         <button
                           onClick={() => handleDeleteIncome(transaction)}
                           className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
@@ -316,8 +283,8 @@ export default function IncomePage() {
                         </button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

@@ -1,13 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useAllTransactions } from "@/lib/data-hooks/transactions/useTransactions";
-import { Target, Plus, ArrowRight, Receipt, Sparkles } from "lucide-react";
+import {
+  Target,
+  Plus,
+  ArrowRight,
+  Receipt,
+  Sparkles,
+  DollarSign,
+  TrendingDown,
+  Wallet,
+} from "lucide-react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import StatsCard from "@/components/StatsCard";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
 import {
   CHART_COLORS,
@@ -29,13 +40,48 @@ import {
   YAxis,
   Tooltip,
 } from "recharts";
+import { TransactionType, BudgetStatus, PeriodType } from "@prisma/client";
+import { cn, roundToCents } from "@/lib/utils";
 import {
-  TransactionType,
-  CardType,
-  BudgetStatus,
-  PeriodType,
-} from "@prisma/client";
-import { roundToCents } from "@/lib/utils";
+  calculateBudgetSpent,
+  calculateBudgetSpentInWindow,
+  calculateCategorySpentInWindow,
+  calculateSpendingPercentage,
+  calculateTotalIncome,
+  calculateTotalIncomeInWindow,
+  getTransactionSpending,
+  type DateWindow,
+  type SpendingBudget,
+} from "@/lib/utils/spending";
+
+type Timeframe = "1m" | "3m" | "6m" | "1y" | "all";
+
+const TIMEFRAMES: {
+  value: Timeframe;
+  shortLabel: string;
+  label: string;
+  months: number | null;
+}[] = [
+  { value: "1m", shortLabel: "1M", label: "past month", months: 1 },
+  { value: "3m", shortLabel: "3M", label: "past 3 months", months: 3 },
+  { value: "6m", shortLabel: "6M", label: "past 6 months", months: 6 },
+  { value: "1y", shortLabel: "1Y", label: "past year", months: 12 },
+  { value: "all", shortLabel: "All", label: "all time", months: null },
+];
+
+// Spending within a budget limited to transactions inside a date window.
+const sumSpendingInPeriod = (budget: SpendingBudget, start: Date, end: Date) =>
+  (budget.categories ?? []).reduce(
+    (sum, category) =>
+      sum +
+      (category.transactions ?? []).reduce((transactionSum, transaction) => {
+        const date = new Date(transaction.createdAt ?? 0);
+        return date >= start && date <= end
+          ? transactionSum + getTransactionSpending(transaction)
+          : transactionSum;
+      }, 0),
+    0,
+  );
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -48,77 +94,54 @@ export default function HomePage() {
   const { data: transactions = [], isLoading: transactionsLoading } =
     useAllTransactions();
 
+  const [timeframe, setTimeframe] = useState<Timeframe>("1y");
+
   if (status === "loading" || budgetsLoading || transactionsLoading) {
     return <LoadingSpinner message="Loading your financial overview..." />;
   }
+
+  // Resolve the selected timeframe into a date window. `null` = all time.
+  const selectedTimeframe =
+    TIMEFRAMES.find((tf) => tf.value === timeframe) ?? TIMEFRAMES[3]!;
+  const dateWindow: DateWindow | null =
+    selectedTimeframe.months == null
+      ? null
+      : (() => {
+          const end = new Date();
+          const start = new Date();
+          start.setMonth(start.getMonth() - selectedTimeframe.months);
+          return { start, end };
+        })();
+  const timeframeCaption =
+    selectedTimeframe.label.charAt(0).toUpperCase() +
+    selectedTimeframe.label.slice(1);
 
   // Filter out deleted and archived budgets
   const activeBudgets = budgets.filter(
     (budget) => !budget.deleted && budget.status !== BudgetStatus.ARCHIVED,
   );
 
-  // Calculate financial metrics
-
+  // Calculate financial metrics within the selected time window
   const totalIncome = roundToCents(
-    activeBudgets.reduce((sum, budget) => {
-      // Get all debit cards for this budget
-      const debitCards = (budget.cards ?? []).filter(
-        (card: { cardType: string }) =>
-          card.cardType === CardType.DEBIT ||
-          card.cardType === CardType.BUSINESS_DEBIT,
-      );
-      const debitCardIds = debitCards.map((card: { id: string }) => card.id);
-
-      // Sum all INCOME transactions on debit cards
-      const budgetIncome = (budget.transactions ?? []).reduce(
-        (incomeSum, transaction) => {
-          if (
-            transaction.transactionType === TransactionType.INCOME &&
-            transaction.cardId &&
-            debitCardIds.includes(transaction.cardId)
-          ) {
-            return incomeSum + transaction.amount;
-          }
-          return incomeSum;
-        },
-        0,
-      );
-
-      return sum + budgetIncome;
-    }, 0),
+    activeBudgets.reduce(
+      (sum, budget) => sum + calculateTotalIncomeInWindow(budget, dateWindow),
+      0,
+    ),
   );
 
   const totalSpent = roundToCents(
-    activeBudgets.reduce((sum, budget) => {
-      return (
-        sum +
-        (budget.categories ?? []).reduce((categorySum, category) => {
-          return (
-            categorySum +
-            (category.transactions ?? []).reduce(
-              (transactionSum, transaction) => {
-                if (transaction.transactionType === TransactionType.RETURN) {
-                  // Returns reduce spending (positive amount = refund received)
-                  return transactionSum - transaction.amount;
-                } else {
-                  // Regular transactions: positive = purchases (increase spending)
-                  return transactionSum + transaction.amount;
-                }
-              },
-              0,
-            )
-          );
-        }, 0)
-      );
-    }, 0),
+    activeBudgets.reduce(
+      (sum, budget) => sum + calculateBudgetSpentInWindow(budget, dateWindow),
+      0,
+    ),
   );
 
   const totalRemaining = roundToCents(totalIncome - totalSpent);
   const spendingPercentage = roundToCents(
-    totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0,
+    calculateSpendingPercentage(totalSpent, totalIncome),
   );
 
-  // Prepare data for pie chart (Income vs Spent vs Remaining)
+  // Prepare data for pie chart (Spent vs Remaining)
   const incomeBreakdownData = [
     {
       name: "Spent",
@@ -136,16 +159,7 @@ export default function HomePage() {
   const categorySpendingMap = new Map<string, number>();
   activeBudgets.forEach((budget) => {
     (budget.categories ?? []).forEach((category) => {
-      const categorySpent = (category.transactions ?? []).reduce(
-        (sum, transaction) => {
-          if (transaction.transactionType === TransactionType.RETURN) {
-            return sum - transaction.amount;
-          } else {
-            return sum + transaction.amount;
-          }
-        },
-        0,
-      );
+      const categorySpent = calculateCategorySpentInWindow(category, dateWindow);
       if (categorySpent > 0) {
         const current = categorySpendingMap.get(category.name) ?? 0;
         categorySpendingMap.set(category.name, current + categorySpent);
@@ -166,62 +180,9 @@ export default function HomePage() {
     .map((budget) => {
       const periodStart = new Date(budget.startAt);
       const periodEnd = new Date(budget.endAt);
-      const now = new Date();
 
-      // Calculate income for this budget
-      const debitCards = (budget.cards ?? []).filter(
-        (card: { cardType: string }) =>
-          card.cardType === CardType.DEBIT ||
-          card.cardType === CardType.BUSINESS_DEBIT,
-      );
-      const debitCardIds = debitCards.map((card: { id: string }) => card.id);
-
-      const budgetIncome = (budget.transactions ?? []).reduce(
-        (incomeSum, transaction) => {
-          if (
-            transaction.transactionType === TransactionType.INCOME &&
-            transaction.cardId &&
-            debitCardIds.includes(transaction.cardId)
-          ) {
-            return incomeSum + transaction.amount;
-          }
-          return incomeSum;
-        },
-        0,
-      );
-
-      // Calculate spent within this budget's period
-      const periodSpent = (budget.categories ?? []).reduce((sum, category) => {
-        return (
-          sum +
-          (category.transactions ?? []).reduce(
-            (transactionSum, transaction) => {
-              const transactionDate = new Date(transaction.createdAt);
-              // Only count transactions within the budget period
-              if (
-                transactionDate >= periodStart &&
-                transactionDate <= periodEnd
-              ) {
-                if (transaction.transactionType === TransactionType.RETURN) {
-                  return transactionSum - transaction.amount;
-                } else {
-                  return transactionSum + transaction.amount;
-                }
-              }
-              return transactionSum;
-            },
-            0,
-          )
-        );
-      }, 0);
-
-      // Calculate period progress
-      const totalPeriodMs = periodEnd.getTime() - periodStart.getTime();
-      const elapsedMs = now.getTime() - periodStart.getTime();
-      const progress = Math.min(
-        100,
-        Math.max(0, (elapsedMs / totalPeriodMs) * 100),
-      );
+      const budgetIncome = calculateTotalIncome(budget);
+      const periodSpent = sumSpendingInPeriod(budget, periodStart, periodEnd);
 
       // Format period label
       const periodLabel =
@@ -243,11 +204,9 @@ export default function HomePage() {
         period: periodLabel,
         spent: roundToCents(periodSpent),
         income: roundToCents(budgetIncome),
-        progress: roundToCents(progress),
-        utilization:
-          budgetIncome > 0
-            ? roundToCents((periodSpent / budgetIncome) * 100)
-            : 0,
+        utilization: roundToCents(
+          calculateSpendingPercentage(periodSpent, budgetIncome),
+        ),
       };
     })
     .filter((item) => item.income > 0 || item.spent > 0)
@@ -261,44 +220,8 @@ export default function HomePage() {
       const periodEnd = new Date(budget.endAt);
       const now = new Date();
 
-      // Calculate income for this budget
-      const debitCards = (budget.cards ?? []).filter(
-        (card: { cardType: string }) =>
-          card.cardType === CardType.DEBIT ||
-          card.cardType === CardType.BUSINESS_DEBIT,
-      );
-      const debitCardIds = debitCards.map((card: { id: string }) => card.id);
-
-      const budgetIncome = (budget.transactions ?? []).reduce(
-        (incomeSum, transaction) => {
-          if (
-            transaction.transactionType === TransactionType.INCOME &&
-            transaction.cardId &&
-            debitCardIds.includes(transaction.cardId)
-          ) {
-            return incomeSum + transaction.amount;
-          }
-          return incomeSum;
-        },
-        0,
-      );
-
-      // Calculate spent for this budget
-      const budgetSpent = (budget.categories ?? []).reduce((sum, category) => {
-        return (
-          sum +
-          (category.transactions ?? []).reduce(
-            (transactionSum, transaction) => {
-              if (transaction.transactionType === TransactionType.RETURN) {
-                return transactionSum - transaction.amount;
-              } else {
-                return transactionSum + transaction.amount;
-              }
-            },
-            0,
-          )
-        );
-      }, 0);
+      const budgetIncome = calculateTotalIncome(budget);
+      const budgetSpent = calculateBudgetSpent(budget);
 
       // Calculate time remaining
       const daysTotal = Math.ceil(
@@ -313,8 +236,9 @@ export default function HomePage() {
       const daysRemaining = Math.max(0, daysTotal - daysElapsed);
 
       const remaining = roundToCents(Math.max(0, budgetIncome - budgetSpent));
-      const utilization =
-        budgetIncome > 0 ? roundToCents((budgetSpent / budgetIncome) * 100) : 0;
+      const utilization = roundToCents(
+        calculateSpendingPercentage(budgetSpent, budgetIncome),
+      );
 
       // Determine status color
       let statusColor: string = STATUS_COLORS.positive;
@@ -362,38 +286,104 @@ export default function HomePage() {
     <div className="flex h-screen flex-col bg-surface">
       <PageHeader
         title={`Welcome back, ${session?.user?.name?.split(" ")[0] ?? "User"}! 👋`}
-        description={`Here's your financial overview for ${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}`}
+        description={
+          selectedTimeframe.months == null
+            ? "Here's your all-time financial overview"
+            : `Here's your financial overview for the ${selectedTimeframe.label}`
+        }
       />
 
       <div className="flex-1 overflow-hidden pt-4 sm:pt-20 lg:pt-0">
         <div className="h-full overflow-y-auto">
           <div className="mx-auto w-full px-4 py-4 pb-28 sm:px-6 lg:px-8 lg:pb-8">
+            {/* Time-frame selector */}
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="text-xs font-medium text-gray-500">
+                Showing{" "}
+                <span className="text-gray-900">{selectedTimeframe.label}</span>
+              </p>
+              <div
+                role="tablist"
+                aria-label="Select time frame"
+                className="scrollbar-hide inline-flex shrink-0 items-center gap-1 overflow-x-auto rounded-full bg-surface-muted p-1"
+              >
+                {TIMEFRAMES.map((tf) => {
+                  const isActive = tf.value === timeframe;
+                  return (
+                    <button
+                      key={tf.value}
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => setTimeframe(tf.value)}
+                      className={cn(
+                        "rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ease-out active:scale-[0.97]",
+                        isActive
+                          ? "bg-white text-gray-900 shadow-soft"
+                          : "text-gray-500 hover:text-gray-700",
+                      )}
+                    >
+                      {tf.shortLabel}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* At-a-glance stats */}
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+              <StatsCard
+                title="Total income"
+                value={`$${totalIncome.toLocaleString()}`}
+                subtitle={`Across ${activeBudgets.length} active budget${activeBudgets.length !== 1 ? "s" : ""}`}
+                icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
+                iconColor="text-green-600"
+                valueColor="text-green-600"
+              />
+              <StatsCard
+                title="Total spent"
+                value={`$${totalSpent.toLocaleString()}`}
+                subtitle={`${spendingPercentage.toFixed(1)}% of income`}
+                icon={<TrendingDown className="h-4 w-4 sm:h-5 sm:w-5" />}
+                iconColor="text-secondary-600"
+              />
+              <StatsCard
+                title="Remaining"
+                value={`$${Math.abs(totalRemaining).toLocaleString()}`}
+                subtitle={
+                  totalRemaining >= 0 ? "Available to spend" : "Over budget"
+                }
+                icon={<Wallet className="h-4 w-4 sm:h-5 sm:w-5" />}
+                iconColor={
+                  totalRemaining >= 0 ? "text-secondary-600" : "text-red-500"
+                }
+                valueColor={
+                  totalRemaining >= 0 ? "text-gray-900" : "text-red-600"
+                }
+              />
+              <StatsCard
+                title="Active budgets"
+                value={activeBudgets.length}
+                subtitle="In progress"
+                icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
+                iconColor="text-secondary-600"
+              />
+            </div>
+
             {/* Financial Overview Charts — swipeable row on mobile, grid on larger screens */}
             <div className="scrollbar-hide mb-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 xl:grid-cols-4">
               {/* Income Breakdown Donut Chart */}
               <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                  Income breakdown
-                </h3>
-                <div className="mb-1 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-500">
-                      Total income
-                    </p>
-                    <p className="text-sm font-bold tabular-nums tracking-tight text-green-600 sm:text-base">
-                      ${totalIncome.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-medium text-gray-500">Spent</p>
-                    <p className="text-sm font-bold tabular-nums tracking-tight text-gray-900 sm:text-base">
-                      ${totalSpent.toLocaleString()}
-                    </p>
-                  </div>
+                <div className="mb-2">
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Income breakdown
+                  </h3>
+                  <p className="text-xs font-medium text-gray-400">
+                    {timeframeCaption}
+                  </p>
                 </div>
                 {totalIncome > 0 || totalSpent > 0 ? (
                   <>
-                    <ChartContainer height={130}>
+                    <ChartContainer height={160}>
                       <PieChart>
                         <Pie
                           data={incomeBreakdownData}
@@ -446,9 +436,14 @@ export default function HomePage() {
 
               {/* Spending by Category Bar Chart */}
               <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                  Top spending categories
-                </h3>
+                <div className="mb-2">
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Top spending categories
+                  </h3>
+                  <p className="text-xs font-medium text-gray-400">
+                    {timeframeCaption}
+                  </p>
+                </div>
                 {categorySpendingData.length > 0 ? (
                   <ChartContainer height={200}>
                     <BarChart data={categorySpendingData}>
@@ -495,9 +490,14 @@ export default function HomePage() {
 
               {/* Spending by Budget Period Bar Chart */}
               <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                  Spending by budget period
-                </h3>
+                <div className="mb-2">
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Spending by budget period
+                  </h3>
+                  <p className="text-xs font-medium text-gray-400">
+                    Across all budgets
+                  </p>
+                </div>
                 {periodSpendingData.length > 0 ? (
                   <ChartContainer height={200}>
                     <BarChart data={periodSpendingData}>
@@ -553,9 +553,14 @@ export default function HomePage() {
 
               {/* Budget Utilization & Time Remaining Bar Chart */}
               <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                  Budget utilization & time
-                </h3>
+                <div className="mb-2">
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Budget utilization & time
+                  </h3>
+                  <p className="text-xs font-medium text-gray-400">
+                    Across all budgets
+                  </p>
+                </div>
                 {budgetUtilizationData.length > 0 ? (
                   <ChartContainer height={200}>
                     <BarChart

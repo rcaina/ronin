@@ -3,7 +3,15 @@
 import { useParams, useRouter } from "next/navigation";
 import { useSavingsAccount } from "@/lib/data-hooks/savings/useSavings";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { AlertCircle, PiggyBank, ArrowRight } from "lucide-react";
+import StatsCard from "@/components/StatsCard";
+import {
+  AlertCircle,
+  PiggyBank,
+  ArrowRight,
+  DollarSign,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
 import { formatCurrency, formatDateUTC } from "@/lib/utils";
 import type { AllocationSummary } from "@/lib/types/savings";
 
@@ -92,41 +100,40 @@ const AllocationsPage = () => {
       <div className="mx-auto w-full flex-shrink-0 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-4">
         {/* Stats Cards */}
         <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-          <div className="card-surface p-4 sm:p-5">
-            <p className="text-xs font-medium text-gray-500">
-              Total allocations
-            </p>
-            <p className="mt-1 text-lg font-bold tabular-nums tracking-tight text-gray-900 sm:text-2xl">
-              {totalAllocations}
-            </p>
-          </div>
+          <StatsCard
+            title="Total allocations"
+            value={totalAllocations}
+            subtitle="Across all pockets"
+            icon={<PiggyBank className="h-4 w-4 sm:h-5 sm:w-5" />}
+            iconColor="text-secondary-600"
+          />
 
-          <div className="card-surface p-4 sm:p-5">
-            <p className="text-xs font-medium text-gray-500">Total deposits</p>
-            <p className="mt-1 text-lg font-bold tabular-nums tracking-tight text-green-600 sm:text-2xl">
-              {formatCurrency(totalDeposits)}
-            </p>
-          </div>
+          <StatsCard
+            title="Total deposits"
+            value={formatCurrency(totalDeposits)}
+            subtitle="Money in"
+            icon={<TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />}
+            iconColor="text-green-600"
+            valueColor="text-green-600"
+          />
 
-          <div className="card-surface p-4 sm:p-5">
-            <p className="text-xs font-medium text-gray-500">
-              Total withdrawals
-            </p>
-            <p className="mt-1 text-lg font-bold tabular-nums tracking-tight text-red-600 sm:text-2xl">
-              {formatCurrency(totalWithdrawals)}
-            </p>
-          </div>
+          <StatsCard
+            title="Total withdrawals"
+            value={formatCurrency(totalWithdrawals)}
+            subtitle="Money out"
+            icon={<TrendingDown className="h-4 w-4 sm:h-5 sm:w-5" />}
+            iconColor="text-red-500"
+            valueColor="text-red-600"
+          />
 
-          <div className="card-surface p-4 sm:p-5">
-            <p className="text-xs font-medium text-gray-500">Net amount</p>
-            <p
-              className={`mt-1 text-lg font-bold tabular-nums tracking-tight sm:text-2xl ${
-                netAmount >= 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {formatCurrency(netAmount)}
-            </p>
-          </div>
+          <StatsCard
+            title="Net amount"
+            value={formatCurrency(netAmount)}
+            subtitle="Deposits minus withdrawals"
+            icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
+            iconColor={netAmount >= 0 ? "text-green-600" : "text-red-500"}
+            valueColor={netAmount >= 0 ? "text-green-600" : "text-red-600"}
+          />
         </div>
       </div>
 
