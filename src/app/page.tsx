@@ -159,7 +159,10 @@ export default function HomePage() {
   const categorySpendingMap = new Map<string, number>();
   activeBudgets.forEach((budget) => {
     (budget.categories ?? []).forEach((category) => {
-      const categorySpent = calculateCategorySpentInWindow(category, dateWindow);
+      const categorySpent = calculateCategorySpentInWindow(
+        category,
+        dateWindow,
+      );
       if (categorySpent > 0) {
         const current = categorySpendingMap.get(category.name) ?? 0;
         categorySpendingMap.set(category.name, current + categorySpent);
