@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
@@ -40,15 +41,33 @@ import {
   Tooltip,
 } from "recharts";
 import { TransactionType, BudgetStatus, PeriodType } from "@prisma/client";
-import { roundToCents } from "@/lib/utils";
+import { cn, roundToCents } from "@/lib/utils";
 import {
   calculateBudgetSpent,
-  calculateCategorySpent,
+  calculateBudgetSpentInWindow,
+  calculateCategorySpentInWindow,
   calculateSpendingPercentage,
   calculateTotalIncome,
+  calculateTotalIncomeInWindow,
   getTransactionSpending,
+  type DateWindow,
   type SpendingBudget,
 } from "@/lib/utils/spending";
+
+type Timeframe = "1m" | "3m" | "6m" | "1y" | "all";
+
+const TIMEFRAMES: {
+  value: Timeframe;
+  shortLabel: string;
+  label: string;
+  months: number | null;
+}[] = [
+  { value: "1m", shortLabel: "1M", label: "past month", months: 1 },
+  { value: "3m", shortLabel: "3M", label: "past 3 months", months: 3 },
+  { value: "6m", shortLabel: "6M", label: "past 6 months", months: 6 },
+  { value: "1y", shortLabel: "1Y", label: "past year", months: 12 },
+  { value: "all", shortLabel: "All", label: "all time", months: null },
+];
 
 // Spending within a budget limited to transactions inside a date window.
 const sumSpendingInPeriod = (budget: SpendingBudget, start: Date, end: Date) =>
@@ -75,26 +94,44 @@ export default function HomePage() {
   const { data: transactions = [], isLoading: transactionsLoading } =
     useAllTransactions();
 
+  const [timeframe, setTimeframe] = useState<Timeframe>("1y");
+
   if (status === "loading" || budgetsLoading || transactionsLoading) {
     return <LoadingSpinner message="Loading your financial overview..." />;
   }
+
+  // Resolve the selected timeframe into a date window. `null` = all time.
+  const selectedTimeframe =
+    TIMEFRAMES.find((tf) => tf.value === timeframe) ?? TIMEFRAMES[3]!;
+  const dateWindow: DateWindow | null =
+    selectedTimeframe.months == null
+      ? null
+      : (() => {
+          const end = new Date();
+          const start = new Date();
+          start.setMonth(start.getMonth() - selectedTimeframe.months);
+          return { start, end };
+        })();
+  const timeframeCaption =
+    selectedTimeframe.label.charAt(0).toUpperCase() +
+    selectedTimeframe.label.slice(1);
 
   // Filter out deleted and archived budgets
   const activeBudgets = budgets.filter(
     (budget) => !budget.deleted && budget.status !== BudgetStatus.ARCHIVED,
   );
 
-  // Calculate financial metrics
+  // Calculate financial metrics within the selected time window
   const totalIncome = roundToCents(
     activeBudgets.reduce(
-      (sum, budget) => sum + calculateTotalIncome(budget),
+      (sum, budget) => sum + calculateTotalIncomeInWindow(budget, dateWindow),
       0,
     ),
   );
 
   const totalSpent = roundToCents(
     activeBudgets.reduce(
-      (sum, budget) => sum + calculateBudgetSpent(budget),
+      (sum, budget) => sum + calculateBudgetSpentInWindow(budget, dateWindow),
       0,
     ),
   );
@@ -122,7 +159,7 @@ export default function HomePage() {
   const categorySpendingMap = new Map<string, number>();
   activeBudgets.forEach((budget) => {
     (budget.categories ?? []).forEach((category) => {
-      const categorySpent = calculateCategorySpent(category);
+      const categorySpent = calculateCategorySpentInWindow(category, dateWindow);
       if (categorySpent > 0) {
         const current = categorySpendingMap.get(category.name) ?? 0;
         categorySpendingMap.set(category.name, current + categorySpent);
@@ -249,12 +286,49 @@ export default function HomePage() {
     <div className="flex h-screen flex-col bg-surface">
       <PageHeader
         title={`Welcome back, ${session?.user?.name?.split(" ")[0] ?? "User"}! 👋`}
-        description={`Here's your financial overview for ${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}`}
+        description={
+          selectedTimeframe.months == null
+            ? "Here's your all-time financial overview"
+            : `Here's your financial overview for the ${selectedTimeframe.label}`
+        }
       />
 
       <div className="flex-1 overflow-hidden pt-4 sm:pt-20 lg:pt-0">
         <div className="h-full overflow-y-auto">
           <div className="mx-auto w-full px-4 py-4 pb-28 sm:px-6 lg:px-8 lg:pb-8">
+            {/* Time-frame selector */}
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="text-xs font-medium text-gray-500">
+                Showing{" "}
+                <span className="text-gray-900">{selectedTimeframe.label}</span>
+              </p>
+              <div
+                role="tablist"
+                aria-label="Select time frame"
+                className="scrollbar-hide inline-flex shrink-0 items-center gap-1 overflow-x-auto rounded-full bg-surface-muted p-1"
+              >
+                {TIMEFRAMES.map((tf) => {
+                  const isActive = tf.value === timeframe;
+                  return (
+                    <button
+                      key={tf.value}
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => setTimeframe(tf.value)}
+                      className={cn(
+                        "rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ease-out active:scale-[0.97]",
+                        isActive
+                          ? "bg-white text-gray-900 shadow-soft"
+                          : "text-gray-500 hover:text-gray-700",
+                      )}
+                    >
+                      {tf.shortLabel}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* At-a-glance stats */}
             <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               <StatsCard
@@ -299,9 +373,14 @@ export default function HomePage() {
             <div className="scrollbar-hide mb-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 xl:grid-cols-4">
               {/* Income Breakdown Donut Chart */}
               <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                  Income breakdown
-                </h3>
+                <div className="mb-2">
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Income breakdown
+                  </h3>
+                  <p className="text-xs font-medium text-gray-400">
+                    {timeframeCaption}
+                  </p>
+                </div>
                 {totalIncome > 0 || totalSpent > 0 ? (
                   <>
                     <ChartContainer height={160}>
@@ -357,9 +436,14 @@ export default function HomePage() {
 
               {/* Spending by Category Bar Chart */}
               <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                  Top spending categories
-                </h3>
+                <div className="mb-2">
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Top spending categories
+                  </h3>
+                  <p className="text-xs font-medium text-gray-400">
+                    {timeframeCaption}
+                  </p>
+                </div>
                 {categorySpendingData.length > 0 ? (
                   <ChartContainer height={200}>
                     <BarChart data={categorySpendingData}>
@@ -406,9 +490,14 @@ export default function HomePage() {
 
               {/* Spending by Budget Period Bar Chart */}
               <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                  Spending by budget period
-                </h3>
+                <div className="mb-2">
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Spending by budget period
+                  </h3>
+                  <p className="text-xs font-medium text-gray-400">
+                    Across all budgets
+                  </p>
+                </div>
                 {periodSpendingData.length > 0 ? (
                   <ChartContainer height={200}>
                     <BarChart data={periodSpendingData}>
@@ -464,9 +553,14 @@ export default function HomePage() {
 
               {/* Budget Utilization & Time Remaining Bar Chart */}
               <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                  Budget utilization & time
-                </h3>
+                <div className="mb-2">
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Budget utilization & time
+                  </h3>
+                  <p className="text-xs font-medium text-gray-400">
+                    Across all budgets
+                  </p>
+                </div>
                 {budgetUtilizationData.length > 0 ? (
                   <ChartContainer height={200}>
                     <BarChart
