@@ -9,8 +9,8 @@ import {
   useBudgetCategories,
   useCreateBudgetCategory,
   useUpdateBudgetCategory,
-  type BudgetCategoryWithCategory,
 } from "@/lib/data-hooks/budgets/useBudgetCategories";
+import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
 import { useCategories } from "@/lib/data-hooks/categories/useCategories";
 import type {
   CategoriesByGroup,

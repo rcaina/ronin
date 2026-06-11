@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { createUser, type CreateUserRequest } from "./services/auth";
+import { createUser } from "./services/auth";
+import type { CreateUserRequest } from "@/lib/types/user";
 import type { User } from "@prisma/client";
 
 interface UseCreateUserReturn {

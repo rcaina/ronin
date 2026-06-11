@@ -1,18 +1,4 @@
-export interface UpdateProfileRequest {
-  name?: string;
-  email?: string;
-  phone?: string;
-}
-
-export interface UpdateProfileResponse {
-  id: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  role: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { UpdateProfileRequest, UpdateProfileResponse } from "@/lib/types/user";
 
 export const updateProfile = async (data: UpdateProfileRequest): Promise<UpdateProfileResponse> => {
   const response = await fetch("/api/users/profile", {

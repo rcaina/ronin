@@ -1,5 +1,5 @@
 import type { BudgetWithRelations, SerializedBudget } from "@/lib/types/budget";
-import type { UpdateBudgetData, CreateBudgetData, CreateBudgetWithCardsData } from "@/lib/api-services/budgets";
+import type { UpdateBudgetData, CreateBudgetData, CreateBudgetWithCardsData } from "@/lib/types/budget";
 import type { BudgetStatus } from "@prisma/client";
 
 export const getBudgets = async (status?: BudgetStatus, excludeCardPayments?: boolean): Promise<BudgetWithRelations[]> => {

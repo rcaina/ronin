@@ -21,12 +21,17 @@ export const formatBudgetCategories = (categories: (Category & { transactions: {
   return categories.map(category => ({
     ...category,
     spentAmount: category.transactions?.reduce((sum, transaction) => {
-      if (transaction.transactionType === TransactionType.RETURN) {
-        // Returns reduce spending (positive amount = refund received)
-        return sum - (transaction.amount || 0);
-      } else {
-        // Regular transactions: positive = purchases (increase spending)
-        return sum + (transaction.amount || 0);
+      switch (transaction.transactionType) {
+        case TransactionType.RETURN:
+          // Returns reduce spending (positive amount = refund received)
+          return sum - (transaction.amount || 0);
+        case TransactionType.INCOME:
+        case TransactionType.CARD_PAYMENT:
+          // Income and card payments are money movement, not category spending
+          return sum;
+        default:
+          // Regular transactions: positive = purchases (increase spending)
+          return sum + (transaction.amount || 0);
       }
     }, 0) || 0,
     // Keep transactions for UI display

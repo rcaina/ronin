@@ -1,162 +1,102 @@
-import { type PrismaClient, type User, type BudgetStatus, type StrategyType, type PeriodType, type Category, type Budget, TransactionType, type CategoryType, type Transaction, type Card, CardType } from "@prisma/client"
-import { HttpError } from "../errors"
-import { formatBudget, formatBudgetCategories } from "../db/converter"
-import type { PrismaClientTx } from "../prisma"
-import type { UpdateBudgetCategoryData } from "../data-hooks/budgets/useBudgetCategories"
-import type { z } from "zod"
-import type { createBudgetSchema, createBudgetWithCardsSchema } from "../api-schemas/budgets"
-import { createCard as createCardService } from "./cards"
-
-export interface CreateBudgetData {
-  name: string
-  strategy: StrategyType
-  period: PeriodType
-  startAt: string
-  endAt: string
-  isRecurring: boolean
-  // If false, we skip auto-creating the default "Main" debit card because
-  // the client will (or already does) copy/add at least one debit card.
-  shouldCreateDefaultDebitCard?: boolean
-  categoryAllocations?: Array<{
-    name: string
-    group: CategoryType
-    allocatedAmount: number
-  }>
-  incomes?: Array<{
-    amount: number
-    source: string
-    description?: string
-    isPlanned: boolean
-    frequency: PeriodType
-  }>
-}
-
-export interface CardToIncludeData {
-  name: string
-  cardType: CardType
-  spendingLimit?: number
-  userId: string
-}
-
-export interface CreateBudgetWithCardsData {
-  name: string
-  strategy: StrategyType
-  period: PeriodType
-  startAt: string
-  endAt: string
-  isRecurring: boolean
-  categoryAllocations?: Array<{
-    name: string
-    group: CategoryType
-    allocatedAmount: number
-  }>
-  incomes?: Array<{
-    amount: number
-    source: string
-    description?: string
-    isPlanned: boolean
-    frequency: PeriodType
-  }>
-  cardsToInclude?: CardToIncludeData[]
-}
-
-export interface UpdateBudgetData {
-  name?: string
-  strategy?: StrategyType
-  period?: PeriodType
-  startAt?: string
-  endAt?: string
-  isRecurring?: boolean
-  categoryAllocations?: Array<{
-    name: string
-    group: CategoryType
-    allocatedAmount: number
-  }>
-}
-
-export type BudgetCategories = (Category & { 
-  spentAmount: number,
-  transactions: Array<{
-    id: string;
-    name: string | null;
-    description: string | null;
-    amount: number;
-    transactionType: TransactionType;
-    createdAt: string;
-  }>;
-})[]
+import {
+  type PrismaClient,
+  type User,
+  type BudgetStatus,
+  type Category,
+  type Budget,
+  TransactionType,
+  type CategoryType,
+  type Transaction,
+  type Card,
+  CardType,
+} from "@prisma/client";
+import { HttpError } from "../errors";
+import { formatBudget, formatBudgetCategories } from "../db/converter";
+import type { PrismaClientTx } from "../prisma";
+import type { z } from "zod";
+import type {
+  createBudgetSchema,
+  createBudgetWithCardsSchema,
+} from "../api-schemas/budgets";
+import { createCard as createCardService } from "./cards";
+import { calculateCardFinancials } from "./card-financials";
+import type {
+  UpdateBudgetData,
+  BudgetCategories,
+  UpdateBudgetCategoryData,
+} from "../types/budget";
 
 export async function getBudgetById(
   tx: PrismaClient,
   id: string,
-  params: URLSearchParams
+  params: URLSearchParams,
 ) {
-  const excludeCardPayments = params.get('excludeCardPayments') === 'true';
-  
+  const excludeCardPayments = params.get("excludeCardPayments") === "true";
+
   const budget = await tx.budget.findFirst({
     where: {
-        id,
-        deleted: null,
+      id,
+      deleted: null,
     },
     include: {
-        categories: {
-            where: {
-                deleted: null,
-            },
-            include: {
-                transactions: {
-                    where: {
-                        deleted: null,
-                        ...(excludeCardPayments && {
-                            transactionType: {
-                                not: TransactionType.CARD_PAYMENT
-                            }
-                        }),
-                    },
-                    orderBy: {
-                        createdAt: 'desc',
-                    },
-                },
-            },
+      categories: {
+        where: {
+          deleted: null,
         },
-        transactions: {
+        include: {
+          transactions: {
             where: {
-                deleted: null,
-                categoryId: null, // Only transactions without categories (like card payments)
-                ...(excludeCardPayments && {
-                    transactionType: {
-                        not: TransactionType.CARD_PAYMENT
-                    }
-                }),
-            },
-            include: {
-                card: true,
+              deleted: null,
+              ...(excludeCardPayments && {
+                transactionType: {
+                  not: TransactionType.CARD_PAYMENT,
+                },
+              }),
             },
             orderBy: {
-                createdAt: 'desc',
+              createdAt: "desc",
             },
+          },
         },
-        cards: {
-            where: {
-                deleted: null,
+      },
+      transactions: {
+        where: {
+          deleted: null,
+          categoryId: null, // Only transactions without categories (like card payments)
+          ...(excludeCardPayments && {
+            transactionType: {
+              not: TransactionType.CARD_PAYMENT,
             },
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        name: true,
-                        firstName: true,
-                        lastName: true,
-                    },
-                },
-            },
+          }),
         },
+        include: {
+          card: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
+      cards: {
+        where: {
+          deleted: null,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
     },
-});
+  });
 
-if (!budget) {
+  if (!budget) {
     throw new HttpError("Budget not found", 404);
-}
+  }
 
   return formatBudget(budget);
 }
@@ -164,7 +104,7 @@ if (!budget) {
 export async function createBudget(
   tx: PrismaClientTx,
   data: z.infer<typeof createBudgetSchema>,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
   // Create the budget
   const budget = await tx.budget.create({
@@ -177,13 +117,14 @@ export async function createBudget(
       isRecurring: data.isRecurring,
       accountId: user.accountId,
     },
-  })
+  });
 
-  const shouldCreateDefaultDebitCard = data.shouldCreateDefaultDebitCard ?? true
+  const shouldCreateDefaultDebitCard =
+    data.shouldCreateDefaultDebitCard ?? true;
 
   // Used to attach "income" transactions to a card at budget-creation time.
   // If we're skipping default debit-card creation, these transactions may be created with no cardId.
-  let mainDebitCard: Card | null = null
+  let mainDebitCard: Card | null = null;
 
   if (shouldCreateDefaultDebitCard) {
     // Ensure this budget has a default debit card named "Main".
@@ -266,13 +207,13 @@ export async function createBudget(
     }
   }
 
-  return budget
+  return budget;
 }
 
 async function createBudgetWithCardsAndIncomes(
   tx: PrismaClientTx,
   data: z.infer<typeof createBudgetWithCardsSchema>,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
   const budget = await tx.budget.create({
     data: {
@@ -284,27 +225,33 @@ async function createBudgetWithCardsAndIncomes(
       isRecurring: data.isRecurring,
       accountId: user.accountId,
     },
-  })
+  });
 
-  const failedCards: string[] = []
-  const createdCards: Card[] = []
+  const failedCards: string[] = [];
+  const createdCards: Card[] = [];
 
   // Create cards first (best effort). If any card fails, we skip income creation.
-  const cardsToInclude = data.cardsToInclude ?? []
+  const cardsToInclude = data.cardsToInclude ?? [];
   for (const card of cardsToInclude) {
     try {
-      const createdCard = await createCardService(tx, { ...card, budgetId: budget.id }, user)
-      createdCards.push(createdCard)
+      const createdCard = await createCardService(
+        tx,
+        { ...card, budgetId: budget.id },
+        user,
+      );
+      createdCards.push(createdCard);
     } catch {
-      failedCards.push(card.name)
+      failedCards.push(card.name);
     }
   }
 
   // Ensure we have a debit card to attach incomes to.
   const debitCards = createdCards.filter(
-    (c) => c.cardType === CardType.DEBIT || c.cardType === CardType.BUSINESS_DEBIT,
-  )
-  let debitCardToUse = debitCards.find((c) => c.name === "Main") ?? debitCards[0] ?? null
+    (c) =>
+      c.cardType === CardType.DEBIT || c.cardType === CardType.BUSINESS_DEBIT,
+  );
+  let debitCardToUse =
+    debitCards.find((c) => c.name === "Main") ?? debitCards[0] ?? null;
 
   if (!debitCardToUse) {
     try {
@@ -317,12 +264,12 @@ async function createBudgetWithCardsAndIncomes(
           budgetId: budget.id,
         },
         user,
-      )
-      createdCards.push(defaultDebitCard)
-      debitCardToUse = defaultDebitCard
+      );
+      createdCards.push(defaultDebitCard);
+      debitCardToUse = defaultDebitCard;
     } catch {
-      failedCards.push("Main")
-      debitCardToUse = null
+      failedCards.push("Main");
+      debitCardToUse = null;
     }
   }
 
@@ -335,17 +282,17 @@ async function createBudgetWithCardsAndIncomes(
         defaultCategoryId: null,
         deleted: null,
       },
-    })
+    });
 
-    const defaultCategoryMap = new Map<string, string>()
+    const defaultCategoryMap = new Map<string, string>();
     defaultCategories.forEach((cat) => {
-      const key = `${cat.name}|${cat.group}`
-      defaultCategoryMap.set(key, cat.id)
-    })
+      const key = `${cat.name}|${cat.group}`;
+      defaultCategoryMap.set(key, cat.id);
+    });
 
     for (const { name, group, allocatedAmount } of data.categoryAllocations) {
-      const key = `${name}|${group}`
-      const defaultCategoryId = defaultCategoryMap.get(key) ?? null
+      const key = `${name}|${group}`;
+      const defaultCategoryId = defaultCategoryMap.get(key) ?? null;
 
       await tx.category.create({
         data: {
@@ -355,17 +302,17 @@ async function createBudgetWithCardsAndIncomes(
           allocatedAmount,
           defaultCategoryId,
         },
-      })
+      });
     }
   }
 
-  const failedIncomes: string[] = []
+  const failedIncomes: string[] = [];
 
   // Requirement: if any card creation/copy fails, incomes should not be created.
-  const incomesToCreate = data.incomes ?? []
-  const debitCardId = debitCardToUse?.id
+  const incomesToCreate = data.incomes ?? [];
+  const debitCardId = debitCardToUse?.id;
   const shouldCreateIncomes =
-    failedCards.length === 0 && debitCardId && incomesToCreate.length > 0
+    failedCards.length === 0 && debitCardId && incomesToCreate.length > 0;
 
   if (shouldCreateIncomes) {
     for (const income of incomesToCreate) {
@@ -383,9 +330,9 @@ async function createBudgetWithCardsAndIncomes(
             categoryId: null, // Income transactions don't have categories
             occurredAt: new Date(),
           },
-        })
+        });
       } catch {
-        failedIncomes.push(income.source)
+        failedIncomes.push(income.source);
       }
     }
   }
@@ -396,30 +343,30 @@ async function createBudgetWithCardsAndIncomes(
     failedCards,
     failedIncomes,
     incomesSkipped: failedCards.length > 0,
-  }
+  };
 }
 
 export async function createBudgetFromScratchWithCards(
   tx: PrismaClientTx,
   data: z.infer<typeof createBudgetWithCardsSchema>,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
-  return createBudgetWithCardsAndIncomes(tx, data, user)
+  return createBudgetWithCardsAndIncomes(tx, data, user);
 }
 
 export async function duplicateBudgetWithCards(
   tx: PrismaClientTx,
   data: z.infer<typeof createBudgetWithCardsSchema>,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
-  return createBudgetWithCardsAndIncomes(tx, data, user)
+  return createBudgetWithCardsAndIncomes(tx, data, user);
 }
 
 export async function updateBudget(
   tx: PrismaClientTx,
   id: string,
   data: UpdateBudgetData,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
   // Update the budget
   const budget = await tx.budget.update({
@@ -436,7 +383,7 @@ export async function updateBudget(
       endAt: data.endAt ? new Date(data.endAt) : undefined,
       isRecurring: data.isRecurring,
     },
-  })
+  });
 
   // Update budget category allocations if provided
   if (data.categoryAllocations) {
@@ -487,13 +434,13 @@ export async function updateBudget(
     }
   }
 
-  return budget
+  return budget;
 }
 
 export async function deleteBudget(
   tx: PrismaClientTx,
   id: string,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
   // Soft delete the budget
   await tx.budget.update({
@@ -505,8 +452,7 @@ export async function deleteBudget(
     data: {
       deleted: new Date(),
     },
-  })
-
+  });
 
   // Soft delete budget categories
   await tx.category.updateMany({
@@ -517,16 +463,16 @@ export async function deleteBudget(
     data: {
       deleted: new Date(),
     },
-  })
+  });
 
-  return { success: true }
+  return { success: true };
 }
 
 export async function getBudgets(
   tx: PrismaClient,
   accountId: string,
   status?: BudgetStatus,
-  excludeCardPayments?: boolean
+  excludeCardPayments?: boolean,
 ): Promise<Budget[]> {
   const whereClause = {
     accountId,
@@ -536,9 +482,10 @@ export async function getBudgets(
 
   // Sort completed and archived budgets by created date (descending - newest first)
   // Active budgets are also sorted by createdAt descending (newest first)
-  const orderBy = status === 'COMPLETED' || status === 'ARCHIVED' 
-    ? { createdAt: 'desc' as const }
-    : { createdAt: 'desc' as const };
+  const orderBy =
+    status === "COMPLETED" || status === "ARCHIVED"
+      ? { createdAt: "desc" as const }
+      : { createdAt: "desc" as const };
 
   return await tx.budget.findMany({
     where: whereClause,
@@ -551,12 +498,12 @@ export async function getBudgets(
               deleted: null,
               ...(excludeCardPayments && {
                 transactionType: {
-                  not: 'CARD_PAYMENT'
-                }
+                  not: "CARD_PAYMENT",
+                },
               }),
-            }
-          }
-        }
+            },
+          },
+        },
       },
       transactions: {
         where: {
@@ -564,15 +511,15 @@ export async function getBudgets(
           categoryId: null,
           ...(excludeCardPayments && {
             transactionType: {
-              not: 'CARD_PAYMENT'
-            }
+              not: "CARD_PAYMENT",
+            },
           }),
         },
         include: {
           card: true,
         },
         orderBy: {
-          createdAt: 'desc',
+          createdAt: "desc",
         },
       },
       cards: {
@@ -592,13 +539,13 @@ export async function getBudgets(
       },
     },
     orderBy,
-  })
+  });
 }
 
 export async function markBudgetCompleted(
   tx: PrismaClientTx,
   budgetId: string,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
   return await tx.budget.update({
     where: {
@@ -607,15 +554,15 @@ export async function markBudgetCompleted(
       deleted: null,
     },
     data: {
-      status: 'COMPLETED' as BudgetStatus,
+      status: "COMPLETED" as BudgetStatus,
     },
-  })
+  });
 }
 
 export async function markBudgetArchived(
   tx: PrismaClientTx,
   budgetId: string,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
   return await tx.budget.update({
     where: {
@@ -624,15 +571,15 @@ export async function markBudgetArchived(
       deleted: null,
     },
     data: {
-      status: 'ARCHIVED' as BudgetStatus,
+      status: "ARCHIVED" as BudgetStatus,
     },
-  })
+  });
 }
 
 export async function reactivateBudget(
   tx: PrismaClientTx,
   budgetId: string,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
   return await tx.budget.update({
     where: {
@@ -641,15 +588,15 @@ export async function reactivateBudget(
       deleted: null,
     },
     data: {
-      status: 'ACTIVE' as BudgetStatus,
+      status: "ACTIVE" as BudgetStatus,
     },
-  })
+  });
 }
 
 export async function duplicateBudget(
   tx: PrismaClientTx,
   budgetId: string,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ) {
   // Get the original budget with all relations
   const originalBudget = await tx.budget.findFirst({
@@ -686,10 +633,10 @@ export async function duplicateBudget(
         select: {
           name: true,
           group: true,
-          allocatedAmount: true
-        }
-      }
-    }
+          allocatedAmount: true,
+        },
+      },
+    },
   });
 
   if (!originalBudget) {
@@ -710,18 +657,22 @@ export async function duplicateBudget(
   });
 
   // Copy income transactions (INCOME type transactions on debit cards)
-  const debitCards = originalBudget.cards?.filter(
-    (card) => card.cardType === CardType.DEBIT || card.cardType === CardType.BUSINESS_DEBIT
-  ) ?? [];
-  const debitCardIds = debitCards.map((card) => card.id);
-  
-  if (debitCardIds.length > 0) {
-    const incomeTransactions = originalBudget.transactions?.filter(
-      (transaction) =>
-        transaction.transactionType === TransactionType.INCOME &&
-        transaction.cardId &&
-        debitCardIds.includes(transaction.cardId)
+  const debitCards =
+    originalBudget.cards?.filter(
+      (card) =>
+        card.cardType === CardType.DEBIT ||
+        card.cardType === CardType.BUSINESS_DEBIT,
     ) ?? [];
+  const debitCardIds = debitCards.map((card) => card.id);
+
+  if (debitCardIds.length > 0) {
+    const incomeTransactions =
+      originalBudget.transactions?.filter(
+        (transaction) =>
+          transaction.transactionType === TransactionType.INCOME &&
+          transaction.cardId &&
+          debitCardIds.includes(transaction.cardId),
+      ) ?? [];
 
     // Find the main debit card in the new budget (should be created above)
     const newMainDebitCard = await tx.card.findFirst({
@@ -772,14 +723,13 @@ export async function duplicateBudget(
       data: {
         ...card,
         budgetId: newBudget.id,
-        amountSpent: 0
+        amountSpent: 0,
       },
     });
   }
 
   return newBudget;
 }
-
 
 // Budget Categories
 
@@ -798,13 +748,17 @@ export const getBudgetCategories = async (
           {
             name: {
               contains: searchQuery.trim(),
-              mode: 'insensitive',
+              mode: "insensitive",
             },
           },
           // Search in allocated amount (exact match for numbers)
-          ...(isNaN(Number(searchQuery)) ? [] : [{
-            allocatedAmount: Number(searchQuery),
-          }]),
+          ...(isNaN(Number(searchQuery))
+            ? []
+            : [
+                {
+                  allocatedAmount: Number(searchQuery),
+                },
+              ]),
           // Search in transactions
           {
             transactions: {
@@ -815,20 +769,24 @@ export const getBudgetCategories = async (
                   {
                     name: {
                       contains: searchQuery.trim(),
-                      mode: 'insensitive',
+                      mode: "insensitive",
                     },
                   },
                   // Search in transaction description
                   {
                     description: {
                       contains: searchQuery.trim(),
-                      mode: 'insensitive',
+                      mode: "insensitive",
                     },
                   },
                   // Search in transaction amount (exact match for numbers)
-                  ...(isNaN(Number(searchQuery)) ? [] : [{
-                    amount: Number(searchQuery),
-                  }]),
+                  ...(isNaN(Number(searchQuery))
+                    ? []
+                    : [
+                        {
+                          amount: Number(searchQuery),
+                        },
+                      ]),
                 ],
               },
             },
@@ -850,31 +808,31 @@ export const getBudgetCategories = async (
           createdAt: true,
         },
         orderBy: {
-          createdAt: 'desc',
+          createdAt: "desc",
         },
       },
     },
     orderBy: {
-      name: 'asc',
+      name: "asc",
     },
   });
 
   const formattedCategories = formatBudgetCategories(categories);
-  
+
   // Sort categories: incomplete first, completed last, then alphabetically within each group
   return formattedCategories.sort((a, b) => {
     const aIsCompleted = a.spentAmount >= (a.allocatedAmount ?? 0);
     const bIsCompleted = b.spentAmount >= (b.allocatedAmount ?? 0);
-    
+
     // If completion status is different, incomplete comes first
     if (aIsCompleted !== bIsCompleted) {
       return aIsCompleted ? 1 : -1;
     }
-    
+
     // If completion status is the same, sort alphabetically by category name
     return a.name.localeCompare(b.name);
   });
-}
+};
 
 export const createBudgetCategory = async (
   tx: PrismaClientTx,
@@ -884,7 +842,7 @@ export const createBudgetCategory = async (
     group: CategoryType;
     allocatedAmount: number;
   },
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ): Promise<Category> => {
   // Verify the budget belongs to the user
   const budget = await tx.budget.findFirst({
@@ -922,14 +880,14 @@ export const createBudgetCategory = async (
   });
 
   return category;
-}; 
+};
 
 export const updateBudgetCategory = async (
   tx: PrismaClientTx,
   budgetId: string,
   categoryId: string,
   data: UpdateBudgetCategoryData,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ): Promise<Category> => {
   // Verify the budget belongs to the user
   const budget = await tx.budget.findFirst({
@@ -963,7 +921,7 @@ export const updateBudgetCategory = async (
     name?: string;
     group?: CategoryType;
   } = {};
-  
+
   if (data.allocatedAmount !== undefined) {
     updateData.allocatedAmount = data.allocatedAmount;
   }
@@ -988,7 +946,7 @@ export const deleteBudgetCategory = async (
   tx: PrismaClientTx,
   budgetId: string,
   categoryId: string,
-  user: User & { accountId: string }
+  user: User & { accountId: string },
 ): Promise<Category> => {
   // Verify the budget belongs to the user
   const budget = await tx.budget.findFirst({
@@ -1013,7 +971,10 @@ export const deleteBudgetCategory = async (
   });
 
   if (transactions.length > 0) {
-    throw new HttpError("Cannot delete category with existing transactions", 400);
+    throw new HttpError(
+      "Cannot delete category with existing transactions",
+      400,
+    );
   }
 
   // Soft delete the category
@@ -1034,7 +995,7 @@ export const deleteBudgetCategory = async (
 export const getBudgetTransactions = async (
   tx: PrismaClient,
   budgetId: string,
-): Promise<(Transaction & { category: Category | null, Budget: Budget })[]> => {
+): Promise<(Transaction & { category: Category | null; Budget: Budget })[]> => {
   return await tx.transaction.findMany({
     where: { budgetId: budgetId, deleted: null },
     include: {
@@ -1050,6 +1011,7 @@ export const getBudgetTransactions = async (
 export const getBudgetCards = async (
   tx: PrismaClient,
   budgetId: string,
+  excludeCardPayments = false,
 ): Promise<Card[]> => {
   const cards = await tx.card.findMany({
     where: {
@@ -1068,6 +1030,11 @@ export const getBudgetCards = async (
       transactions: {
         where: {
           deleted: null,
+          ...(excludeCardPayments && {
+            transactionType: {
+              not: TransactionType.CARD_PAYMENT,
+            },
+          }),
         },
         select: {
           amount: true,
@@ -1079,98 +1046,26 @@ export const getBudgetCards = async (
   });
 
   // Calculate amountSpent for each card by summing related transactions
-  const cardsWithAmountSpent = cards.map(card => {
-    const isCreditCard = card.cardType === CardType.CREDIT || card.cardType === CardType.BUSINESS_CREDIT;
-    const isDebitCard = card.cardType === CardType.DEBIT || card.cardType === CardType.BUSINESS_DEBIT;
-    
-    let amountSpent = 0;
-    if (isCreditCard) {
-      // For credit cards: handle regular transactions and card payments differently
-      amountSpent = card.transactions.reduce((sum, transaction) => {
-        if (transaction.transactionType === TransactionType.CARD_PAYMENT) {
-          // Card payments reduce the balance (positive amount = payment received)
-          return sum - transaction.amount; // Subtract payment amount (reduces balance)
-        } else if (transaction.transactionType === TransactionType.RETURN) {
-          // Returns reduce the balance (positive amount = refund received)
-          return sum - transaction.amount; // Subtract return amount (reduces balance)
-        } else {
-          // Regular transactions: positive = purchases (increase balance)
-          return sum + transaction.amount;
-        }
-      }, 0);
-    } else {
-      // For debit/cash cards: exclude income, handle returns and regular transactions
-      amountSpent = card.transactions.reduce((sum, transaction) => {
-        // Exclude income transactions from amount spent
-        if (transaction.transactionType === TransactionType.INCOME) {
-          return sum; // Don't count income in amount spent
-        } else if (transaction.transactionType === TransactionType.RETURN) {
-          // Returns reduce spending (positive amount = refund received)
-          return sum - transaction.amount; // Subtract return amount (reduces spending)
-        } else {
-          // Regular transactions: positive = purchases (increase spending)
-          return sum + transaction.amount;
-        }
-      }, 0);
-    }
-    
-    // For debit cards, calculate spendingLimit from INCOME transactions on this card
-    // This matches the income page calculation but per-card
-    let spendingLimit = card.spendingLimit;
-    if (isDebitCard) {
-      const cardIncome = card.transactions.reduce((sum, transaction) => {
-        if (transaction.transactionType === TransactionType.INCOME) {
-          return sum + transaction.amount;
-        }
-        return sum;
-      }, 0);
-      spendingLimit = cardIncome > 0 ? cardIncome : null;
-    }
-    
-    return {
-      ...card,
-      amountSpent,
-      spendingLimit,
-      transactions: undefined, // Remove transactions from response
-    };
-  });
-
-  return cardsWithAmountSpent;
-}
+  return cards.map(calculateCardFinancials);
+};
 
 export const getBudgetIncomeTransactions = async (
   tx: PrismaClient,
   budgetId: string,
 ): Promise<Transaction[]> => {
-  // Get all debit cards for this budget
-  const debitCards = await tx.card.findMany({
+  // All INCOME transactions on the budget's debit cards
+  return tx.transaction.findMany({
     where: {
       budgetId: budgetId,
-      cardType: {
-        in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
-      },
-      deleted: null,
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  const cardIds = debitCards.map((card) => card.id);
-
-  if (cardIds.length === 0) {
-    return [];
-  }
-
-  // Get all INCOME transactions on these debit cards
-  const transactions = await tx.transaction.findMany({
-    where: {
-      budgetId: budgetId,
-      cardId: {
-        in: cardIds,
-      },
       transactionType: TransactionType.INCOME,
       deleted: null,
+      card: {
+        budgetId: budgetId,
+        cardType: {
+          in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
+        },
+        deleted: null,
+      },
     },
     include: {
       card: {
@@ -1185,48 +1080,29 @@ export const getBudgetIncomeTransactions = async (
       createdAt: "desc",
     },
   });
-
-  return transactions;
 };
 
 export const calculateBudgetIncome = async (
   tx: PrismaClient,
   budgetId: string,
 ): Promise<number> => {
-  const debitCards = await tx.card.findMany({
-    where: {
-      budgetId: budgetId,
-      cardType: {
-        in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
-      },
-      deleted: null,
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  const cardIds = debitCards.map((card) => card.id);
-
-  if (cardIds.length === 0) {
-    return 0;
-  }
-
-  const incomeTransactions = await tx.transaction.findMany({
-    where: {
-      budgetId: budgetId,
-      cardId: {
-        in: cardIds,
-      },
-      transactionType: TransactionType.INCOME,
-      deleted: null,
-    },
-    select: {
+  const result = await tx.transaction.aggregate({
+    _sum: {
       amount: true,
     },
+    where: {
+      budgetId: budgetId,
+      transactionType: TransactionType.INCOME,
+      deleted: null,
+      card: {
+        budgetId: budgetId,
+        cardType: {
+          in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
+        },
+        deleted: null,
+      },
+    },
   });
 
-  return incomeTransactions.reduce((sum, t) => sum + t.amount, 0);
+  return result._sum.amount ?? 0;
 };
-    
-    

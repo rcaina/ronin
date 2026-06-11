@@ -13,7 +13,7 @@ import type {
   GroupLabelFunction,
 } from "@/lib/types/budget";
 import { CategoryType } from "@prisma/client";
-import type { GroupedCategories } from "@/lib/data-hooks/services/categories";
+import type { GroupedCategories } from "@/lib/types/category";
 
 interface CategoryListViewProps {
   getGroupColor: GroupColorFunction;

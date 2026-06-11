@@ -717,7 +717,6 @@ const BudgetTransactionsPage = () => {
                         onCancel={handleInlineEditCancel}
                         onSuccess={handleInlineEditSuccess}
                         getGroupColor={getGroupColor}
-                        formatCurrency={formatCurrency}
                       />
                     );
                   }

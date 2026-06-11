@@ -1,6 +1,6 @@
 import { keepPreviousData, useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import type { PocketSummary } from "@/lib/types/savings";
+import type { PocketSummary, UpdatePocketData } from "@/lib/types/savings";
 import type { CreatePocketSchema } from "@/lib/api-schemas/savings";
 import { getPockets, addPocket } from "../services/pockets";
 import { savingsKey } from "./useSavings";
@@ -56,13 +56,6 @@ export const useCreatePocket = () => {
     },
   });
 };
-
-export interface UpdatePocketData {
-  name?: string;
-  goalAmount?: number | null;
-  goalDate?: string | null;
-  goalNote?: string | null;
-}
 
 const updatePocket = async (pocketId: string, data: UpdatePocketData) => {
   const res = await fetch(`/api/savings/pockets/${pocketId}`, {

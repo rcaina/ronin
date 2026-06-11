@@ -51,12 +51,6 @@ export const getTransactions = async (page = 1, limit = 20): Promise<{
 };
 
 export const createTransaction = async (data: CreateTransactionRequest): Promise<TransactionWithRelations> => {
-  // // Convert Date objects to ISO strings for API
-  // const apiData = {
-  //   ...data,
-  //   occurredAt: data.occurredAt ? data.occurredAt.toISOString() : undefined,
-  // };
-
   const response = await fetch("/api/transactions", {
     method: "POST",
     headers: {
@@ -73,12 +67,6 @@ export const createTransaction = async (data: CreateTransactionRequest): Promise
 };
 
 export const updateTransaction = async (id: string, data: UpdateTransactionRequest): Promise<TransactionWithRelations> => {
-  // Convert Date objects to ISO strings for API
-  // const apiData = {
-  //   ...data,
-  //   occurredAt: data.occurredAt ? data.occurredAt.toISOString() : undefined,
-  // };
-
   const response = await fetch(`/api/transactions/${id}`, {
     method: "PUT",
     headers: {

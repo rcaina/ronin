@@ -1,39 +1,5 @@
-import type { CardType } from "@prisma/client";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
-
-export interface Card {
-  id: string;
-  name: string;
-  cardType: CardType;
-  amountSpent?: number;
-  spendingLimit?: number;
-  userId: string;
-  user: {
-    id: string;
-    name: string;
-    firstName: string;
-    lastName: string;
-  };
-  deleted?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateCardRequest {
-  name: string;
-  cardType: CardType;
-  spendingLimit?: number;
-  userId: string;
-  budgetId: string;
-}
-
-export interface UpdateCardRequest {
-  name?: string;
-  cardType?: CardType;
-  spendingLimit?: number;
-  budgetId?: string;
-  userId?: string;
-}
+import type { Card, CreateCardRequest, UpdateCardRequest } from "@/lib/types/card";
 
 export const getCards = async (excludeCardPayments?: boolean, budgetId?: string): Promise<Card[]> => {
   const params = new URLSearchParams();
@@ -48,8 +14,9 @@ export const getCards = async (excludeCardPayments?: boolean, budgetId?: string)
   return response.json() as Promise<Card[]>;
 };
 
-export const getCard = async (id: string): Promise<Card> => {
-  const response = await fetch(`/api/cards/${id}`);
+export const getCard = async (id: string, excludeCardPayments?: boolean): Promise<Card> => {
+  const url = excludeCardPayments ? `/api/cards/${id}?excludeCardPayments=true` : `/api/cards/${id}`;
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch card: ${response.statusText}`);
   }

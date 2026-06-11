@@ -14,8 +14,8 @@ import AddBudgetCategoryForm from "./AddBudgetCategoryForm";
 import {
   useBudgetCategories,
   useCreateBudgetCategory,
-  type BudgetCategoryWithCategory,
 } from "@/lib/data-hooks/budgets/useBudgetCategories";
+import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
 import type {
   CategoriesByGroup,
   GroupColorFunction,

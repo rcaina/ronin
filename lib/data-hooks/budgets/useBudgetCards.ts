@@ -13,20 +13,23 @@ interface BudgetCard extends Card {
   amountSpent: number;
 }
 
-const getBudgetCards = async (budgetId: string): Promise<BudgetCard[]> => {
-  const response = await fetch(`/api/budgets/${budgetId}/cards`);
+const getBudgetCards = async (budgetId: string, excludeCardPayments?: boolean): Promise<BudgetCard[]> => {
+  const url = excludeCardPayments
+    ? `/api/budgets/${budgetId}/cards?excludeCardPayments=true`
+    : `/api/budgets/${budgetId}/cards`;
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch budget cards: ${response.statusText}`);
   }
   return response.json() as Promise<BudgetCard[]>;
 };
 
-export const useBudgetCards = (budgetId: string) => {
+export const useBudgetCards = (budgetId: string, excludeCardPayments?: boolean) => {
   const { data: session } = useSession();
 
   const query = useQuery<BudgetCard[]>({
-    queryKey: ["budgetCards", budgetId],
-    queryFn: () => getBudgetCards(budgetId),
+    queryKey: ["budgetCards", budgetId, excludeCardPayments],
+    queryFn: () => getBudgetCards(budgetId, excludeCardPayments),
     placeholderData: keepPreviousData,
     enabled: !!session && !!budgetId,
     staleTime: 2 * 60 * 1000,

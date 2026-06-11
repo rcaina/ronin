@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { getCards, getCard, getCardTransactions, createCard, updateCard, deleteCard, type Card as ApiCard, type CreateCardRequest, type UpdateCardRequest } from "../services/cards";
+import { getCards, getCard, getCardTransactions, createCard, updateCard, deleteCard } from "../services/cards";
+import type { Card as ApiCard, CreateCardRequest, UpdateCardRequest } from "@/lib/types/card";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 
 export const useCards = (excludeCardPayments?: boolean, budgetId?: string) => {
@@ -68,12 +69,12 @@ export const useDeleteCard = () => {
   });
 };
 
-export const useCard = (id: string) => {
+export const useCard = (id: string, excludeCardPayments?: boolean) => {
   const { data: session } = useSession();
 
   const query = useQuery<ApiCard>({
-    queryKey: ["cards", id],
-    queryFn: () => getCard(id),
+    queryKey: ["cards", id, excludeCardPayments],
+    queryFn: () => getCard(id, excludeCardPayments),
     placeholderData: keepPreviousData,
     enabled: !!session && !!id,
     staleTime: 2 * 60 * 1000, // 2 minutes

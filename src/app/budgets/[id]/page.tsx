@@ -14,7 +14,7 @@ import {
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 import { type CategoryType, TransactionType, CardType } from "@prisma/client";
 import {
@@ -23,6 +23,8 @@ import {
   getGroupColor,
   roundToCents,
 } from "@/lib/utils";
+import { calculateCategorySpent } from "@/lib/utils/spending";
+import { useBudgetDetailStats } from "@/lib/data-hooks/budgets/useBudgetStats";
 import { useBudgetHeader } from "../../../../components/budgets/BudgetHeaderContext";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
 import {
@@ -66,204 +68,16 @@ const BudgetDetailsPage = () => {
     ]);
   }, [setActions]);
 
-  // Calculate totals - moved before early returns
-  // Calculate total income from INCOME transactions on debit cards
-  const totalIncome = useMemo(() => {
-    if (!budget) return 0;
-    // Get all debit cards for this budget
-    const debitCards = (budget.cards ?? []).filter(
-      (card: { cardType: string }) =>
-        card.cardType === CardType.DEBIT ||
-        card.cardType === CardType.BUSINESS_DEBIT,
-    );
-
-    const debitCardIds = debitCards.map((card: { id: string }) => card.id);
-
-    // Sum all INCOME transactions on debit cards
-    return (budget.transactions ?? []).reduce((sum, transaction) => {
-      if (
-        transaction.transactionType === TransactionType.INCOME &&
-        transaction.cardId &&
-        debitCardIds.includes(transaction.cardId)
-      ) {
-        return sum + transaction.amount;
-      }
-      return sum;
-    }, 0);
-  }, [budget]);
-
-  // Calculate total spent only from categorized transactions to match categories summary
-  const totalSpent = useMemo(() => {
-    if (!budget) return 0;
-    return (budget.categories ?? []).reduce(
-      (categoryTotal: number, category) => {
-        const categorySpent = (category.transactions ?? []).reduce(
-          (transactionTotal: number, transaction) => {
-            // Exclude INCOME and CARD_PAYMENT transactions from spending
-            if (
-              transaction.transactionType === TransactionType.INCOME ||
-              transaction.transactionType === TransactionType.CARD_PAYMENT
-            ) {
-              return transactionTotal;
-            }
-            if (transaction.transactionType === TransactionType.RETURN) {
-              // Returns reduce spending (positive amount = refund received)
-              return transactionTotal - transaction.amount;
-            } else {
-              // Regular transactions: positive = purchases (increase spending)
-              return transactionTotal + transaction.amount;
-            }
-          },
-          0,
-        );
-        return categoryTotal + categorySpent;
-      },
-      0,
-    );
-  }, [budget]);
-
-  const totalRemaining = totalIncome - totalSpent;
-  const spendingPercentage =
-    totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
-
-  // Prepare data for category-specific pie chart (actual spending)
-  const categorySpendingData = useMemo(() => {
-    if (!budget) return [];
-    // Color palette for category pie chart
-    const categoryColors = [
-      "#3b82f6", // blue-500
-      "#a855f7", // purple-500
-      "#10b981", // green-500
-      "#f59e0b", // amber-500
-      "#ef4444", // red-500
-      "#06b6d4", // cyan-500
-      "#ec4899", // pink-500
-      "#8b5cf6", // violet-500
-      "#14b8a6", // teal-500
-      "#f97316", // orange-500
-    ];
-    const categorySpending = (budget.categories ?? [])
-      .map((category) => {
-        const spent = (category.transactions ?? []).reduce(
-          (sum, transaction) => {
-            if (
-              transaction.transactionType === TransactionType.INCOME ||
-              transaction.transactionType === TransactionType.CARD_PAYMENT
-            ) {
-              return sum;
-            }
-            if (transaction.transactionType === TransactionType.RETURN) {
-              return sum - transaction.amount;
-            } else {
-              return sum + transaction.amount;
-            }
-          },
-          0,
-        );
-        return {
-          name: category.name,
-          value: roundToCents(spent),
-          group: category.group,
-        };
-      })
-      .filter((item) => item.value > 0)
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 8); // Top 8 categories
-
-    return categorySpending.map((item, index) => ({
-      ...item,
-      color: categoryColors[index % categoryColors.length],
-    }));
-  }, [budget]);
-
-  // Prepare data for daily spending trend (last 7 days)
-  const dailySpendingData = useMemo(() => {
-    if (!budget) return [];
-    const dailyData = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0);
-      const nextDate = new Date(date);
-      nextDate.setDate(nextDate.getDate() + 1);
-
-      const daySpending = (budget.categories ?? []).reduce((sum, category) => {
-        return (
-          sum +
-          (category.transactions ?? []).reduce(
-            (transactionSum, transaction) => {
-              const transactionDate = new Date(transaction.createdAt);
-              if (transactionDate >= date && transactionDate < nextDate) {
-                if (
-                  transaction.transactionType === TransactionType.INCOME ||
-                  transaction.transactionType === TransactionType.CARD_PAYMENT
-                ) {
-                  return transactionSum;
-                }
-                if (transaction.transactionType === TransactionType.RETURN) {
-                  return transactionSum - transaction.amount;
-                } else {
-                  return transactionSum + transaction.amount;
-                }
-              }
-              return transactionSum;
-            },
-            0,
-          )
-        );
-      }, 0);
-
-      const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
-      dailyData.push({
-        day: dayName,
-        date: date.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        }),
-        spending: roundToCents(daySpending),
-      });
-    }
-    return dailyData;
-  }, [budget]);
-
-  // Prepare data for category usage (remaining vs allocated)
-  const categoryUsageData = useMemo(() => {
-    if (!budget) return [];
-    return (budget.categories ?? [])
-      .map((category) => {
-        const spent = (category.transactions ?? []).reduce(
-          (sum, transaction) => {
-            if (
-              transaction.transactionType === TransactionType.INCOME ||
-              transaction.transactionType === TransactionType.CARD_PAYMENT
-            ) {
-              return sum;
-            }
-            if (transaction.transactionType === TransactionType.RETURN) {
-              return sum - transaction.amount;
-            } else {
-              return sum + transaction.amount;
-            }
-          },
-          0,
-        );
-        const allocated = category.allocatedAmount ?? 0;
-        const remaining = allocated - spent;
-        return {
-          name:
-            category.name.length > 12
-              ? category.name.substring(0, 12) + "..."
-              : category.name,
-          fullName: category.name,
-          allocated: roundToCents(allocated),
-          remaining: roundToCents(Math.max(0, remaining)),
-          spent: roundToCents(spent),
-        };
-      })
-      .filter((item) => item.allocated > 0)
-      .sort((a, b) => b.allocated - a.allocated)
-      .slice(0, 5); // Top 5 categories by allocation
-  }, [budget]);
+  // Per-budget statistics (totals + chart data), computed from shared utils
+  const {
+    totalIncome,
+    totalSpent,
+    totalRemaining,
+    spendingPercentage,
+    categorySpendingData,
+    dailySpendingData,
+    categoryUsageData,
+  } = useBudgetDetailStats(budget);
 
   if (isLoading) {
     return <LoadingSpinner message="Loading budget..." />;
@@ -348,24 +162,8 @@ const BudgetDetailsPage = () => {
     const categories = categoriesByGroup[group];
     if (categories) {
       categories.sort((a, b) => {
-        const aSpent = (a.transactions ?? []).reduce((sum, transaction) => {
-          if (transaction.transactionType === TransactionType.RETURN) {
-            // Returns reduce spending (positive amount = refund received)
-            return sum - transaction.amount;
-          } else {
-            // Regular transactions: positive = purchases (increase spending)
-            return sum + transaction.amount;
-          }
-        }, 0);
-        const bSpent = (b.transactions ?? []).reduce((sum, transaction) => {
-          if (transaction.transactionType === TransactionType.RETURN) {
-            // Returns reduce spending (positive amount = refund received)
-            return sum - transaction.amount;
-          } else {
-            // Regular transactions: positive = purchases (increase spending)
-            return sum + transaction.amount;
-          }
-        }, 0);
+        const aSpent = calculateCategorySpent(a);
+        const bSpent = calculateCategorySpent(b);
 
         const aPercentage =
           a.allocatedAmount && a.allocatedAmount > 0
@@ -753,33 +551,10 @@ const BudgetDetailsPage = () => {
                     );
 
                     const totalSpent = roundToCents(
-                      categories.reduce((sum, cat) => {
-                        const categorySpent = roundToCents(
-                          (cat.transactions ?? []).reduce(
-                            (transactionTotal: number, transaction) => {
-                              // Exclude INCOME and CARD_PAYMENT transactions from spending
-                              if (
-                                transaction.transactionType ===
-                                  TransactionType.INCOME ||
-                                transaction.transactionType ===
-                                  TransactionType.CARD_PAYMENT
-                              ) {
-                                return transactionTotal;
-                              }
-                              if (
-                                transaction.transactionType ===
-                                TransactionType.RETURN
-                              ) {
-                                return transactionTotal - transaction.amount;
-                              } else {
-                                return transactionTotal + transaction.amount;
-                              }
-                            },
-                            0,
-                          ),
-                        );
-                        return sum + categorySpent;
-                      }, 0),
+                      categories.reduce(
+                        (sum, cat) => sum + roundToCents(calculateCategorySpent(cat)),
+                        0,
+                      ),
                     );
 
                     const usagePercentage = roundToCents(
@@ -791,28 +566,7 @@ const BudgetDetailsPage = () => {
                     // Count categories that are 100% used
                     const fullyUsedCount = categories.filter((cat) => {
                       const categorySpent = roundToCents(
-                        (cat.transactions ?? []).reduce(
-                          (transactionTotal: number, transaction) => {
-                            // Exclude INCOME and CARD_PAYMENT transactions from spending
-                            if (
-                              transaction.transactionType ===
-                                TransactionType.INCOME ||
-                              transaction.transactionType ===
-                                TransactionType.CARD_PAYMENT
-                            ) {
-                              return transactionTotal;
-                            }
-                            if (
-                              transaction.transactionType ===
-                              TransactionType.RETURN
-                            ) {
-                              return transactionTotal - transaction.amount;
-                            } else {
-                              return transactionTotal + transaction.amount;
-                            }
-                          },
-                          0,
-                        ),
+                        calculateCategorySpent(cat),
                       );
                       const categoryPercentage = roundToCents(
                         cat.allocatedAmount && cat.allocatedAmount > 0

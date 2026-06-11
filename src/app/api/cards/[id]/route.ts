@@ -8,13 +8,15 @@ import { updateCardSchema } from "@/lib/api-schemas/cards";
 import { ensureCardAccountOwnership, ensureCardUserOwnership, validateCardId } from "@/lib/utils/auth";
 
 export const GET = withUser({
-  GET: withUserErrorHandling(async (_req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
+  GET: withUserErrorHandling(async (req: NextRequest, context: { params: Promise<Record<string, string>> }, user: User & { accountId: string }) => {
     const { id } = await context.params;
     const cardId = validateCardId(id);
     await ensureCardAccountOwnership(cardId, user.accountId);
-    
+
+    const excludeCardPayments = req.nextUrl.searchParams.get('excludeCardPayments') === 'true';
+
     return await prisma.$transaction(async (tx) => {
-      const card = await getCardById(tx, cardId, user.accountId);
+      const card = await getCardById(tx, cardId, user.accountId, excludeCardPayments);
       
       return NextResponse.json(card, { status: 200 });
     });

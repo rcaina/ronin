@@ -1,5 +1,5 @@
 import { CardType } from "@prisma/client";
-import type { Card as ApiCard } from "../data-hooks/services/cards";
+import type { Card as ApiCard } from "../types/card";
 
 // Component interface for cards
 export interface Card {

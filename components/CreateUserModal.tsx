@@ -4,7 +4,7 @@ import { useState } from "react";
 import { X, UserIcon, Eye, EyeOff } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useCreateUser } from "@/lib/data-hooks/useCreateUser";
-import { type CreateUserRequest } from "@/lib/data-hooks/services/auth";
+import type { CreateUserRequest } from "@/lib/types/user";
 import { Role, type User as PrismaUser } from "@prisma/client";
 import Button from "./Button";
 

@@ -29,9 +29,15 @@ import PageHeader from "@/components/PageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import CreateBudgetModal from "@/components/budgets/CreateBudgetModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
-import { CategoryType, TransactionType, CardType } from "@prisma/client";
+import { CategoryType } from "@prisma/client";
 import Button from "@/components/Button";
 import { roundToCents } from "@/lib/utils";
+import {
+  calculateBudgetSpent,
+  calculateSpendingPercentage,
+  calculateTotalIncome,
+} from "@/lib/utils/spending";
+import { useBudgetStats } from "@/lib/data-hooks/budgets/useBudgetStats";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
 import {
   PieChart,
@@ -48,29 +54,6 @@ import {
 } from "recharts";
 
 type TabType = "active" | "completed" | "archived";
-
-// Helper function to calculate total income from INCOME transactions on debit cards
-const calculateTotalIncome = (budget: BudgetWithRelations): number => {
-  // Get all debit cards for this budget
-  const debitCards = (budget.cards ?? []).filter(
-    (card: { cardType: string }) =>
-      card.cardType === CardType.DEBIT ||
-      card.cardType === CardType.BUSINESS_DEBIT,
-  );
-  const debitCardIds = debitCards.map((card: { id: string }) => card.id);
-
-  // Sum all INCOME transactions on debit cards
-  return (budget.transactions ?? []).reduce((sum, transaction) => {
-    if (
-      transaction.transactionType === TransactionType.INCOME &&
-      transaction.cardId &&
-      debitCardIds.includes(transaction.cardId)
-    ) {
-      return sum + transaction.amount;
-    }
-    return sum;
-  }, 0);
-};
 
 const BudgetsPage = () => {
   const router = useRouter();
@@ -125,264 +108,12 @@ const BudgetsPage = () => {
 
   const isLoading = activeLoading || completedLoading || archivedLoading;
 
-  // Enhanced budget statistics with more sophisticated calculations
-  const budgetStats = useMemo(() => {
-    const totalBudgets =
-      activeBudgets.length + completedBudgets.length + archivedBudgets.length;
-    const activeBudgetsCount = activeBudgets.length;
-
-    // Calculate total income and spending for active budgets only
-    const totalIncome = activeBudgets.reduce((sum, budget) => {
-      return sum + calculateTotalIncome(budget);
-    }, 0);
-
-    const totalSpent = activeBudgets.reduce((sum, budget) => {
-      return (
-        sum +
-        (budget.categories ?? []).reduce((categorySum, category) => {
-          return (
-            categorySum +
-            (category.transactions ?? []).reduce(
-              (transactionSum, transaction) => {
-                // Exclude INCOME and CARD_PAYMENT transactions from spending
-                if (
-                  transaction.transactionType === TransactionType.INCOME ||
-                  transaction.transactionType === TransactionType.CARD_PAYMENT
-                ) {
-                  return transactionSum;
-                }
-                if (transaction.transactionType === TransactionType.RETURN) {
-                  // Returns reduce spending (positive amount = refund received)
-                  return transactionSum - transaction.amount;
-                } else {
-                  // Regular transactions: positive = purchases (increase spending)
-                  return transactionSum + transaction.amount;
-                }
-              },
-              0,
-            )
-          );
-        }, 0)
-      );
-    }, 0);
-
-    const totalRemaining = totalIncome - totalSpent;
-    const overallSpendingPercentage =
-      totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
-
-    // Calculate spending by category group for active budgets
-    const spendingByGroup = activeBudgets.reduce(
-      (acc, budget) => {
-        (budget.categories ?? []).forEach((category) => {
-          const group = category.group ?? CategoryType.NEEDS;
-          const spent = (category.transactions ?? []).reduce(
-            (sum, transaction) => {
-              // Exclude INCOME and CARD_PAYMENT transactions from spending
-              if (
-                transaction.transactionType === TransactionType.INCOME ||
-                transaction.transactionType === TransactionType.CARD_PAYMENT
-              ) {
-                return sum;
-              }
-              if (transaction.transactionType === TransactionType.RETURN) {
-                // Returns reduce spending (positive amount = refund received)
-                return sum - transaction.amount;
-              } else {
-                // Regular transactions: positive = purchases (increase spending)
-                return sum + transaction.amount;
-              }
-            },
-            0,
-          );
-          acc[group] = (acc[group] ?? 0) + spent;
-        });
-        return acc;
-      },
-      {} as Record<CategoryType, number>,
-    );
-
-    // Prepare pie chart data for category groups
-    const pieChartData = [
-      {
-        name: "Needs",
-        value: roundToCents(spendingByGroup[CategoryType.NEEDS] ?? 0),
-        color: "#3b82f6", // blue-500
-      },
-      {
-        name: "Wants",
-        value: roundToCents(spendingByGroup[CategoryType.WANTS] ?? 0),
-        color: "#a855f7", // purple-500
-      },
-      {
-        name: "Investment",
-        value: roundToCents(spendingByGroup[CategoryType.INVESTMENT] ?? 0),
-        color: "#10b981", // green-500
-      },
-    ].filter((item) => item.value > 0);
-
-    // Calculate top spending categories across all active budgets
-    const categorySpending = activeBudgets.reduce(
-      (acc, budget) => {
-        (budget.categories ?? []).forEach((category) => {
-          const spent = (category.transactions ?? []).reduce(
-            (sum, transaction) => {
-              if (
-                transaction.transactionType === TransactionType.INCOME ||
-                transaction.transactionType === TransactionType.CARD_PAYMENT
-              ) {
-                return sum;
-              }
-              if (transaction.transactionType === TransactionType.RETURN) {
-                return sum - transaction.amount;
-              } else {
-                return sum + transaction.amount;
-              }
-            },
-            0,
-          );
-          if (spent > 0) {
-            const existing = acc.find((item) => item.name === category.name);
-            if (existing) {
-              existing.value += spent;
-            } else {
-              acc.push({
-                name: category.name,
-                value: roundToCents(spent),
-                group: category.group,
-              });
-            }
-          }
-        });
-        return acc;
-      },
-      [] as Array<{ name: string; value: number; group: CategoryType }>,
-    );
-
-    // Sort and get top 5 categories
-    const topCategoriesData = categorySpending
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5)
-      .map((item) => ({
-        name:
-          item.name.length > 15
-            ? item.name.substring(0, 15) + "..."
-            : item.name,
-        value: item.value,
-        fullName: item.name,
-      }));
-
-    // Calculate recent spending (last 7 days) for active budgets
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const recentSpending = activeBudgets.reduce((sum, budget) => {
-      return (
-        sum +
-        (budget.categories ?? []).reduce((categorySum, category) => {
-          return (
-            categorySum +
-            (category.transactions ?? []).reduce(
-              (transactionSum, transaction) => {
-                const transactionDate = new Date(transaction.createdAt);
-                if (transactionDate >= sevenDaysAgo) {
-                  // Exclude INCOME and CARD_PAYMENT transactions from spending
-                  if (
-                    transaction.transactionType === TransactionType.INCOME ||
-                    transaction.transactionType === TransactionType.CARD_PAYMENT
-                  ) {
-                    return transactionSum;
-                  }
-                  if (transaction.transactionType === TransactionType.RETURN) {
-                    // Returns reduce spending (positive amount = refund received)
-                    return transactionSum - transaction.amount;
-                  } else {
-                    // Regular transactions: positive = purchases (increase spending)
-                    return transactionSum + transaction.amount;
-                  }
-                }
-                return transactionSum;
-              },
-              0,
-            )
-          );
-        }, 0)
-      );
-    }, 0);
-
-    // Calculate average daily spending for active budgets
-    const averageDailySpending = recentSpending / 7;
-
-    // Calculate daily spending for the last 7 days
-    const dailySpendingData = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0);
-      const nextDate = new Date(date);
-      nextDate.setDate(nextDate.getDate() + 1);
-
-      const daySpending = activeBudgets.reduce((sum, budget) => {
-        return (
-          sum +
-          (budget.categories ?? []).reduce((categorySum, category) => {
-            return (
-              categorySum +
-              (category.transactions ?? []).reduce(
-                (transactionSum, transaction) => {
-                  const transactionDate = new Date(transaction.createdAt);
-                  if (transactionDate >= date && transactionDate < nextDate) {
-                    // Exclude INCOME and CARD_PAYMENT transactions from spending
-                    if (
-                      transaction.transactionType === TransactionType.INCOME ||
-                      transaction.transactionType ===
-                        TransactionType.CARD_PAYMENT
-                    ) {
-                      return transactionSum;
-                    }
-                    if (
-                      transaction.transactionType === TransactionType.RETURN
-                    ) {
-                      // Returns reduce spending (positive amount = refund received)
-                      return transactionSum - transaction.amount;
-                    } else {
-                      // Regular transactions: positive = purchases (increase spending)
-                      return transactionSum + transaction.amount;
-                    }
-                  }
-                  return transactionSum;
-                },
-                0,
-              )
-            );
-          }, 0)
-        );
-      }, 0);
-
-      const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
-      dailySpendingData.push({
-        day: dayName,
-        date: date.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        }),
-        spending: roundToCents(daySpending),
-      });
-    }
-
-    return {
-      totalBudgets,
-      activeBudgetsCount,
-      totalIncome,
-      totalSpent,
-      totalRemaining,
-      overallSpendingPercentage,
-      spendingByGroup,
-      recentSpending,
-      averageDailySpending,
-      pieChartData,
-      topCategoriesData,
-      dailySpendingData,
-    };
-  }, [activeBudgets, completedBudgets, archivedBudgets]);
+  // Aggregate statistics across active budgets (plus completed/archived counts)
+  const budgetStats = useBudgetStats(
+    activeBudgets,
+    completedBudgets,
+    archivedBudgets,
+  );
 
   if (isLoading) {
     return <LoadingSpinner message="Loading budgets..." />;
@@ -390,35 +121,10 @@ const BudgetsPage = () => {
 
   const getBudgetStatus = (budget: BudgetWithRelations) => {
     const totalBudgetIncome = calculateTotalIncome(budget);
-    const totalBudgetSpent = roundToCents(
-      (budget.categories ?? []).reduce((sum: number, category) => {
-        return (
-          sum +
-          (category.transactions ?? []).reduce(
-            (transactionSum: number, transaction) => {
-              // Exclude INCOME and CARD_PAYMENT transactions from spending
-              if (
-                transaction.transactionType === TransactionType.INCOME ||
-                transaction.transactionType === TransactionType.CARD_PAYMENT
-              ) {
-                return transactionSum;
-              }
-              if (transaction.transactionType === TransactionType.RETURN) {
-                // Returns reduce spending (positive amount = refund received)
-                return transactionSum - transaction.amount;
-              } else {
-                // Regular transactions: positive = purchases (increase spending)
-                return transactionSum + transaction.amount;
-              }
-            },
-            0,
-          )
-        );
-      }, 0),
-    );
+    const totalBudgetSpent = roundToCents(calculateBudgetSpent(budget));
 
     const percentage = roundToCents(
-      totalBudgetIncome > 0 ? (totalBudgetSpent / totalBudgetIncome) * 100 : 0,
+      calculateSpendingPercentage(totalBudgetSpent, totalBudgetIncome),
     );
 
     if (percentage > 100)
@@ -811,43 +517,12 @@ const BudgetsPage = () => {
                   const budgetStatus = getBudgetStatus(budget);
                   const categorySummary = getCategorySummary(budget);
                   const totalBudgetIncome = calculateTotalIncome(budget);
-                  const totalBudgetSpent = (budget.categories ?? []).reduce(
-                    (sum: number, category) => {
-                      return (
-                        sum +
-                        (category.transactions ?? []).reduce(
-                          (transactionSum: number, transaction) => {
-                            // Exclude INCOME and CARD_PAYMENT transactions from spending
-                            if (
-                              transaction.transactionType ===
-                                TransactionType.INCOME ||
-                              transaction.transactionType ===
-                                TransactionType.CARD_PAYMENT
-                            ) {
-                              return transactionSum;
-                            }
-                            if (
-                              transaction.transactionType ===
-                              TransactionType.RETURN
-                            ) {
-                              // Returns reduce spending (positive amount = refund received)
-                              return transactionSum - transaction.amount;
-                            } else {
-                              // Regular transactions: positive = purchases (increase spending)
-                              return transactionSum + transaction.amount;
-                            }
-                          },
-                          0,
-                        )
-                      );
-                    },
-                    0,
-                  );
+                  const totalBudgetSpent = calculateBudgetSpent(budget);
                   const budgetRemaining = totalBudgetIncome - totalBudgetSpent;
-                  const spendingPercentage =
-                    totalBudgetIncome > 0
-                      ? (totalBudgetSpent / totalBudgetIncome) * 100
-                      : 0;
+                  const spendingPercentage = calculateSpendingPercentage(
+                    totalBudgetSpent,
+                    totalBudgetIncome,
+                  );
 
                   // Calculate days remaining in budget period
                   const now = new Date();

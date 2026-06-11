@@ -1,8 +1,9 @@
-import { CardType, type User, TransactionType } from "@prisma/client";
+import { type User, TransactionType } from "@prisma/client";
 import type { PrismaClientTx } from "../prisma";
 import type { createCardSchema, updateCardSchema } from "../api-schemas/cards";
 import type { z } from "zod";
 import { HttpError } from "../errors";
+import { calculateCardFinancials } from "./card-financials";
 
 export async function getCards(
   tx: PrismaClientTx,
@@ -60,69 +61,14 @@ export async function getCards(
   });
 
   // Calculate amountSpent for each card by summing related transactions
-  const cardsWithAmountSpent = cards.map(card => {
-    const isCreditCard = card.cardType === CardType.CREDIT || card.cardType === CardType.BUSINESS_CREDIT;
-    const isDebitCard = card.cardType === CardType.DEBIT || card.cardType === CardType.BUSINESS_DEBIT;
-    
-    let amountSpent = 0;
-    if (isCreditCard) {
-      // For credit cards: handle regular transactions and card payments differently
-      amountSpent = card.transactions.reduce((sum, transaction) => {
-        if (transaction.transactionType === TransactionType.CARD_PAYMENT) {
-          // Card payments reduce the balance (positive amount = payment received)
-          return sum - transaction.amount; // Subtract payment amount (reduces balance)
-        } else if (transaction.transactionType === TransactionType.RETURN) {
-          // Returns reduce the balance (positive amount = refund received)
-          return sum - transaction.amount; // Subtract return amount (reduces balance)
-        } else {
-          // Regular transactions: positive = purchases (increase balance)
-          return sum + transaction.amount;
-        }
-      }, 0);
-    } else {
-      // For debit/cash cards: exclude income, handle returns and regular transactions
-      amountSpent = card.transactions.reduce((sum, transaction) => {
-        // Exclude income transactions from amount spent
-        if (transaction.transactionType === TransactionType.INCOME) {
-          return sum; // Don't count income in amount spent
-        } else if (transaction.transactionType === TransactionType.RETURN) {
-          // Returns reduce spending (positive amount = refund received)
-          return sum - transaction.amount; // Subtract return amount (reduces spending)
-        } else {
-          // Regular transactions: positive = purchases (increase spending)
-          return sum + transaction.amount;
-        }
-      }, 0);
-    }
-    
-    // For debit cards, calculate spendingLimit from INCOME transactions on this card
-    // This matches the income page calculation but per-card
-    let spendingLimit = card.spendingLimit;
-    if (isDebitCard) {
-      const cardIncome = card.transactions.reduce((sum, transaction) => {
-        if (transaction.transactionType === TransactionType.INCOME) {
-          return sum + transaction.amount;
-        }
-        return sum;
-      }, 0);
-      spendingLimit = cardIncome > 0 ? cardIncome : null;
-    }
-    
-    return {
-      ...card,
-      amountSpent,
-      spendingLimit,
-      transactions: undefined, // Remove transactions from response
-    };
-  });
-
-  return cardsWithAmountSpent;
+  return cards.map(calculateCardFinancials);
 }
 
 export async function getCardById(
   tx: PrismaClientTx,
   id: string,
-  accountId: string
+  accountId: string,
+  excludeCardPayments = false
 ) {
   const card = await tx.card.findFirst({
     where: {
@@ -149,6 +95,11 @@ export async function getCardById(
       transactions: {
         where: {
           deleted: null,
+          ...(excludeCardPayments && {
+            transactionType: {
+              not: TransactionType.CARD_PAYMENT
+            }
+          }),
         },
         select: {
           amount: true,
@@ -163,61 +114,7 @@ export async function getCardById(
   }
 
   // Calculate amountSpent by summing related transactions
-  const isCreditCard = card.cardType === CardType.CREDIT || card.cardType === CardType.BUSINESS_CREDIT;
-  const isDebitCard = card.cardType === CardType.DEBIT || card.cardType === CardType.BUSINESS_DEBIT;
-  
-  let amountSpent = 0;
-  if (isCreditCard) {
-    // For credit cards: handle regular transactions and card payments differently
-    amountSpent = card.transactions.reduce((sum, transaction) => {
-      if (transaction.transactionType === TransactionType.CARD_PAYMENT) {
-        // Card payments reduce the balance (positive amount = payment received)
-        return sum - transaction.amount; // Subtract payment amount (reduces balance)
-      } else if (transaction.transactionType === TransactionType.RETURN) {
-        // Returns reduce the balance (positive amount = refund received)
-        return sum - transaction.amount; // Subtract return amount (reduces balance)
-      } else {
-        // Regular transactions: positive = purchases (increase balance)
-        return sum + transaction.amount;
-      }
-    }, 0);
-  } else {
-    // For debit/cash cards: exclude income, handle returns and regular transactions
-    amountSpent = card.transactions.reduce((sum, transaction) => {
-      // Exclude income transactions from amount spent
-      if (transaction.transactionType === TransactionType.INCOME) {
-        return sum; // Don't count income in amount spent
-      } else if (transaction.transactionType === TransactionType.RETURN) {
-        // Returns reduce spending (positive amount = refund received)
-        return sum - transaction.amount; // Subtract return amount (reduces spending)
-      } else {
-        // Regular transactions: positive = purchases (increase spending)
-        return sum + transaction.amount;
-      }
-    }, 0);
-  }
-
-  // For debit cards, calculate spendingLimit from INCOME transactions on this card
-  // This matches the income page calculation but per-card
-  let spendingLimit = card.spendingLimit;
-  if (isDebitCard) {
-    const cardIncome = card.transactions.reduce((sum, transaction) => {
-      if (transaction.transactionType === TransactionType.INCOME) {
-        return sum + transaction.amount;
-      }
-      return sum;
-    }, 0);
-    spendingLimit = cardIncome > 0 ? cardIncome : null;
-  }
-
-  const cardWithAmountSpent = {
-    ...card,
-    amountSpent,
-    spendingLimit,
-    transactions: undefined, // Remove transactions from response
-  };
-
-  return cardWithAmountSpent;
+  return calculateCardFinancials(card);
 }
 
 export async function createCard(
