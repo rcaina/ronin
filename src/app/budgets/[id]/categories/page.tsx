@@ -463,11 +463,11 @@ const BudgetCategoriesPage = () => {
     <>
       <div className="flex flex-col bg-surface lg:h-full lg:flex-col">
         <div className="mx-auto flex w-full flex-col px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:flex-1 lg:px-8 lg:py-4 lg:pb-8">
-          {/* Charts and Summary Card - 4 items in one row */}
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-4">
+          {/* Charts and summary — swipeable row on mobile, grid on larger screens */}
+          <div className="scrollbar-hide mb-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:mb-6 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:pb-0 lg:grid-cols-4 lg:gap-4">
             {/* Graph 1: All Categories by Allocated Amount (Donut Chart) */}
-            <div className="card-surface p-3 sm:p-4">
-              <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
+            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
+              <h3 className="mb-2 text-sm font-semibold text-gray-900">
                 All categories
               </h3>
               {chartData.allCategoriesData.length > 0 ? (
@@ -520,14 +520,14 @@ const BudgetCategoriesPage = () => {
                       />
                     </PieChart>
                   </ChartContainer>
-                  <div className="mt-2 flex max-h-12 flex-wrap justify-center gap-1 overflow-y-auto text-[9px] sm:gap-2 sm:text-[10px]">
+                  <div className="mt-2 flex max-h-12 flex-wrap justify-center gap-x-3 gap-y-1 overflow-y-auto text-xs">
                     {chartData.allCategoriesData.slice(0, 6).map((item) => (
                       <div
                         key={item.fullName}
-                        className="flex items-center gap-0.5"
+                        className="flex items-center gap-1.5"
                       >
                         <div
-                          className="h-1.5 w-1.5 rounded-full"
+                          className="h-2 w-2 rounded-full"
                           style={{ backgroundColor: item.color }}
                         />
                         <span className="text-gray-500">{item.name}</span>
@@ -546,8 +546,8 @@ const BudgetCategoriesPage = () => {
             </div>
 
             {/* Graph 2: Spending vs Allocated by Group */}
-            <div className="card-surface p-3 sm:p-4">
-              <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
+            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
+              <h3 className="mb-2 text-sm font-semibold text-gray-900">
                 Spending vs allocated
               </h3>
               {chartData.groupSpendingData.length > 0 ? (
@@ -594,7 +594,9 @@ const BudgetCategoriesPage = () => {
                         } = first.payload;
                         return (
                           <div style={chartTooltipStyle}>
-                            <div style={chartTooltipLabelStyle}>{groupName}</div>
+                            <div style={chartTooltipLabelStyle}>
+                              {groupName}
+                            </div>
                             <div style={chartTooltipItemStyle}>
                               Allocated: ${allocated.toLocaleString()}
                             </div>
@@ -648,8 +650,8 @@ const BudgetCategoriesPage = () => {
             </div>
 
             {/* Graph 3: Wants/Needs/Investments Allocation Donut Chart */}
-            <div className="card-surface p-3 sm:p-4">
-              <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
+            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
+              <h3 className="mb-2 text-sm font-semibold text-gray-900">
                 Allocation by group
               </h3>
               {chartData.groupAllocationData.length > 0 ? (
@@ -696,9 +698,12 @@ const BudgetCategoriesPage = () => {
                       />
                     </PieChart>
                   </ChartContainer>
-                  <div className="mt-2 flex flex-wrap justify-center gap-2 text-[10px] sm:text-xs">
+                  <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs">
                     {chartData.groupAllocationData.map((item) => (
-                      <div key={item.name} className="flex items-center gap-1">
+                      <div
+                        key={item.name}
+                        className="flex items-center gap-1.5"
+                      >
                         <div
                           className="h-2 w-2 rounded-full"
                           style={{ backgroundColor: item.color }}
@@ -714,8 +719,8 @@ const BudgetCategoriesPage = () => {
             </div>
 
             {/* Summary Stats Card - Combined */}
-            <div className="card-surface p-3 sm:p-4">
-              <h3 className="mb-2 text-xs font-semibold text-gray-900 sm:text-sm">
+            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
+              <h3 className="mb-2 text-sm font-semibold text-gray-900">
                 Summary
               </h3>
               <div className="space-y-2">
@@ -723,17 +728,17 @@ const BudgetCategoriesPage = () => {
                 <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                   <div className="flex items-center gap-1.5">
                     {allocationStatus.icon}
-                    <span className="text-[10px] font-medium text-gray-500 sm:text-xs">
+                    <span className="text-xs font-medium text-gray-500">
                       Allocation
                     </span>
                   </div>
                   <div className="text-right">
                     <div
-                      className={`text-xs font-semibold tabular-nums sm:text-sm ${allocationStatus.valueColor}`}
+                      className={`text-sm font-semibold tabular-nums ${allocationStatus.valueColor}`}
                     >
                       {allocationStatus.value}
                     </div>
-                    <div className="text-[9px] text-gray-500 sm:text-[10px]">
+                    <div className="text-[10px] text-gray-500">
                       {allocationStatus.subtitle}
                     </div>
                   </div>
@@ -743,15 +748,15 @@ const BudgetCategoriesPage = () => {
                 <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                   <div className="flex items-center gap-1.5">
                     <CheckCircle className="h-3 w-3 text-green-500 sm:h-4 sm:w-4" />
-                    <span className="text-[10px] font-medium text-gray-500 sm:text-xs">
+                    <span className="text-xs font-medium text-gray-500">
                       Completed
                     </span>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs font-semibold tabular-nums text-green-600 sm:text-sm">
+                    <div className="text-sm font-semibold tabular-nums text-green-600">
                       {completedCategories}
                     </div>
-                    <div className="text-[9px] tabular-nums text-gray-500 sm:text-[10px]">
+                    <div className="text-[10px] tabular-nums text-gray-500">
                       of {totalCategories}
                     </div>
                   </div>
@@ -765,13 +770,13 @@ const BudgetCategoriesPage = () => {
                     ) : (
                       <CheckCircle className="h-3 w-3 text-green-500 sm:h-4 sm:w-4" />
                     )}
-                    <span className="text-[10px] font-medium text-gray-500 sm:text-xs">
+                    <span className="text-xs font-medium text-gray-500">
                       Over budget
                     </span>
                   </div>
                   <div className="text-right">
                     <div
-                      className={`text-xs font-semibold tabular-nums sm:text-sm ${
+                      className={`text-sm font-semibold tabular-nums ${
                         categoriesOverBudget > 0
                           ? "text-red-600"
                           : "text-green-600"
@@ -779,7 +784,7 @@ const BudgetCategoriesPage = () => {
                     >
                       {categoriesOverBudget}
                     </div>
-                    <div className="text-[9px] text-gray-500 sm:text-[10px]">
+                    <div className="text-[10px] text-gray-500">
                       {getOverBudgetSubtitle().text}
                     </div>
                   </div>
@@ -816,17 +821,15 @@ const BudgetCategoriesPage = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <DollarSign className="h-3 w-3 text-green-500 sm:h-4 sm:w-4" />
-                    <span className="text-[10px] font-medium text-gray-500 sm:text-xs">
+                    <span className="text-xs font-medium text-gray-500">
                       Total income
                     </span>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs font-semibold tabular-nums text-green-600 sm:text-sm">
+                    <div className="text-sm font-semibold tabular-nums text-green-600">
                       ${totalIncome.toLocaleString()}
                     </div>
-                    <div className="text-[9px] text-gray-500 sm:text-[10px]">
-                      Available
-                    </div>
+                    <div className="text-[10px] text-gray-500">Available</div>
                   </div>
                 </div>
               </div>

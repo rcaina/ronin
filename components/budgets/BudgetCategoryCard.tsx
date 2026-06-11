@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, Trash2, GripVertical } from "lucide-react";
+import { Edit, Trash2, GripVertical, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import {
@@ -35,6 +35,7 @@ export default function BudgetCategoryCard({
     id: string;
     name: string;
   } | null>(null);
+  const [isTransactionsExpanded, setIsTransactionsExpanded] = useState(false);
 
   const updateBudgetCategoryMutation = useUpdateBudgetCategory();
   const deleteBudgetCategoryMutation = useDeleteBudgetCategory();
@@ -210,54 +211,50 @@ export default function BudgetCategoryCard({
         </div>
 
         <div className="space-y-2">
-          <div>
-            <div className="mb-1 flex justify-between text-xs">
+          {editingCategoryId === budgetCategory.id ? (
+            <div className="flex items-center justify-between text-xs">
               <span className="text-gray-500">Allocated</span>
-              {editingCategoryId === budgetCategory.id ? (
-                <div className="flex items-center space-x-1">
-                  <span className="text-sm text-gray-500">$</span>
-                  <input
-                    type="text"
-                    value={
-                      typeof editingAmount === "number"
-                        ? editingAmount === 0
-                          ? ""
-                          : String(editingAmount)
-                        : editingAmount
+              <div className="flex items-center space-x-1">
+                <span className="text-sm text-gray-500">$</span>
+                <input
+                  type="text"
+                  value={
+                    typeof editingAmount === "number"
+                      ? editingAmount === 0
+                        ? ""
+                        : String(editingAmount)
+                      : editingAmount
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow digits and one period for decimals
+                    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                      setEditingAmount(value);
                     }
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      // Allow digits and one period for decimals
-                      if (value === "" || /^\d*\.?\d*$/.test(value)) {
-                        setEditingAmount(value);
-                      }
-                    }}
-                    className="w-20 rounded-lg border border-gray-300 px-1 py-0.5 text-right text-sm tabular-nums focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                  />
-                </div>
-              ) : (
-                <span className="font-medium">
-                  {formatCurrency(budgetCategory.allocatedAmount ?? 0)}
-                </span>
-              )}
+                  }}
+                  className="w-20 rounded-lg border border-gray-300 px-1 py-0.5 text-right text-sm tabular-nums focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                />
+              </div>
             </div>
-            <div className="mb-1 flex justify-between text-xs">
-              <span className="text-gray-500">Spent</span>
-              <span className="font-medium">
-                {formatCurrency(categorySpent)}
+          ) : (
+            <div className="flex items-baseline justify-between gap-2 text-xs">
+              <span className="truncate text-gray-500">
+                <span className="font-medium tabular-nums text-gray-900">
+                  {formatCurrency(categorySpent)}
+                </span>{" "}
+                spent of {formatCurrency(budgetCategory.allocatedAmount ?? 0)}
               </span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-gray-500">Remaining</span>
               <span
-                className={`font-medium ${
-                  categoryRemaining >= 0 ? "text-gray-900" : "text-red-600"
+                className={`flex-shrink-0 font-medium tabular-nums ${
+                  categoryRemaining >= 0 ? "text-gray-500" : "text-red-600"
                 }`}
               >
-                {formatCurrency(categoryRemaining)}
+                {categoryRemaining >= 0
+                  ? `${formatCurrency(categoryRemaining)} left`
+                  : `${formatCurrency(Math.abs(categoryRemaining))} over`}
               </span>
             </div>
-          </div>
+          )}
 
           <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
             <div
@@ -297,45 +294,70 @@ export default function BudgetCategoryCard({
           </div>
         )}
 
-        {/* Recent Transactions */}
+        {/* Transactions — collapsed by default to keep cards uniform */}
         {budgetCategory.transactions &&
-          budgetCategory.transactions.length > 0 && (
-            <div className="mt-3 border-t pt-3">
-              <h4 className="mb-2 text-xs font-medium text-gray-700">
-                Recent Transactions
-              </h4>
-              <div className="space-y-1.5">
-                {budgetCategory.transactions.slice(0, 3).map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center justify-between text-xs"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-gray-900">
-                        {transaction.name ?? "Unnamed transaction"}
-                      </p>
-                      <p className="text-[10px] text-gray-500">
-                        {new Date(transaction.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <span
-                      className={`font-medium ${transaction.transactionType === TransactionType.RETURN ? "text-green-600" : "text-gray-900"}`}
+          budgetCategory.transactions.length > 0 &&
+          editingCategoryId !== budgetCategory.id && (
+            <div className="mt-3 border-t border-gray-100 pt-1.5">
+              <button
+                onClick={() =>
+                  setIsTransactionsExpanded(!isTransactionsExpanded)
+                }
+                className="flex w-full items-center justify-between rounded-lg py-1 text-xs font-medium text-gray-500 transition-colors duration-200 hover:text-gray-700"
+                title={
+                  isTransactionsExpanded
+                    ? "Hide transactions"
+                    : "Show recent transactions"
+                }
+              >
+                <span className="tabular-nums">
+                  {budgetCategory.transactions.length} transaction
+                  {budgetCategory.transactions.length !== 1 ? "s" : ""}
+                </span>
+                <ChevronDown
+                  className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                    isTransactionsExpanded ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              {isTransactionsExpanded && (
+                <div className="mt-1.5 space-y-1.5">
+                  {budgetCategory.transactions
+                    .slice(0, 3)
+                    .map((transaction) => (
+                      <div
+                        key={transaction.id}
+                        className="flex items-center justify-between text-xs"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-gray-900">
+                            {transaction.name ?? "Unnamed transaction"}
+                          </p>
+                          <p className="text-[10px] text-gray-500">
+                            {new Date(
+                              transaction.createdAt,
+                            ).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <span
+                          className={`font-medium tabular-nums ${transaction.transactionType === TransactionType.RETURN ? "text-green-600" : "text-gray-900"}`}
+                        >
+                          {transaction.amount < 0 ? "-" : ""}
+                          {formatCurrency(Math.abs(transaction.amount))}
+                        </span>
+                      </div>
+                    ))}
+                  <div className="text-center">
+                    <button
+                      onClick={handleViewAllTransactions}
+                      className="cursor-pointer text-center text-xs font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800 hover:underline"
+                      title={`View all ${budgetCategory.transactions.length} transactions for ${budgetCategory.name}`}
                     >
-                      {transaction.amount < 0 ? "-" : ""}
-                      {formatCurrency(Math.abs(transaction.amount))}
-                    </span>
+                      View all transactions
+                    </button>
                   </div>
-                ))}
-                <div className="text-center">
-                  <button
-                    onClick={handleViewAllTransactions}
-                    className="cursor-pointer text-center text-xs font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800 hover:underline"
-                    title={`View all ${budgetCategory.transactions.length} transactions for ${budgetCategory.name}`}
-                  >
-                    View all transactions
-                  </button>
                 </div>
-              </div>
+              )}
             </div>
           )}
       </div>

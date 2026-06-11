@@ -29,12 +29,6 @@ export default function SavingsLayout({
           : "Loading...",
         showBackButton: true,
       };
-    } else if (pathname?.endsWith("/pockets")) {
-      return {
-        title: `${savings?.name ?? "Savings"} - Pockets`,
-        description: "Manage your savings pockets",
-        showBackButton: true,
-      };
     } else if (pathname?.endsWith("/allocations")) {
       return {
         title: `${savings?.name ?? "Savings"} - Allocations`,
@@ -51,7 +45,7 @@ export default function SavingsLayout({
   const contentPadding = "pt-8";
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
+    <div className="flex h-screen flex-col bg-surface">
       {pageHeaderConfig && (
         <PageHeader
           title={pageHeaderConfig.title}

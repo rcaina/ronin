@@ -104,11 +104,6 @@ export default function MobileHeader() {
           label: "Overview",
         },
         {
-          href: `/savings/${savingsId}/pockets`,
-          icon: <PiggyBank className="h-5 w-5" />,
-          label: "Pockets",
-        },
-        {
           href: `/savings/${savingsId}/allocations`,
           icon: <DollarSign className="h-5 w-5" />,
           label: "Allocations",

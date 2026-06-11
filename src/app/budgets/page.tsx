@@ -531,9 +531,9 @@ const BudgetsPage = () => {
         {/* Budgets List - Scrollable */}
         <div className="overflow-y-auto lg:flex-1">
           <div className="mx-auto w-full px-4 py-3 pb-28 sm:px-6 lg:px-8 lg:pb-8">
-            <div className="grid gap-4">
+            <div className="grid gap-4 xl:grid-cols-2">
               {currentBudgets.length === 0 ? (
-                <div className="card-surface flex flex-col items-center justify-center gap-3 p-10 text-center">
+                <div className="card-surface col-span-full flex flex-col items-center justify-center gap-3 p-10 text-center">
                   <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
                     <Target className="h-7 w-7" strokeWidth={1.5} />
                   </div>
@@ -695,10 +695,6 @@ const BudgetsPage = () => {
                                 </span>
                               </div>
                             )}
-                            <span>
-                              Created{" "}
-                              {new Date(budget.createdAt).toLocaleDateString()}
-                            </span>
                           </div>
                         </div>
                         <div className="text-left sm:text-right">

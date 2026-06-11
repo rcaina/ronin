@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useParams } from "next/navigation";
-import { Target, PiggyBank, DollarSign } from "lucide-react";
+import { Target, DollarSign } from "lucide-react";
 
 interface SavingsNavItem {
   href: string;
@@ -20,11 +20,6 @@ export default function SavingsPageNavigation() {
       href: `/savings/${id}`,
       icon: <Target className="h-4 w-4" />,
       label: "Overview",
-    },
-    {
-      href: `/savings/${id}/pockets`,
-      icon: <PiggyBank className="h-4 w-4" />,
-      label: "Pockets",
     },
     {
       href: `/savings/${id}/allocations`,

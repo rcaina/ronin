@@ -1,11 +1,18 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { useSavingsAccount } from "@/lib/data-hooks/savings/useSavings";
+import { useCreatePocket } from "@/lib/data-hooks/savings/usePockets";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import StatsCard from "@/components/StatsCard";
-import { AlertCircle, PiggyBank, Target, DollarSign } from "lucide-react";
-import { roundToCents } from "@/lib/utils";
+import PocketCard from "@/components/savings/PocketCard";
+import AddPocketModal from "@/components/savings/AddPocketModal";
+import Button from "@/components/Button";
+import { toast } from "react-hot-toast";
+import type { CreatePocketSchema } from "@/lib/api-schemas/savings";
+import { AlertCircle, PiggyBank, Target, DollarSign, Plus } from "lucide-react";
+import { formatCurrency, roundToCents } from "@/lib/utils";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
 import {
   CHART_COLORS,
@@ -24,7 +31,22 @@ const SavingsCategoriesPage = () => {
     data: savings,
     isLoading: savingsLoading,
     error: savingsError,
+    refetch,
   } = useSavingsAccount(savingsId);
+  const [isAddingPocket, setIsAddingPocket] = useState(false);
+  const createPocketMutation = useCreatePocket();
+
+  const handleSubmitAddPocket = async (data: CreatePocketSchema) => {
+    try {
+      await createPocketMutation.mutateAsync(data);
+      setIsAddingPocket(false);
+      toast.success("Pocket added successfully!");
+      void refetch();
+    } catch (error) {
+      console.error("Failed to add pocket:", error);
+      toast.error("Failed to add pocket. Please try again.");
+    }
+  };
 
   // Calculate statistics
   const totalPockets = savings?.pockets?.length ?? 0;
@@ -77,6 +99,23 @@ const SavingsCategoriesPage = () => {
     savings?.pockets
       ?.filter((p) => typeof p.total === "number" && p.total > 0)
       .map((p) => ({ name: p.name, value: p.total })) ?? [];
+
+  // Per-pocket goal progress (pockets with a goal set)
+  const pocketGoalProgressData =
+    savings?.pockets
+      ?.filter((p) => typeof p.goalAmount === "number" && p.goalAmount > 0)
+      .map((p) => {
+        const total = typeof p.total === "number" ? p.total : 0;
+        const goal = p.goalAmount!;
+        return {
+          id: p.id,
+          name: p.name,
+          total,
+          goal,
+          percentage: roundToCents((total / goal) * 100),
+        };
+      })
+      .sort((a, b) => b.percentage - a.percentage) ?? [];
 
   // Show loading state
   if (savingsLoading) {
@@ -170,9 +209,10 @@ const SavingsCategoriesPage = () => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+        {/* Charts — swipeable row on mobile, grid on larger screens */}
+        <div className="scrollbar-hide flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:pb-0 lg:gap-6">
           {/* Savings by pocket donut */}
-          <div className="card-surface p-4 sm:p-5">
+          <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0 sm:p-5">
             <h3 className="mb-2 text-sm font-semibold text-gray-900">
               Savings by pocket
             </h3>
@@ -240,18 +280,18 @@ const SavingsCategoriesPage = () => {
             )}
           </div>
 
-          {/* Overall Progress Bar */}
+          {/* Goal progress — overall + per pocket */}
           {totalGoalAmount > 0 && (
-            <div className="card-surface p-4 sm:p-5">
-              <div className="mb-3 flex items-center justify-between sm:mb-4">
+            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0 sm:p-5">
+              <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-gray-900">
-                  Overall goal progress
+                  Goal progress
                 </h3>
                 <span className="text-xs font-medium tabular-nums text-gray-500">
                   {totalProgressPercentage.toFixed(1)}% complete
                 </span>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 sm:h-3">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ease-out ${
                     totalProgressPercentage >= 100
@@ -261,10 +301,92 @@ const SavingsCategoriesPage = () => {
                   style={{ width: `${totalProgressPercentage}%` }}
                 ></div>
               </div>
+              <div className="mt-4 space-y-3">
+                {pocketGoalProgressData.map((pocket) => (
+                  <div key={pocket.id}>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <span className="truncate text-xs font-medium text-gray-900">
+                        {pocket.name}
+                      </span>
+                      <span className="flex-shrink-0 text-xs tabular-nums text-gray-500">
+                        {formatCurrency(pocket.total)} /{" "}
+                        {formatCurrency(pocket.goal)}
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ease-out ${
+                          pocket.percentage >= 100
+                            ? "bg-green-500"
+                            : "bg-secondary"
+                        }`}
+                        style={{
+                          width: `${Math.min(pocket.percentage, 100)}%`,
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Pockets */}
+        <div className="mt-4 sm:mt-6">
+          <div className="mb-3 flex items-center justify-between sm:mb-4">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-gray-900 sm:text-base">
+                Pockets
+              </h3>
+              <span className="rounded-full bg-secondary/15 px-2.5 py-0.5 text-xs font-medium tabular-nums text-secondary-700">
+                {savings.pockets?.length ?? 0}
+              </span>
+            </div>
+            <Button onClick={() => setIsAddingPocket(true)}>
+              <Plus className="h-4 w-4" />
+              <span>Add pocket</span>
+            </Button>
+          </div>
+
+          {savings.pockets && savings.pockets.length > 0 ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-6">
+              {savings.pockets.map((pocket) => (
+                <PocketCard
+                  key={pocket.id}
+                  pocket={pocket}
+                  savingsId={savingsId}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="card-surface flex flex-col items-center justify-center gap-3 p-10 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+                <PiggyBank className="h-7 w-7" strokeWidth={1.5} />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                No pockets yet
+              </h3>
+              <p className="text-sm text-gray-500">
+                Pockets help you organize savings toward specific goals
+              </p>
+              <Button onClick={() => setIsAddingPocket(true)}>
+                <Plus className="h-4 w-4" />
+                <span>Add pocket</span>
+              </Button>
             </div>
           )}
         </div>
       </div>
+
+      {/* Add Pocket Modal */}
+      <AddPocketModal
+        isOpen={isAddingPocket}
+        onClose={() => setIsAddingPocket(false)}
+        onSubmit={handleSubmitAddPocket}
+        isLoading={createPocketMutation.isPending}
+        savingsId={savingsId}
+      />
     </div>
   );
 };
