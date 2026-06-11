@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getCategories, deleteCategory, createCategory, updateCategory, type CreateCategoryRequest, type GroupedCategories } from "@/lib/data-hooks/services/categories";
+import { getCategories, deleteCategory, createCategory, updateCategory } from "@/lib/data-hooks/services/categories";
+import type { CreateCategoryRequest, GroupedCategories } from "@/lib/types/category";
 import { useSession } from "next-auth/react";
 import { CategoryType } from "@prisma/client";
 

@@ -5,14 +5,6 @@ import type { z } from "zod"
 import type { createUserSchema, updateProfileSchema } from "../api-schemas/users"
 import { NextResponse } from "next/server"
 
-export interface CreateUserData {
-  firstName: string
-  lastName: string
-  email: string
-  password: string
-  role: Role
-}
-
 export async function createUser(
   tx: PrismaClientTx,
   data: z.infer<typeof createUserSchema>,

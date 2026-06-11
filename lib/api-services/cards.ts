@@ -67,7 +67,8 @@ export async function getCards(
 export async function getCardById(
   tx: PrismaClientTx,
   id: string,
-  accountId: string
+  accountId: string,
+  excludeCardPayments = false
 ) {
   const card = await tx.card.findFirst({
     where: {
@@ -94,6 +95,11 @@ export async function getCardById(
       transactions: {
         where: {
           deleted: null,
+          ...(excludeCardPayments && {
+            transactionType: {
+              not: TransactionType.CARD_PAYMENT
+            }
+          }),
         },
         select: {
           amount: true,

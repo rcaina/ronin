@@ -1,26 +1,10 @@
-import type { CategoryType } from "@prisma/client";
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-
-export type BudgetCategoryWithCategory = {
-  id: string;
-  budgetId: string | null;
-  name: string;
-  group: string;
-  allocatedAmount: number | null;
-  spentAmount?: number;
-  createdAt: Date;
-  updatedAt: Date;
-  deleted: Date | null;
-  transactions: Array<{
-    id: string;
-    name: string | null;
-    description: string | null;
-    amount: number;
-    transactionType: string;
-    createdAt: Date;
-  }>;
-};
+import type {
+  BudgetCategoryWithCategory,
+  CreateBudgetCategoryData,
+  UpdateBudgetCategoryData,
+} from "@/lib/types/budget";
 
 const getBudgetCategories = async (budgetId: string, searchQuery?: string): Promise<BudgetCategoryWithCategory[]> => {
   const url = new URL(`/api/budgets/${budgetId}/categories`, window.location.origin);
@@ -49,12 +33,6 @@ export const useBudgetCategories = (budgetId: string, searchQuery?: string) => {
   return query;
 };
 
-export interface CreateBudgetCategoryData {
-  categoryName: string;
-  group: CategoryType;
-  allocatedAmount: number;
-}
-
 const createBudgetCategory = async (
   budgetId: string,
   data: CreateBudgetCategoryData
@@ -74,12 +52,6 @@ const createBudgetCategory = async (
   const budgetCategory = await response.json() as BudgetCategoryWithCategory;
   return budgetCategory;
 };
-
-export interface UpdateBudgetCategoryData {
-  allocatedAmount?: number;
-  name?: string;
-  group?: CategoryType;
-}
 
 const updateBudgetCategory = async (
   budgetId: string,

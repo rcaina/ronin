@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signIn, type SignInRequest } from "./services/auth";
+import { signIn } from "./services/auth";
+import type { SignInRequest } from "@/lib/types/user";
 
 interface UseSignInReturn {
   signIn: (data: SignInRequest) => Promise<void>;

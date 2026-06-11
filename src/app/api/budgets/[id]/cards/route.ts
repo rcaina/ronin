@@ -11,8 +11,10 @@ export const GET = withUser({
     const { id } = await context.params;
     const budgetId = validateBudgetId(id);
     await ensureBudgetOwnership(budgetId, user.accountId);
-    
-    const budgetCards = await getBudgetCards(prisma, budgetId);
+
+    const excludeCardPayments = req.nextUrl.searchParams.get('excludeCardPayments') === 'true';
+
+    const budgetCards = await getBudgetCards(prisma, budgetId, excludeCardPayments);
     
     return NextResponse.json(budgetCards, { status: 200 });
   })

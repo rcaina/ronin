@@ -17,7 +17,7 @@ import {
   useUpdateCard,
 } from "@/lib/data-hooks/cards/useCards";
 import { useActiveBudgets } from "@/lib/data-hooks/budgets/useBudgets";
-import { type Card as ApiCard } from "@/lib/data-hooks/services/cards";
+import type { Card as ApiCard } from "@/lib/types/card";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import type { CardType } from "@prisma/client";
 import Button from "@/components/Button";

@@ -12,7 +12,7 @@ import {
   duplicateBudgetWithCards,
   duplicateBudget,
 } from "../services/budgets";
-import type { UpdateBudgetData } from "@/lib/api-services/budgets";
+import type { UpdateBudgetData } from "@/lib/types/budget";
 import type { BudgetStatus } from "@prisma/client";
 
 type CreateBudgetVariables = Parameters<typeof createBudget>[0];

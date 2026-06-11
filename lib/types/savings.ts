@@ -28,5 +28,9 @@ export interface SavingsSummary {
   pockets: PocketSummary[];
 }
 
-
-
+export interface UpdatePocketData {
+  name?: string;
+  goalAmount?: number | null;
+  goalDate?: string | null;
+  goalNote?: string | null;
+}

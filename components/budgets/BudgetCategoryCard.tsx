@@ -6,8 +6,8 @@ import { toast } from "react-hot-toast";
 import {
   useUpdateBudgetCategory,
   useDeleteBudgetCategory,
-  type BudgetCategoryWithCategory,
 } from "@/lib/data-hooks/budgets/useBudgetCategories";
+import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
 import { useState } from "react";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import type { GroupColorFunction } from "@/lib/types/budget";

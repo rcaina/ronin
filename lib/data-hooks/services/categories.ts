@@ -1,38 +1,9 @@
-import { type Category, type CategoryType } from "@prisma/client";
-
-export interface GroupedCategories {
-  wants: Array<{
-    id: string;
-    name: string;
-    group: CategoryType;
-    createdAt: string;
-    updatedAt: string;
-  }>;
-  needs: Array<{
-    id: string;
-    name: string;
-    group: CategoryType;
-    createdAt: string;
-    updatedAt: string;
-  }>;
-  investment: Array<{
-    id: string;
-    name: string;
-    group: CategoryType;
-    createdAt: string;
-    updatedAt: string;
-  }>;
-}
-
-export interface CreateCategoryRequest {
-  name: string;
-  group: CategoryType;
-}
-
-export interface UpdateCategoryRequest {
-  name: string;
-  group: CategoryType;
-}
+import { type Category } from "@prisma/client";
+import type {
+  GroupedCategories,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+} from "@/lib/types/category";
 
 export const getCategories = async (): Promise<GroupedCategories> => fetch("/api/categories").then((res) => res.json()) as Promise<GroupedCategories>
 

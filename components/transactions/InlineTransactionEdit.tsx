@@ -8,15 +8,15 @@ import { toast } from "react-hot-toast";
 import { useUpdateTransaction } from "@/lib/data-hooks/transactions/useTransactions";
 import {
   useBudgetCategories,
-  type BudgetCategoryWithCategory,
 } from "@/lib/data-hooks/budgets/useBudgetCategories";
+import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import type {
   UpdateTransactionRequest,
   TransactionWithRelations,
 } from "@/lib/types/transaction";
-import type { Card } from "@/lib/data-hooks/services/cards";
+import type { Card } from "@/lib/types/card";
 import Button from "../Button";
 import { formatCurrency } from "@/lib/utils";
 import { CategoryType, TransactionType } from "@prisma/client";

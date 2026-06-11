@@ -2,40 +2,7 @@ import { type CategoryType } from "@prisma/client"
 import type { PrismaClientTx } from "../prisma";
 import type { z } from "zod";
 import type { createCategorySchema } from "../api-schemas/categories";
-
-export interface CreateCategoryData {
-  name: string;
-  group: CategoryType;
-}
-
-export interface UpdateCategoryData {
-  name: string;
-  group: CategoryType;
-}
-
-export interface GroupedCategories {
-  wants: Array<{
-    id: string;
-    name: string;
-    group: CategoryType;
-    createdAt: string;
-    updatedAt: string;
-  }>;
-  needs: Array<{
-    id: string;
-    name: string;
-    group: CategoryType;
-    createdAt: string;
-    updatedAt: string;
-  }>;
-  investment: Array<{
-    id: string;
-    name: string;
-    group: CategoryType;
-    createdAt: string;
-    updatedAt: string;
-  }>;
-}
+import type { GroupedCategories, UpdateCategoryRequest } from "../types/category";
 
 export async function getCategories(
   tx: PrismaClientTx
@@ -114,7 +81,7 @@ export async function deleteCategory(
 export async function updateCategory(
   tx: PrismaClientTx,
   id: string,
-  data: UpdateCategoryData
+  data: UpdateCategoryRequest
 ) {
   return await tx.category.update({
     where: {
