@@ -4,6 +4,8 @@ import Button from "./Button";
 
 interface PageHeaderProps {
   title: string;
+  /** Small label shown above the title (e.g. the parent budget/savings name). */
+  eyebrow?: string;
   description?: string;
   backButton?: {
     onClick: () => void;
@@ -23,6 +25,7 @@ interface PageHeaderProps {
 
 const PageHeader = ({
   title,
+  eyebrow,
   description,
   backButton,
   action,
@@ -30,57 +33,70 @@ const PageHeader = ({
 }: PageHeaderProps) => {
   return (
     <div className="fixed left-0 right-0 top-16 z-[30] border-b border-gray-200/70 bg-white/90 backdrop-blur-md lg:sticky lg:top-0">
-      <div className="mx-auto px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
-        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-          <div className="flex items-center">
-            {backButton && (
-              <button
-                onClick={backButton.onClick}
-                className="mr-3 flex h-9 w-9 items-center justify-center rounded-xl text-gray-500 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 sm:mr-4"
-                aria-label="Go back"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </button>
-            )}
-            <div>
-              <h1 className="text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl">
-                {title}
-              </h1>
-              {description && (
-                <p className="mt-0.5 text-sm text-gray-500">{description}</p>
-              )}
-            </div>
-          </div>
-          {(action ?? actions) && (
-            <div className="flex w-full flex-row items-center justify-end gap-2 sm:w-auto sm:gap-3">
-              {action && (
-                <Button
-                  onClick={action.onClick}
-                  variant="primary"
-                  className="w-full sm:w-auto"
-                >
-                  {action.icon && <span className="mr-2">{action.icon}</span>}
-                  {action.label}
-                </Button>
-              )}
-              {actions?.map((actionItem, index) => (
-                <Button
-                  key={index}
-                  onClick={actionItem.onClick}
-                  variant={actionItem.variant ?? "secondary"}
-                  className="w-auto shrink-0 sm:w-auto"
-                >
-                  {actionItem.icon && (
-                    <span className={actionItem.label ? "sm:mr-2" : ""}>
-                      {actionItem.icon}
-                    </span>
-                  )}
-                  <span className="hidden sm:inline">{actionItem.label}</span>
-                </Button>
-              ))}
-            </div>
+      {/* Fixed height while the header is position:fixed (below lg) so it never
+          grows past its content clearance; natural height once it's sticky on
+          desktop, where the description can show. */}
+      <div className="mx-auto flex h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:h-auto lg:px-8 lg:py-4">
+        <div className="flex min-w-0 flex-1 items-center">
+          {backButton && (
+            <button
+              onClick={backButton.onClick}
+              className="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-gray-500 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 sm:mr-4"
+              aria-label="Go back"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
           )}
+          <div className="min-w-0">
+            {eyebrow && (
+              <p className="truncate text-xs font-medium text-gray-500">
+                {eyebrow}
+              </p>
+            )}
+            <h1 className="truncate text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl">
+              {title}
+            </h1>
+            {description && (
+              <p className="mt-0.5 hidden truncate text-sm text-gray-500 lg:block">
+                {description}
+              </p>
+            )}
+          </div>
         </div>
+        {(action ?? actions) && (
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            {action && (
+              <Button onClick={action.onClick} variant="primary">
+                {action.icon && (
+                  <span className={action.label ? "sm:mr-2" : ""}>
+                    {action.icon}
+                  </span>
+                )}
+                {/* Icon-only on mobile when an icon exists; otherwise keep the
+                    label so the button is never empty. */}
+                <span className={action.icon ? "hidden sm:inline" : ""}>
+                  {action.label}
+                </span>
+              </Button>
+            )}
+            {actions?.map((actionItem, index) => (
+              <Button
+                key={index}
+                onClick={actionItem.onClick}
+                variant={actionItem.variant ?? "secondary"}
+              >
+                {actionItem.icon && (
+                  <span className={actionItem.label ? "sm:mr-2" : ""}>
+                    {actionItem.icon}
+                  </span>
+                )}
+                <span className={actionItem.icon ? "hidden sm:inline" : ""}>
+                  {actionItem.label}
+                </span>
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

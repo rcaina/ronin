@@ -18,12 +18,15 @@ export default function SavingsLayout({
 
   const { data: savings } = useSavingsAccount(id);
 
-  // Configure page header based on current pathname
+  // Configure page header based on current pathname. Sub-pages show the section
+  // name as the title with the account name as a smaller eyebrow above it.
   const pageHeaderConfig = useMemo(() => {
+    const savingsName = savings?.name ?? "Savings";
     if (pathname === `/savings/${id}`) {
       // Main savings overview page
       return {
-        title: savings?.name ?? "Savings",
+        eyebrow: undefined as string | undefined,
+        title: savingsName,
         description: savings
           ? `Created ${new Date(savings.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`
           : "Loading...",
@@ -31,7 +34,8 @@ export default function SavingsLayout({
       };
     } else if (pathname?.endsWith("/allocations")) {
       return {
-        title: `${savings?.name ?? "Savings"} - Allocations`,
+        eyebrow: savingsName,
+        title: "Allocations",
         description: "View all allocations across all pockets",
         showBackButton: true,
       };
@@ -41,14 +45,12 @@ export default function SavingsLayout({
     return null;
   }, [pathname, id, savings]);
 
-  // Determine content padding
-  const contentPadding = "pt-8";
-
   return (
     <div className="flex h-screen flex-col bg-surface">
       {pageHeaderConfig && (
         <PageHeader
           title={pageHeaderConfig.title}
+          eyebrow={pageHeaderConfig.eyebrow}
           description={pageHeaderConfig.description}
           backButton={
             pageHeaderConfig.showBackButton
@@ -60,9 +62,7 @@ export default function SavingsLayout({
 
       <SavingsPageNavigation />
 
-      <div className={`flex-1 overflow-hidden ${contentPadding} lg:pt-0`}>
-        {children}
-      </div>
+      <div className="flex-1 overflow-hidden pt-3 lg:pt-0">{children}</div>
     </div>
   );
 }

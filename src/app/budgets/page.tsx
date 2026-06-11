@@ -228,7 +228,7 @@ const BudgetsPage = () => {
     <div className="flex flex-col bg-surface pt-16 sm:pt-8 lg:h-screen lg:pt-0">
       <PageHeader
         title="Budgets"
-        description="Manage your financial budgets and track spending"
+        description="Manage budgets and track spending"
         action={{
           icon: <Plus className="h-4 w-4" />,
           label: "Create budget",
