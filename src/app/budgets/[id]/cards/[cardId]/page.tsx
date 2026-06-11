@@ -35,7 +35,7 @@ import {
   type HeaderAction,
 } from "../../../../../../components/budgets/BudgetHeaderContext";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
-import { getGroupColor, formatCurrency } from "@/lib/utils";
+import { getGroupColor } from "@/lib/utils";
 
 interface User {
   id: string;
@@ -595,7 +595,6 @@ const CardDetailsPage = () => {
                           onCancel={handleInlineEditCancel}
                           onSuccess={handleInlineEditSuccess}
                           getGroupColor={getGroupColor}
-                          formatCurrency={formatCurrency}
                         />
                       );
                     }

@@ -23,6 +23,7 @@ import type {
 } from "@/lib/types/transaction";
 import type { Card } from "@/lib/data-hooks/services/cards";
 import Button from "../Button";
+import { formatCurrency } from "@/lib/utils";
 import { CardType, TransactionType } from "@prisma/client";
 
 // Validation schema
@@ -427,8 +428,8 @@ export default function TransactionForm({
                       const availableAmount = allocatedAmount - spentAmount;
                       return (
                         <option key={budgetCategory.id} value={budgetCategory.id}>
-                          {budgetCategory.name} ($
-                          {availableAmount.toFixed(2)} available)
+                          {budgetCategory.name} (
+                          {formatCurrency(availableAmount)} available)
                         </option>
                       );
                     },

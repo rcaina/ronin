@@ -12,7 +12,7 @@ import { useState } from "react";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import type { GroupColorFunction } from "@/lib/types/budget";
 import { TransactionType } from "@prisma/client";
-import { roundToCents } from "@/lib/utils";
+import { formatCurrency, roundToCents } from "@/lib/utils";
 import Button from "@/components/Button";
 
 interface BudgetCategoryCardProps {
@@ -41,12 +41,17 @@ export default function BudgetCategoryCard({
 
   const categorySpent = roundToCents(
     (budgetCategory.transactions ?? []).reduce((acc, transaction) => {
-      if (transaction.transactionType === TransactionType.RETURN) {
-        // Returns reduce spending (positive amount = refund received)
-        return acc - transaction.amount;
-      } else {
-        // Regular transactions: positive = purchases (increase spending)
-        return acc + transaction.amount;
+      switch (transaction.transactionType) {
+        case TransactionType.RETURN:
+          // Returns reduce spending (positive amount = refund received)
+          return acc - transaction.amount;
+        case TransactionType.INCOME:
+        case TransactionType.CARD_PAYMENT:
+          // Money movement, not category spending
+          return acc;
+        default:
+          // Regular transactions: positive = purchases (increase spending)
+          return acc + transaction.amount;
       }
     }, 0),
   );
@@ -232,17 +237,14 @@ export default function BudgetCategoryCard({
                 </div>
               ) : (
                 <span className="font-medium">
-                  $
-                  {(budgetCategory.allocatedAmount ?? 0)
-                    .toFixed(2)
-                    .toLocaleString()}
+                  {formatCurrency(budgetCategory.allocatedAmount ?? 0)}
                 </span>
               )}
             </div>
             <div className="mb-1 flex justify-between text-xs">
               <span className="text-gray-500">Spent</span>
               <span className="font-medium">
-                ${categorySpent.toFixed(2).toLocaleString()}
+                {formatCurrency(categorySpent)}
               </span>
             </div>
             <div className="flex justify-between text-xs">
@@ -252,7 +254,7 @@ export default function BudgetCategoryCard({
                   categoryRemaining >= 0 ? "text-gray-900" : "text-red-600"
                 }`}
               >
-                ${categoryRemaining.toFixed(2).toLocaleString()}
+                {formatCurrency(categoryRemaining)}
               </span>
             </div>
           </div>
@@ -319,8 +321,8 @@ export default function BudgetCategoryCard({
                     <span
                       className={`font-medium ${transaction.transactionType === TransactionType.RETURN ? "text-green-600" : "text-gray-900"}`}
                     >
-                      {transaction.amount < 0 ? "-" : ""}$
-                      {Math.abs(transaction.amount).toFixed(2).toLocaleString()}
+                      {transaction.amount < 0 ? "-" : ""}
+                      {formatCurrency(Math.abs(transaction.amount))}
                     </span>
                   </div>
                 ))}

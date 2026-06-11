@@ -1,5 +1,6 @@
 import { CreditCard, DollarSign, Edit, Trash2, CopyIcon } from "lucide-react";
 import type { Card } from "@/lib/utils/cards";
+import { formatCurrency, roundToCents } from "@/lib/utils";
 
 interface CardProps {
   card: Card;
@@ -146,7 +147,7 @@ const CardComponent = ({
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">Limit</span>
                 <span className="font-semibold text-gray-900">
-                  ${card.spendingLimit.toFixed(2)}
+                  {formatCurrency(card.spendingLimit)}
                 </span>
               </div>
             )}
@@ -154,17 +155,16 @@ const CardComponent = ({
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">Spent</span>
                 <span className="font-semibold text-red-500">
-                  ${card.amountSpent.toFixed(2)}
+                  {formatCurrency(card.amountSpent)}
                 </span>
               </div>
             )}
             {card.spendingLimit &&
               !general &&
               (() => {
-                // Round to 2 decimal places to avoid floating point precision issues
-                const available =
-                  Math.round((card.spendingLimit - card.amountSpent) * 100) /
-                  100;
+                const available = roundToCents(
+                  card.spendingLimit - card.amountSpent,
+                );
                 return (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">Available</span>
@@ -173,7 +173,7 @@ const CardComponent = ({
                         available >= 0 ? "text-green-600" : "text-red-600"
                       }`}
                     >
-                      ${Math.max(0, available).toFixed(2)}
+                      {formatCurrency(available)}
                     </span>
                   </div>
                 );

@@ -22,6 +22,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import type { CardType } from "@prisma/client";
 import Button from "@/components/Button";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
+import { formatCurrency } from "@/lib/utils";
 import StatsCard from "@/components/StatsCard";
 
 interface User {
@@ -273,7 +274,7 @@ const CardsPage = () => {
             <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
               <StatsCard
                 title="Total Spent"
-                value={`$${totalSpent.toLocaleString()}`}
+                value={formatCurrency(totalSpent)}
                 subtitle="Across all cards"
                 icon={
                   <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
@@ -283,8 +284,8 @@ const CardsPage = () => {
 
               <StatsCard
                 title="Credit Limit"
-                value={`$${totalLimit.toLocaleString()}`}
-                subtitle="Available credit"
+                value={formatCurrency(totalLimit)}
+                subtitle="Across credit cards"
                 icon={
                   <CreditCard className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
                 }

@@ -18,6 +18,7 @@ import type {
 } from "@/lib/types/transaction";
 import type { Card } from "@/lib/data-hooks/services/cards";
 import Button from "../Button";
+import { formatCurrency } from "@/lib/utils";
 import { CategoryType, TransactionType } from "@prisma/client";
 
 // Validation schema
@@ -42,7 +43,6 @@ interface InlineTransactionEditProps {
   onCancel: () => void;
   onSuccess: () => void;
   getGroupColor: (group: CategoryType) => string;
-  formatCurrency: (amount: number) => string;
 }
 
 export default function InlineTransactionEdit({
@@ -217,8 +217,8 @@ export default function InlineTransactionEdit({
                     const availableAmount = allocatedAmount - spentAmount;
                     return (
                       <option key={budgetCategory.id} value={budgetCategory.id}>
-                        {budgetCategory.name} ($
-                        {availableAmount.toFixed(2)} available)
+                        {budgetCategory.name} (
+                        {formatCurrency(availableAmount)} available)
                       </option>
                     );
                   },

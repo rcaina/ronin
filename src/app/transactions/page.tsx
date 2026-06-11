@@ -849,7 +849,6 @@ const TransactionsPage = () => {
                           onCancel={handleInlineEditCancel}
                           onSuccess={handleInlineEditSuccess}
                           getGroupColor={getGroupColor}
-                          formatCurrency={formatCurrency}
                         />
                       );
                     }
@@ -955,19 +954,15 @@ const TransactionsPage = () => {
                           <div className="text-right">
                             <div
                               className={`text-sm font-semibold ${
-                                transaction.transactionType === "RETURN"
-                                  ? "text-green-600" // Return transactions in green
-                                  : transaction.transactionType ===
-                                      "CARD_PAYMENT"
-                                    ? transaction.amount < 0
-                                      ? "text-green-600" // Source transaction (money going out from debit card)
-                                      : "text-gray-900" // Destination transaction (money being added back to credit card)
-                                    : transaction.amount < 0
-                                      ? "text-green-600"
-                                      : "text-gray-900"
+                                transaction.transactionType === "RETURN" ||
+                                transaction.transactionType === "INCOME" ||
+                                transaction.amount < 0
+                                  ? "text-green-600" // Money coming in shows green
+                                  : "text-gray-900"
                               }`}
                             >
-                              {transaction.transactionType === "RETURN"
+                              {transaction.transactionType === "RETURN" ||
+                              transaction.transactionType === "INCOME"
                                 ? "+"
                                 : ""}
                               {formatCurrency(Math.abs(transaction.amount))}

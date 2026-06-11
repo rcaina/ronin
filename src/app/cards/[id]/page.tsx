@@ -10,7 +10,6 @@ import {
   Plus,
 } from "lucide-react";
 import { useState } from "react";
-import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/PageHeader";
@@ -26,6 +25,8 @@ import {
 } from "@/lib/data-hooks/cards/useCards";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
+import { formatCurrency } from "@/lib/utils";
+import { getCardTransactionDisplay } from "@/lib/utils/transactions";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Button from "@/components/Button";
 import { CardType, TransactionType } from "@prisma/client";
@@ -43,7 +44,6 @@ interface User {
 const CardDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { data: session } = useSession();
   const { data: card, isLoading: cardLoading, error: cardError } = useCard(id);
   const { data: transactions = [], isLoading: transactionsLoading } =
     useCardTransactions(id);
@@ -78,13 +78,6 @@ const CardDetailsPage = () => {
       setLoadingUsers(false);
     }
   };
-
-  // Fetch users when component mounts or when editing starts
-  useState(() => {
-    if (session && isEditing) {
-      void fetchUsers();
-    }
-  });
 
   const handleEditCard = () => {
     setIsEditing(true);
@@ -170,11 +163,13 @@ const CardDetailsPage = () => {
     );
   }
 
+  const isCreditCard =
+    card.cardType === CardType.CREDIT ||
+    card.cardType === CardType.BUSINESS_CREDIT;
   const totalSpent = mappedCard.amountSpent;
-  const availableCredit =
-    mappedCard.type === "credit" || mappedCard.type === "business_credit"
-      ? (mappedCard.spendingLimit ?? 0) - totalSpent
-      : (mappedCard.spendingLimit ?? 0) + totalSpent;
+  // For credit cards the limit is the credit line; for debit/cash cards it is
+  // the income deposited on the card. Either way, available = limit - spent.
+  const availableAmount = (mappedCard.spendingLimit ?? 0) - totalSpent;
   const utilizationRate = mappedCard.spendingLimit
     ? (totalSpent / mappedCard.spendingLimit) * 100
     : 0;
@@ -256,7 +251,7 @@ const CardDetailsPage = () => {
           <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
             <StatsCard
               title="Total Spent"
-              value={`$${totalSpent.toLocaleString()}`}
+              value={formatCurrency(totalSpent)}
               subtitle="All time"
               icon={
                 <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
@@ -267,8 +262,8 @@ const CardDetailsPage = () => {
             {mappedCard.spendingLimit && (
               <>
                 <StatsCard
-                  title="Available Credit"
-                  value={`$${availableCredit.toLocaleString()}`}
+                  title={isCreditCard ? "Available Credit" : "Available Funds"}
+                  value={formatCurrency(availableAmount)}
                   subtitle={`${utilizationRate.toFixed(1)}% utilized`}
                   icon={
                     <CreditCard className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
@@ -277,9 +272,9 @@ const CardDetailsPage = () => {
                 />
 
                 <StatsCard
-                  title="Credit Limit"
-                  value={`$${mappedCard.spendingLimit.toLocaleString()}`}
-                  subtitle="Total limit"
+                  title={isCreditCard ? "Credit Limit" : "Total Income"}
+                  value={formatCurrency(mappedCard.spendingLimit)}
+                  subtitle={isCreditCard ? "Total limit" : "Deposited on card"}
                   icon={
                     <CreditCard className="h-4 w-4 text-indigo-500 sm:h-5 sm:w-5" />
                   }
@@ -370,81 +365,51 @@ const CardDetailsPage = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {transactions.slice(0, 10).map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center justify-between rounded-lg border bg-white p-4 shadow-sm"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900">
-                            {transaction.name ?? "Unnamed Transaction"}
-                          </p>
-                          {transaction.transactionType ===
-                          TransactionType.INCOME ? (
-                            <p className="text-sm font-medium text-green-600">
-                              Income
+                {transactions.slice(0, 10).map((transaction) => {
+                  const amountDisplay = getCardTransactionDisplay(
+                    transaction.transactionType,
+                    card.cardType,
+                  );
+                  return (
+                    <div
+                      key={transaction.id}
+                      className="flex items-center justify-between rounded-lg border bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">
+                              {transaction.name ?? "Unnamed Transaction"}
                             </p>
-                          ) : (
-                            <p className="text-sm text-gray-500">
-                              {transaction.category?.name ?? "Uncategorized"}
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <p
-                            className={`font-semibold ${
-                              transaction.transactionType ===
-                              TransactionType.INCOME
-                                ? "text-green-600" // Income transactions are always green
-                                : transaction.transactionType ===
-                                    TransactionType.CARD_PAYMENT
-                                  ? "text-red-600" // Always red for card payments
-                                  : // For debit cards: returns are green, regular transactions are red
-                                    card.cardType === CardType.DEBIT ||
-                                      card.cardType ===
-                                        CardType.BUSINESS_DEBIT ||
-                                      card.cardType === CardType.CASH
-                                    ? transaction.transactionType ===
-                                      TransactionType.RETURN
-                                      ? "text-green-600" // Returns are green for debit cards
-                                      : "text-red-600" // Regular transactions are red for debit cards
-                                    : transaction.transactionType ===
-                                        TransactionType.RETURN
-                                      ? "text-green-600"
-                                      : "text-red-600"
-                            }`}
-                          >
                             {transaction.transactionType ===
-                            TransactionType.INCOME
-                              ? "+$" // Income transactions are always positive
-                              : transaction.transactionType ===
-                                  TransactionType.CARD_PAYMENT
-                                ? "-$" // Always negative for card payments
-                                : // For debit cards: returns are positive, regular transactions are negative
-                                  card.cardType === CardType.DEBIT ||
-                                    card.cardType === CardType.BUSINESS_DEBIT ||
-                                    card.cardType === CardType.CASH
-                                  ? transaction.transactionType ===
-                                    TransactionType.RETURN
-                                    ? "+$" // Returns are positive for debit cards
-                                    : "-$" // Regular transactions are negative for debit cards
-                                  : transaction.amount >= 0
-                                    ? "+$"
-                                    : "$"}
-                            {Math.abs(transaction.amount).toFixed(2)}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(
-                              transaction.createdAt,
-                            ).toLocaleDateString()}
-                          </p>
+                            TransactionType.INCOME ? (
+                              <p className="text-sm font-medium text-green-600">
+                                Income
+                              </p>
+                            ) : (
+                              <p className="text-sm text-gray-500">
+                                {transaction.category?.name ?? "Uncategorized"}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p
+                              className={`font-semibold ${amountDisplay.colorClass}`}
+                            >
+                              {amountDisplay.prefix}
+                              {formatCurrency(Math.abs(transaction.amount))}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(
+                                transaction.createdAt,
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {transactions.length > 10 && (
                   <div className="text-center">
                     <Button

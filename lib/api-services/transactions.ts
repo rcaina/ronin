@@ -139,14 +139,15 @@ export async function createCardPayment(
   data: CreateCardPaymentSchema,
   user: User & { accountId: string }
 ) {
-  // Create two linked transactions: 
-  // 1. Source card (debit/cash): negative amount (money going out)
-  // 2. Destination card (credit): positive amount (money being added back to credit card)
+  // Create two linked transactions, both storing the positive payment amount
+  // (enforced by createCardPaymentSchema). Card balance math interprets a
+  // CARD_PAYMENT as money out on the source (debit/cash) card and as a
+  // balance reduction on the destination (credit) card.
   const fromTransaction = await tx.transaction.create({
     data: {
       name: data.name ?? `Payment from ${data.fromCardId}`,
       description: data.description ?? `Card payment to ${data.toCardId}`,
-      amount: data.amount, // Negative amount for source card (money going out)
+      amount: data.amount,
       budgetId: data.budgetId,
       categoryId: null, // No category for card payments
       cardId: data.fromCardId,
@@ -170,7 +171,7 @@ export async function createCardPayment(
     data: {
       name: data.name ?? `Payment to ${data.toCardId}`,
       description: data.description ?? `Card payment from ${data.fromCardId}`,
-      amount: data.amount, // Positive amount for destination card (money being added back)
+      amount: data.amount,
       budgetId: data.budgetId,
       categoryId: null, // No category for card payments
       cardId: data.toCardId,

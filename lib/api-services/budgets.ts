@@ -6,6 +6,7 @@ import type { UpdateBudgetCategoryData } from "../data-hooks/budgets/useBudgetCa
 import type { z } from "zod"
 import type { createBudgetSchema, createBudgetWithCardsSchema } from "../api-schemas/budgets"
 import { createCard as createCardService } from "./cards"
+import { calculateCardFinancials } from "./card-financials"
 
 export interface CreateBudgetData {
   name: string
@@ -1079,98 +1080,26 @@ export const getBudgetCards = async (
   });
 
   // Calculate amountSpent for each card by summing related transactions
-  const cardsWithAmountSpent = cards.map(card => {
-    const isCreditCard = card.cardType === CardType.CREDIT || card.cardType === CardType.BUSINESS_CREDIT;
-    const isDebitCard = card.cardType === CardType.DEBIT || card.cardType === CardType.BUSINESS_DEBIT;
-    
-    let amountSpent = 0;
-    if (isCreditCard) {
-      // For credit cards: handle regular transactions and card payments differently
-      amountSpent = card.transactions.reduce((sum, transaction) => {
-        if (transaction.transactionType === TransactionType.CARD_PAYMENT) {
-          // Card payments reduce the balance (positive amount = payment received)
-          return sum - transaction.amount; // Subtract payment amount (reduces balance)
-        } else if (transaction.transactionType === TransactionType.RETURN) {
-          // Returns reduce the balance (positive amount = refund received)
-          return sum - transaction.amount; // Subtract return amount (reduces balance)
-        } else {
-          // Regular transactions: positive = purchases (increase balance)
-          return sum + transaction.amount;
-        }
-      }, 0);
-    } else {
-      // For debit/cash cards: exclude income, handle returns and regular transactions
-      amountSpent = card.transactions.reduce((sum, transaction) => {
-        // Exclude income transactions from amount spent
-        if (transaction.transactionType === TransactionType.INCOME) {
-          return sum; // Don't count income in amount spent
-        } else if (transaction.transactionType === TransactionType.RETURN) {
-          // Returns reduce spending (positive amount = refund received)
-          return sum - transaction.amount; // Subtract return amount (reduces spending)
-        } else {
-          // Regular transactions: positive = purchases (increase spending)
-          return sum + transaction.amount;
-        }
-      }, 0);
-    }
-    
-    // For debit cards, calculate spendingLimit from INCOME transactions on this card
-    // This matches the income page calculation but per-card
-    let spendingLimit = card.spendingLimit;
-    if (isDebitCard) {
-      const cardIncome = card.transactions.reduce((sum, transaction) => {
-        if (transaction.transactionType === TransactionType.INCOME) {
-          return sum + transaction.amount;
-        }
-        return sum;
-      }, 0);
-      spendingLimit = cardIncome > 0 ? cardIncome : null;
-    }
-    
-    return {
-      ...card,
-      amountSpent,
-      spendingLimit,
-      transactions: undefined, // Remove transactions from response
-    };
-  });
-
-  return cardsWithAmountSpent;
+  return cards.map(calculateCardFinancials);
 }
 
 export const getBudgetIncomeTransactions = async (
   tx: PrismaClient,
   budgetId: string,
 ): Promise<Transaction[]> => {
-  // Get all debit cards for this budget
-  const debitCards = await tx.card.findMany({
+  // All INCOME transactions on the budget's debit cards
+  return tx.transaction.findMany({
     where: {
       budgetId: budgetId,
-      cardType: {
-        in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
-      },
-      deleted: null,
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  const cardIds = debitCards.map((card) => card.id);
-
-  if (cardIds.length === 0) {
-    return [];
-  }
-
-  // Get all INCOME transactions on these debit cards
-  const transactions = await tx.transaction.findMany({
-    where: {
-      budgetId: budgetId,
-      cardId: {
-        in: cardIds,
-      },
       transactionType: TransactionType.INCOME,
       deleted: null,
+      card: {
+        budgetId: budgetId,
+        cardType: {
+          in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
+        },
+        deleted: null,
+      },
     },
     include: {
       card: {
@@ -1185,48 +1114,31 @@ export const getBudgetIncomeTransactions = async (
       createdAt: "desc",
     },
   });
-
-  return transactions;
 };
 
 export const calculateBudgetIncome = async (
   tx: PrismaClient,
   budgetId: string,
 ): Promise<number> => {
-  const debitCards = await tx.card.findMany({
-    where: {
-      budgetId: budgetId,
-      cardType: {
-        in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
-      },
-      deleted: null,
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  const cardIds = debitCards.map((card) => card.id);
-
-  if (cardIds.length === 0) {
-    return 0;
-  }
-
-  const incomeTransactions = await tx.transaction.findMany({
-    where: {
-      budgetId: budgetId,
-      cardId: {
-        in: cardIds,
-      },
-      transactionType: TransactionType.INCOME,
-      deleted: null,
-    },
-    select: {
+  const result = await tx.transaction.aggregate({
+    _sum: {
       amount: true,
     },
+    where: {
+      budgetId: budgetId,
+      transactionType: TransactionType.INCOME,
+      deleted: null,
+      card: {
+        budgetId: budgetId,
+        cardType: {
+          in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
+        },
+        deleted: null,
+      },
+    },
   });
 
-  return incomeTransactions.reduce((sum, t) => sum + t.amount, 0);
+  return result._sum.amount ?? 0;
 };
     
     
