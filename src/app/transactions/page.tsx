@@ -40,6 +40,7 @@ import {
   getCategoryBadgeColor,
   formatCurrency,
 } from "@/lib/utils";
+import { matchesTransactionFilters } from "@/lib/utils/transactions";
 
 const TransactionsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -85,75 +86,16 @@ const TransactionsPage = () => {
   // Calculate transaction statistics from all transactions with applied filters
   const stats = useMemo(() => {
     // Apply the same filters to all transactions for stats calculation
-    const filteredTransactions = allTransactions.filter((transaction) => {
-      // Search term matching (including amount)
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch =
-        (transaction.name?.toLowerCase().includes(searchLower) ?? false) ||
-        (transaction.description?.toLowerCase().includes(searchLower) ??
-          false) ||
-        (transaction.category?.name?.toLowerCase().includes(searchLower) ??
-          false) ||
-        // Amount search - convert amount to string and search
-        Math.abs(transaction.amount)
-          .toString()
-          .includes(searchTerm.replace(/[^0-9.]/g, "")) ||
-        // Also search formatted amount (e.g., "100.50" matches "100.5")
-        new Intl.NumberFormat("en-US", {
-          style: "currency",
-          currency: "USD",
-        })
-          .format(transaction.amount)
-          .toLowerCase()
-          .includes(searchLower);
-
-      // Category filter - match by default category ID
-      const matchesCategory =
-        selectedCategory === "all" ||
-        (transaction.category &&
-          "defaultCategoryId" in transaction.category &&
-          transaction.category.defaultCategoryId === selectedCategory);
-
-      // Budget filter
-      const matchesBudget =
-        selectedBudget === "all" ||
-        transaction.Budget?.id === selectedBudget ||
-        (selectedBudget === "no-budget" && !transaction.Budget);
-
-      // Card filter
-      const matchesCard =
-        selectedCard === "all" ||
-        (selectedCard === "no-card" && !transaction.cardId) ||
-        transaction.cardId === selectedCard;
-
-      // Date range filter
-      const matchesDateRange = (() => {
-        if (!startDate && !endDate) return true;
-
-        const transactionDate = transaction.occurredAt
-          ? new Date(transaction.occurredAt)
-          : new Date(transaction.createdAt);
-        const start = startDate ? new Date(startDate) : null;
-        const end = endDate ? new Date(endDate) : null;
-
-        if (start && end) {
-          return transactionDate >= start && transactionDate <= end;
-        } else if (start) {
-          return transactionDate >= start;
-        } else if (end) {
-          return transactionDate <= end;
-        }
-        return true;
-      })();
-
-      return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesBudget &&
-        matchesCard &&
-        matchesDateRange
-      );
-    });
+    const filteredTransactions = allTransactions.filter((transaction) =>
+      matchesTransactionFilters(transaction, {
+        searchTerm,
+        selectedCategory,
+        selectedBudget,
+        selectedCard,
+        startDate,
+        endDate,
+      }),
+    );
 
     const totalTransactions = filteredTransactions.length;
     const totalAmount =
@@ -190,75 +132,16 @@ const TransactionsPage = () => {
 
   // Filter and sort transactions
   const filteredAndSortedTransactions = useMemo(() => {
-    const filtered = transactions.filter((transaction) => {
-      // Search term matching (including amount)
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch =
-        (transaction.name?.toLowerCase().includes(searchLower) ?? false) ||
-        (transaction.description?.toLowerCase().includes(searchLower) ??
-          false) ||
-        (transaction.category?.name?.toLowerCase().includes(searchLower) ??
-          false) ||
-        // Amount search - convert amount to string and search
-        Math.abs(transaction.amount)
-          .toString()
-          .includes(searchTerm.replace(/[^0-9.]/g, "")) ||
-        // Also search formatted amount (e.g., "100.50" matches "100.5")
-        new Intl.NumberFormat("en-US", {
-          style: "currency",
-          currency: "USD",
-        })
-          .format(transaction.amount)
-          .toLowerCase()
-          .includes(searchLower);
-
-      // Category filter - match by default category ID
-      const matchesCategory =
-        selectedCategory === "all" ||
-        (transaction.category &&
-          "defaultCategoryId" in transaction.category &&
-          transaction.category.defaultCategoryId === selectedCategory);
-
-      // Budget filter
-      const matchesBudget =
-        selectedBudget === "all" ||
-        transaction.Budget?.id === selectedBudget ||
-        (selectedBudget === "no-budget" && !transaction.Budget);
-
-      // Card filter
-      const matchesCard =
-        selectedCard === "all" ||
-        (selectedCard === "no-card" && !transaction.cardId) ||
-        transaction.cardId === selectedCard;
-
-      // Date range filter
-      const matchesDateRange = (() => {
-        if (!startDate && !endDate) return true;
-
-        const transactionDate = transaction.occurredAt
-          ? new Date(transaction.occurredAt)
-          : new Date(transaction.createdAt);
-        const start = startDate ? new Date(startDate) : null;
-        const end = endDate ? new Date(endDate) : null;
-
-        if (start && end) {
-          return transactionDate >= start && transactionDate <= end;
-        } else if (start) {
-          return transactionDate >= start;
-        } else if (end) {
-          return transactionDate <= end;
-        }
-        return true;
-      })();
-
-      return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesBudget &&
-        matchesCard &&
-        matchesDateRange
-      );
-    });
+    const filtered = transactions.filter((transaction) =>
+      matchesTransactionFilters(transaction, {
+        searchTerm,
+        selectedCategory,
+        selectedBudget,
+        selectedCard,
+        startDate,
+        endDate,
+      }),
+    );
 
     // Sort transactions
     filtered.sort((a, b) => {
