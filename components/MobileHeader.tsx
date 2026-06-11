@@ -8,9 +8,6 @@ import {
   X,
   LogOut,
   Target,
-  List,
-  DollarSign,
-  CreditCard,
   Receipt,
   PiggyBank,
   LayoutDashboard,
@@ -28,18 +25,6 @@ interface NavItem {
   label: string;
 }
 
-interface BudgetNavItem {
-  href: string;
-  icon: React.ReactNode;
-  label: string;
-}
-
-interface SavingsNavItem {
-  href: string;
-  icon: React.ReactNode;
-  label: string;
-}
-
 const navItems: NavItem[] = [
   { href: "/", icon: LayoutDashboard, label: "Overview" },
   { href: "/budgets", icon: Target, label: "Budgets" },
@@ -53,63 +38,6 @@ export default function MobileHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { data: session } = useSession();
   const pathname = usePathname();
-
-  // Check if we're on a budget page and extract the budget ID
-  const isBudgetPage =
-    pathname.startsWith("/budgets/") && pathname !== "/budgets";
-  const budgetId = isBudgetPage ? pathname.split("/")[2] : null;
-
-  // Check if we're on a savings page and extract the savings ID
-  const isSavingsPage =
-    pathname.startsWith("/savings/") && pathname !== "/savings";
-  const savingsId = isSavingsPage ? pathname.split("/")[2] : null;
-
-  // Budget sub-menu items (same as BudgetLayout)
-  const budgetNavItems: BudgetNavItem[] = budgetId
-    ? [
-        {
-          href: `/budgets/${budgetId}`,
-          icon: <Target className="h-5 w-5" />,
-          label: "Overview",
-        },
-        {
-          href: `/budgets/${budgetId}/income`,
-          icon: <DollarSign className="h-5 w-5" />,
-          label: "Income",
-        },
-        {
-          href: `/budgets/${budgetId}/categories`,
-          icon: <List className="h-5 w-5" />,
-          label: "Categories",
-        },
-        {
-          href: `/budgets/${budgetId}/transactions`,
-          icon: <Receipt className="h-5 w-5" />,
-          label: "Transactions",
-        },
-        {
-          href: `/budgets/${budgetId}/cards`,
-          icon: <CreditCard className="h-5 w-5" />,
-          label: "Cards",
-        },
-      ]
-    : [];
-
-  // Savings sub-menu items (same as SavingsPageNavigation)
-  const savingsNavItems: SavingsNavItem[] = savingsId
-    ? [
-        {
-          href: `/savings/${savingsId}`,
-          icon: <Target className="h-5 w-5" />,
-          label: "Overview",
-        },
-        {
-          href: `/savings/${savingsId}/allocations`,
-          icon: <DollarSign className="h-5 w-5" />,
-          label: "Allocations",
-        },
-      ]
-    : [];
 
   const handleSignOut = async () => {
     await signOut({
@@ -219,56 +147,6 @@ export default function MobileHeader() {
                       </Link>
                     );
                   })}
-
-                  {/* Budget Sub-menu Items */}
-                  {isBudgetPage && budgetNavItems.length > 0 && (
-                    <>
-                      <div className="my-3 border-t border-gray-200" />
-                      <div className="mb-2 px-3 text-xs font-medium uppercase tracking-wider text-gray-500">
-                        Budget Navigation
-                      </div>
-                      {budgetNavItems.map((item) => (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={closeMenu}
-                          className={`flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors duration-200 ${
-                            pathname === item.href
-                              ? "bg-secondary/15 text-secondary-700"
-                              : "text-gray-700 hover:bg-gray-100"
-                          }`}
-                        >
-                          <span className="text-gray-600">{item.icon}</span>
-                          <span className="font-medium">{item.label}</span>
-                        </Link>
-                      ))}
-                    </>
-                  )}
-
-                  {/* Savings Sub-menu Items */}
-                  {isSavingsPage && savingsNavItems.length > 0 && (
-                    <>
-                      <div className="my-3 border-t border-gray-200" />
-                      <div className="mb-2 px-3 text-xs font-medium uppercase tracking-wider text-gray-500">
-                        Savings Navigation
-                      </div>
-                      {savingsNavItems.map((item) => (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={closeMenu}
-                          className={`flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors duration-200 ${
-                            pathname === item.href
-                              ? "bg-secondary/15 text-secondary-700"
-                              : "text-gray-700 hover:bg-gray-100"
-                          }`}
-                        >
-                          <span className="text-gray-600">{item.icon}</span>
-                          <span className="font-medium">{item.label}</span>
-                        </Link>
-                      ))}
-                    </>
-                  )}
                 </div>
               </nav>
 

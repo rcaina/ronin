@@ -23,32 +23,38 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     description: dynamicDescription,
   } = useBudgetHeader();
 
-  // Configure page header based on current pathname
+  // Configure page header based on current pathname. Sub-pages show the section
+  // name as the title with the budget name as a smaller eyebrow above it.
   const pageHeaderConfig = useMemo(() => {
+    const budgetName = budget?.name ?? "Budget";
     if (pathname === `/budgets/${id}`) {
       // Main budget overview page
       return {
-        title: budget?.name ?? "Budget",
+        eyebrow: undefined as string | undefined,
+        title: budgetName,
         description: budget
-          ? `${budget.period.replace("_", " ")} Budget • Created ${new Date(budget.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`
+          ? `${budget.period.replace("_", " ")} Budget • ${new Date(budget.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`
           : "Loading...",
         showBackButton: true,
       };
     } else if (pathname?.endsWith("/income")) {
       return {
-        title: `${budget?.name ?? "Budget"} - Income`,
+        eyebrow: budgetName,
+        title: "Income",
         description: "Manage your income sources",
         showBackButton: true,
       };
     } else if (pathname?.endsWith("/categories")) {
       return {
-        title: `${budget?.name ?? "Budget"} - Categories`,
+        eyebrow: budgetName,
+        title: "Categories",
         description: "Manage your budget categories",
         showBackButton: true,
       };
     } else if (pathname?.endsWith("/transactions")) {
       return {
-        title: `${budget?.name ?? "Budget"} - Transactions`,
+        eyebrow: budgetName,
+        title: "Transactions",
         description: "Track and manage transactions for this budget",
         showBackButton: true,
       };
@@ -58,7 +64,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     ) {
       // Cards list page
       return {
-        title: `${budget?.name ?? "Budget"} - Cards`,
+        eyebrow: budgetName,
+        title: "Cards",
         description: "View and manage cards for this budget",
         showBackButton: true,
       };
@@ -66,9 +73,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       pathname?.includes("/cards/") &&
       /\/cards\/[^/]+$/.test(pathname)
     ) {
-      // Individual card page - title will be set dynamically by the page
+      // Individual card page - title is set dynamically by the page
       return {
-        title: "Card Details",
+        eyebrow: budgetName,
+        title: "Card details",
         description: "View and manage card transactions",
         showBackButton: true,
       };
@@ -76,10 +84,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
     return null;
   }, [pathname, id, budget]);
-
-  // Determine if header has buttons
-  const hasHeaderButtons = dynamicActions.length > 0;
-  const contentPadding = hasHeaderButtons ? "pt-16" : "pt-8";
 
   // Use dynamic title/description if provided, otherwise use config
   const finalTitle = dynamicTitle ?? pageHeaderConfig?.title ?? "";
@@ -90,6 +94,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       {pageHeaderConfig && (
         <PageHeader
           title={finalTitle}
+          eyebrow={pageHeaderConfig.eyebrow}
           description={finalDescription}
           backButton={
             pageHeaderConfig.showBackButton
@@ -102,9 +107,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
       <BudgetPageNavigation />
 
-      <div
-        className={`flex-1 overflow-y-auto overflow-x-hidden ${contentPadding} lg:pt-0`}
-      >
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pt-3 lg:pt-0">
         {children}
       </div>
     </div>

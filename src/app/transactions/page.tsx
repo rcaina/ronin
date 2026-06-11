@@ -424,7 +424,7 @@ const TransactionsPage = () => {
     <div className="flex h-screen flex-col bg-surface">
       <PageHeader
         title="Transactions"
-        description="Track and manage your financial transactions"
+        description="Track and manage transactions"
         action={{
           label: "Add transaction",
           onClick: () => setShowAddTransactionModal(true),

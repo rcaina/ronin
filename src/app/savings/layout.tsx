@@ -29,10 +29,9 @@ function PocketDetailLayoutContent({ children }: { children: ReactNode }) {
       pathname?.includes(`/savings/${id}/pockets/${pocketId}`)
     ) {
       return {
+        eyebrow: savings?.name,
         title: pocket?.name ?? "Pocket",
-        description: savings
-          ? `${savings.name} • View and manage allocations`
-          : "Loading...",
+        description: "View and manage allocations",
         showBackButton: true,
         backTo: `/savings/${id}`,
       };
@@ -45,6 +44,7 @@ function PocketDetailLayoutContent({ children }: { children: ReactNode }) {
       {pageHeaderConfig && (
         <PageHeader
           title={pageHeaderConfig.title}
+          eyebrow={pageHeaderConfig.eyebrow}
           description={pageHeaderConfig.description}
           backButton={
             pageHeaderConfig.showBackButton
@@ -67,7 +67,7 @@ function PocketDetailLayoutContent({ children }: { children: ReactNode }) {
       )}
 
       <div
-        className={`flex-1 overflow-hidden ${pageHeaderConfig ? "pt-4 sm:pt-20 lg:pt-0" : ""}`}
+        className={`flex-1 overflow-hidden ${pageHeaderConfig ? "pt-3 lg:pt-0" : ""}`}
       >
         {children}
       </div>
