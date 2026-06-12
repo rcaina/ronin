@@ -10,15 +10,21 @@ import {
   EditIcon,
   Info,
   Plus,
+  Trash2,
 } from "lucide-react";
+import { toast } from "react-hot-toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
+import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import { useState, useEffect } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 import { TransactionType, CardType } from "@prisma/client";
-import { formatDateUTC, roundToCents } from "@/lib/utils";
+import { formatDateUTC, roundToCents, getGroupColor } from "@/lib/utils";
 import { calculateCategorySpent } from "@/lib/utils/spending";
+import { useDeleteTransaction } from "@/lib/data-hooks/transactions/useTransactions";
+import type { TransactionWithRelations } from "@/lib/types/transaction";
 import { useBudgetDetailStats } from "@/lib/data-hooks/budgets/useBudgetStats";
 import { useBudgetHeader } from "../../../../components/budgets/BudgetHeaderContext";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
@@ -70,8 +76,14 @@ const BudgetDetailsPage = () => {
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
   const [isEditBudgetOpen, setIsEditBudgetOpen] = useState(false);
   const [isCardPaymentOpen, setIsCardPaymentOpen] = useState(false);
+  const [editingTransactionId, setEditingTransactionId] = useState<
+    string | null
+  >(null);
+  const [transactionToDelete, setTransactionToDelete] =
+    useState<TransactionWithRelations | null>(null);
   const { data: budget, isLoading, error } = useBudget(id as string, true); // Exclude card payments for calculations
   const { setActions } = useBudgetHeader();
+  const deleteTransactionMutation = useDeleteTransaction();
 
   // Register header actions
   useEffect(() => {
@@ -215,6 +227,33 @@ const BudgetDetailsPage = () => {
         return "Investment";
       default:
         return group;
+    }
+  };
+
+  const handleEditTransaction = (transaction: TransactionWithRelations) => {
+    // Card payment transactions cannot be edited inline
+    if (transaction.transactionType === TransactionType.CARD_PAYMENT) {
+      toast.error(
+        "Card payment transactions cannot be edited. Please delete and recreate if needed.",
+      );
+      return;
+    }
+    setEditingTransactionId(transaction.id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!transactionToDelete) return;
+
+    try {
+      await deleteTransactionMutation.mutateAsync({
+        id: transactionToDelete.id,
+        budgetId: transactionToDelete.budgetId,
+      });
+      setTransactionToDelete(null);
+      toast.success("Transaction deleted successfully!");
+    } catch (err) {
+      console.error("Failed to delete transaction:", err);
+      toast.error("Failed to delete transaction. Please try again.");
     }
   };
 
@@ -807,6 +846,9 @@ const BudgetDetailsPage = () => {
                   (cat) =>
                     (cat.transactions ?? []).map((transaction) => ({
                       ...transaction,
+                      // Attach the parent category so the row can be reused as a
+                      // TransactionWithRelations for copy/edit/delete actions.
+                      category: cat,
                       categoryName: cat.name,
                       categoryGroup: cat.group,
                     })),
@@ -841,74 +883,113 @@ const BudgetDetailsPage = () => {
                   })
                   .slice(0, 5);
 
-                return recentTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center justify-between rounded-xl border border-gray-100 bg-surface p-3"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-gray-900">
-                          {transaction.name ?? "Unnamed transaction"}
-                        </span>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            transaction.transactionType ===
-                            TransactionType.CARD_PAYMENT
-                              ? "bg-gray-100 text-gray-500"
-                              : getGroupChipClasses(
-                                  transaction.categoryName
-                                    ? transaction.categoryGroup
-                                    : undefined,
-                                )
-                          }`}
-                        >
-                          {transaction.transactionType ===
-                          TransactionType.CARD_PAYMENT
-                            ? "Card payment"
-                            : (transaction.categoryName ?? "No category")}
-                        </span>
-                        {transaction.description && (
-                          <div className="group relative flex-shrink-0">
-                            <Info className="h-4 w-4 cursor-help text-gray-400" />
-                            <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
-                              {transaction.description}
-                              <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-primary-950/90"></div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <p className="mt-1 text-xs text-gray-400">
-                        {transaction.occurredAt
-                          ? formatDateUTC(
-                              new Date(transaction.occurredAt).toISOString(),
-                            )
-                          : formatDateUTC(
-                              new Date(transaction.createdAt).toISOString(),
-                            )}
-                      </p>
-                    </div>
-                    <div className="text-right">
+                return recentTransactions.map((transaction) => {
+                  if (editingTransactionId === transaction.id) {
+                    return (
                       <div
-                        className={`text-sm font-semibold tabular-nums ${
-                          transaction.transactionType === TransactionType.RETURN
-                            ? "text-green-600"
-                            : ""
-                        }`}
+                        key={transaction.id}
+                        className="overflow-hidden rounded-xl border border-secondary-200"
                       >
-                        {transaction.transactionType === TransactionType.RETURN
-                          ? "+"
-                          : ""}
-                        ${Math.abs(transaction.amount).toFixed(2)}
+                        <InlineTransactionEdit
+                          transaction={transaction}
+                          onCancel={() => setEditingTransactionId(null)}
+                          onSuccess={() => setEditingTransactionId(null)}
+                          getGroupColor={getGroupColor}
+                        />
                       </div>
-                      <div className="text-xs capitalize text-gray-500">
-                        {transaction.transactionType
-                          .toLowerCase()
-                          .replace("_", " ")}
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={transaction.id}
+                      className="group/row flex items-center justify-between rounded-xl border border-gray-100 bg-surface p-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-medium text-gray-900">
+                            {transaction.name ?? "Unnamed transaction"}
+                          </span>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              transaction.transactionType ===
+                              TransactionType.CARD_PAYMENT
+                                ? "bg-gray-100 text-gray-500"
+                                : getGroupChipClasses(
+                                    transaction.categoryName
+                                      ? transaction.categoryGroup
+                                      : undefined,
+                                  )
+                            }`}
+                          >
+                            {transaction.transactionType ===
+                            TransactionType.CARD_PAYMENT
+                              ? "Card payment"
+                              : (transaction.categoryName ?? "No category")}
+                          </span>
+                          {transaction.description && (
+                            <div className="group relative flex-shrink-0">
+                              <Info className="h-4 w-4 cursor-help text-gray-400" />
+                              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
+                                {transaction.description}
+                                <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-primary-950/90"></div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-gray-400">
+                          {transaction.occurredAt
+                            ? formatDateUTC(
+                                new Date(transaction.occurredAt).toISOString(),
+                              )
+                            : formatDateUTC(
+                                new Date(transaction.createdAt).toISOString(),
+                              )}
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2 sm:space-x-3">
+                        {/* Action icons — always visible on mobile, hover on desktop */}
+                        <div className="flex items-center space-x-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover/row:opacity-100">
+                          <button
+                            onClick={() => handleEditTransaction(transaction)}
+                            className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
+                            title="Edit transaction"
+                          >
+                            <EditIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setTransactionToDelete(transaction)}
+                            className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
+                            title="Delete transaction"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="text-right">
+                          <div
+                            className={`text-sm font-semibold tabular-nums ${
+                              transaction.transactionType ===
+                              TransactionType.RETURN
+                                ? "text-green-600"
+                                : ""
+                            }`}
+                          >
+                            {transaction.transactionType ===
+                            TransactionType.RETURN
+                              ? "+"
+                              : ""}
+                            ${Math.abs(transaction.amount).toFixed(2)}
+                          </div>
+                          <div className="text-xs capitalize text-gray-500">
+                            {transaction.transactionType
+                              .toLowerCase()
+                              .replace("_", " ")}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ));
+                  );
+                });
               })()}
             </div>
           </div>
@@ -936,6 +1017,19 @@ const BudgetDetailsPage = () => {
           budgetId={id as string}
         />
       )}
+
+      <DeleteConfirmationModal
+        isOpen={!!transactionToDelete}
+        onClose={() => setTransactionToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Transaction"
+        message="Are you sure you want to delete the transaction '{itemName}'? This action cannot be undone."
+        itemName={transactionToDelete?.name ?? "Unnamed transaction"}
+        isLoading={deleteTransactionMutation.isPending}
+        loadingText="Deleting..."
+        confirmText="Delete Transaction"
+        cancelText="Cancel"
+      />
     </>
   );
 };

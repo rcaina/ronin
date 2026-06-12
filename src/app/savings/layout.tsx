@@ -1,9 +1,10 @@
 "use client";
 
 import PageHeader from "@/components/PageHeader";
-import { useParams, usePathname, useRouter } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { useSavingsAccount } from "@/lib/data-hooks/savings/useSavings";
 import { usePocket } from "@/lib/data-hooks/savings/usePocket";
+import { useBackNavigation } from "@/lib/utils/hooks";
 import { useMemo, type ReactNode } from "react";
 import {
   PocketHeaderProvider,
@@ -13,13 +14,16 @@ import {
 function PocketDetailLayoutContent({ children }: { children: ReactNode }) {
   const params = useParams();
   const pathname = usePathname();
-  const router = useRouter();
   const id = params.id as string | undefined;
   const pocketId = params.pocketId as string | undefined;
 
   const { data: savings } = useSavingsAccount(id ?? "");
   const { data: pocket } = usePocket(pocketId ?? "");
   const { action: pocketAction } = usePocketHeader();
+
+  // Returns the user to their actual previous view; falls back to the parent
+  // savings account only on deep links / refreshes (see useBackNavigation).
+  const handleBack = useBackNavigation(id ? `/savings/${id}` : `/savings`);
 
   // Configure page header for pocket detail page
   const pageHeaderConfig = useMemo(() => {
@@ -33,7 +37,6 @@ function PocketDetailLayoutContent({ children }: { children: ReactNode }) {
         title: pocket?.name ?? "Pocket",
         description: "View and manage allocations",
         showBackButton: true,
-        backTo: `/savings/${id}`,
       };
     }
     return null;
@@ -47,12 +50,7 @@ function PocketDetailLayoutContent({ children }: { children: ReactNode }) {
           eyebrow={pageHeaderConfig.eyebrow}
           description={pageHeaderConfig.description}
           backButton={
-            pageHeaderConfig.showBackButton
-              ? {
-                  onClick: () =>
-                    router.push(pageHeaderConfig.backTo ?? `/savings`),
-                }
-              : undefined
+            pageHeaderConfig.showBackButton ? { onClick: handleBack } : undefined
           }
           action={
             pocketAction

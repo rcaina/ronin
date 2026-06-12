@@ -2,8 +2,9 @@
 
 import SavingsPageNavigation from "@/components/savings/SavingsPageNavigation";
 import PageHeader from "@/components/PageHeader";
-import { useParams, usePathname, useRouter } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { useSavingsAccount } from "@/lib/data-hooks/savings/useSavings";
+import { useBackNavigation } from "@/lib/utils/hooks";
 import { useMemo } from "react";
 
 export default function SavingsLayout({
@@ -13,7 +14,6 @@ export default function SavingsLayout({
 }) {
   const params = useParams();
   const pathname = usePathname();
-  const router = useRouter();
   const id = params.id as string;
 
   const { data: savings } = useSavingsAccount(id);
@@ -23,7 +23,7 @@ export default function SavingsLayout({
   const pageHeaderConfig = useMemo(() => {
     const savingsName = savings?.name ?? "Savings";
     if (pathname === `/savings/${id}`) {
-      // Main savings overview page
+      // Main savings overview page — its parent is the savings list.
       return {
         eyebrow: undefined as string | undefined,
         title: savingsName,
@@ -31,6 +31,7 @@ export default function SavingsLayout({
           ? `Created ${new Date(savings.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`
           : "Loading...",
         showBackButton: true,
+        backTo: `/savings`,
       };
     } else if (pathname?.endsWith("/allocations")) {
       return {
@@ -38,12 +39,17 @@ export default function SavingsLayout({
         title: "Allocations",
         description: "View all allocations across all pockets",
         showBackButton: true,
+        backTo: `/savings/${id}`,
       };
     }
     // Note: Pocket detail pages are handled by the parent layout at savings/layout.tsx
 
     return null;
   }, [pathname, id, savings]);
+
+  // Returns the user to their actual previous view; `backTo` is the fallback
+  // for deep links / refreshes only (see useBackNavigation).
+  const handleBack = useBackNavigation(pageHeaderConfig?.backTo ?? `/savings`);
 
   return (
     <div className="flex h-screen flex-col bg-surface">
@@ -53,9 +59,7 @@ export default function SavingsLayout({
           eyebrow={pageHeaderConfig.eyebrow}
           description={pageHeaderConfig.description}
           backButton={
-            pageHeaderConfig.showBackButton
-              ? { onClick: () => router.push(`/savings`) }
-              : undefined
+            pageHeaderConfig.showBackButton ? { onClick: handleBack } : undefined
           }
         />
       )}
