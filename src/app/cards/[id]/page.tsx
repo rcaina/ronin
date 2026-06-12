@@ -26,6 +26,7 @@ import {
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import { formatCurrency } from "@/lib/utils";
+import { useBackNavigation } from "@/lib/utils/hooks";
 import { getCardTransactionDisplay } from "@/lib/utils/transactions";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Button from "@/components/Button";
@@ -44,6 +45,7 @@ interface User {
 const CardDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const handleBack = useBackNavigation("/cards");
   const { data: card, isLoading: cardLoading, error: cardError } = useCard(id);
   const { data: transactions = [], isLoading: transactionsLoading } =
     useCardTransactions(id);
@@ -179,17 +181,7 @@ const CardDetailsPage = () => {
       <PageHeader
         title={card.name}
         description={`${card.cardType.toLowerCase().replace("_", " ")} card details`}
-        backButton={{
-          onClick: () => {
-            // Use a more reliable navigation method for mobile
-            if (window.history.length > 1) {
-              window.history.back();
-            } else {
-              // Fallback to cards list if no history
-              router.push("/cards");
-            }
-          },
-        }}
+        backButton={{ onClick: handleBack }}
         actions={[
           {
             label: "Add transaction",

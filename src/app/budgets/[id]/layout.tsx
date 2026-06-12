@@ -2,8 +2,9 @@
 
 import BudgetPageNavigation from "@/components/budgets/BudgetPageNavigation";
 import PageHeader from "@/components/PageHeader";
-import { useParams, usePathname, useRouter } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
+import { useBackNavigation } from "@/lib/utils/hooks";
 import { useMemo } from "react";
 import {
   BudgetHeaderProvider,
@@ -13,7 +14,6 @@ import {
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const pathname = usePathname();
-  const router = useRouter();
   const id = params.id as string;
 
   const { data: budget } = useBudget(id);
@@ -28,7 +28,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const pageHeaderConfig = useMemo(() => {
     const budgetName = budget?.name ?? "Budget";
     if (pathname === `/budgets/${id}`) {
-      // Main budget overview page
+      // Main budget overview page — its parent is the budgets list.
       return {
         eyebrow: undefined as string | undefined,
         title: budgetName,
@@ -36,6 +36,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           ? `${budget.period.replace("_", " ")} Budget • ${new Date(budget.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`
           : "Loading...",
         showBackButton: true,
+        backTo: `/budgets`,
       };
     } else if (pathname?.endsWith("/income")) {
       return {
@@ -43,6 +44,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         title: "Income",
         description: "Manage your income sources",
         showBackButton: true,
+        backTo: `/budgets/${id}`,
       };
     } else if (pathname?.endsWith("/categories")) {
       return {
@@ -50,6 +52,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         title: "Categories",
         description: "Manage your budget categories",
         showBackButton: true,
+        backTo: `/budgets/${id}`,
       };
     } else if (pathname?.endsWith("/transactions")) {
       return {
@@ -57,6 +60,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         title: "Transactions",
         description: "Track and manage transactions for this budget",
         showBackButton: true,
+        backTo: `/budgets/${id}`,
       };
     } else if (
       pathname?.includes("/cards") &&
@@ -68,6 +72,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         title: "Cards",
         description: "View and manage cards for this budget",
         showBackButton: true,
+        backTo: `/budgets/${id}`,
       };
     } else if (
       pathname?.includes("/cards/") &&
@@ -79,11 +84,16 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         title: "Card details",
         description: "View and manage card transactions",
         showBackButton: true,
+        backTo: `/budgets/${id}/cards`,
       };
     }
 
     return null;
   }, [pathname, id, budget]);
+
+  // Returns the user to their actual previous view; the per-page `backTo` is
+  // only used as a fallback for deep links / refreshes (see useBackNavigation).
+  const handleBack = useBackNavigation(pageHeaderConfig?.backTo ?? `/budgets`);
 
   // Use dynamic title/description if provided, otherwise use config
   const finalTitle = dynamicTitle ?? pageHeaderConfig?.title ?? "";
@@ -97,9 +107,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           eyebrow={pageHeaderConfig.eyebrow}
           description={finalDescription}
           backButton={
-            pageHeaderConfig.showBackButton
-              ? { onClick: () => router.push(`/budgets`) }
-              : undefined
+            pageHeaderConfig.showBackButton ? { onClick: handleBack } : undefined
           }
           actions={dynamicActions}
         />
