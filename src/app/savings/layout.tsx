@@ -43,14 +43,16 @@ function PocketDetailLayoutContent({ children }: { children: ReactNode }) {
   }, [pathname, id, pocketId, savings, pocket]);
 
   return (
-    <div className="flex h-screen flex-col bg-surface">
+    <div className="flex flex-col bg-surface lg:h-screen">
       {pageHeaderConfig && (
         <PageHeader
           title={pageHeaderConfig.title}
           eyebrow={pageHeaderConfig.eyebrow}
           description={pageHeaderConfig.description}
           backButton={
-            pageHeaderConfig.showBackButton ? { onClick: handleBack } : undefined
+            pageHeaderConfig.showBackButton
+              ? { onClick: handleBack }
+              : undefined
           }
           action={
             pocketAction
@@ -65,7 +67,7 @@ function PocketDetailLayoutContent({ children }: { children: ReactNode }) {
       )}
 
       <div
-        className={`flex-1 overflow-hidden ${pageHeaderConfig ? "pt-3 lg:pt-0" : ""}`}
+        className={`lg:flex-1 lg:overflow-hidden ${pageHeaderConfig ? "pt-4 lg:pt-0" : ""}`}
       >
         {children}
       </div>
@@ -75,8 +77,8 @@ function PocketDetailLayoutContent({ children }: { children: ReactNode }) {
 
 function DefaultLayoutContent({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-screen flex-col bg-surface">
-      <div className="flex-1 overflow-hidden">{children}</div>
+    <div className="flex flex-col bg-surface lg:h-screen">
+      <div className="lg:flex-1 lg:overflow-hidden">{children}</div>
     </div>
   );
 }

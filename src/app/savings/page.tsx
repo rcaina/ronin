@@ -49,7 +49,7 @@ export default function SavingsPage() {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-surface pt-16 sm:pt-8 lg:pt-0">
+    <div className="flex flex-col bg-surface pt-4 lg:h-screen lg:pt-0">
       <PageHeader
         title="Savings"
         description="Track savings accounts and categories"
@@ -63,7 +63,7 @@ export default function SavingsPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
       />
-      <div className="flex-1 overflow-y-auto">
+      <div className="lg:flex-1 lg:overflow-y-auto">
         <div className="mx-auto w-full px-4 py-4 pb-28 sm:px-6 sm:py-6 lg:px-8 lg:py-4 lg:pb-8">
           {savings.length > 0 && (
             <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">

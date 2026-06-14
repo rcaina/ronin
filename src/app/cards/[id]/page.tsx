@@ -177,7 +177,7 @@ const CardDetailsPage = () => {
     : 0;
 
   return (
-    <div className="flex h-screen flex-col bg-surface">
+    <div className="flex flex-col bg-surface lg:h-screen">
       <PageHeader
         title={card.name}
         description={`${card.cardType.toLowerCase().replace("_", " ")} card details`}
@@ -201,7 +201,7 @@ const CardDetailsPage = () => {
         ]}
       />
 
-      <div className="flex-1 overflow-auto">
+      <div className="pt-4 lg:flex-1 lg:overflow-auto lg:pt-0">
         <div className="mx-auto px-2 py-4 pb-28 sm:px-4 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8">
           {/* Card Details Section */}
           <div className="mb-6">

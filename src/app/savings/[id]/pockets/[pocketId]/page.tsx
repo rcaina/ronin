@@ -230,7 +230,7 @@ const PocketDetailPage = () => {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-surface">
+    <div className="flex flex-col bg-surface lg:h-full lg:overflow-hidden">
       <div className="mx-auto w-full flex-shrink-0 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-4">
         {/* Stats Cards */}
         <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">
@@ -303,7 +303,7 @@ const PocketDetailPage = () => {
       </div>
 
       {/* Allocations Section - Scrollable */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="lg:flex-1 lg:overflow-y-auto">
         <div className="mx-auto w-full px-4 pb-28 sm:px-6 lg:px-8 lg:pb-8">
           <div className="card-surface p-4 sm:p-6">
             <div className="mb-4">

@@ -245,7 +245,9 @@ const CardsPage = () => {
   // deleted) by falling back to "all" when the active owner has no tab.
   const effectiveOwner = useMemo(() => {
     if (activeOwner === "all") return "all";
-    return ownerTabs.some((tab) => tab.id === activeOwner) ? activeOwner : "all";
+    return ownerTabs.some((tab) => tab.id === activeOwner)
+      ? activeOwner
+      : "all";
   }, [activeOwner, ownerTabs]);
 
   const ownerFilteredCards = useMemo(() => {
@@ -285,7 +287,7 @@ const CardsPage = () => {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-surface">
+    <div className="flex flex-col bg-surface lg:h-screen">
       <PageHeader
         title="Cards"
         description="View and manage credit and debit cards in your account"
@@ -304,8 +306,8 @@ const CardsPage = () => {
         ]}
       />
 
-      <div className="flex-1 overflow-hidden pt-16 sm:pt-20 lg:pt-0">
-        <div className="h-full overflow-y-auto">
+      <div className="pt-4 lg:flex-1 lg:overflow-hidden lg:pt-0">
+        <div className="lg:h-full lg:overflow-y-auto">
           <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8">
             {/* Overview Stats */}
             <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">

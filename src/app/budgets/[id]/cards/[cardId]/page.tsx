@@ -344,9 +344,9 @@ const CardDetailsPage = () => {
 
   return (
     <>
-      <div className="h-full flex-1 overflow-y-auto">
+      <div className="lg:h-full lg:flex-1 lg:overflow-y-auto">
         <div>
-          <div className="mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4">
+          <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:px-8 lg:py-4 lg:pb-8">
             {/* Card Stats */}
             <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
               <StatsCard

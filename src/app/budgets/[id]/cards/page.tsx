@@ -315,7 +315,9 @@ const BudgetCardsPage = () => {
   // deleted) by falling back to "all" when the active owner has no tab.
   const effectiveOwner = useMemo(() => {
     if (activeOwner === "all") return "all";
-    return ownerTabs.some((tab) => tab.id === activeOwner) ? activeOwner : "all";
+    return ownerTabs.some((tab) => tab.id === activeOwner)
+      ? activeOwner
+      : "all";
   }, [activeOwner, ownerTabs]);
 
   const ownerFilteredCards = useMemo(() => {
@@ -384,7 +386,7 @@ const BudgetCardsPage = () => {
 
   return (
     <>
-      <div className="h-full overflow-y-auto bg-surface">
+      <div className="bg-surface lg:h-full lg:overflow-y-auto">
         <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:px-8 lg:py-4 lg:pb-8">
           {/* Overview Stats */}
           <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
