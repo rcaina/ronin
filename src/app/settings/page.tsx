@@ -98,13 +98,13 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-surface">
+    <div className="flex flex-col bg-surface lg:h-screen">
       <PageHeader
         title="Settings"
         description="Manage your account preferences and security"
       />
 
-      <div className="flex-1 overflow-auto">
+      <div className="pt-4 lg:flex-1 lg:overflow-auto lg:pt-0">
         <div className="mx-auto px-4 py-4 pb-28 sm:px-6 lg:px-8 lg:pb-8">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
             {/* Sidebar Navigation */}

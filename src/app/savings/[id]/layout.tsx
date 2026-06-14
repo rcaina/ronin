@@ -52,21 +52,25 @@ export default function SavingsLayout({
   const handleBack = useBackNavigation(pageHeaderConfig?.backTo ?? `/savings`);
 
   return (
-    <div className="flex h-screen flex-col bg-surface">
+    <div className="flex flex-col bg-surface lg:h-screen">
       {pageHeaderConfig && (
         <PageHeader
           title={pageHeaderConfig.title}
           eyebrow={pageHeaderConfig.eyebrow}
           description={pageHeaderConfig.description}
           backButton={
-            pageHeaderConfig.showBackButton ? { onClick: handleBack } : undefined
+            pageHeaderConfig.showBackButton
+              ? { onClick: handleBack }
+              : undefined
           }
         />
       )}
 
       <SavingsPageNavigation />
 
-      <div className="flex-1 overflow-hidden pt-3 lg:pt-0">{children}</div>
+      <div className="pt-4 lg:flex-1 lg:overflow-hidden lg:pt-0">
+        {children}
+      </div>
     </div>
   );
 }

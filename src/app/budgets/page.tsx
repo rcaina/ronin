@@ -225,7 +225,7 @@ const BudgetsPage = () => {
   ];
 
   return (
-    <div className="flex flex-col bg-surface pt-16 sm:pt-8 lg:h-screen lg:pt-0">
+    <div className="flex flex-col bg-surface pt-4 lg:h-screen lg:pt-0">
       <PageHeader
         title="Budgets"
         description="Manage budgets and track spending"
@@ -236,8 +236,8 @@ const BudgetsPage = () => {
         }}
       />
 
-      <div className="flex flex-col lg:flex-1 lg:overflow-hidden">
-        <div className="mx-auto w-full flex-shrink-0 px-4 py-4 sm:px-6 lg:px-8">
+      <div className="lg:flex-1 lg:overflow-y-auto">
+        <div className="mx-auto w-full px-4 py-4 sm:px-6 lg:px-8">
           {/* Budget overview charts — swipeable row on mobile, grid on larger screens */}
           <div className="scrollbar-hide mb-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 xl:grid-cols-4">
             {/* Spending by category group donut */}
@@ -528,8 +528,8 @@ const BudgetsPage = () => {
           </div>
         </div>
 
-        {/* Budgets List - Scrollable */}
-        <div className="overflow-y-auto lg:flex-1">
+        {/* Budgets List */}
+        <div>
           <div className="mx-auto w-full px-4 py-3 pb-28 sm:px-6 lg:px-8 lg:pb-8">
             <div className="grid gap-4 xl:grid-cols-2">
               {currentBudgets.length === 0 ? (

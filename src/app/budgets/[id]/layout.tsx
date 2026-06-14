@@ -100,14 +100,16 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const finalDescription = dynamicDescription ?? pageHeaderConfig?.description;
 
   return (
-    <div className="flex h-screen flex-col bg-surface">
+    <div className="flex flex-col bg-surface lg:h-screen">
       {pageHeaderConfig && (
         <PageHeader
           title={finalTitle}
           eyebrow={pageHeaderConfig.eyebrow}
           description={finalDescription}
           backButton={
-            pageHeaderConfig.showBackButton ? { onClick: handleBack } : undefined
+            pageHeaderConfig.showBackButton
+              ? { onClick: handleBack }
+              : undefined
           }
           actions={dynamicActions}
         />
@@ -115,7 +117,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
       <BudgetPageNavigation />
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden pt-3 lg:pt-0">
+      <div className="pt-4 lg:flex-1 lg:overflow-y-auto lg:overflow-x-hidden lg:pt-0">
         {children}
       </div>
     </div>

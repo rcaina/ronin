@@ -286,7 +286,7 @@ export default function HomePage() {
   )[0];
 
   return (
-    <div className="flex h-screen flex-col bg-surface">
+    <div className="flex flex-col bg-surface lg:h-screen">
       <PageHeader
         title={`Welcome back, ${session?.user?.name?.split(" ")[0] ?? "User"}! 👋`}
         description={
@@ -296,8 +296,8 @@ export default function HomePage() {
         }
       />
 
-      <div className="flex-1 overflow-hidden pt-4 sm:pt-20 lg:pt-0">
-        <div className="h-full overflow-y-auto">
+      <div className="pt-4 lg:flex-1 lg:overflow-hidden lg:pt-0">
+        <div className="lg:h-full lg:overflow-y-auto">
           <div className="mx-auto w-full px-4 py-4 pb-28 sm:px-6 lg:px-8 lg:pb-8">
             {/* Time-frame selector */}
             <div className="mb-4 flex items-center justify-between gap-3">
