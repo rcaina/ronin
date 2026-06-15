@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
+import SettingsPageNavigation from "@/components/settings/SettingsPageNavigation";
 import CreateUserModal from "@/components/CreateUserModal";
 import DeleteAccountModal from "@/components/DeleteAccountModal";
 import LeaveAccountModal from "@/components/DeactivateAccountModal";
@@ -104,34 +105,17 @@ const SettingsPage = () => {
         description="Manage your account preferences and security"
       />
 
+      <SettingsPageNavigation
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
+
       <div className="pt-4 lg:flex-1 lg:overflow-auto lg:pt-0">
         <div className="mx-auto px-4 py-4 pb-28 sm:px-6 lg:px-8 lg:pb-8">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
-            {/* Sidebar Navigation */}
-            <div className="lg:col-span-1">
-              <nav className="space-y-1">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex w-full items-center rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ease-out ${
-                        activeTab === tab.id
-                          ? "bg-secondary/15 text-secondary-700"
-                          : "text-gray-600 hover:bg-surface-muted hover:text-gray-900"
-                      }`}
-                    >
-                      <Icon className="mr-3 h-5 w-5" />
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-
+          <div className="mx-auto max-w-3xl">
             {/* Main Content */}
-            <div className="lg:col-span-3">
+            <div>
               <div className="card-surface">
                 {/* Profile Tab */}
                 {activeTab === "profile" && (

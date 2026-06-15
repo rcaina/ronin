@@ -465,6 +465,123 @@ const BudgetCategoriesPage = () => {
         <div className="mx-auto flex w-full flex-col px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:flex-1 lg:px-8 lg:py-4 lg:pb-8">
           {/* Charts and summary — swipeable row on mobile, grid on larger screens */}
           <div className="scrollbar-hide mb-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:mb-6 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:pb-0 lg:grid-cols-4 lg:gap-4">
+                        {/* Summary Stats Card - Combined */}
+            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
+              <h3 className="mb-2 text-sm font-semibold text-gray-900">
+                Summary
+              </h3>
+              <div className="space-y-2">
+                {/* Allocation Status */}
+                <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                  <div className="flex items-center gap-1.5">
+                    {allocationStatus.icon}
+                    <span className="text-xs font-medium text-gray-500">
+                      Allocation
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <div
+                      className={`text-sm font-semibold tabular-nums ${allocationStatus.valueColor}`}
+                    >
+                      {allocationStatus.value}
+                    </div>
+                    <div className="text-[10px] text-gray-500">
+                      {allocationStatus.subtitle}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Completed Categories */}
+                <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle className="h-3 w-3 text-green-500 sm:h-4 sm:w-4" />
+                    <span className="text-xs font-medium text-gray-500">
+                      Completed
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold tabular-nums text-green-600">
+                      {completedCategories}
+                    </div>
+                    <div className="text-[10px] tabular-nums text-gray-500">
+                      of {totalCategories}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Categories Over Budget */}
+                <div className="group relative flex items-center justify-between border-b border-gray-100 pb-2">
+                  <div className="flex items-center gap-1.5">
+                    {categoriesOverBudget > 0 ? (
+                      <AlertCircle className="h-3 w-3 text-red-500 sm:h-4 sm:w-4" />
+                    ) : (
+                      <CheckCircle className="h-3 w-3 text-green-500 sm:h-4 sm:w-4" />
+                    )}
+                    <span className="text-xs font-medium text-gray-500">
+                      Over budget
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <div
+                      className={`text-sm font-semibold tabular-nums ${
+                        categoriesOverBudget > 0
+                          ? "text-red-600"
+                          : "text-green-600"
+                      }`}
+                    >
+                      {categoriesOverBudget}
+                    </div>
+                    <div className="text-[10px] text-gray-500">
+                      {getOverBudgetSubtitle().text}
+                    </div>
+                  </div>
+
+                  {/* Tooltip for over budget categories */}
+                  {getOverBudgetSubtitle().tooltip && (
+                    <div className="absolute left-1/2 top-full z-10 mt-2 min-w-[200px] -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
+                      <div className="mb-2 flex items-center gap-2">
+                        <Info className="h-4 w-4 text-secondary-300" />
+                        <span className="font-medium">
+                          Categories over budget:
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        {getOverBudgetSubtitle().tooltip!.map((cat, index) => (
+                          <div
+                            key={index}
+                            className="flex justify-between gap-4 text-xs"
+                          >
+                            <span className="text-gray-200">{cat.name}</span>
+                            <span className="tabular-nums text-red-300">
+                              ${(cat.amount - (cat.allocated ?? 0)).toFixed(2)}{" "}
+                              over
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="absolute bottom-full left-1/2 h-0 w-0 -translate-x-1/2 transform border-b-4 border-l-4 border-r-4 border-transparent border-b-primary-950/90"></div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Total Income */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <DollarSign className="h-3 w-3 text-green-500 sm:h-4 sm:w-4" />
+                    <span className="text-xs font-medium text-gray-500">
+                      Total income
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold tabular-nums text-green-600">
+                      ${totalIncome.toLocaleString()}
+                    </div>
+                    <div className="text-[10px] text-gray-500">Available</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             {/* Graph 1: All Categories by Allocated Amount (Donut Chart) */}
             <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
               <h3 className="mb-2 text-sm font-semibold text-gray-900">
@@ -716,123 +833,6 @@ const BudgetCategoriesPage = () => {
               ) : (
                 <ChartEmptyState icon={Target} message="No allocations" />
               )}
-            </div>
-
-            {/* Summary Stats Card - Combined */}
-            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-              <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                Summary
-              </h3>
-              <div className="space-y-2">
-                {/* Allocation Status */}
-                <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                  <div className="flex items-center gap-1.5">
-                    {allocationStatus.icon}
-                    <span className="text-xs font-medium text-gray-500">
-                      Allocation
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <div
-                      className={`text-sm font-semibold tabular-nums ${allocationStatus.valueColor}`}
-                    >
-                      {allocationStatus.value}
-                    </div>
-                    <div className="text-[10px] text-gray-500">
-                      {allocationStatus.subtitle}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Completed Categories */}
-                <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle className="h-3 w-3 text-green-500 sm:h-4 sm:w-4" />
-                    <span className="text-xs font-medium text-gray-500">
-                      Completed
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-semibold tabular-nums text-green-600">
-                      {completedCategories}
-                    </div>
-                    <div className="text-[10px] tabular-nums text-gray-500">
-                      of {totalCategories}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Categories Over Budget */}
-                <div className="group relative flex items-center justify-between border-b border-gray-100 pb-2">
-                  <div className="flex items-center gap-1.5">
-                    {categoriesOverBudget > 0 ? (
-                      <AlertCircle className="h-3 w-3 text-red-500 sm:h-4 sm:w-4" />
-                    ) : (
-                      <CheckCircle className="h-3 w-3 text-green-500 sm:h-4 sm:w-4" />
-                    )}
-                    <span className="text-xs font-medium text-gray-500">
-                      Over budget
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <div
-                      className={`text-sm font-semibold tabular-nums ${
-                        categoriesOverBudget > 0
-                          ? "text-red-600"
-                          : "text-green-600"
-                      }`}
-                    >
-                      {categoriesOverBudget}
-                    </div>
-                    <div className="text-[10px] text-gray-500">
-                      {getOverBudgetSubtitle().text}
-                    </div>
-                  </div>
-
-                  {/* Tooltip for over budget categories */}
-                  {getOverBudgetSubtitle().tooltip && (
-                    <div className="absolute left-1/2 top-full z-10 mt-2 min-w-[200px] -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
-                      <div className="mb-2 flex items-center gap-2">
-                        <Info className="h-4 w-4 text-secondary-300" />
-                        <span className="font-medium">
-                          Categories over budget:
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        {getOverBudgetSubtitle().tooltip!.map((cat, index) => (
-                          <div
-                            key={index}
-                            className="flex justify-between gap-4 text-xs"
-                          >
-                            <span className="text-gray-200">{cat.name}</span>
-                            <span className="tabular-nums text-red-300">
-                              ${(cat.amount - (cat.allocated ?? 0)).toFixed(2)}{" "}
-                              over
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="absolute bottom-full left-1/2 h-0 w-0 -translate-x-1/2 transform border-b-4 border-l-4 border-r-4 border-transparent border-b-primary-950/90"></div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Total Income */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <DollarSign className="h-3 w-3 text-green-500 sm:h-4 sm:w-4" />
-                    <span className="text-xs font-medium text-gray-500">
-                      Total income
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-semibold tabular-nums text-green-600">
-                      ${totalIncome.toLocaleString()}
-                    </div>
-                    <div className="text-[10px] text-gray-500">Available</div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
