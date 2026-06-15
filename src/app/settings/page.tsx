@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 import PageHeader from "@/components/PageHeader";
 import SettingsPageNavigation from "@/components/settings/SettingsPageNavigation";
 import CreateUserModal from "@/components/CreateUserModal";
@@ -19,10 +20,32 @@ import {
   Home,
   Trash2,
   LogOut,
+  Lock,
+  AlertTriangle,
 } from "lucide-react";
 import Button from "@/components/Button";
 import { Role } from "@prisma/client";
 import { useUpdateProfile } from "@/lib/data-hooks/users/useUser";
+
+interface AccountUser {
+  id: string;
+  name: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  role: string;
+}
+
+const getInitials = (name?: string | null) => {
+  const initials = (name ?? "")
+    .split(" ")
+    .map((part) => part.trim()[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  return initials || "U";
+};
 
 const SettingsPage = () => {
   const { data: session } = useSession();
@@ -33,6 +56,8 @@ const SettingsPage = () => {
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [showLeaveAccountModal, setShowLeaveAccountModal] = useState(false);
   const updateProfileMutation = useUpdateProfile();
+
+  const isAdmin = session?.user?.role === Role.ADMIN;
 
   // Form states
   const [profileForm, setProfileForm] = useState({
@@ -56,27 +81,38 @@ const SettingsPage = () => {
     }
   }, [session]);
 
-  const [preferences, setPreferences] = useState({
-    theme: "light",
-    currency: "USD",
-    notifications: {
-      email: true,
-      push: false,
-      weekly: true,
-      monthly: true,
-    },
-  });
+  // Account users (admin-only Users tab)
+  const [accountUsers, setAccountUsers] = useState<AccountUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+
+  useEffect(() => {
+    if (!isAdmin || activeTab !== "users") return;
+
+    const fetchUsers = async () => {
+      setLoadingUsers(true);
+      try {
+        const response = await fetch("/api/users");
+        if (!response.ok) throw new Error("Failed to fetch users");
+        const data = (await response.json()) as AccountUser[];
+        setAccountUsers(data);
+      } catch (err) {
+        console.error("Error fetching users:", err);
+        toast.error("Failed to load users. Please refresh the page.");
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    void fetchUsers();
+  }, [isAdmin, activeTab, showCreateUserModal]);
 
   const tabs = [
     { id: "profile", label: "Profile", icon: UserIcon },
     { id: "security", label: "Security", icon: Shield },
-    // { id: "preferences", label: "Preferences", icon: Palette },
-    // { id: "notifications", label: "Notifications", icon: Bell },
-    // { id: "billing", label: "Billing", icon: CreditCard },
   ];
 
   // Add Users tab for admin users
-  if (session?.user?.role === Role.ADMIN) {
+  if (isAdmin) {
     tabs.push({ id: "users", label: "Users", icon: Users });
   }
 
@@ -88,6 +124,7 @@ const SettingsPage = () => {
         phone: profileForm.phone,
       });
       setIsEditingProfile(false);
+      toast.success("Profile updated successfully!");
     } catch (error) {
       // Error is handled by the mutation
       console.error("Failed to update profile:", error);
@@ -112,528 +149,369 @@ const SettingsPage = () => {
       />
 
       <div className="pt-4 lg:flex-1 lg:overflow-auto lg:pt-0">
-        <div className="mx-auto px-4 py-4 pb-28 sm:px-6 lg:px-8 lg:pb-8">
-          <div className="mx-auto max-w-3xl">
-            {/* Main Content */}
-            <div>
-              <div className="card-surface">
-                {/* Profile Tab */}
-                {activeTab === "profile" && (
-                  <div className="p-6">
-                    <div className="mb-6 flex items-center justify-between">
-                      <h2 className="text-xl font-semibold text-gray-900">
-                        Profile
-                      </h2>
+        <div className="mx-auto w-full px-4 py-4 pb-28 sm:px-6 lg:px-8 lg:py-8 lg:pb-8">
+          {/* Profile Tab */}
+          {activeTab === "profile" && (
+            <div className="space-y-4 sm:space-y-6">
+              {/* Identity summary */}
+              <div className="card-surface flex items-center gap-4 p-5 sm:p-6">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-secondary/15 text-lg font-semibold tracking-tight text-secondary-700">
+                  {getInitials(profileForm.name)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="truncate text-lg font-semibold tracking-tight text-gray-900">
+                    {profileForm.name || "Your account"}
+                  </h2>
+                  <p className="truncate text-sm text-gray-500">
+                    {profileForm.email || "No email on file"}
+                  </p>
+                </div>
+                {profileForm.role && (
+                  <span className="inline-flex items-center rounded-full bg-secondary/15 px-2.5 py-0.5 text-xs font-medium capitalize text-secondary-700">
+                    {profileForm.role.toLowerCase()}
+                  </span>
+                )}
+              </div>
+
+              {/* Details + getting started fill the full width on desktop. */}
+              <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
+              {/* Profile information */}
+              <div className="card-surface p-5 sm:p-6 lg:col-span-2">
+                <div className="mb-5 flex items-center justify-between gap-3">
+                  <h3 className="text-base font-semibold tracking-tight text-gray-900">
+                    Profile information
+                  </h3>
+                  {!isEditingProfile && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsEditingProfile(true)}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit profile
+                    </Button>
+                  )}
+                </div>
+
+                {isEditingProfile ? (
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500">
+                          Full name
+                        </label>
+                        <input
+                          type="text"
+                          value={profileForm.name}
+                          onChange={(e) =>
+                            setProfileForm({
+                              ...profileForm,
+                              name: e.target.value,
+                            })
+                          }
+                          className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500">
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          value={profileForm.email}
+                          onChange={(e) =>
+                            setProfileForm({
+                              ...profileForm,
+                              email: e.target.value,
+                            })
+                          }
+                          className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500">
+                          Phone
+                        </label>
+                        <input
+                          type="tel"
+                          value={profileForm.phone}
+                          onChange={(e) =>
+                            setProfileForm({
+                              ...profileForm,
+                              phone: e.target.value,
+                            })
+                          }
+                          className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                        />
+                      </div>
                     </div>
 
-                    {isEditingProfile ? (
-                      <div className="space-y-6">
-                        {/* 2x2 Grid for Name, Email, and Phone */}
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500">
-                              Full Name
-                            </label>
-                            <input
-                              type="text"
-                              value={profileForm.name}
-                              onChange={(e) =>
-                                setProfileForm({
-                                  ...profileForm,
-                                  name: e.target.value,
-                                })
-                              }
-                              className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500">
-                              Email
-                            </label>
-                            <input
-                              type="email"
-                              value={profileForm.email}
-                              onChange={(e) =>
-                                setProfileForm({
-                                  ...profileForm,
-                                  email: e.target.value,
-                                })
-                              }
-                              className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500">
-                              Phone
-                            </label>
-                            <input
-                              type="tel"
-                              value={profileForm.phone}
-                              onChange={(e) =>
-                                setProfileForm({
-                                  ...profileForm,
-                                  phone: e.target.value,
-                                })
-                              }
-                              className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                            />
-                          </div>
-                        </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">
+                        Bio
+                      </label>
+                      <textarea
+                        value={profileForm.bio}
+                        onChange={(e) =>
+                          setProfileForm({
+                            ...profileForm,
+                            bio: e.target.value,
+                          })
+                        }
+                        rows={3}
+                        className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                      />
+                    </div>
 
-                        {/* Bio field taking full width */}
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500">
-                            Bio
-                          </label>
-                          <textarea
-                            value={profileForm.bio}
-                            onChange={(e) =>
-                              setProfileForm({
-                                ...profileForm,
-                                bio: e.target.value,
-                              })
-                            }
-                            rows={3}
-                            className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                          />
-                        </div>
-
-                        {/* Error message */}
-                        {updateProfileMutation.error && (
-                          <div className="rounded-xl border border-red-200 bg-red-50 p-3">
-                            <p className="text-sm text-red-600">
-                              {updateProfileMutation.error.message}
-                            </p>
-                          </div>
-                        )}
-
-                        <div className="flex justify-end space-x-3">
-                          <Button
-                            variant="outline"
-                            onClick={() => setIsEditingProfile(false)}
-                            disabled={updateProfileMutation.isPending}
-                          >
-                            <X className="mr-2 h-4 w-4" />
-                            Cancel
-                          </Button>
-                          <Button
-                            onClick={handleProfileSave}
-                            disabled={updateProfileMutation.isPending}
-                          >
-                            <Save className="mr-2 h-4 w-4" />
-                            {updateProfileMutation.isPending
-                              ? "Saving..."
-                              : "Save changes"}
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="rounded-xl border border-gray-200/70 bg-surface p-4">
-                        <div className="mb-6 flex items-center justify-between">
-                          <h2 className="text-xl font-semibold tracking-tight text-gray-900">
-                            Profile information
-                          </h2>
-                          {!isEditingProfile && (
-                            <button
-                              onClick={() => setIsEditingProfile(true)}
-                              className="inline-flex items-center rounded-xl bg-secondary px-3 py-2 text-sm font-medium text-primary-950 shadow-soft transition-all duration-200 ease-out hover:bg-secondary-600 active:scale-[0.98]"
-                            >
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit profile
-                            </button>
-                          )}
-                        </div>
-                        <div className="space-y-6">
-                          {/* 2x2 Grid for Name, Email, Role */}
-                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <div>
-                              <label className="block text-xs font-medium text-gray-500">
-                                Full Name
-                              </label>
-                              <p className="mt-1 text-sm text-gray-900">
-                                {profileForm.name}
-                              </p>
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-500">
-                                Email
-                              </label>
-                              <p className="mt-1 text-sm text-gray-900">
-                                {profileForm.email}
-                              </p>
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-500">
-                                Role
-                              </label>
-                              <p className="mt-1 text-sm text-gray-900">
-                                {profileForm.role}
-                              </p>
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-500">
-                                Phone
-                              </label>
-                              <p className="mt-1 text-sm text-gray-900">
-                                {profileForm.phone}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Bio field taking full width */}
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500">
-                              Bio
-                            </label>
-                            <p className="mt-1 text-sm text-gray-900">
-                              {profileForm.bio || "No bio added yet."}
-                            </p>
-                          </div>
-                        </div>
+                    {updateProfileMutation.error && (
+                      <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+                        <p className="text-sm text-red-600">
+                          {updateProfileMutation.error.message}
+                        </p>
                       </div>
                     )}
 
-                    {/* Back to Welcome Section */}
-                    <div className="mt-8 rounded-xl border border-gray-200/70 bg-surface p-4">
-                      <div className="mb-4 flex items-center justify-between">
-                        <h3 className="text-lg font-semibold tracking-tight text-gray-900">
-                          Getting started
-                        </h3>
-                        <Button onClick={() => router.push("/welcome")}>
-                          <Home className="mr-2 h-4 w-4" />
-                          Back to welcome page
-                        </Button>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        Need help setting up your account? Return to the welcome
-                        page to access setup options.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Security Tab */}
-                {activeTab === "security" && (
-                  <div className="p-6">
-                    <h2 className="mb-6 text-xl font-semibold tracking-tight text-gray-900">
-                      Security settings
-                    </h2>
-
-                    <div className="space-y-6">
-                      {/* Change Password - Coming Soon */}
-                      <div className="rounded-xl border border-gray-200/70 bg-surface p-4">
-                        <div className="mb-4 flex items-center justify-between">
-                          <h3 className="text-lg font-semibold tracking-tight text-gray-900">
-                            Change password
-                          </h3>
-                          <span className="inline-flex items-center rounded-full bg-secondary-100 px-2.5 py-0.5 text-xs font-medium text-secondary-800">
-                            Coming soon
-                          </span>
-                        </div>
-                        <div className="flex items-start space-x-3">
-                          <div className="flex-shrink-0">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-muted">
-                              <span className="text-sm font-medium">🔒</span>
-                            </div>
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm text-gray-600">
-                              We&apos;re working on bringing you secure password
-                              management. This feature will allow you to update
-                              your password with enhanced security measures.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Sign Out */}
-                      <div className="rounded-xl border border-gray-200/70 p-4">
-                        <div className="mb-4 flex items-center justify-between">
-                          <h3 className="text-lg font-semibold tracking-tight text-gray-900">
-                            Session management
-                          </h3>
-                          <button
-                            onClick={handleSignOut}
-                            className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-soft transition-all duration-200 ease-out hover:bg-primary-800 active:scale-[0.98]"
-                          >
-                            Sign out
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Delete Account / Leave Account */}
-                      {session?.user?.role === Role.ADMIN ? (
-                        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-                          <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-lg font-semibold tracking-tight text-gray-900">
-                              Delete account
-                            </h3>
-                            <button
-                              onClick={() => setShowDeleteAccountModal(true)}
-                              className="inline-flex items-center rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-soft transition-all duration-200 ease-out hover:bg-red-700 active:scale-[0.98]"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete account
-                            </button>
-                          </div>
-                          <div className="flex items-start space-x-3">
-                            <div className="flex-shrink-0">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
-                                <span className="text-sm font-medium text-red-600">
-                                  ⚠️
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm text-gray-600">
-                                Permanently delete your account and all
-                                associated data. This action cannot be undone
-                                and will remove all your budgets, transactions,
-                                categories, and other data.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-                          <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-lg font-semibold tracking-tight text-gray-900">
-                              Deactivate account
-                            </h3>
-                            <button
-                              onClick={() => setShowLeaveAccountModal(true)}
-                              className="inline-flex items-center rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-soft transition-all duration-200 ease-out hover:bg-red-700 active:scale-[0.98]"
-                            >
-                              <LogOut className="mr-2 h-4 w-4" />
-                              Deactivate account
-                            </button>
-                          </div>
-                          <div className="flex items-start space-x-3">
-                            <div className="flex-shrink-0">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
-                                <span className="text-sm font-medium text-red-600">
-                                  ⚠️
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm text-gray-600">
-                                Remove your access from this account. This
-                                action cannot be undone and will deactivate your
-                                user profile and prevent you from logging in.
-                                Your personal data (transactions, cards, income)
-                                will be preserved for account history, while the
-                                account and other users remain.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Preferences Tab */}
-                {activeTab === "preferences" && (
-                  <div className="p-6">
-                    <h2 className="mb-6 text-xl font-semibold text-gray-900">
-                      Preferences
-                    </h2>
-
-                    <div className="space-y-6">
-                      {/* Theme */}
-                      <div className="rounded-xl border border-gray-200/70 p-4">
-                        <h3 className="mb-4 text-lg font-medium text-gray-900">
-                          Theme
-                        </h3>
-                        <div className="space-y-2">
-                          {["light", "dark", "system"].map((theme) => (
-                            <label
-                              key={theme}
-                              className="flex cursor-pointer items-center space-x-3"
-                            >
-                              <input
-                                type="radio"
-                                name="theme"
-                                value={theme}
-                                checked={preferences.theme === theme}
-                                onChange={(e) =>
-                                  setPreferences({
-                                    ...preferences,
-                                    theme: e.target.value,
-                                  })
-                                }
-                                className="h-4 w-4 text-secondary-600 focus:ring-secondary"
-                              />
-                              <span className="text-sm capitalize text-gray-700">
-                                {theme}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Currency */}
-                      <div className="rounded-xl border border-gray-200/70 p-4">
-                        <h3 className="mb-4 text-lg font-medium text-gray-900">
-                          Currency
-                        </h3>
-                        <select
-                          value={preferences.currency}
-                          onChange={(e) =>
-                            setPreferences({
-                              ...preferences,
-                              currency: e.target.value,
-                            })
-                          }
-                          className="block w-full rounded-xl border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                        >
-                          <option value="USD">USD - US Dollar</option>
-                          <option value="EUR">EUR - Euro</option>
-                          <option value="GBP">GBP - British Pound</option>
-                          <option value="CAD">CAD - Canadian Dollar</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Notifications Tab */}
-                {activeTab === "notifications" && (
-                  <div className="p-6">
-                    <h2 className="mb-6 text-xl font-semibold text-gray-900">
-                      Notification Settings
-                    </h2>
-
-                    <div className="space-y-6">
-                      <div className="rounded-xl border border-gray-200/70 p-4">
-                        <h3 className="mb-4 text-lg font-medium text-gray-900">
-                          Email Notifications
-                        </h3>
-                        <div className="space-y-4">
-                          {Object.entries(preferences.notifications).map(
-                            ([key, value]) => (
-                              <label
-                                key={key}
-                                className="flex items-center justify-between"
-                              >
-                                <span className="text-sm font-medium capitalize text-gray-700">
-                                  {key.replace(/([A-Z])/g, " $1").trim()}
-                                </span>
-                                <input
-                                  type="checkbox"
-                                  checked={value}
-                                  onChange={(e) =>
-                                    setPreferences({
-                                      ...preferences,
-                                      notifications: {
-                                        ...preferences.notifications,
-                                        [key]: e.target.checked,
-                                      },
-                                    })
-                                  }
-                                  className="h-4 w-4 rounded border-gray-300 text-secondary-600 focus:ring-secondary"
-                                />
-                              </label>
-                            ),
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Billing Tab */}
-                {activeTab === "billing" && (
-                  <div className="p-6">
-                    <h2 className="mb-6 text-xl font-semibold text-gray-900">
-                      Billing & Subscription
-                    </h2>
-
-                    <div className="space-y-6">
-                      {/* Current Plan */}
-                      <div className="rounded-xl border border-gray-200/70 p-4">
-                        <h3 className="mb-4 text-lg font-medium text-gray-900">
-                          Current Plan
-                        </h3>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              Free Plan
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              Basic features included
-                            </p>
-                          </div>
-                          <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                            Active
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Payment Method */}
-                      <div className="rounded-xl border border-gray-200/70 p-4">
-                        <h3 className="mb-4 text-lg font-medium text-gray-900">
-                          Payment Method
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          No payment method added yet.
-                        </p>
-                        <button className="mt-2 rounded-xl bg-secondary px-4 py-2 text-sm font-medium text-primary-950 shadow-soft transition-all duration-200 ease-out hover:bg-secondary-600 active:scale-[0.98]">
-                          Add payment method
-                        </button>
-                      </div>
-
-                      {/* Billing History */}
-                      <div className="rounded-xl border border-gray-200/70 p-4">
-                        <h3 className="mb-4 text-lg font-medium text-gray-900">
-                          Billing History
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          No billing history available.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Users Tab */}
-                {activeTab === "users" && (
-                  <div className="p-6">
-                    <div className="mb-6 flex items-center justify-between">
-                      <h2 className="text-xl font-semibold tracking-tight text-gray-900">
-                        User management
-                      </h2>
-                      <button
-                        onClick={() => setShowCreateUserModal(true)}
-                        className="inline-flex items-center rounded-xl bg-secondary px-3 py-2 text-sm font-medium text-primary-950 shadow-soft transition-all duration-200 ease-out hover:bg-secondary-600 active:scale-[0.98]"
+                    <div className="flex justify-end gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsEditingProfile(false)}
+                        disabled={updateProfileMutation.isPending}
                       >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add user
-                      </button>
+                        <X className="mr-2 h-4 w-4" />
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleProfileSave}
+                        isLoading={updateProfileMutation.isPending}
+                      >
+                        {!updateProfileMutation.isPending && (
+                          <Save className="mr-2 h-4 w-4" />
+                        )}
+                        {updateProfileMutation.isPending
+                          ? "Saving..."
+                          : "Save changes"}
+                      </Button>
                     </div>
-
-                    <div className="rounded-xl border border-gray-200/70 p-4">
-                      <h3 className="mb-4 text-lg font-semibold tracking-tight text-gray-900">
-                        Account users
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        Manage users in your account. Only administrators can
-                        create new users.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">
+                        Full name
+                      </label>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {profileForm.name || "—"}
                       </p>
-                      <div className="mt-4 rounded-xl bg-secondary-50 p-3">
-                        <p className="text-sm text-secondary-800">
-                          <strong>Note:</strong> New users are created with a
-                          default password that you&apos;ll need to share with
-                          them manually.
-                        </p>
-                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">
+                        Email
+                      </label>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {profileForm.email || "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">
+                        Role
+                      </label>
+                      <p className="mt-1 text-sm capitalize text-gray-900">
+                        {profileForm.role.toLowerCase() || "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">
+                        Phone
+                      </label>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {profileForm.phone || "—"}
+                      </p>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-medium text-gray-500">
+                        Bio
+                      </label>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {profileForm.bio || "No bio added yet."}
+                      </p>
                     </div>
                   </div>
                 )}
               </div>
+
+              {/* Getting started */}
+              <div className="card-surface flex flex-col p-5 sm:p-6">
+                <h3 className="text-base font-semibold tracking-tight text-gray-900">
+                  Getting started
+                </h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  Need help setting up your account? Return to the welcome page
+                  to access setup options.
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-4 w-full sm:mt-auto"
+                  onClick={() => router.push("/welcome")}
+                >
+                  <Home className="mr-2 h-4 w-4" />
+                  Back to welcome page
+                </Button>
+              </div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Security Tab */}
+          {activeTab === "security" && (
+            <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
+              {/* Change password - coming soon */}
+              <div className="card-surface p-5 sm:p-6">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h3 className="text-base font-semibold tracking-tight text-gray-900">
+                    Change password
+                  </h3>
+                  <span className="inline-flex items-center rounded-full bg-secondary-100 px-2.5 py-0.5 text-xs font-medium text-secondary-800">
+                    Coming soon
+                  </span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-gray-500">
+                    <Lock className="h-4 w-4" />
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    We&apos;re working on bringing you secure password
+                    management. This feature will allow you to update your
+                    password with enhanced security measures.
+                  </p>
+                </div>
+              </div>
+
+              {/* Session management */}
+              <div className="card-surface p-5 sm:p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <h3 className="text-base font-semibold tracking-tight text-gray-900">
+                      Session management
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-600">
+                      Sign out of your account on this device.
+                    </p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    className="w-full shrink-0 sm:w-auto"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign out
+                  </Button>
+                </div>
+              </div>
+
+              {/* Danger zone */}
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-card sm:p-6 lg:col-span-2">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h3 className="text-base font-semibold tracking-tight text-gray-900">
+                    {isAdmin ? "Delete account" : "Deactivate account"}
+                  </h3>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() =>
+                      isAdmin
+                        ? setShowDeleteAccountModal(true)
+                        : setShowLeaveAccountModal(true)
+                    }
+                  >
+                    {isAdmin ? (
+                      <Trash2 className="mr-2 h-4 w-4" />
+                    ) : (
+                      <LogOut className="mr-2 h-4 w-4" />
+                    )}
+                    {isAdmin ? "Delete account" : "Deactivate account"}
+                  </Button>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
+                    <AlertTriangle className="h-4 w-4" />
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    {isAdmin
+                      ? "Permanently delete your account and all associated data. This action cannot be undone and will remove all your budgets, transactions, categories, and other data."
+                      : "Remove your access from this account. This action cannot be undone and will deactivate your user profile and prevent you from logging in. Your personal data (transactions, cards, income) will be preserved for account history, while the account and other users remain."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Users Tab */}
+          {activeTab === "users" && (
+            <div className="space-y-4 sm:space-y-6">
+              <div className="card-surface p-5 sm:p-6">
+                <div className="mb-5 flex items-center justify-between gap-3">
+                  <h3 className="text-base font-semibold tracking-tight text-gray-900">
+                    Account users
+                  </h3>
+                  <Button size="sm" onClick={() => setShowCreateUserModal(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add user
+                  </Button>
+                </div>
+
+                {loadingUsers ? (
+                  <div className="space-y-3">
+                    {[0, 1].map((i) => (
+                      <div
+                        key={i}
+                        className="h-16 animate-pulse rounded-xl bg-surface-muted"
+                      />
+                    ))}
+                  </div>
+                ) : accountUsers.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    No users yet — add your first one.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-gray-200/70">
+                    {accountUsers.map((user) => (
+                      <li
+                        key={user.id}
+                        className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-sm font-semibold text-secondary-700">
+                          {getInitials(
+                            user.name ??
+                              `${user.firstName ?? ""} ${user.lastName ?? ""}`,
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-gray-900">
+                            {user.name ??
+                              (`${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+                                "Unnamed user")}
+                          </p>
+                          <p className="truncate text-xs text-gray-500">
+                            {user.email ?? "No email"}
+                          </p>
+                        </div>
+                        <span className="inline-flex shrink-0 items-center rounded-full bg-surface-muted px-2.5 py-0.5 text-xs font-medium capitalize text-gray-600">
+                          {user.role.toLowerCase()}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="mt-5 rounded-xl bg-secondary-50 p-3">
+                  <p className="text-sm text-secondary-800">
+                    <strong>Note:</strong> New users are created with a default
+                    password that you&apos;ll need to share with them manually.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
