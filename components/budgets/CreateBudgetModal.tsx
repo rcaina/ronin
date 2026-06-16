@@ -638,7 +638,7 @@ export default function CreateBudgetModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 backdrop-blur-sm">
-      <div className="mx-4 flex h-[70vh] w-full max-w-4xl animate-scale-in flex-col rounded-2xl bg-white shadow-lifted">
+      <div className="mx-4 flex h-[70vh] w-full max-w-4xl animate-scale-in flex-col rounded-2xl bg-surface-card shadow-lifted">
         {/* Header - Full Width */}
         <div className="flex flex-shrink-0 items-center justify-between border-b p-6">
           <div>
@@ -760,7 +760,7 @@ export default function CreateBudgetModal({
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                  className="rounded-lg border border-gray-300 bg-surface-card px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
                 >
                   Back
                 </button>

@@ -465,7 +465,7 @@ const BudgetCategoriesPage = () => {
         <div className="mx-auto flex w-full flex-col px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:flex-1 lg:px-8 lg:py-4 lg:pb-8">
           {/* Charts and summary — swipeable row on mobile, grid on larger screens */}
           <div className="scrollbar-hide mb-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:mb-6 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:pb-0 lg:grid-cols-4 lg:gap-4">
-                        {/* Summary Stats Card - Combined */}
+            {/* Summary Stats Card - Combined */}
             <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
               <h3 className="mb-2 text-sm font-semibold text-gray-900">
                 Summary
@@ -581,7 +581,7 @@ const BudgetCategoriesPage = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* Graph 1: All Categories by Allocated Amount (Donut Chart) */}
             <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
               <h3 className="mb-2 text-sm font-semibold text-gray-900">

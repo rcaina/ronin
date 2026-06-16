@@ -209,6 +209,7 @@ export async function updateUserProfile(
     name?: string;
     email?: string;
     phone?: string | null;
+    theme?: string;
   } = {};
 
   if (data.name) {
@@ -219,6 +220,9 @@ export async function updateUserProfile(
   }
   if (data.phone !== undefined) {
     updateData.phone = data.phone || null;
+  }
+  if (data.theme) {
+    updateData.theme = data.theme;
   }
 
   // Update the user profile

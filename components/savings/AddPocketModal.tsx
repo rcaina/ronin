@@ -47,7 +47,7 @@ export default function AddPocketModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-md animate-scale-in rounded-2xl bg-white shadow-lifted">
+      <div className="mx-4 w-full max-w-md animate-scale-in rounded-2xl bg-surface-card shadow-lifted">
         <div className="flex items-center justify-between border-b p-5">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">

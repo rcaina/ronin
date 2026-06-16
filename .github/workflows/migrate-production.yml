@@ -1,0 +1,45 @@
+name: Migrate Production DB
+
+# Vercel auto-deploys the app on push to main. This workflow handles the
+# other half — applying pending Prisma migrations to the production database
+# so you don't have to run `prisma migrate deploy` by hand.
+on:
+  push:
+    branches: [main]
+    # Only run when migration files actually change. `migrate deploy` is
+    # idempotent, but this saves CI minutes on unrelated pushes.
+    paths:
+      - "prisma/migrations/**"
+      - "prisma/schema.prisma"
+  # Manual escape hatch: re-run from the Actions tab if a run fails or you
+  # need to apply migrations ad hoc.
+  workflow_dispatch:
+
+# Never let two migration runs race against the same database.
+concurrency:
+  group: migrate-production
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply pending migrations
+        run: pnpm db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

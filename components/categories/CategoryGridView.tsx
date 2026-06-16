@@ -113,7 +113,7 @@ export default function CategoryGridView({
               !isAddingCategory && (
                 <button
                   onClick={() => handleStartAddCategory(group.type)}
-                  className="flex min-h-[180px] items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-white text-gray-500 transition-all duration-200 ease-out hover:border-secondary hover:bg-secondary/5 hover:text-secondary-700 active:scale-[0.98]"
+                  className="flex min-h-[180px] items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-surface-card text-gray-500 transition-all duration-200 ease-out hover:border-secondary hover:bg-secondary/5 hover:text-secondary-700 active:scale-[0.98]"
                 >
                   <div className="text-center">
                     <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-surface-muted text-gray-400">

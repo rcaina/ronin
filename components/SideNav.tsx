@@ -115,7 +115,7 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
                 } ${
                   isActive
                     ? "bg-secondary/15 font-medium text-accent"
-                    : "text-gray-400 hover:bg-white/5 hover:text-white"
+                    : "text-primary-300 hover:bg-white/5 hover:text-white"
                 }`}
               >
                 <Icon
@@ -137,7 +137,7 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
           <div className="relative">
             <button
               onClick={() => setShowProfilePopup(!showProfilePopup)}
-              className={`flex w-full items-center rounded-xl px-3 py-2.5 text-sm text-gray-300 transition-colors duration-200 hover:bg-white/5 hover:text-white ${isCollapsed ? "justify-center" : "gap-3"}`}
+              className={`flex w-full items-center rounded-xl px-3 py-2.5 text-sm text-primary-200 transition-colors duration-200 hover:bg-white/5 hover:text-white ${isCollapsed ? "justify-center" : "gap-3"}`}
             >
               <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-secondary/20 text-secondary">
                 <User className="h-4 w-4" />
@@ -156,7 +156,7 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
             {/* Profile popup */}
             {showProfilePopup && (
               <div
-                className={`absolute bottom-full mb-2 animate-scale-in rounded-2xl border border-gray-200/70 bg-white p-2 shadow-lifted ${
+                className={`absolute bottom-full mb-2 animate-scale-in rounded-2xl border border-gray-200/70 bg-surface-card p-2 shadow-lifted ${
                   isCollapsed ? "left-0 w-64" : "left-0 w-full"
                 }`}
               >

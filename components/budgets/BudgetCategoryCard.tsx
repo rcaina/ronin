@@ -149,7 +149,7 @@ export default function BudgetCategoryCard({
         className={`group relative cursor-grab overflow-hidden rounded-2xl border p-4 shadow-card transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lifted active:cursor-grabbing ${
           editingCategoryId === budgetCategory.id
             ? "border-secondary-300 bg-secondary-50"
-            : "border-gray-200/70 bg-white hover:border-gray-300/80"
+            : "border-gray-200/70 bg-surface-card hover:border-gray-300/80"
         }`}
       >
         {/* Drag Handle */}

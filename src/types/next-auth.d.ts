@@ -16,6 +16,7 @@ declare module "next-auth" {
     emailVerified: Date | null;
     deleted: boolean;
     hasBudget: boolean;
+    theme: string;
   }
 
   /**
@@ -37,5 +38,6 @@ declare module "next-auth/jwt" {
     phone: string | null;
     deleted: boolean;
     hasBudget: boolean;
+    theme: string;
   }
 }

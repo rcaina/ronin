@@ -35,9 +35,11 @@ export const STATUS_COLORS = {
   neutral: "#9ca3af",
 };
 
-// Default axis styling — quiet, small, no axis lines.
+// Default axis styling — quiet, small, no axis lines. Stroke is theme-aware via
+// the --chart-axis CSS variable (see src/styles/globals.css) so axes stay legible
+// in dark mode.
 export const chartAxisProps = {
-  stroke: "#9ca3af",
+  stroke: "var(--chart-axis)",
   fontSize: 11,
   tickLine: false,
   axisLine: false,
@@ -45,7 +47,7 @@ export const chartAxisProps = {
 
 export const chartGridProps = {
   strokeDasharray: "4 4",
-  stroke: "#e5e7eb",
+  stroke: "var(--chart-grid)",
   vertical: false,
 } as const;
 

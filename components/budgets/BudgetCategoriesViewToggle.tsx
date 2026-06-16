@@ -14,7 +14,7 @@ export default function BudgetCategoriesViewToggle({
   onViewChange,
 }: BudgetCategoriesViewToggleProps) {
   return (
-    <div className="flex w-auto items-center rounded-lg border bg-white p-1 shadow-sm">
+    <div className="flex w-auto items-center rounded-lg border bg-surface-card p-1 shadow-sm">
       <button
         onClick={() => onViewChange("grid")}
         className={`flex w-full items-center space-x-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${

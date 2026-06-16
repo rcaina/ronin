@@ -70,7 +70,7 @@ export default function WelcomePage() {
           {/* Create First Budget */}
           <button
             onClick={() => router.push("/budgets")}
-            className="group flex flex-col items-center rounded-lg border border-gray-200 bg-white p-6 text-center transition-all hover:border-secondary hover:shadow-md"
+            className="group flex flex-col items-center rounded-lg border border-gray-200 bg-surface-card p-6 text-center transition-all hover:border-secondary hover:shadow-md"
           >
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 group-hover:bg-green-200">
               <Plus className="h-8 w-8 text-green-600" />
@@ -86,7 +86,7 @@ export default function WelcomePage() {
           {/* Invite Users */}
           <button
             onClick={() => router.push("/settings")}
-            className="group flex flex-col items-center rounded-lg border border-gray-200 bg-white p-6 text-center transition-all hover:border-secondary hover:shadow-md"
+            className="group flex flex-col items-center rounded-lg border border-gray-200 bg-surface-card p-6 text-center transition-all hover:border-secondary hover:shadow-md"
           >
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-purple-100 group-hover:bg-purple-200">
               <Users className="h-8 w-8 text-purple-600" />
@@ -102,7 +102,7 @@ export default function WelcomePage() {
           {/* Go to Home */}
           <button
             onClick={() => router.push("/")}
-            className="group flex flex-col items-center rounded-lg border border-gray-200 bg-white p-6 text-center transition-all hover:border-secondary hover:shadow-md"
+            className="group flex flex-col items-center rounded-lg border border-gray-200 bg-surface-card p-6 text-center transition-all hover:border-secondary hover:shadow-md"
           >
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 group-hover:bg-gray-200">
               <Home className="h-8 w-8 text-gray-600" />

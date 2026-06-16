@@ -30,7 +30,7 @@ export default function DeleteConfirmationModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md animate-scale-in rounded-2xl bg-white p-6 shadow-lifted">
+      <div className="w-full max-w-md animate-scale-in rounded-2xl bg-surface-card p-6 shadow-lifted">
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-50">
             <AlertTriangle className="h-5 w-5 text-red-600" />

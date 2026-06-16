@@ -8,7 +8,7 @@ import roninLogo from "@/public/ronin_logo.jpg";
 // here later).
 export default function MobileHeader() {
   return (
-    <div className="fixed left-0 right-0 top-0 z-[60] border-b border-gray-200/70 bg-white/90 backdrop-blur-md lg:hidden">
+    <div className="fixed left-0 right-0 top-0 z-[60] border-b border-gray-200/70 bg-surface-card/90 backdrop-blur-md lg:hidden">
       <div className="flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <div className="flex items-center gap-2">

@@ -207,7 +207,7 @@ export default function CategoriesStep({
                           className={`flex items-center space-x-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
                             isSelected
                               ? "border-green-500 bg-green-50 text-green-700 hover:border-green-600 hover:bg-green-100"
-                              : "border-gray-200 bg-white text-gray-700 hover:border-secondary hover:bg-secondary/5 hover:text-secondary"
+                              : "border-gray-200 bg-surface-card text-gray-700 hover:border-secondary hover:bg-secondary/5 hover:text-secondary"
                           }`}
                           title={
                             isSelected
@@ -318,7 +318,7 @@ export default function CategoriesStep({
             {categories.map((category) => (
               <div
                 key={category.categoryId}
-                className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4"
+                className="flex items-center justify-between rounded-lg border border-gray-200 bg-surface-card p-4"
               >
                 <div className="flex items-center space-x-3">
                   {getCategoryGroupIcon(category.group)}

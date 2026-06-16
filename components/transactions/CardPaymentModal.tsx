@@ -152,7 +152,7 @@ export function CardPaymentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border bg-white p-6 shadow-sm">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border bg-surface-card p-6 shadow-sm">
         <div className="mb-6 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">
             {editingTransaction ? "Edit Card Payment" : "Pay Credit Card"}

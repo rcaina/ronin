@@ -50,9 +50,9 @@ export default function CardsStep({
             {list.map((card) => (
               <div
                 key={card.id}
-                className="flex items-start gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm"
+                className="flex items-start gap-3 rounded-lg border border-gray-200 bg-surface-card p-3 shadow-sm"
               >
-                <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-900 text-white">
+                <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-950 text-white">
                   <CreditCard className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -99,7 +99,7 @@ export default function CardsStep({
           </div>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white px-4 py-8 text-center">
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-surface-card px-4 py-8 text-center">
           <CreditCard className="mb-3 h-8 w-8 text-gray-300" />
           <p className="text-sm font-medium text-gray-900">
             {isDuplicating ? "No cards will be copied" : "No cards added yet"}
@@ -117,7 +117,7 @@ export default function CardsStep({
           <button
             type="button"
             onClick={onOpenAddCard}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-surface-card px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
           >
             <Plus className="h-4 w-4" />
             Add card

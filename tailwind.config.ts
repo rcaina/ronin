@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -76,24 +77,27 @@ const config: Config = {
           400: "#f7c14a",
           500: "#f3ab2a",
         },
-        // Warm page surfaces — softer than plain gray.
+        // Warm page surfaces — softer than plain gray. CSS-variable backed so
+        // the whole app flips with the `.dark` class (see src/styles/globals.css).
         surface: {
-          DEFAULT: "#f7f7f5",
-          muted: "#efeeeb",
-          card: "#ffffff",
+          DEFAULT: "rgb(var(--surface) / <alpha-value>)",
+          muted: "rgb(var(--surface-muted) / <alpha-value>)",
+          card: "rgb(var(--surface-card) / <alpha-value>)",
         },
+        // Neutral ramp — CSS-variable backed and inverted in dark mode so existing
+        // `text-gray-900` / `bg-gray-100` / `border-gray-300` usage adapts for free.
         gray: {
-          50: "#f9fafb",
-          100: "#f3f4f6",
-          200: "#e5e7eb",
-          300: "#d1d5db",
-          400: "#9ca3af",
-          500: "#6b7280",
-          600: "#4b5563",
-          700: "#374151",
-          800: "#1f2937",
-          900: "#111827",
-          950: "#030712",
+          50: "rgb(var(--gray-50) / <alpha-value>)",
+          100: "rgb(var(--gray-100) / <alpha-value>)",
+          200: "rgb(var(--gray-200) / <alpha-value>)",
+          300: "rgb(var(--gray-300) / <alpha-value>)",
+          400: "rgb(var(--gray-400) / <alpha-value>)",
+          500: "rgb(var(--gray-500) / <alpha-value>)",
+          600: "rgb(var(--gray-600) / <alpha-value>)",
+          700: "rgb(var(--gray-700) / <alpha-value>)",
+          800: "rgb(var(--gray-800) / <alpha-value>)",
+          900: "rgb(var(--gray-900) / <alpha-value>)",
+          950: "rgb(var(--gray-950) / <alpha-value>)",
         },
       },
       borderRadius: {

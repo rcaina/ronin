@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { updateProfile } from "../services/users";
+import { updateProfile, updateTheme } from "../services/users";
 
 export const useUpdateProfile = () => {
   const { update: updateSession } = useSession();
@@ -26,6 +26,20 @@ export const useUpdateProfile = () => {
 
       // Invalidate and refetch user-related queries if any exist
       void queryClient.invalidateQueries({ queryKey: ["user"] });
+    },
+  });
+};
+
+export const useUpdateTheme = () => {
+  const { update: updateSession } = useSession();
+
+  return useMutation({
+    mutationFn: updateTheme,
+    onSuccess: (updatedUser: { theme: string }) => {
+      // Keep the session in sync so the preference follows the user across devices.
+      if (updateSession) {
+        void updateSession({ user: { theme: updatedUser.theme } });
+      }
     },
   });
 };
