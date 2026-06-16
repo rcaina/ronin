@@ -28,7 +28,7 @@ import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import { formatCurrency } from "@/lib/utils";
 import { useBackNavigation } from "@/lib/utils/hooks";
 import { getCardTransactionDisplay } from "@/lib/utils/transactions";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import Button from "@/components/Button";
 import { CardType, TransactionType } from "@prisma/client";
 import StatsCard from "@/components/StatsCard";
@@ -149,8 +149,10 @@ const CardDetailsPage = () => {
     toast.success("Transaction added successfully!");
   };
 
-  if (cardLoading) {
-    return <LoadingSpinner message="Loading card details..." />;
+  const isPageLoading = cardLoading || transactionsLoading;
+  usePageLoading(isPageLoading, "Loading card details...");
+  if (isPageLoading) {
+    return null;
   }
 
   if (cardError || !card || !mappedCard) {
@@ -336,9 +338,7 @@ const CardDetailsPage = () => {
               </Button>
             </div>
 
-            {transactionsLoading ? (
-              <LoadingSpinner message="Loading transactions..." />
-            ) : transactions.length === 0 ? (
+            {transactions.length === 0 ? (
               <div className="card-surface flex flex-col items-center gap-3 p-10 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
                   <Calendar className="h-7 w-7" strokeWidth={1.5} />

@@ -26,7 +26,7 @@ import {
 import { useDeleteBudget } from "@/lib/data-hooks/budgets/useBudgets";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import PageHeader from "@/components/PageHeader";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import CreateBudgetModal from "@/components/budgets/CreateBudgetModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import { CategoryType } from "@prisma/client";
@@ -131,8 +131,9 @@ const BudgetsPage = () => {
     archivedBudgets,
   );
 
+  usePageLoading(isLoading, "Loading budgets...");
   if (isLoading) {
-    return <LoadingSpinner message="Loading budgets..." />;
+    return null;
   }
 
   const getBudgetStatus = (budget: BudgetWithRelations) => {

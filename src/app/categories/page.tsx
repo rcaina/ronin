@@ -12,7 +12,7 @@ import {
   useCategories,
   useCreateCategory,
 } from "@/lib/data-hooks/categories/useCategories";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import { Plus, AlertCircle, Search, X } from "lucide-react";
 import AddCategoryForm from "@/components/categories/AddCategoryForm";
 import { useDebounce } from "@/lib/utils/hooks";
@@ -98,8 +98,9 @@ const CategoriesPage = () => {
   };
 
   // Show loading state
+  usePageLoading(isLoading, "Loading categories...");
   if (isLoading) {
-    return <LoadingSpinner message="Loading categories..." />;
+    return null;
   }
 
   // Show error state

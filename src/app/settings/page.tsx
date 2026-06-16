@@ -25,6 +25,7 @@ import {
   Palette,
 } from "lucide-react";
 import Button from "@/components/Button";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import ThemeSelector from "@/components/settings/ThemeSelector";
 import { Role } from "@prisma/client";
 import { useUpdateProfile } from "@/lib/data-hooks/users/useUser";
@@ -50,7 +51,7 @@ const getInitials = (name?: string | null) => {
 };
 
 const SettingsPage = () => {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -137,6 +138,11 @@ const SettingsPage = () => {
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/sign-in" });
   };
+
+  usePageLoading(status === "loading", "Loading settings...");
+  if (status === "loading") {
+    return null;
+  }
 
   return (
     <div className="flex flex-col bg-surface lg:h-screen">

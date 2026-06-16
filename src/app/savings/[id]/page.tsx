@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useSavingsAccount } from "@/lib/data-hooks/savings/useSavings";
 import { useCreatePocket } from "@/lib/data-hooks/savings/usePockets";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import StatsCard from "@/components/StatsCard";
 import PocketCard from "@/components/savings/PocketCard";
 import AddPocketModal from "@/components/savings/AddPocketModal";
@@ -118,8 +118,9 @@ const SavingsCategoriesPage = () => {
       .sort((a, b) => b.percentage - a.percentage) ?? [];
 
   // Show loading state
+  usePageLoading(savingsLoading, "Loading savings account...");
   if (savingsLoading) {
-    return <LoadingSpinner message="Loading savings account..." />;
+    return null;
   }
 
   // Show error state

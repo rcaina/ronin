@@ -26,7 +26,7 @@ import {
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useDeleteTransaction } from "@/lib/data-hooks/transactions/useTransactions";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import Button from "@/components/Button";
 import { CardType, TransactionType } from "@prisma/client";
 import StatsCard from "@/components/StatsCard";
@@ -309,8 +309,10 @@ const CardDetailsPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card, isCardOwner, setActions]);
 
-  if (cardLoading) {
-    return <LoadingSpinner message="Loading card details..." />;
+  const isPageLoading = cardLoading || transactionsLoading;
+  usePageLoading(isPageLoading, "Loading card details...");
+  if (isPageLoading) {
+    return null;
   }
 
   if (cardError || !card || !mappedCard) {
@@ -560,9 +562,7 @@ const CardDetailsPage = () => {
                 </h2>
               </div>
 
-              {transactionsLoading ? (
-                <LoadingSpinner message="Loading transactions..." />
-              ) : transactions.length === 0 ? (
+              {transactions.length === 0 ? (
                 <div className="rounded-xl border-2 border-dashed border-gray-300 bg-surface-card py-12 text-center">
                   <Calendar className="mx-auto mb-4 h-12 w-12 text-gray-400" />
                   <h3 className="mb-2 text-lg font-medium text-gray-900">

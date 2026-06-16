@@ -22,7 +22,7 @@ import {
   useUpdateCard,
 } from "@/lib/data-hooks/cards/useCards";
 import { useBudgetCards } from "@/lib/data-hooks/budgets/useBudgetCards";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import { type CardType } from "@prisma/client";
 import Button from "@/components/Button";
 import { type Card, mapCardType, getCardColor } from "@/lib/utils/cards";
@@ -343,8 +343,10 @@ const BudgetCardsPage = () => {
   }, [ownerFilteredCards]);
 
   // Show loading state while either budget or cards are loading
-  if (budgetLoading || cardsLoading) {
-    return <LoadingSpinner message="Loading budget cards..." />;
+  const isPageLoading = budgetLoading || cardsLoading;
+  usePageLoading(isPageLoading, "Loading budget cards...");
+  if (isPageLoading) {
+    return null;
   }
 
   // Show error state if there's an error with budget or cards

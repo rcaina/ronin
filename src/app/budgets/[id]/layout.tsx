@@ -10,11 +10,13 @@ import {
   BudgetHeaderProvider,
   useBudgetHeader,
 } from "../../../../components/budgets/BudgetHeaderContext";
+import { usePageIsLoading } from "@/components/ConditionalLayout";
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const pathname = usePathname();
   const id = params.id as string;
+  const pageLoading = usePageIsLoading();
 
   const { data: budget } = useBudget(id);
   const {
@@ -101,21 +103,31 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col bg-surface lg:h-screen">
-      {pageHeaderConfig && (
-        <PageHeader
-          title={finalTitle}
-          eyebrow={pageHeaderConfig.eyebrow}
-          description={finalDescription}
-          backButton={
-            pageHeaderConfig.showBackButton
-              ? { onClick: handleBack }
-              : undefined
-          }
-          actions={dynamicActions}
-        />
-      )}
+      {/*
+        Hide this section's chrome (header + sub-nav tabs) while the page is
+        loading so the single shell spinner is all that shows — matching the
+        dashboard's loading look. The chrome's fixed/sticky mobile nav (z-50)
+        would otherwise float above the content overlay.
+      */}
+      {!pageLoading && (
+        <>
+          {pageHeaderConfig && (
+            <PageHeader
+              title={finalTitle}
+              eyebrow={pageHeaderConfig.eyebrow}
+              description={finalDescription}
+              backButton={
+                pageHeaderConfig.showBackButton
+                  ? { onClick: handleBack }
+                  : undefined
+              }
+              actions={dynamicActions}
+            />
+          )}
 
-      <BudgetPageNavigation />
+          <BudgetPageNavigation />
+        </>
+      )}
 
       <div className="pt-4 lg:flex-1 lg:overflow-y-auto lg:overflow-x-hidden lg:pt-0">
         {children}
