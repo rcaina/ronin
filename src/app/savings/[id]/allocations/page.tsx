@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useSavingsAccount } from "@/lib/data-hooks/savings/useSavings";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import StatsCard from "@/components/StatsCard";
 import {
   AlertCircle,
@@ -52,8 +52,9 @@ const AllocationsPage = () => {
   const netAmount = totalDeposits - totalWithdrawals;
 
   // Show loading state
+  usePageLoading(savingsLoading, "Loading allocations...");
   if (savingsLoading) {
-    return <LoadingSpinner message="Loading allocations..." />;
+    return null;
   }
 
   // Show error state

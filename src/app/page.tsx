@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import StatsCard from "@/components/StatsCard";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
 import {
@@ -96,8 +96,11 @@ export default function HomePage() {
 
   const [timeframe, setTimeframe] = useState<Timeframe>("1y");
 
-  if (status === "loading" || budgetsLoading || transactionsLoading) {
-    return <LoadingSpinner message="Loading your financial overview..." />;
+  const isPageLoading =
+    status === "loading" || budgetsLoading || transactionsLoading;
+  usePageLoading(isPageLoading, "Loading your financial overview...");
+  if (isPageLoading) {
+    return null;
   }
 
   // Resolve the selected timeframe into a date window. `null` = all time.

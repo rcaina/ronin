@@ -18,7 +18,7 @@ import {
 } from "@/lib/data-hooks/cards/useCards";
 import { useActiveBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import type { Card as ApiCard } from "@/lib/types/card";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import type { CardType } from "@prisma/client";
 import Button from "@/components/Button";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
@@ -272,8 +272,9 @@ const CardsPage = () => {
     return ownerFilteredCards.filter((card) => card.type === "cash");
   }, [ownerFilteredCards]);
 
+  usePageLoading(isLoading, "Loading cards...");
   if (isLoading) {
-    return <LoadingSpinner message="Loading cards..." />;
+    return null;
   }
 
   if (error) {

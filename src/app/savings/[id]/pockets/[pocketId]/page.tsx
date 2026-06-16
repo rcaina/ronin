@@ -8,7 +8,7 @@ import {
   useUpdateAllocation,
 } from "@/lib/data-hooks/savings/usePocket";
 import { useDeleteAllocation } from "@/lib/data-hooks/savings/usePockets";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import StatsCard from "@/components/StatsCard";
 import {
   AlertCircle,
@@ -188,8 +188,9 @@ const PocketDetailPage = () => {
   };
 
   // Show loading state
+  usePageLoading(pocketLoading, "Loading pocket...");
   if (pocketLoading) {
-    return <LoadingSpinner message="Loading pocket..." />;
+    return null;
   }
 
   // Show error state

@@ -11,7 +11,7 @@ import BudgetCategoriesSearch from "@/components/budgets/BudgetCategoriesSearch"
 import { CategoryType, TransactionType, CardType } from "@prisma/client";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategories";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import {
   Target,
   AlertCircle,
@@ -385,8 +385,10 @@ const BudgetCategoriesPage = () => {
   }, [budget]);
 
   // Show loading state while either budget or categories are loading
-  if (budgetLoading || categoriesLoading) {
-    return <LoadingSpinner message="Loading budget categories..." />;
+  const isPageLoading = budgetLoading || categoriesLoading;
+  usePageLoading(isPageLoading, "Loading budget categories...");
+  if (isPageLoading) {
+    return null;
   }
 
   // Show error state if there's an error with budget or categories

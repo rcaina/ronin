@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
 
@@ -400,8 +400,9 @@ const TransactionsPage = () => {
     startDate ||
     endDate;
 
+  usePageLoading(isLoading, "Loading transactions...");
   if (isLoading) {
-    return <LoadingSpinner message="Loading transactions..." />;
+    return null;
   }
 
   if (error) {

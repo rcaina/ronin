@@ -13,7 +13,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
@@ -114,8 +114,9 @@ const BudgetDetailsPage = () => {
     categoryUsageData,
   } = useBudgetDetailStats(budget);
 
+  usePageLoading(isLoading, "Loading budget...");
   if (isLoading) {
-    return <LoadingSpinner message="Loading budget..." />;
+    return null;
   }
 
   if (error) {

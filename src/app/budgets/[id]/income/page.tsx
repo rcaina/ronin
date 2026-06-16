@@ -14,7 +14,7 @@ import { CardType } from "@prisma/client";
 import { toast } from "react-hot-toast";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { formatCurrency } from "@/lib/utils";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import Button from "@/components/Button";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
@@ -132,8 +132,9 @@ export default function IncomePage() {
     }
   };
 
+  usePageLoading(isLoading, "Loading income data...");
   if (isLoading) {
-    return <LoadingSpinner message="Loading income data..." />;
+    return null;
   }
 
   if (!budget) {

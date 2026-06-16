@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import { useSavings } from "@/lib/data-hooks/savings/useSavings";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import StatsCard from "@/components/StatsCard";
 import { DollarSign, PiggyBank, Plus, Target, Wallet } from "lucide-react";
 import CreateSavingsModal from "@/components/savings/CreateSavingsModal";
@@ -17,7 +17,8 @@ export default function SavingsPage() {
 
   const handleOpenCreate = () => setIsCreateModalOpen(true);
 
-  if (isLoading) return <LoadingSpinner message="Loading savings..." />;
+  usePageLoading(isLoading, "Loading savings...");
+  if (isLoading) return null;
   if (error)
     return <div className="p-6 text-red-600">Failed to load savings</div>;
 

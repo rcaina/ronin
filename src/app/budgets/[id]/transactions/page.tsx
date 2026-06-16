@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { usePageLoading } from "@/components/ConditionalLayout";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
 import StatsCard from "@/components/StatsCard";
@@ -429,8 +429,10 @@ const BudgetTransactionsPage = () => {
   }, [filteredAndSortedTransactions]);
 
   // Show loading state while either budget or transactions are loading
-  if (budgetLoading || transactionsLoading) {
-    return <LoadingSpinner message="Loading budget transactions..." />;
+  const isPageLoading = budgetLoading || transactionsLoading;
+  usePageLoading(isPageLoading, "Loading budget transactions...");
+  if (isPageLoading) {
+    return null;
   }
 
   // Show error state if there's an error with budget or transactions
