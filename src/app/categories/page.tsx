@@ -149,7 +149,7 @@ const CategoriesPage = () => {
                         placeholder="Search categories..."
                         value={localSearchQuery}
                         onChange={(e) => setLocalSearchQuery(e.target.value)}
-                        className="w-full rounded-xl border border-gray-300 bg-white py-2 pl-10 pr-10 text-sm text-gray-900 placeholder-gray-500 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                        className="w-full rounded-xl border border-gray-300 bg-surface-card py-2 pl-10 pr-10 text-sm text-gray-900 placeholder-gray-500 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                       />
                       {localSearchQuery && (
                         <button
@@ -188,7 +188,7 @@ const CategoriesPage = () => {
       {/* Add Category Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md animate-scale-in rounded-2xl bg-white p-6 shadow-lifted">
+          <div className="w-full max-w-md animate-scale-in rounded-2xl bg-surface-card p-6 shadow-lifted">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold tracking-tight text-gray-900">
                 Add category

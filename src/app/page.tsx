@@ -268,11 +268,14 @@ export default function HomePage() {
     .sort((a, b) => b.utilization - a.utilization) // Sort by utilization (highest first)
     .slice(0, 8); // Top 8 budgets
 
-  // Get recent transactions (last 5, excluding card payments)
+  // Get recent transactions (last 5, excluding card payments and
+  // transactions that belong to deleted or archived budgets)
   const recentTransactions = transactions
     .filter(
       (transaction) =>
-        transaction.transactionType !== TransactionType.CARD_PAYMENT,
+        transaction.transactionType !== TransactionType.CARD_PAYMENT &&
+        !transaction.Budget?.deleted &&
+        transaction.Budget?.status !== BudgetStatus.ARCHIVED,
     )
     .sort(
       (a, b) =>
@@ -321,7 +324,7 @@ export default function HomePage() {
                       className={cn(
                         "rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ease-out active:scale-[0.97]",
                         isActive
-                          ? "bg-white text-gray-900 shadow-soft"
+                          ? "bg-surface-card text-gray-900 shadow-soft"
                           : "text-gray-500 hover:text-gray-700",
                       )}
                     >

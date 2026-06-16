@@ -49,6 +49,7 @@ export interface UpdateProfileRequest {
   name?: string;
   email?: string;
   phone?: string;
+  theme?: "light" | "dark" | "system";
 }
 
 export interface UpdateProfileResponse {
@@ -57,6 +58,7 @@ export interface UpdateProfileResponse {
   email: string | null;
   phone: string | null;
   role: string;
+  theme: string;
   createdAt: string;
   updatedAt: string;
 }

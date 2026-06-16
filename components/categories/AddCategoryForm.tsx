@@ -44,7 +44,7 @@ export default function AddCategoryForm({
   });
 
   return (
-    <div className="group relative overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-white p-6 shadow-sm">
+    <div className="group relative overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-surface-card p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <span className="text-sm font-medium text-gray-500">
           {isEditing ? "Edit Template" : "New Template"}

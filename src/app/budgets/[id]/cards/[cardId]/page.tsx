@@ -395,7 +395,7 @@ const CardDetailsPage = () => {
             </div>
 
             {/* Card Info */}
-            <div className="mb-6 rounded-xl border bg-white p-4 shadow-sm">
+            <div className="mb-6 rounded-xl border bg-surface-card p-4 shadow-sm">
               <h3 className="mb-4 flex items-center justify-between">
                 <span className="text-lg font-semibold text-gray-900">
                   Card Information
@@ -563,7 +563,7 @@ const CardDetailsPage = () => {
               {transactionsLoading ? (
                 <LoadingSpinner message="Loading transactions..." />
               ) : transactions.length === 0 ? (
-                <div className="rounded-xl border-2 border-dashed border-gray-300 bg-white py-12 text-center">
+                <div className="rounded-xl border-2 border-dashed border-gray-300 bg-surface-card py-12 text-center">
                   <Calendar className="mx-auto mb-4 h-12 w-12 text-gray-400" />
                   <h3 className="mb-2 text-lg font-medium text-gray-900">
                     No transactions yet
@@ -602,7 +602,7 @@ const CardDetailsPage = () => {
                     return (
                       <div
                         key={transaction.id}
-                        className="group flex items-center justify-between rounded-lg border bg-white p-4 shadow-sm hover:bg-gray-50"
+                        className="group flex items-center justify-between rounded-lg border bg-surface-card p-4 shadow-sm hover:bg-gray-50"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-3">

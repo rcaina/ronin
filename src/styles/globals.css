@@ -3,13 +3,64 @@
 @tailwind utilities;
 
 @layer base {
+  /* Light theme (default). Values are space-separated RGB channels so Tailwind's
+     `rgb(var(--token) / <alpha-value>)` color tokens keep alpha support.
+     The `.dark` block below mirrors every token — that's what flips the app. */
   :root {
-    --foreground: 17, 24, 39;
-    --background: 247, 247, 245;
+    --foreground: 17 24 39;
+    --background: 247 247 245;
+
+    --surface: 247 247 245;
+    --surface-muted: 239 238 235;
+    --surface-card: 255 255 255;
+
+    --gray-50: 249 250 251;
+    --gray-100: 243 244 246;
+    --gray-200: 229 231 235;
+    --gray-300: 209 213 219;
+    --gray-400: 156 163 175;
+    --gray-500: 107 114 128;
+    --gray-600: 75 85 99;
+    --gray-700: 55 65 81;
+    --gray-800: 31 41 55;
+    --gray-900: 17 24 39;
+    --gray-950: 3 7 18;
+
+    /* Recharts axis/grid — JS theme reads these via var() (see theme.tsx). */
+    --chart-axis: #9ca3af;
+    --chart-grid: #e5e7eb;
+
     /* Brand tokens — mirrored in tailwind.config.ts color scales. */
     --color-primary: #0e0e10;
     --color-secondary: #b9a15e;
     --color-accent: #fce5a0;
+  }
+
+  /* Dark theme. The neutral ramp is inverted: text shades (gray-400…950) brighten
+     while background/border shades (gray-50…300) darken, so directional usage of
+     the ramp (dark text on light surfaces) keeps working without touching markup. */
+  .dark {
+    --foreground: 231 231 233;
+    --background: 13 13 15;
+
+    --surface: 13 13 15;
+    --surface-muted: 31 31 35;
+    --surface-card: 24 24 27;
+
+    --gray-50: 24 24 27;
+    --gray-100: 35 35 39;
+    --gray-200: 47 47 52;
+    --gray-300: 63 63 70;
+    --gray-400: 139 139 147;
+    --gray-500: 161 161 170;
+    --gray-600: 180 180 189;
+    --gray-700: 201 201 209;
+    --gray-800: 224 224 230;
+    --gray-900: 242 242 245;
+    --gray-950: 250 250 250;
+
+    --chart-axis: #71717a;
+    --chart-grid: #2a2a2e;
   }
 
   html {
@@ -17,11 +68,22 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  :root {
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
+  }
+
   body {
     background-color: rgb(var(--background));
     color: rgb(var(--foreground));
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    /* Smooth the light/dark swap without animating page transitions. */
+    transition:
+      background-color 0.2s ease-out,
+      color 0.2s ease-out;
   }
 
   /* Consistent, accessible focus rings across the app. */
@@ -39,7 +101,7 @@
 @layer components {
   /* Standard surface card — use for all panels, charts, and list items. */
   .card-surface {
-    @apply rounded-2xl border border-gray-200/70 bg-white shadow-card;
+    @apply rounded-2xl border border-gray-200/70 bg-surface-card shadow-card;
   }
 
   /* Interactive variant — adds smooth hover lift. */

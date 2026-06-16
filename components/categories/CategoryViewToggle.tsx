@@ -19,7 +19,7 @@ export default function CategoryViewToggle({
         onClick={() => onViewChange("grid")}
         className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
           view === "grid"
-            ? "bg-white text-gray-900 shadow-soft"
+            ? "bg-surface-card text-gray-900 shadow-soft"
             : "text-gray-500 hover:text-gray-700"
         }`}
         title="Grid view"
@@ -31,7 +31,7 @@ export default function CategoryViewToggle({
         onClick={() => onViewChange("list")}
         className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
           view === "list"
-            ? "bg-white text-gray-900 shadow-soft"
+            ? "bg-surface-card text-gray-900 shadow-soft"
             : "text-gray-500 hover:text-gray-700"
         }`}
         title="List view"

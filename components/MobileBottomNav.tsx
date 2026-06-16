@@ -61,7 +61,7 @@ export default function MobileBottomNav() {
             onClick={() => setIsMoreOpen(false)}
           />
           <div
-            className="fixed right-3 z-[60] w-56 animate-fade-in overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-1.5 shadow-lifted lg:hidden"
+            className="fixed right-3 z-[60] w-56 animate-fade-in overflow-hidden rounded-2xl border border-gray-200/70 bg-surface-card p-1.5 shadow-lifted lg:hidden"
             style={{
               bottom: "calc(56px + env(safe-area-inset-bottom) + 0.5rem)",
             }}
@@ -102,7 +102,7 @@ export default function MobileBottomNav() {
       )}
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200/70 bg-white/90 backdrop-blur-md lg:hidden"
+        className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200/70 bg-surface-card/90 backdrop-blur-md lg:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="grid grid-cols-5">

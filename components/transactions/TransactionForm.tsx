@@ -235,7 +235,7 @@ export default function TransactionForm({
   };
 
   return (
-    <div className="rounded-xl border bg-white p-6 shadow-sm">
+    <div className="rounded-xl border bg-surface-card p-6 shadow-sm">
       <div className="mb-6 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">
           {isEditing
@@ -389,7 +389,7 @@ export default function TransactionForm({
                 {!selectedBudgetId && (
                   <div className="group relative">
                     <Info className="h-4 w-4 text-secondary-600" />
-                    <div className="absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg bg-gray-900 p-2 text-xs text-white group-hover:block">
+                    <div className="absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-xs text-white group-hover:block">
                       Select a budget to see available categories.
                     </div>
                   </div>
@@ -452,7 +452,7 @@ export default function TransactionForm({
                   <div className="absolute right-2 top-1/2 -translate-y-1/2">
                     <div className="group relative">
                       <Info className="h-4 w-4 text-gray-400" />
-                      <div className="absolute bottom-full right-0 mb-2 hidden w-64 rounded-lg bg-gray-900 p-2 text-xs text-white group-hover:block">
+                      <div className="absolute bottom-full right-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-xs text-white group-hover:block">
                         No categories found for this budget. Please add
                         categories to your budget first.
                         <div className="absolute right-2 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>

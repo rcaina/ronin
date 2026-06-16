@@ -32,7 +32,7 @@ const PageHeader = ({
   actions,
 }: PageHeaderProps) => {
   return (
-    <div className="fixed left-0 right-0 top-16 z-[30] border-b border-gray-200/70 bg-white/90 backdrop-blur-md lg:sticky lg:top-0">
+    <div className="fixed left-0 right-0 top-16 z-[30] border-b border-gray-200/70 bg-surface-card/90 backdrop-blur-md lg:sticky lg:top-0">
       {/* Fixed height while the header is position:fixed (below lg) so it never
           grows past its content clearance; natural height once it's sticky on
           desktop, where the description can show. */}

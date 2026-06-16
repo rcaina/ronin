@@ -33,7 +33,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       danger:
         "bg-red-600 text-white shadow-soft hover:bg-red-700 focus-visible:ring-red-500",
       outline:
-        "border border-gray-300 bg-white text-gray-800 shadow-soft hover:border-gray-400 hover:bg-gray-50 focus-visible:ring-gray-400",
+        "border border-gray-300 bg-surface-card text-gray-800 shadow-soft hover:border-gray-400 hover:bg-gray-50 focus-visible:ring-gray-400",
       ghost:
         "text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-gray-400",
     };

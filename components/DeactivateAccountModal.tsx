@@ -40,7 +40,7 @@ const LeaveAccountModal = ({ isOpen, onClose }: LeaveAccountModalProps) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-md animate-scale-in rounded-2xl bg-white p-6 shadow-lifted">
+      <div className="mx-4 w-full max-w-md animate-scale-in rounded-2xl bg-surface-card p-6 shadow-lifted">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center">
             <AlertTriangle className="mr-3 h-6 w-6 text-red-500" />

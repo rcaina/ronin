@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { SessionProvider } from "next-auth/react";
+import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 import ConditionalLayout from "@/components/ConditionalLayout";
+import ThemeSync from "@/components/ThemeSync";
 
 export default function Providers({
   children,
@@ -22,31 +24,39 @@ export default function Providers({
   return (
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
-        <ConditionalLayout>{children}</ConditionalLayout>
-        <Toaster
-          position="bottom-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: "#363636",
-              color: "#fff",
-            },
-            success: {
-              duration: 3000,
-              iconTheme: {
-                primary: "#10b981",
-                secondary: "#fff",
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ThemeSync />
+          <ConditionalLayout>{children}</ConditionalLayout>
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: "#363636",
+                color: "#fff",
               },
-            },
-            error: {
-              duration: 5000,
-              iconTheme: {
-                primary: "#ef4444",
-                secondary: "#fff",
+              success: {
+                duration: 3000,
+                iconTheme: {
+                  primary: "#10b981",
+                  secondary: "#fff",
+                },
               },
-            },
-          }}
-        />
+              error: {
+                duration: 5000,
+                iconTheme: {
+                  primary: "#ef4444",
+                  secondary: "#fff",
+                },
+              },
+            }}
+          />
+        </ThemeProvider>
       </SessionProvider>
     </QueryClientProvider>
   );

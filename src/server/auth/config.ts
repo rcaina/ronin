@@ -26,6 +26,7 @@ declare module "next-auth" {
       emailVerified: Date | null;
       deleted: boolean;
       hasBudget: boolean;
+      theme: string;
     } & DefaultSession["user"];
   }
 }
@@ -41,6 +42,7 @@ declare module "next-auth/jwt" {
     emailVerified: Date | null;
     deleted: boolean;
     hasBudget: boolean;
+    theme: string;
   }
 }
 
@@ -128,6 +130,7 @@ export const authConfig = {
           emailVerified: user.emailVerified,
           deleted: user.deleted !== null,
           hasBudget: budgetCount > 0,
+          theme: user.theme,
         };
       },
     }),
@@ -153,7 +156,7 @@ export const authConfig = {
     signOut: "/sign-in",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id!;
         token.email = user.email ?? null;
@@ -164,6 +167,16 @@ export const authConfig = {
         token.phone = user.phone;
         token.deleted = user.deleted;
         token.hasBudget = user.hasBudget;
+        token.theme = user.theme;
+      }
+
+      // Propagate client-side session updates (e.g. theme preference changes).
+      if (trigger === "update") {
+        const updatedTheme = (session as { user?: { theme?: string } } | null)
+          ?.user?.theme;
+        if (updatedTheme) {
+          token.theme = updatedTheme;
+        }
       }
 
       // Always check the current budget count for the user
@@ -195,6 +208,7 @@ export const authConfig = {
         session.user.phone = token.phone;
         session.user.deleted = token.deleted;
         session.user.hasBudget = token.hasBudget;
+        session.user.theme = token.theme ?? "system";
       }
 
       return session;

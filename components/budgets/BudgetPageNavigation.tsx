@@ -71,7 +71,7 @@ export default function BudgetPageNavigation() {
                   href={item.href}
                   className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
                     isActive
-                      ? "bg-white text-gray-900 shadow-soft"
+                      ? "bg-surface-card text-gray-900 shadow-soft"
                       : "text-gray-500 hover:text-gray-700"
                   }`}
                 >
@@ -90,7 +90,7 @@ export default function BudgetPageNavigation() {
         className="fixed inset-x-0 z-50 flex justify-center px-3 lg:hidden"
         style={{ bottom: "calc(56px + env(safe-area-inset-bottom) + 0.5rem)" }}
       >
-        <nav className="scrollbar-hide flex max-w-full gap-1 overflow-x-auto rounded-full border border-gray-200/70 bg-white/95 p-1 shadow-lifted backdrop-blur-md">
+        <nav className="scrollbar-hide flex max-w-full gap-1 overflow-x-auto rounded-full border border-gray-200/70 bg-surface-card/95 p-1 shadow-lifted backdrop-blur-md">
           {budgetNavItems.map((item) => {
             const isActive = pathname === item.href;
             return (

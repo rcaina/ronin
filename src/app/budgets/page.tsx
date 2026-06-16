@@ -102,18 +102,24 @@ const BudgetsPage = () => {
   const markArchivedMutation = useMarkBudgetArchived();
   const reactivateMutation = useReactivateBudget();
 
-  // Get current budgets based on active tab
+  // Get current budgets based on active tab, sorted by which budget ends soonest
   const currentBudgets = useMemo(() => {
-    switch (activeTab) {
-      case "active":
-        return activeBudgets;
-      case "completed":
-        return completedBudgets;
-      case "archived":
-        return archivedBudgets;
-      default:
-        return activeBudgets;
-    }
+    const budgets = (() => {
+      switch (activeTab) {
+        case "active":
+          return activeBudgets;
+        case "completed":
+          return completedBudgets;
+        case "archived":
+          return archivedBudgets;
+        default:
+          return activeBudgets;
+      }
+    })();
+
+    return [...budgets].sort(
+      (a, b) => new Date(a.endAt).getTime() - new Date(b.endAt).getTime(),
+    );
   }, [activeTab, activeBudgets, completedBudgets, archivedBudgets]);
 
   const isLoading = activeLoading || completedLoading || archivedLoading;
@@ -508,7 +514,7 @@ const BudgetsPage = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
                     activeTab === tab.id
-                      ? "bg-white text-gray-900 shadow-soft"
+                      ? "bg-surface-card text-gray-900 shadow-soft"
                       : "text-gray-500 hover:text-gray-700"
                   }`}
                 >

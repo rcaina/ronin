@@ -73,7 +73,7 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
     <>
       {/* Create User Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 backdrop-blur-sm">
-        <div className="mx-4 max-w-md animate-scale-in rounded-2xl bg-white p-6 shadow-lifted">
+        <div className="mx-4 max-w-md animate-scale-in rounded-2xl bg-surface-card p-6 shadow-lifted">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-medium text-gray-900">
               Create New User
@@ -223,7 +223,7 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
       {/* Created User Success Modal */}
       {createdUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 backdrop-blur-sm">
-          <div className="mx-4 max-w-md animate-scale-in rounded-2xl bg-white p-6 shadow-lifted">
+          <div className="mx-4 max-w-md animate-scale-in rounded-2xl bg-surface-card p-6 shadow-lifted">
             <div className="mb-4 flex items-center">
               <div className="mr-3 rounded-full bg-green-100 p-2">
                 <UserIcon className="h-5 w-5 text-green-600" />

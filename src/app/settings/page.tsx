@@ -22,8 +22,10 @@ import {
   LogOut,
   Lock,
   AlertTriangle,
+  Palette,
 } from "lucide-react";
 import Button from "@/components/Button";
+import ThemeSelector from "@/components/settings/ThemeSelector";
 import { Role } from "@prisma/client";
 import { useUpdateProfile } from "@/lib/data-hooks/users/useUser";
 
@@ -108,6 +110,7 @@ const SettingsPage = () => {
 
   const tabs = [
     { id: "profile", label: "Profile", icon: UserIcon },
+    { id: "preferences", label: "Preferences", icon: Palette },
     { id: "security", label: "Security", icon: Shield },
   ];
 
@@ -175,188 +178,207 @@ const SettingsPage = () => {
 
               {/* Details + getting started fill the full width on desktop. */}
               <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
-              {/* Profile information */}
-              <div className="card-surface p-5 sm:p-6 lg:col-span-2">
-                <div className="mb-5 flex items-center justify-between gap-3">
-                  <h3 className="text-base font-semibold tracking-tight text-gray-900">
-                    Profile information
-                  </h3>
-                  {!isEditingProfile && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsEditingProfile(true)}
-                    >
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit profile
-                    </Button>
-                  )}
-                </div>
+                {/* Profile information */}
+                <div className="card-surface p-5 sm:p-6 lg:col-span-2">
+                  <div className="mb-5 flex items-center justify-between gap-3">
+                    <h3 className="text-base font-semibold tracking-tight text-gray-900">
+                      Profile information
+                    </h3>
+                    {!isEditingProfile && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditingProfile(true)}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit profile
+                      </Button>
+                    )}
+                  </div>
 
-                {isEditingProfile ? (
-                  <div className="space-y-5">
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {isEditingProfile ? (
+                    <div className="space-y-5">
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500">
+                            Full name
+                          </label>
+                          <input
+                            type="text"
+                            value={profileForm.name}
+                            onChange={(e) =>
+                              setProfileForm({
+                                ...profileForm,
+                                name: e.target.value,
+                              })
+                            }
+                            className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500">
+                            Email
+                          </label>
+                          <input
+                            type="email"
+                            value={profileForm.email}
+                            onChange={(e) =>
+                              setProfileForm({
+                                ...profileForm,
+                                email: e.target.value,
+                              })
+                            }
+                            className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500">
+                            Phone
+                          </label>
+                          <input
+                            type="tel"
+                            value={profileForm.phone}
+                            onChange={(e) =>
+                              setProfileForm({
+                                ...profileForm,
+                                phone: e.target.value,
+                              })
+                            }
+                            className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500">
+                          Bio
+                        </label>
+                        <textarea
+                          value={profileForm.bio}
+                          onChange={(e) =>
+                            setProfileForm({
+                              ...profileForm,
+                              bio: e.target.value,
+                            })
+                          }
+                          rows={3}
+                          className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                        />
+                      </div>
+
+                      {updateProfileMutation.error && (
+                        <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+                          <p className="text-sm text-red-600">
+                            {updateProfileMutation.error.message}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end gap-3">
+                        <Button
+                          variant="outline"
+                          onClick={() => setIsEditingProfile(false)}
+                          disabled={updateProfileMutation.isPending}
+                        >
+                          <X className="mr-2 h-4 w-4" />
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handleProfileSave}
+                          isLoading={updateProfileMutation.isPending}
+                        >
+                          {!updateProfileMutation.isPending && (
+                            <Save className="mr-2 h-4 w-4" />
+                          )}
+                          {updateProfileMutation.isPending
+                            ? "Saving..."
+                            : "Save changes"}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
                       <div>
                         <label className="block text-xs font-medium text-gray-500">
                           Full name
                         </label>
-                        <input
-                          type="text"
-                          value={profileForm.name}
-                          onChange={(e) =>
-                            setProfileForm({
-                              ...profileForm,
-                              name: e.target.value,
-                            })
-                          }
-                          className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                        />
+                        <p className="mt-1 text-sm text-gray-900">
+                          {profileForm.name || "—"}
+                        </p>
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-500">
                           Email
                         </label>
-                        <input
-                          type="email"
-                          value={profileForm.email}
-                          onChange={(e) =>
-                            setProfileForm({
-                              ...profileForm,
-                              email: e.target.value,
-                            })
-                          }
-                          className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                        />
+                        <p className="mt-1 text-sm text-gray-900">
+                          {profileForm.email || "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500">
+                          Role
+                        </label>
+                        <p className="mt-1 text-sm capitalize text-gray-900">
+                          {profileForm.role.toLowerCase() || "—"}
+                        </p>
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-500">
                           Phone
                         </label>
-                        <input
-                          type="tel"
-                          value={profileForm.phone}
-                          onChange={(e) =>
-                            setProfileForm({
-                              ...profileForm,
-                              phone: e.target.value,
-                            })
-                          }
-                          className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500">
-                        Bio
-                      </label>
-                      <textarea
-                        value={profileForm.bio}
-                        onChange={(e) =>
-                          setProfileForm({
-                            ...profileForm,
-                            bio: e.target.value,
-                          })
-                        }
-                        rows={3}
-                        className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                      />
-                    </div>
-
-                    {updateProfileMutation.error && (
-                      <div className="rounded-xl border border-red-200 bg-red-50 p-3">
-                        <p className="text-sm text-red-600">
-                          {updateProfileMutation.error.message}
+                        <p className="mt-1 text-sm text-gray-900">
+                          {profileForm.phone || "—"}
                         </p>
                       </div>
-                    )}
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-medium text-gray-500">
+                          Bio
+                        </label>
+                        <p className="mt-1 text-sm text-gray-900">
+                          {profileForm.bio || "No bio added yet."}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-                    <div className="flex justify-end gap-3">
-                      <Button
-                        variant="outline"
-                        onClick={() => setIsEditingProfile(false)}
-                        disabled={updateProfileMutation.isPending}
-                      >
-                        <X className="mr-2 h-4 w-4" />
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleProfileSave}
-                        isLoading={updateProfileMutation.isPending}
-                      >
-                        {!updateProfileMutation.isPending && (
-                          <Save className="mr-2 h-4 w-4" />
-                        )}
-                        {updateProfileMutation.isPending
-                          ? "Saving..."
-                          : "Save changes"}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500">
-                        Full name
-                      </label>
-                      <p className="mt-1 text-sm text-gray-900">
-                        {profileForm.name || "—"}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500">
-                        Email
-                      </label>
-                      <p className="mt-1 text-sm text-gray-900">
-                        {profileForm.email || "—"}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500">
-                        Role
-                      </label>
-                      <p className="mt-1 text-sm capitalize text-gray-900">
-                        {profileForm.role.toLowerCase() || "—"}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500">
-                        Phone
-                      </label>
-                      <p className="mt-1 text-sm text-gray-900">
-                        {profileForm.phone || "—"}
-                      </p>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-medium text-gray-500">
-                        Bio
-                      </label>
-                      <p className="mt-1 text-sm text-gray-900">
-                        {profileForm.bio || "No bio added yet."}
-                      </p>
-                    </div>
-                  </div>
-                )}
+                {/* Getting started */}
+                <div className="card-surface flex flex-col p-5 sm:p-6">
+                  <h3 className="text-base font-semibold tracking-tight text-gray-900">
+                    Getting started
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Need help setting up your account? Return to the welcome
+                    page to access setup options.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="mt-4 w-full sm:mt-auto"
+                    onClick={() => router.push("/welcome")}
+                  >
+                    <Home className="mr-2 h-4 w-4" />
+                    Back to welcome page
+                  </Button>
+                </div>
               </div>
+            </div>
+          )}
 
-              {/* Getting started */}
-              <div className="card-surface flex flex-col p-5 sm:p-6">
-                <h3 className="text-base font-semibold tracking-tight text-gray-900">
-                  Getting started
-                </h3>
-                <p className="mt-1 text-sm text-gray-600">
-                  Need help setting up your account? Return to the welcome page
-                  to access setup options.
+          {/* Preferences Tab */}
+          {activeTab === "preferences" && (
+            <div className="space-y-4 sm:space-y-6">
+              <div className="card-surface p-5 sm:p-6">
+                <div className="mb-1 flex items-center gap-3">
+                  <h3 className="text-base font-semibold tracking-tight text-gray-900">
+                    Appearance
+                  </h3>
+                </div>
+                <p className="mb-5 text-sm text-gray-600">
+                  Choose how Ronin looks. Your choice is saved to your account,
+                  so it stays the same the next time you sign in — on any
+                  device.
                 </p>
-                <Button
-                  variant="outline"
-                  className="mt-4 w-full sm:mt-auto"
-                  onClick={() => router.push("/welcome")}
-                >
-                  <Home className="mr-2 h-4 w-4" />
-                  Back to welcome page
-                </Button>
-              </div>
+                <ThemeSelector />
               </div>
             </div>
           )}
@@ -453,7 +475,10 @@ const SettingsPage = () => {
                   <h3 className="text-base font-semibold tracking-tight text-gray-900">
                     Account users
                   </h3>
-                  <Button size="sm" onClick={() => setShowCreateUserModal(true)}>
+                  <Button
+                    size="sm"
+                    onClick={() => setShowCreateUserModal(true)}
+                  >
                     <Plus className="mr-2 h-4 w-4" />
                     Add user
                   </Button>

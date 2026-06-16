@@ -201,7 +201,7 @@ export default function IncomePage() {
               placeholder="Search income transactions..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 bg-white px-10 py-3 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+              className="w-full rounded-xl border border-gray-300 bg-surface-card px-10 py-3 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
             />
           </div>
 
@@ -255,7 +255,7 @@ export default function IncomePage() {
                   return (
                     <div
                       key={transaction.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-gray-200/70 bg-white p-3 transition-all duration-200 ease-out hover:shadow-soft sm:p-4"
+                      className="flex items-center justify-between gap-3 rounded-xl border border-gray-200/70 bg-surface-card p-3 transition-all duration-200 ease-out hover:shadow-soft sm:p-4"
                     >
                       <div className="flex min-w-0 flex-1 items-center gap-3">
                         <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-green-50 text-green-600">

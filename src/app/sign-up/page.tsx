@@ -61,7 +61,7 @@ export default function SignUp() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-lg">
+      <div className="w-full max-w-md space-y-8 rounded-lg bg-surface-card p-8 shadow-lg">
         <div className="text-center">
           <div className={`mx-auto h-36 w-36 flex-shrink-0`}>
             <Image
