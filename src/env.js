@@ -13,6 +13,14 @@ export const env = createEnv({
         : z.string().optional(),
     AUTH_ALLOWED_EMAILS: z.string().optional(),
     DATABASE_URL: z.string().url(),
+    // Receipt scanning is provider-agnostic. AI_PROVIDER picks the backend;
+    // when unset it auto-detects from whichever API key is present (Gemini
+    // first, since it has a free tier).
+    AI_PROVIDER: z.enum(["gemini", "anthropic"]).optional(),
+    GEMINI_API_KEY: z.string().optional(),
+    GEMINI_MODEL: z.string().optional(),
+    ANTHROPIC_API_KEY: z.string().optional(),
+    ANTHROPIC_MODEL: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -35,6 +43,11 @@ export const env = createEnv({
     AUTH_SECRET: process.env.AUTH_SECRET,
     AUTH_ALLOWED_EMAILS: process.env.AUTH_ALLOWED_EMAILS,
     DATABASE_URL: process.env.DATABASE_URL,
+    AI_PROVIDER: process.env.AI_PROVIDER,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    GEMINI_MODEL: process.env.GEMINI_MODEL,
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL,
     NODE_ENV: process.env.NODE_ENV,
   },
   /**

@@ -25,11 +25,13 @@ import {
   Plus,
   Info,
   Filter,
+  ScanLine,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
+import ReceiptScanModal from "@/components/transactions/ReceiptScanModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
 
 import type { TransactionWithRelations } from "@/lib/types/transaction";
@@ -72,6 +74,7 @@ const TransactionsPage = () => {
   const [sortBy, setSortBy] = useState<"date" | "amount" | "name">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
+  const [showReceiptScanModal, setShowReceiptScanModal] = useState(false);
 
   const [editingTransactionId, setEditingTransactionId] = useState<
     string | null
@@ -431,6 +434,14 @@ const TransactionsPage = () => {
           onClick: () => setShowAddTransactionModal(true),
           icon: <Plus className="h-4 w-4" />,
         }}
+        actions={[
+          {
+            label: "Scan receipt",
+            onClick: () => setShowReceiptScanModal(true),
+            icon: <ScanLine className="h-4 w-4" />,
+            variant: "outline",
+          },
+        ]}
       />
 
       <div className="pt-4 lg:flex-1 lg:overflow-hidden lg:pt-0">
@@ -661,6 +672,12 @@ const TransactionsPage = () => {
               isOpen={showAddTransactionModal}
               onClose={handleCloseAddTransactionModal}
               onSuccess={handleTransactionSuccess}
+            />
+
+            {/* Scan Receipt Modal */}
+            <ReceiptScanModal
+              isOpen={showReceiptScanModal}
+              onClose={() => setShowReceiptScanModal(false)}
             />
 
             {/* Bulk Actions Bar */}

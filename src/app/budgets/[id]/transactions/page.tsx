@@ -22,11 +22,13 @@ import {
   Receipt,
   TrendingDown,
   Plus,
+  ScanLine,
 } from "lucide-react";
 
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
+import ReceiptScanModal from "@/components/transactions/ReceiptScanModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
 import StatsCard from "@/components/StatsCard";
 
@@ -71,6 +73,7 @@ const BudgetTransactionsPage = () => {
   const [sortBy, setSortBy] = useState<"date" | "amount" | "name">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
+  const [showReceiptScanModal, setShowReceiptScanModal] = useState(false);
 
   const [editingTransactionId, setEditingTransactionId] = useState<
     string | null
@@ -90,6 +93,12 @@ const BudgetTransactionsPage = () => {
         label: "Add transaction",
         onClick: () => setShowAddTransactionModal(true),
         variant: "primary" as const,
+      },
+      {
+        icon: <ScanLine className="h-4 w-4" />,
+        label: "Scan receipt",
+        onClick: () => setShowReceiptScanModal(true),
+        variant: "outline" as const,
       },
     ]);
   }, [setActions]);
@@ -643,6 +652,13 @@ const BudgetTransactionsPage = () => {
             isOpen={showAddTransactionModal}
             onClose={handleCloseAddTransactionModal}
             onSuccess={handleTransactionSuccess}
+            budgetId={budgetId}
+          />
+
+          {/* Scan Receipt Modal */}
+          <ReceiptScanModal
+            isOpen={showReceiptScanModal}
+            onClose={() => setShowReceiptScanModal(false)}
             budgetId={budgetId}
           />
 

@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 import {
   getTransactions,
   createTransaction,
+  createTransactionsBatch,
   updateTransaction,
   deleteTransaction,
   createCardPayment,
@@ -95,6 +96,43 @@ export const useCreateTransaction = () => {
           queryKey: ["budgetCards", variables.budgetId],
         });
       }
+    },
+  });
+};
+
+export const useCreateTransactionsBatch = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateTransactionRequest[]) =>
+      createTransactionsBatch(data),
+    onSuccess: (_, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      void queryClient.invalidateQueries({ queryKey: ["allTransactions"] });
+
+      // Invalidate every distinct budget/card touched by the batch.
+      const budgetIds = new Set(variables.map((t) => t.budgetId));
+      const cardIds = new Set(
+        variables.map((t) => t.cardId).filter((id): id is string => !!id),
+      );
+      budgetIds.forEach((budgetId) => {
+        void queryClient.invalidateQueries({
+          queryKey: ["budgetTransactions", budgetId],
+        });
+        void queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["budgetCategories", budgetId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["budgetCards", budgetId],
+        });
+      });
+      cardIds.forEach((cardId) => {
+        void queryClient.invalidateQueries({
+          queryKey: ["cards", cardId, "transactions"],
+        });
+        void queryClient.invalidateQueries({ queryKey: ["cards", cardId] });
+      });
     },
   });
 };

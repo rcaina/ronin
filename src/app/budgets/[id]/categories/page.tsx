@@ -20,10 +20,12 @@ import {
   HandCoins,
   Info,
   Plus,
+  ScanLine,
 } from "lucide-react";
 import { roundToCents } from "@/lib/utils";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
+import ReceiptScanModal from "@/components/transactions/ReceiptScanModal";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
 import {
   CHART_COLORS,
@@ -96,6 +98,7 @@ const BudgetCategoriesPage = () => {
   const [view, setView] = useState<BudgetCategoriesViewType>("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
+  const [isReceiptScanOpen, setIsReceiptScanOpen] = useState(false);
   const { setActions } = useBudgetHeader();
 
   // Register header actions
@@ -106,6 +109,12 @@ const BudgetCategoriesPage = () => {
         label: "Add transaction",
         onClick: () => setIsAddTransactionOpen(true),
         variant: "primary" as const,
+      },
+      {
+        icon: <ScanLine className="h-4 w-4" />,
+        label: "Scan receipt",
+        onClick: () => setIsReceiptScanOpen(true),
+        variant: "outline" as const,
       },
     ]);
   }, [setActions]);
@@ -875,6 +884,14 @@ const BudgetCategoriesPage = () => {
           isOpen={isAddTransactionOpen}
           budgetId={budgetId}
           onClose={() => setIsAddTransactionOpen(false)}
+        />
+      )}
+
+      {isReceiptScanOpen && (
+        <ReceiptScanModal
+          isOpen={isReceiptScanOpen}
+          budgetId={budgetId}
+          onClose={() => setIsReceiptScanOpen(false)}
         />
       )}
     </>
