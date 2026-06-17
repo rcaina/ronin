@@ -9,6 +9,7 @@ import type {
 export interface CardToInclude {
   id: string;
   name: string;
+  lastFourDigits?: string;
   cardType: CardType;
   spendingLimit?: number;
   userId: string;

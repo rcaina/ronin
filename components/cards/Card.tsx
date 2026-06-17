@@ -121,6 +121,13 @@ const CardComponent = ({
           </div>
         </div>
 
+        {/* Card number */}
+        {card.lastFourDigits && (
+          <div className="relative mb-5 font-mono text-sm tracking-widest text-white/90">
+            •••• •••• •••• {card.lastFourDigits}
+          </div>
+        )}
+
         {/* Card holder */}
         <div className="relative flex items-end justify-between">
           <div>

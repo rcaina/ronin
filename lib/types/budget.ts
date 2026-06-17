@@ -82,6 +82,7 @@ export interface CreateBudgetData {
 
 export interface CardToIncludeData {
   name: string;
+  lastFourDigits?: string;
   cardType: CardType;
   spendingLimit?: number;
   userId: string;

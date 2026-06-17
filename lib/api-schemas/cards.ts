@@ -1,8 +1,15 @@
 import { z } from "zod";
 import { CardType } from "@prisma/client";
 
+const lastFourDigitsSchema = z
+  .string()
+  .regex(/^\d{4}$/, "Must be exactly 4 digits")
+  .optional()
+  .or(z.literal(""));
+
 export const createCardSchema = z.object({
   name: z.string().min(1),
+  lastFourDigits: lastFourDigitsSchema,
   cardType: z.nativeEnum(CardType),
   spendingLimit: z.number().optional(),
   userId: z.string().min(1),
@@ -11,6 +18,7 @@ export const createCardSchema = z.object({
 
 export const updateCardSchema = z.object({
   name: z.string().min(2).max(100).optional(),
+  lastFourDigits: lastFourDigitsSchema,
   cardType: z.nativeEnum(CardType).optional(),
   spendingLimit: z.number().min(0).optional(),
   budgetId: z.string().min(1).optional(),
