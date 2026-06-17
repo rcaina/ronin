@@ -13,11 +13,15 @@ import {
 import {
   StrategyType,
   PeriodType,
-  type CategoryType,
+  CategoryType,
   TransactionType,
   type CardType,
 } from "@prisma/client";
-import { calculateAdjustedIncome, calculateEndDate } from "@/lib/utils";
+import {
+  calculateAdjustedIncome,
+  calculateEndDate,
+  roundToCents,
+} from "@/lib/utils";
 
 // Import components
 import BudgetStepsSidebar from "./BudgetStepsSidebar";
@@ -321,6 +325,19 @@ export default function CreateBudgetModal({
   const watchedPeriod = watch("period");
   const watchedStrategy = watch("strategy");
 
+  // 50/30/20 budgets get an express path: Basics → Income → Create. We
+  // auto-generate Needs/Wants/Investments categories at 50/30/20 of income, so
+  // the cards/categories/allocation steps are skipped. Duplicating an existing
+  // budget keeps the full flow so the copied categories are preserved.
+  const isExpress =
+    !initialBudget && watchedStrategy === StrategyType.FIFTY_THIRTY_TWENTY;
+  const visibleSteps: StepType[] = isExpress
+    ? ["basic", "income"]
+    : ["basic", "income", "cards", "categories", "allocation"];
+  const isLastStep = isExpress
+    ? currentStep === "income"
+    : currentStep === "allocation";
+
   // Auto-calculate end date when period or start date changes
   useEffect(() => {
     if (watchedStartAt && watchedPeriod) {
@@ -529,12 +546,41 @@ export default function CreateBudgetModal({
 
   const onSubmit = async (data: CreateBudgetFormData) => {
     try {
-      // Transform selectedCategories to the format expected by the API
-      const categoryAllocations = selectedCategories.map((cat) => ({
-        name: cat.name,
-        group: cat.group,
-        allocatedAmount: cat.allocatedAmount,
-      }));
+      // For 50/30/20 express budgets, auto-generate one category per group
+      // allocated 50/30/20 of adjusted income. The remainder goes to
+      // investments so the three always sum exactly to total income.
+      let categoryAllocations: Array<{
+        name: string;
+        group: CategoryType;
+        allocatedAmount: number;
+      }>;
+      if (isExpress) {
+        const adjustedIncome = incomeEntries.reduce(
+          (sum, entry) =>
+            sum +
+            calculateAdjustedIncome(entry.amount, entry.frequency, data.period),
+          0,
+        );
+        const needs = roundToCents(adjustedIncome * 0.5);
+        const wants = roundToCents(adjustedIncome * 0.3);
+        const investments = roundToCents(adjustedIncome - needs - wants);
+        categoryAllocations = [
+          { name: "Needs", group: CategoryType.NEEDS, allocatedAmount: needs },
+          { name: "Wants", group: CategoryType.WANTS, allocatedAmount: wants },
+          {
+            name: "Investments",
+            group: CategoryType.INVESTMENT,
+            allocatedAmount: investments,
+          },
+        ];
+      } else {
+        // Transform selectedCategories to the format expected by the API
+        categoryAllocations = selectedCategories.map((cat) => ({
+          name: cat.name,
+          group: cat.group,
+          allocatedAmount: cat.allocatedAmount,
+        }));
+      }
 
       const incomes = incomeEntries.map((entry) => ({
         amount: entry.amount,
@@ -651,7 +697,10 @@ export default function CreateBudgetModal({
             </h2>
             <p className="text-sm text-gray-500">
               {currentStep === "basic" && "Set up your budget basics"}
-              {currentStep === "income" && "Set up your income"}
+              {currentStep === "income" &&
+                (isExpress
+                  ? "Set up your income — we'll auto-create Needs, Wants, and Investments at 50/30/20"
+                  : "Set up your income")}
               {currentStep === "cards" &&
                 "Optionally review the cards that will be associated with this budget. You can always adjust cards later from the Cards page."}
               {currentStep === "categories" &&
@@ -673,17 +722,11 @@ export default function CreateBudgetModal({
           {/* Sidebar */}
           <BudgetStepsSidebar
             currentStep={currentStep}
+            visibleSteps={visibleSteps}
             onStepClick={(step) => {
               // Only allow navigation to completed steps or current step
-              const stepOrder = [
-                "basic",
-                "income",
-                "cards",
-                "categories",
-                "allocation",
-              ];
-              const currentIndex = stepOrder.indexOf(currentStep);
-              const targetIndex = stepOrder.indexOf(step);
+              const currentIndex = visibleSteps.indexOf(currentStep);
+              const targetIndex = visibleSteps.indexOf(step);
               if (targetIndex <= currentIndex) {
                 setCurrentStep(step);
               }
@@ -776,10 +819,15 @@ export default function CreateBudgetModal({
                 Cancel
               </Button>
 
-              {currentStep === "allocation" ? (
+              {isLastStep ? (
                 <Button
                   type="submit"
-                  disabled={isCreating || !isAllocationStepValid()}
+                  disabled={
+                    isCreating ||
+                    (isExpress
+                      ? !isIncomeStepValid()
+                      : !isAllocationStepValid())
+                  }
                   onClick={handleSubmit(onSubmit)}
                 >
                   {isCreating ? "Creating..." : "Create Budget"}

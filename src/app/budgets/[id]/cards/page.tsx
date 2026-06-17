@@ -7,6 +7,7 @@ import {
   Shield,
   AlertCircle,
   Target,
+  FolderInput,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
@@ -31,6 +32,7 @@ import type { Card as PrismaCard } from "@prisma/client";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
+import ImportCardsModal from "@/components/cards/ImportCardsModal";
 
 // Interface for budget cards with user information
 interface BudgetCard extends PrismaCard {
@@ -78,6 +80,7 @@ const BudgetCardsPage = () => {
   const [showCardPaymentModal, setShowCardPaymentModal] = useState(false);
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
   const [activeOwner, setActiveOwner] = useState<string>("all");
+  const [showImportCardsModal, setShowImportCardsModal] = useState(false);
   const { setActions } = useBudgetHeader();
 
   // Register header actions
@@ -100,6 +103,12 @@ const BudgetCardsPage = () => {
         label: "Add card",
         onClick: () => setShowAddCardModal(true),
         variant: "secondary" as const,
+      },
+      {
+        icon: <FolderInput className="h-4 w-4" />,
+        label: "Import cards",
+        onClick: () => setShowImportCardsModal(true),
+        variant: "outline" as const,
       },
     ]);
   }, [setActions]);
@@ -686,6 +695,12 @@ const BudgetCardsPage = () => {
           onClose={() => setShowAddTransactionModal(false)}
         />
       )}
+
+      <ImportCardsModal
+        isOpen={showImportCardsModal}
+        budgetId={budgetId}
+        onClose={() => setShowImportCardsModal(false)}
+      />
     </>
   );
 };

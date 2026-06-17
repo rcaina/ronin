@@ -20,10 +20,12 @@ import {
   HandCoins,
   Info,
   Plus,
+  FolderInput,
 } from "lucide-react";
 import { roundToCents } from "@/lib/utils";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
+import ImportCategoriesModal from "@/components/budgets/ImportCategoriesModal";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
 import {
   CHART_COLORS,
@@ -96,11 +98,18 @@ const BudgetCategoriesPage = () => {
   const [view, setView] = useState<BudgetCategoriesViewType>("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const { setActions } = useBudgetHeader();
 
   // Register header actions
   useEffect(() => {
     setActions([
+      {
+        icon: <FolderInput className="h-4 w-4" />,
+        label: "Import categories",
+        onClick: () => setIsImportOpen(true),
+        variant: "outline" as const,
+      },
       {
         icon: <Plus className="h-4 w-4" />,
         label: "Add transaction",
@@ -877,6 +886,12 @@ const BudgetCategoriesPage = () => {
           onClose={() => setIsAddTransactionOpen(false)}
         />
       )}
+
+      <ImportCategoriesModal
+        isOpen={isImportOpen}
+        budgetId={budgetId}
+        onClose={() => setIsImportOpen(false)}
+      />
     </>
   );
 };
