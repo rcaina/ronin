@@ -130,8 +130,8 @@ export default function EditBudgetModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 backdrop-blur-sm">
-      <div className="w-full max-w-md animate-scale-in rounded-2xl bg-surface-card p-6 shadow-lifted">
+    <div className="fixed inset-0 z-50 flex justify-center overflow-y-auto bg-primary-950/40 p-4 backdrop-blur-sm">
+      <div className="my-auto w-full max-w-md animate-scale-in rounded-2xl bg-surface-card p-6 shadow-lifted">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">Edit Budget</h2>
           <button
