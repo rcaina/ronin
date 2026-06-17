@@ -62,7 +62,6 @@ export interface CreateBudgetData {
   period: PeriodType;
   startAt: string;
   endAt: string;
-  isRecurring: boolean;
   // If false, we skip auto-creating the default "Main" debit card because
   // the client will (or already does) copy/add at least one debit card.
   shouldCreateDefaultDebitCard?: boolean;
@@ -82,6 +81,7 @@ export interface CreateBudgetData {
 
 export interface CardToIncludeData {
   name: string;
+  lastFourDigits?: string;
   cardType: CardType;
   spendingLimit?: number;
   userId: string;
@@ -93,7 +93,6 @@ export interface CreateBudgetWithCardsData {
   period: PeriodType;
   startAt: string;
   endAt: string;
-  isRecurring: boolean;
   categoryAllocations?: Array<{
     name: string;
     group: CategoryType;
@@ -115,7 +114,6 @@ export interface UpdateBudgetData {
   period?: PeriodType;
   startAt?: string;
   endAt?: string;
-  isRecurring?: boolean;
   categoryAllocations?: Array<{
     name: string;
     group: CategoryType;
@@ -167,4 +165,14 @@ export interface UpdateBudgetCategoryData {
   allocatedAmount?: number;
   name?: string;
   group?: CategoryType;
+}
+
+export interface ImportBudgetCategoriesData {
+  sourceBudgetId: string;
+  categoryIds: string[];
+}
+
+export interface ImportBudgetCardsData {
+  sourceBudgetId: string;
+  cardIds: string[];
 }

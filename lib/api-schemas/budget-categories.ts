@@ -7,6 +7,13 @@ export const createBudgetCategorySchema = z.object({
   allocatedAmount: z.number().positive("Allocated amount must be positive"),
 });
 
+export const importBudgetCategoriesSchema = z.object({
+  sourceBudgetId: z.string().min(1, "Source budget is required"),
+  categoryIds: z
+    .array(z.string().min(1))
+    .min(1, "Select at least one category to import"),
+});
+
 export const updateBudgetCategorySchema = z.object({
   allocatedAmount: z
     .number()

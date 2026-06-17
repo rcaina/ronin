@@ -9,6 +9,7 @@ import type {
   BudgetCategoryWithCategory,
   CreateBudgetCategoryData,
   UpdateBudgetCategoryData,
+  ImportBudgetCategoriesData,
 } from "@/lib/types/budget";
 
 const getBudgetCategories = async (
@@ -90,6 +91,27 @@ const updateBudgetCategory = async (
   return budgetCategory;
 };
 
+const importBudgetCategories = async (
+  budgetId: string,
+  data: ImportBudgetCategoriesData,
+): Promise<{ imported: number; skipped: number }> => {
+  const response = await fetch(`/api/budgets/${budgetId}/categories/import`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to import budget categories: ${response.statusText}`,
+    );
+  }
+
+  return response.json() as Promise<{ imported: number; skipped: number }>;
+};
+
 const deleteBudgetCategory = async (
   budgetId: string,
   categoryId: string,
@@ -151,6 +173,27 @@ export const useUpdateBudgetCategory = () => {
       // Also invalidate the budgets list
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
       // Invalidate the specific budget to refresh the main page
+      void queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
+    },
+  });
+};
+
+export const useImportBudgetCategories = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      budgetId,
+      data,
+    }: {
+      budgetId: string;
+      data: ImportBudgetCategoriesData;
+    }) => importBudgetCategories(budgetId, data),
+    onSuccess: (_, { budgetId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: ["budgetCategories", budgetId],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["budgets"] });
       void queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
     },
   });

@@ -65,7 +65,6 @@ const budgetDateInvariantRefine = (
 const createBudgetBaseSchema = z.object({
   name: z.string().min(1, "Budget name is required"),
   strategy: z.enum([StrategyType.ZERO_SUM, StrategyType.FIFTY_THIRTY_TWENTY]),
-  isRecurring: z.boolean(),
   period: z.enum([
     PeriodType.WEEKLY,
     PeriodType.MONTHLY,
@@ -131,6 +130,11 @@ export const createBudgetSchema = createBudgetBaseSchema.superRefine(
 
 const cardToIncludeSchema = z.object({
   name: z.string().min(1, "Card name is required"),
+  lastFourDigits: z
+    .string()
+    .regex(/^\d{4}$/, "Must be exactly 4 digits")
+    .optional()
+    .or(z.literal("")),
   cardType: z.nativeEnum(CardType),
   spendingLimit: z.coerce.number().optional(),
   userId: z.string().min(1, "User id is required"),
@@ -142,7 +146,6 @@ export const createBudgetWithCardsSchema = z
   .object({
     name: z.string().min(1, "Budget name is required"),
     strategy: z.enum([StrategyType.ZERO_SUM, StrategyType.FIFTY_THIRTY_TWENTY]),
-    isRecurring: z.boolean(),
     period: z.enum([
       PeriodType.WEEKLY,
       PeriodType.MONTHLY,

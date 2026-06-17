@@ -538,7 +538,7 @@ const TransactionsPage = () => {
                       onChange={(e) =>
                         handleFilterChange("startDate", e.target.value)
                       }
-                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                      className="block w-full min-w-0 appearance-none rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                     />
                   </div>
 
@@ -552,7 +552,7 @@ const TransactionsPage = () => {
                       onChange={(e) =>
                         handleFilterChange("endDate", e.target.value)
                       }
-                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                      className="block w-full min-w-0 appearance-none rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                     />
                   </div>
 

@@ -70,6 +70,8 @@ const BudgetTransactionsPage = () => {
     CategoryType | "all"
   >("all");
   const [selectedCard, setSelectedCard] = useState<string>("all");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   const [sortBy, setSortBy] = useState<"date" | "amount" | "name">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
@@ -159,8 +161,32 @@ const BudgetTransactionsPage = () => {
           (selectedCard === "no-card" && !transaction.cardId) ||
           transaction.cardId === selectedCard;
 
+        // Date range filter
+        const matchesDateRange = (() => {
+          if (!startDate && !endDate) return true;
+
+          const transactionDate = transaction.occurredAt
+            ? new Date(transaction.occurredAt)
+            : new Date(transaction.createdAt);
+          const start = startDate ? new Date(startDate) : null;
+          const end = endDate ? new Date(endDate) : null;
+
+          if (start && end) {
+            return transactionDate >= start && transactionDate <= end;
+          } else if (start) {
+            return transactionDate >= start;
+          } else if (end) {
+            return transactionDate <= end;
+          }
+          return true;
+        })();
+
         return (
-          matchesSearch && matchesCategory && matchesCategoryType && matchesCard
+          matchesSearch &&
+          matchesCategory &&
+          matchesCategoryType &&
+          matchesCard &&
+          matchesDateRange
         );
       } catch (error) {
         console.error("Error filtering transaction:", error, transaction);
@@ -195,6 +221,8 @@ const BudgetTransactionsPage = () => {
     selectedCategory,
     selectedCategoryType,
     selectedCard,
+    startDate,
+    endDate,
     sortBy,
     sortOrder,
   ]);
@@ -407,6 +435,8 @@ const BudgetTransactionsPage = () => {
     setSelectedCategory("all");
     setSelectedCategoryType("all");
     setSelectedCard("all");
+    setStartDate("");
+    setEndDate("");
   };
 
   // Check if any filters are active
@@ -414,7 +444,9 @@ const BudgetTransactionsPage = () => {
     searchTerm ||
     selectedCategory !== "all" ||
     selectedCategoryType !== "all" ||
-    selectedCard !== "all";
+    selectedCard !== "all" ||
+    startDate ||
+    endDate;
 
   // Calculate total spent from filtered transactions
   const totalSpent = useMemo(() => {
@@ -618,6 +650,30 @@ const BudgetTransactionsPage = () => {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                    Start date
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="block w-full min-w-0 appearance-none rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                    End date
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="block w-full min-w-0 appearance-none rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                  />
                 </div>
 
                 <div>

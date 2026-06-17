@@ -5,6 +5,7 @@ import type { Card as ApiCard } from "../types/card";
 export interface Card {
   id: string;
   name: string;
+  lastFourDigits?: string;
   type: "credit" | "debit" | "business_credit" | "business_debit" | "cash";
   amountSpent: number;
   spendingLimit?: number;
@@ -83,6 +84,7 @@ export const mapApiCardToCard = (apiCard: ApiCard): Card => {
   return {
     id: apiCard.id ?? "",
     name: apiCard.name,
+    lastFourDigits: apiCard.lastFourDigits ?? undefined,
     type: mapCardType(apiCard.cardType),
     amountSpent: apiCard.amountSpent ?? 0,
     spendingLimit: apiCard.spendingLimit,

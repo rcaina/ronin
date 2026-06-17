@@ -7,6 +7,7 @@ import {
   Shield,
   AlertCircle,
   Target,
+  FolderInput,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
@@ -31,6 +32,7 @@ import type { Card as PrismaCard } from "@prisma/client";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
+import ImportCardsModal from "@/components/cards/ImportCardsModal";
 
 // Interface for budget cards with user information
 interface BudgetCard extends PrismaCard {
@@ -78,6 +80,7 @@ const BudgetCardsPage = () => {
   const [showCardPaymentModal, setShowCardPaymentModal] = useState(false);
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
   const [activeOwner, setActiveOwner] = useState<string>("all");
+  const [showImportCardsModal, setShowImportCardsModal] = useState(false);
   const { setActions } = useBudgetHeader();
 
   // Register header actions
@@ -101,6 +104,12 @@ const BudgetCardsPage = () => {
         onClick: () => setShowAddCardModal(true),
         variant: "secondary" as const,
       },
+      {
+        icon: <FolderInput className="h-4 w-4" />,
+        label: "Import cards",
+        onClick: () => setShowImportCardsModal(true),
+        variant: "outline" as const,
+      },
     ]);
   }, [setActions]);
 
@@ -111,6 +120,7 @@ const BudgetCardsPage = () => {
     return apiCards.map((prismaCard: BudgetCard) => ({
       id: prismaCard.id,
       name: prismaCard.name,
+      lastFourDigits: prismaCard.lastFourDigits ?? undefined,
       type: mapCardType(prismaCard.cardType),
       amountSpent: prismaCard.amountSpent ?? 0,
       spendingLimit: prismaCard.spendingLimit ?? undefined,
@@ -161,6 +171,7 @@ const BudgetCardsPage = () => {
 
   const handleSubmitCard = async (data: {
     name: string;
+    lastFourDigits?: string;
     cardType: CardType;
     spendingLimit?: string;
     userId: string;
@@ -230,6 +241,7 @@ const BudgetCardsPage = () => {
       // Create a copy with "Copy" appended to the name
       const copyData = {
         name: `${originalApiCard.name} Copy`,
+        lastFourDigits: originalApiCard.lastFourDigits ?? undefined,
         cardType: originalApiCard.cardType,
         spendingLimit: originalApiCard.spendingLimit ?? undefined,
         userId: originalApiCard.userId,
@@ -475,6 +487,7 @@ const BudgetCardsPage = () => {
                       cardToEdit={{
                         id: cardToEdit.id,
                         name: cardToEdit.name,
+                        lastFourDigits: cardToEdit.lastFourDigits ?? undefined,
                         cardType: cardToEdit.cardType,
                         spendingLimit: cardToEdit.spendingLimit ?? undefined,
                         userId: cardToEdit.userId,
@@ -483,6 +496,7 @@ const BudgetCardsPage = () => {
                       loadingUsers={loadingUsers}
                       defaultValues={{
                         name: cardToEdit.name,
+                        lastFourDigits: cardToEdit.lastFourDigits ?? "",
                         cardType: cardToEdit.cardType,
                         spendingLimit:
                           cardToEdit.spendingLimit?.toString() ?? "",
@@ -520,6 +534,7 @@ const BudgetCardsPage = () => {
                       cardToEdit={{
                         id: cardToEdit.id,
                         name: cardToEdit.name,
+                        lastFourDigits: cardToEdit.lastFourDigits ?? undefined,
                         cardType: cardToEdit.cardType,
                         spendingLimit: cardToEdit.spendingLimit ?? undefined,
                         userId: cardToEdit.userId,
@@ -528,6 +543,7 @@ const BudgetCardsPage = () => {
                       loadingUsers={loadingUsers}
                       defaultValues={{
                         name: cardToEdit.name,
+                        lastFourDigits: cardToEdit.lastFourDigits ?? "",
                         cardType: cardToEdit.cardType,
                         spendingLimit:
                           cardToEdit.spendingLimit?.toString() ?? "",
@@ -565,6 +581,7 @@ const BudgetCardsPage = () => {
                       cardToEdit={{
                         id: cardToEdit.id,
                         name: cardToEdit.name,
+                        lastFourDigits: cardToEdit.lastFourDigits ?? undefined,
                         cardType: cardToEdit.cardType,
                         spendingLimit: cardToEdit.spendingLimit ?? undefined,
                         userId: cardToEdit.userId,
@@ -573,6 +590,7 @@ const BudgetCardsPage = () => {
                       loadingUsers={loadingUsers}
                       defaultValues={{
                         name: cardToEdit.name,
+                        lastFourDigits: cardToEdit.lastFourDigits ?? "",
                         cardType: cardToEdit.cardType,
                         spendingLimit:
                           cardToEdit.spendingLimit?.toString() ?? "",
@@ -677,6 +695,12 @@ const BudgetCardsPage = () => {
           onClose={() => setShowAddTransactionModal(false)}
         />
       )}
+
+      <ImportCardsModal
+        isOpen={showImportCardsModal}
+        budgetId={budgetId}
+        onClose={() => setShowImportCardsModal(false)}
+      />
     </>
   );
 };

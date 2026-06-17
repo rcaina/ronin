@@ -113,9 +113,7 @@ export async function createBudget(
       strategy: data.strategy,
       period: data.period,
       startAt: new Date(data.startAt),
-      endAt: new Date(data.endAt),
-      isRecurring: data.isRecurring,
-      accountId: user.accountId,
+      endAt: new Date(data.endAt),      accountId: user.accountId,
     },
   });
 
@@ -221,9 +219,7 @@ async function createBudgetWithCardsAndIncomes(
       strategy: data.strategy,
       period: data.period,
       startAt: new Date(data.startAt),
-      endAt: new Date(data.endAt),
-      isRecurring: data.isRecurring,
-      accountId: user.accountId,
+      endAt: new Date(data.endAt),      accountId: user.accountId,
     },
   });
 
@@ -380,9 +376,7 @@ export async function updateBudget(
       strategy: data.strategy,
       period: data.period,
       startAt: data.startAt ? new Date(data.startAt) : undefined,
-      endAt: data.endAt ? new Date(data.endAt) : undefined,
-      isRecurring: data.isRecurring,
-    },
+      endAt: data.endAt ? new Date(data.endAt) : undefined,    },
   });
 
   // Update budget category allocations if provided
@@ -650,9 +644,7 @@ export async function duplicateBudget(
       strategy: originalBudget.strategy,
       period: originalBudget.period,
       startAt: new Date(),
-      endAt: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-      isRecurring: originalBudget.isRecurring,
-      accountId: user.accountId,
+      endAt: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),      accountId: user.accountId,
     },
   });
 
@@ -880,6 +872,163 @@ export const createBudgetCategory = async (
   });
 
   return category;
+};
+
+// Copy selected categories (name, group, allocatedAmount) from one budget into
+// another. Both budgets must belong to the user's account. Categories whose
+// name+group already exist on the target are skipped so importing is idempotent.
+export const importBudgetCategories = async (
+  tx: PrismaClientTx,
+  targetBudgetId: string,
+  sourceBudgetId: string,
+  categoryIds: string[],
+  user: User & { accountId: string },
+): Promise<{ created: Category[]; skipped: number }> => {
+  const [targetBudget, sourceBudget] = await Promise.all([
+    tx.budget.findFirst({
+      where: { id: targetBudgetId, accountId: user.accountId, deleted: null },
+    }),
+    tx.budget.findFirst({
+      where: { id: sourceBudgetId, accountId: user.accountId, deleted: null },
+    }),
+  ]);
+
+  if (!targetBudget) {
+    throw new HttpError("Budget not found", 404);
+  }
+  if (!sourceBudget) {
+    throw new HttpError("Source budget not found", 404);
+  }
+
+  const sourceCategories = await tx.category.findMany({
+    where: {
+      id: { in: categoryIds },
+      budgetId: sourceBudgetId,
+      deleted: null,
+    },
+  });
+
+  // Dedupe against categories already on the target budget (by group + name).
+  const existingCategories = await tx.category.findMany({
+    where: { budgetId: targetBudgetId, deleted: null },
+    select: { name: true, group: true },
+  });
+  const keyOf = (group: CategoryType, name: string) =>
+    `${group}:${name.toLowerCase()}`;
+  const existingKeys = new Set(
+    existingCategories.map((c) => keyOf(c.group, c.name)),
+  );
+
+  // Default category templates, for linking copied categories to their template.
+  const defaultCategories = await tx.category.findMany({
+    where: { budgetId: null, defaultCategoryId: null, deleted: null },
+    select: { id: true, name: true, group: true },
+  });
+  const defaultIdByKey = new Map(
+    defaultCategories.map((c) => [keyOf(c.group, c.name), c.id]),
+  );
+
+  const created: Category[] = [];
+  let skipped = 0;
+
+  for (const sourceCategory of sourceCategories) {
+    const key = keyOf(sourceCategory.group, sourceCategory.name);
+    if (existingKeys.has(key)) {
+      skipped++;
+      continue;
+    }
+
+    const category = await tx.category.create({
+      data: {
+        budgetId: targetBudgetId,
+        name: sourceCategory.name,
+        group: sourceCategory.group,
+        allocatedAmount: sourceCategory.allocatedAmount ?? 0,
+        defaultCategoryId: defaultIdByKey.get(key) ?? null,
+      },
+    });
+    created.push(category);
+    existingKeys.add(key);
+  }
+
+  return { created, skipped };
+};
+
+// Copy selected cards from one budget into another. Both budgets must belong to
+// the user's account. Cards that already exist on the target (same owner, type,
+// name and last four digits) are skipped so importing is idempotent. Spent
+// amounts are not copied — they are derived from transactions.
+export const importBudgetCards = async (
+  tx: PrismaClientTx,
+  targetBudgetId: string,
+  sourceBudgetId: string,
+  cardIds: string[],
+  user: User & { accountId: string },
+): Promise<{ created: Card[]; skipped: number }> => {
+  const [targetBudget, sourceBudget] = await Promise.all([
+    tx.budget.findFirst({
+      where: { id: targetBudgetId, accountId: user.accountId, deleted: null },
+    }),
+    tx.budget.findFirst({
+      where: { id: sourceBudgetId, accountId: user.accountId, deleted: null },
+    }),
+  ]);
+
+  if (!targetBudget) {
+    throw new HttpError("Budget not found", 404);
+  }
+  if (!sourceBudget) {
+    throw new HttpError("Source budget not found", 404);
+  }
+
+  const sourceCards = await tx.card.findMany({
+    where: {
+      id: { in: cardIds },
+      budgetId: sourceBudgetId,
+      deleted: null,
+    },
+  });
+
+  const existingCards = await tx.card.findMany({
+    where: { budgetId: targetBudgetId, deleted: null },
+    select: { name: true, cardType: true, userId: true, lastFourDigits: true },
+  });
+  const keyOf = (c: {
+    userId: string;
+    cardType: CardType;
+    name: string;
+    lastFourDigits: string | null;
+  }) =>
+    `${c.userId}:${c.cardType}:${c.name.toLowerCase()}:${c.lastFourDigits ?? ""}`;
+  const existingKeys = new Set(existingCards.map(keyOf));
+
+  const created: Card[] = [];
+  let skipped = 0;
+
+  for (const sourceCard of sourceCards) {
+    const key = keyOf(sourceCard);
+    if (existingKeys.has(key)) {
+      skipped++;
+      continue;
+    }
+
+    const card = await tx.card.create({
+      data: {
+        name: sourceCard.name,
+        lastFourDigits: sourceCard.lastFourDigits?.length
+          ? sourceCard.lastFourDigits
+          : null,
+        cardType: sourceCard.cardType,
+        spendingLimit: sourceCard.spendingLimit,
+        userId: sourceCard.userId,
+        budgetId: targetBudgetId,
+      },
+    });
+    created.push(card);
+    existingKeys.add(key);
+  }
+
+  return { created, skipped };
 };
 
 export const updateBudgetCategory = async (

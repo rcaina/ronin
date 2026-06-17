@@ -9,6 +9,7 @@ import type {
 export interface CardToInclude {
   id: string;
   name: string;
+  lastFourDigits?: string;
   cardType: CardType;
   spendingLimit?: number;
   userId: string;
@@ -26,7 +27,6 @@ export interface CreateBudgetFormData {
   period: PeriodType;
   startAt: string;
   endAt: string;
-  isRecurring: boolean;
 }
 
 export interface CategoryAllocation {

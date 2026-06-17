@@ -100,7 +100,6 @@ model Budget {
     deleted      DateTime?
     startAt      DateTime
     endAt        DateTime
-    isRecurring  Boolean       @default(false)
     createdAt    DateTime      @default(now())
     updatedAt    DateTime      @updatedAt
     accountId    String
@@ -143,6 +142,7 @@ model Category {
 model Card {
     id            String        @id @default(cuid())
     name          String
+    lastFourDigits String?
     cardType      CardType
     amountSpent   Float?
     spendingLimit Float?

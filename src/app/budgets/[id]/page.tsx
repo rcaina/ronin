@@ -22,6 +22,7 @@ import InlineTransactionEdit from "@/components/transactions/InlineTransactionEd
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import { useState, useEffect } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
+import BudgetStrategyIndicator from "@/components/budgets/BudgetStrategyIndicator";
 import { TransactionType, CardType } from "@prisma/client";
 import { formatDateUTC, roundToCents, getGroupColor } from "@/lib/utils";
 import { calculateCategorySpent } from "@/lib/utils/spending";
@@ -419,7 +420,7 @@ const BudgetDetailsPage = () => {
             {/* Daily Spending Trend */}
             <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
               <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                Daily spending
+                Avg daily spending
               </h3>
               {dailySpendingData.length > 0 &&
               dailySpendingData.some((d) => d.spending > 0) ? (
@@ -477,7 +478,7 @@ const BudgetDetailsPage = () => {
                         const date = payloadData?.payload?.date ?? "";
                         return [
                           `$${value.toLocaleString()}`,
-                          date ? `Spending (${date})` : "Spending",
+                          date ? `Avg (${date})` : "Avg spending",
                         ];
                       }}
                     />
@@ -832,6 +833,9 @@ const BudgetDetailsPage = () => {
               </div>
             </div>
           </div>
+
+          {/* Strategy adherence — live indicator for the budget's strategy */}
+          <BudgetStrategyIndicator budget={budget} totalIncome={totalIncome} />
 
           {/* Recent Transactions Summary */}
           <div className="card-surface mb-4 flex min-h-0 flex-1 flex-col p-3 sm:mb-4 sm:p-4">

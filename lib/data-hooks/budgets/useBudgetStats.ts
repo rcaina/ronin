@@ -3,9 +3,9 @@ import { CategoryType } from "@prisma/client";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import { roundToCents } from "@/lib/utils";
 import {
+  calculateAverageSpendingByWeekday,
   calculateBudgetSpent,
   calculateCategorySpent,
-  calculateDailySpending,
   calculateRecentSpending,
   calculateSpendingPercentage,
   calculateTotalIncome,
@@ -111,7 +111,7 @@ export const useBudgetStats = (
 
     const allTransactions = flattenBudgetTransactions(activeBudgets);
     const recentSpending = calculateRecentSpending(allTransactions, 7);
-    const dailySpendingData = calculateDailySpending(allTransactions, 7);
+    const dailySpendingData = calculateAverageSpendingByWeekday(allTransactions);
 
     return {
       totalBudgets,
@@ -164,7 +164,7 @@ export const useBudgetDetailStats = (
 
   const dailySpendingData = useMemo(() => {
     if (!budget) return [];
-    return calculateDailySpending(flattenBudgetTransactions([budget]), 7);
+    return calculateAverageSpendingByWeekday(flattenBudgetTransactions([budget]));
   }, [budget]);
 
   const categoryUsageData = useMemo(() => {
