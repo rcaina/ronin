@@ -189,45 +189,75 @@ export const calculateRecentSpending = (
 };
 
 export interface DailySpendingPoint {
+  /** Short weekday label for the x-axis, e.g. "Mon". */
   day: string;
+  /** Full weekday label used in the tooltip, e.g. "Monday". */
   date: string;
+  /** Average spending for that weekday across the transaction date range. */
   spending: number;
 }
 
+// Weekday order (Monday-first) paired with the `Date.getDay()` index it maps to.
+const WEEKDAYS: Array<{ short: string; full: string; dayIndex: number }> = [
+  { short: "Mon", full: "Monday", dayIndex: 1 },
+  { short: "Tue", full: "Tuesday", dayIndex: 2 },
+  { short: "Wed", full: "Wednesday", dayIndex: 3 },
+  { short: "Thu", full: "Thursday", dayIndex: 4 },
+  { short: "Fri", full: "Friday", dayIndex: 5 },
+  { short: "Sat", full: "Saturday", dayIndex: 6 },
+  { short: "Sun", full: "Sunday", dayIndex: 0 },
+];
+
+const startOfDay = (date: Date): Date => {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+};
+
 /**
- * Per-day spending totals for the last `days` days (oldest first), shaped for
- * the daily-spending trend charts.
+ * Average spending per weekday (Monday-first), shaped for the daily-spending
+ * trend charts. For each weekday the total spending is divided by the number of
+ * calendar occurrences of that weekday within the transactions' date range, so
+ * weekdays with no spending still pull the average down.
  */
-export const calculateDailySpending = (
+export const calculateAverageSpendingByWeekday = (
   transactions: SpendingTransaction[],
-  days = 7,
 ): DailySpendingPoint[] => {
-  const result: DailySpendingPoint[] = [];
+  const totals = new Array(7).fill(0) as number[];
+  const occurrences = new Array(7).fill(0) as number[];
 
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    date.setHours(0, 0, 0, 0);
-    const nextDate = new Date(date);
-    nextDate.setDate(nextDate.getDate() + 1);
+  let minDate: Date | null = null;
+  let maxDate: Date | null = null;
 
-    const spending = transactions.reduce((sum, transaction) => {
-      const transactionDate = new Date(transaction.createdAt ?? 0);
-      if (transactionDate >= date && transactionDate < nextDate) {
-        return sum + getTransactionSpending(transaction);
-      }
-      return sum;
-    }, 0);
+  for (const transaction of transactions) {
+    const transactionDate = startOfDay(new Date(transaction.createdAt ?? 0));
+    const dayIndex = transactionDate.getDay();
+    totals[dayIndex] = (totals[dayIndex] ?? 0) + getTransactionSpending(transaction);
 
-    result.push({
-      day: date.toLocaleDateString("en-US", { weekday: "short" }),
-      date: date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
-      spending: roundToCents(spending),
-    });
+    if (!minDate || transactionDate < minDate) minDate = transactionDate;
+    if (!maxDate || transactionDate > maxDate) maxDate = transactionDate;
   }
 
-  return result;
+  // Count how many times each weekday occurs across the data's date range so we
+  // average over every such day, not just the days that had transactions.
+  if (minDate && maxDate) {
+    for (
+      const cursor = new Date(minDate);
+      cursor <= maxDate;
+      cursor.setDate(cursor.getDate() + 1)
+    ) {
+      const dayIndex = cursor.getDay();
+      occurrences[dayIndex] = (occurrences[dayIndex] ?? 0) + 1;
+    }
+  }
+
+  return WEEKDAYS.map(({ short, full, dayIndex }) => {
+    const count = occurrences[dayIndex] ?? 0;
+    const average = count > 0 ? (totals[dayIndex] ?? 0) / count : 0;
+    return {
+      day: short,
+      date: full,
+      spending: roundToCents(average),
+    };
+  });
 };

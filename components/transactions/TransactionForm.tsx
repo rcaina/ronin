@@ -480,7 +480,10 @@ export default function TransactionForm({
             <input
               type="date"
               id="occurredAt"
-              {...register("occurredAt")}
+              {...register("occurredAt", {
+                onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+                  e.target.blur(),
+              })}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               disabled={isPending}
             />
