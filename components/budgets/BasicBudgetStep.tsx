@@ -25,7 +25,7 @@ export default function BasicBudgetStep({
   onStartDateChange,
 }: BasicBudgetStepProps) {
   const watchedPeriod = watch("period");
-  const watchedIsRecurring = watch("isRecurring");
+  const isEndDateLocked = watchedPeriod !== PeriodType.ONE_TIME;
 
   return (
     <div className="space-y-6">
@@ -97,59 +97,32 @@ export default function BasicBudgetStep({
         <div>
           <label className="block text-sm font-medium text-gray-700">
             End Date
-            {watchedPeriod !== PeriodType.ONE_TIME && (
+            {isEndDateLocked && (
               <span className="ml-1 text-xs text-gray-500">
-                (auto-calculated)
+                (set by period)
               </span>
             )}
           </label>
           <input
             type="date"
             {...register("endAt")}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
+            readOnly={isEndDateLocked}
+            aria-readonly={isEndDateLocked}
+            className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary ${
+              isEndDateLocked
+                ? "cursor-not-allowed bg-gray-50 text-gray-600"
+                : ""
+            }`}
           />
-          {watchedPeriod !== PeriodType.ONE_TIME && (
+          {isEndDateLocked && (
             <p className="mt-1 text-xs text-gray-500">
-              End date is automatically set to the end of the selected period,
-              but you can customize it if needed
+              Set automatically from the period and start date, so the dates
+              always match the period you chose.
             </p>
           )}
           {errors.endAt && (
             <p className="mt-1 text-sm text-red-600">{errors.endAt.message}</p>
           )}
-        </div>
-      </div>
-      {/* Recurring Option */}
-      <div className="rounded-lg border border-gray-200 p-4">
-        <div className="flex items-center space-x-3">
-          <input
-            type="checkbox"
-            {...register("isRecurring")}
-            disabled={watchedPeriod === PeriodType.ONE_TIME}
-            className={`h-4 w-4 rounded border-gray-300 text-secondary focus:ring-secondary ${
-              watchedPeriod === PeriodType.ONE_TIME
-                ? "cursor-not-allowed opacity-50"
-                : ""
-            }`}
-          />
-          <div>
-            <label
-              className={`text-sm font-medium ${
-                watchedPeriod === PeriodType.ONE_TIME
-                  ? "text-gray-400"
-                  : "text-gray-700"
-              }`}
-            >
-              Recurring Budget
-            </label>
-            <p className="text-xs text-gray-500">
-              {watchedPeriod === PeriodType.ONE_TIME
-                ? "One-time budgets cannot be recurring"
-                : watchedIsRecurring
-                  ? "This budget will automatically generate the next period when the current period ends"
-                  : "This is a one-time budget that won't automatically repeat"}
-            </p>
-          </div>
         </div>
       </div>
     </div>

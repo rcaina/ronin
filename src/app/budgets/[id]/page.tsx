@@ -20,6 +20,7 @@ import InlineTransactionEdit from "@/components/transactions/InlineTransactionEd
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import { useState, useEffect } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
+import BudgetStrategyIndicator from "@/components/budgets/BudgetStrategyIndicator";
 import { TransactionType, CardType } from "@prisma/client";
 import { formatDateUTC, roundToCents, getGroupColor } from "@/lib/utils";
 import { calculateCategorySpent } from "@/lib/utils/spending";
@@ -823,6 +824,9 @@ const BudgetDetailsPage = () => {
               </div>
             </div>
           </div>
+
+          {/* Strategy adherence — live indicator for the budget's strategy */}
+          <BudgetStrategyIndicator budget={budget} totalIncome={totalIncome} />
 
           {/* Recent Transactions Summary */}
           <div className="card-surface mb-4 flex min-h-0 flex-1 flex-col p-3 sm:mb-4 sm:p-4">

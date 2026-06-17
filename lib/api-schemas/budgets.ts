@@ -65,7 +65,6 @@ const budgetDateInvariantRefine = (
 const createBudgetBaseSchema = z.object({
   name: z.string().min(1, "Budget name is required"),
   strategy: z.enum([StrategyType.ZERO_SUM, StrategyType.FIFTY_THIRTY_TWENTY]),
-  isRecurring: z.boolean(),
   period: z.enum([
     PeriodType.WEEKLY,
     PeriodType.MONTHLY,
@@ -147,7 +146,6 @@ export const createBudgetWithCardsSchema = z
   .object({
     name: z.string().min(1, "Budget name is required"),
     strategy: z.enum([StrategyType.ZERO_SUM, StrategyType.FIFTY_THIRTY_TWENTY]),
-    isRecurring: z.boolean(),
     period: z.enum([
       PeriodType.WEEKLY,
       PeriodType.MONTHLY,

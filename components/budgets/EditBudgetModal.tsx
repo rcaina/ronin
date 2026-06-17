@@ -6,6 +6,7 @@ import { useUpdateBudget } from "@/lib/data-hooks/budgets/useBudgets";
 import { toast } from "react-hot-toast";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import { PeriodType, StrategyType } from "@prisma/client";
+import { calculateEndDate } from "@/lib/utils";
 import Button from "../Button";
 
 interface EditBudgetModalProps {
@@ -13,6 +14,19 @@ interface EditBudgetModalProps {
   budget: BudgetWithRelations | null;
   onClose: () => void;
 }
+
+const formatDateForInput = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseInputDate = (value: string): Date | null => {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+};
 
 interface EditBudgetFormData {
   name: string;
@@ -57,10 +71,27 @@ export default function EditBudgetModal({
     field: keyof EditBudgetFormData,
     value: string,
   ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+
+      // Keep the end date in lockstep with the period (one-time stays
+      // free-form). This is what prevents period/date drift on edit — e.g.
+      // a "Monthly" budget that somehow spans a single week.
+      if (field === "period" || field === "startAt") {
+        const period =
+          field === "period" ? (value as PeriodType) : prev.period;
+        if (period !== PeriodType.ONE_TIME) {
+          const startDate = parseInputDate(next.startAt);
+          if (startDate) {
+            next.endAt = formatDateForInput(
+              calculateEndDate(startDate, period),
+            );
+          }
+        }
+      }
+
+      return next;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -122,10 +153,14 @@ export default function EditBudgetModal({
         return "Quarterly";
       case PeriodType.YEARLY:
         return "Yearly";
+      case PeriodType.ONE_TIME:
+        return "One Time";
       default:
         return period;
     }
   };
+
+  const isEndDateLocked = formData.period !== PeriodType.ONE_TIME;
 
   if (!isOpen) return null;
 
@@ -252,6 +287,11 @@ export default function EditBudgetModal({
                 className="block text-sm font-medium text-gray-700"
               >
                 End Date
+                {isEndDateLocked && (
+                  <span className="ml-1 text-xs text-gray-500">
+                    (set by period)
+                  </span>
+                )}
               </label>
               <div className="relative mt-1">
                 <input
@@ -259,7 +299,13 @@ export default function EditBudgetModal({
                   id="endAt"
                   value={formData.endAt}
                   onChange={(e) => handleInputChange("endAt", e.target.value)}
-                  className="block w-full cursor-pointer rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                  readOnly={isEndDateLocked}
+                  aria-readonly={isEndDateLocked}
+                  className={`block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary ${
+                    isEndDateLocked
+                      ? "cursor-not-allowed bg-gray-50 text-gray-600"
+                      : "cursor-pointer"
+                  }`}
                   required
                   min="1900-01-01"
                   max="2100-12-31"

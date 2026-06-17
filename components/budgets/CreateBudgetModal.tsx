@@ -50,7 +50,6 @@ const createBudgetSchema = z
     period: z.nativeEnum(PeriodType),
     startAt: z.string().min(1, "Start date is required"),
     endAt: z.string().min(1, "End date is required"),
-    isRecurring: z.boolean(),
   })
   .refine(
     (data) => {
@@ -203,7 +202,6 @@ export default function CreateBudgetModal({
       endAt: formatDateForInput(
         calculateEndDate(new Date(), PeriodType.MONTHLY),
       ),
-      isRecurring: true,
     },
   });
 
@@ -223,7 +221,6 @@ export default function CreateBudgetModal({
         setValue("period", initialBudget.period);
         setValue("startAt", formatDateForInput(startDate));
         setValue("endAt", formatDateForInput(endDate));
-        setValue("isRecurring", initialBudget.isRecurring);
 
         // Set income entries from income transactions
         const incomeTransactions = (initialBudget.transactions ?? []).filter(
@@ -358,11 +355,6 @@ export default function CreateBudgetModal({
   const handlePeriodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newPeriod = e.target.value as PeriodType;
     setValue("period", newPeriod);
-
-    // If One Time is selected, disable recurring
-    if (newPeriod === PeriodType.ONE_TIME) {
-      setValue("isRecurring", false);
-    }
 
     // Recalculate end date
     if (watchedStartAt) {
