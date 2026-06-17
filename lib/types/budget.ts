@@ -169,3 +169,13 @@ export interface UpdateBudgetCategoryData {
   name?: string;
   group?: CategoryType;
 }
+
+export interface ImportBudgetCategoriesData {
+  sourceBudgetId: string;
+  categoryIds: string[];
+}
+
+export interface ImportBudgetCardsData {
+  sourceBudgetId: string;
+  cardIds: string[];
+}

@@ -6,9 +6,11 @@ import type { StepType } from "./types";
 interface BudgetStepsSidebarProps {
   currentStep: StepType;
   onStepClick?: (step: StepType) => void;
+  /** Subset of steps to show, in order. Defaults to all steps. */
+  visibleSteps?: StepType[];
 }
 
-const steps = [
+const allSteps = [
   {
     step: "basic" as StepType,
     label: "Basic",
@@ -39,7 +41,12 @@ const steps = [
 export default function BudgetStepsSidebar({
   currentStep,
   onStepClick,
+  visibleSteps,
 }: BudgetStepsSidebarProps) {
+  const steps = visibleSteps
+    ? allSteps.filter((s) => visibleSteps.includes(s.step))
+    : allSteps;
+
   const getStepIndex = (step: StepType) => {
     return steps.findIndex((s) => s.step === step);
   };
