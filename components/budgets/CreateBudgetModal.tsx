@@ -273,6 +273,7 @@ export default function CreateBudgetModal({
           initialBudget.cards?.map((card) => ({
             id: card.id,
             name: card.name,
+            lastFourDigits: card.lastFourDigits ?? undefined,
             cardType: card.cardType,
             spendingLimit: card.spendingLimit ?? undefined,
             userId: card.userId,
@@ -498,6 +499,7 @@ export default function CreateBudgetModal({
 
   const handleAddCard = (data: {
     name: string;
+    lastFourDigits?: string;
     cardType: CardType;
     spendingLimit?: string;
     userId: string;
@@ -506,6 +508,7 @@ export default function CreateBudgetModal({
     const newCard: CardToInclude = {
       id: `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       name: data.name,
+      lastFourDigits: data.lastFourDigits ?? undefined,
       cardType: data.cardType,
       spendingLimit:
         data.spendingLimit && data.spendingLimit.trim() !== ""
@@ -543,6 +546,7 @@ export default function CreateBudgetModal({
 
       const cardsPayload = cardsToInclude.map((card) => ({
         name: card.name,
+        lastFourDigits: card.lastFourDigits,
         cardType: card.cardType,
         spendingLimit: card.spendingLimit,
         userId: card.userId,

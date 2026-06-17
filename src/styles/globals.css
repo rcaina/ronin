@@ -91,6 +91,18 @@
     outline: 2px solid var(--color-secondary);
     outline-offset: 2px;
   }
+
+  /* iOS Safari auto-zooms when a focused form control has a font-size below
+     16px (e.g. our `text-sm` inputs in modals). Force at least 16px on mobile
+     to prevent the zoom, while leaving the smaller desktop sizing untouched.
+     This preserves pinch-to-zoom, unlike disabling it via the viewport meta. */
+  @media (max-width: 639px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
 }
 
 @theme {

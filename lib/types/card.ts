@@ -4,6 +4,7 @@ import type { CardType } from "@prisma/client";
 export interface Card {
   id: string;
   name: string;
+  lastFourDigits?: string | null;
   cardType: CardType;
   amountSpent?: number;
   spendingLimit?: number;
@@ -21,6 +22,7 @@ export interface Card {
 
 export interface CreateCardRequest {
   name: string;
+  lastFourDigits?: string;
   cardType: CardType;
   spendingLimit?: number;
   userId: string;
@@ -29,6 +31,7 @@ export interface CreateCardRequest {
 
 export interface UpdateCardRequest {
   name?: string;
+  lastFourDigits?: string;
   cardType?: CardType;
   spendingLimit?: number;
   budgetId?: string;

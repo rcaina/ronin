@@ -10,6 +10,11 @@ import Button from "../Button";
 // Validation schema
 const cardSchema = z.object({
   name: z.string().min(1, "Card name is required"),
+  lastFourDigits: z
+    .string()
+    .regex(/^\d{4}$/, "Must be exactly 4 digits")
+    .optional()
+    .or(z.literal("")),
   cardType: z.nativeEnum(CardType),
   spendingLimit: z.string().optional(),
   userId: z.string().min(1, "User is required"),
@@ -20,6 +25,7 @@ type CardFormData = z.infer<typeof cardSchema>;
 interface CardToEdit {
   id: string;
   name: string;
+  lastFourDigits?: string | null;
   cardType: CardType;
   spendingLimit?: number;
   userId: string;
@@ -63,6 +69,7 @@ export default function AddCardForm({
     resolver: zodResolver(cardSchema),
     defaultValues: {
       name: "",
+      lastFourDigits: "",
       cardType: CardType.CREDIT,
       spendingLimit: "",
       userId: "",
@@ -117,6 +124,35 @@ export default function AddCardForm({
           />
           {errors.name && (
             <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+          )}
+        </div>
+
+        {/* Last 4 Digits */}
+        <div>
+          <label
+            htmlFor="lastFourDigits"
+            className="mb-1 block text-sm font-medium text-gray-700"
+          >
+            Last 4 Digits (Optional)
+          </label>
+          <input
+            type="text"
+            id="lastFourDigits"
+            inputMode="numeric"
+            maxLength={4}
+            {...register("lastFourDigits")}
+            placeholder="1234"
+            className={`w-full rounded-md border px-3 py-2 text-sm tracking-widest focus:outline-none focus:ring-1 ${
+              errors.lastFourDigits
+                ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                : "border-gray-300 focus:border-secondary focus:ring-secondary"
+            }`}
+            disabled={isLoading}
+          />
+          {errors.lastFourDigits && (
+            <p className="mt-1 text-sm text-red-600">
+              {errors.lastFourDigits.message}
+            </p>
           )}
         </div>
 

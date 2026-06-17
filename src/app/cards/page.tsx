@@ -95,6 +95,7 @@ const CardsPage = () => {
 
   const handleSubmitCard = async (data: {
     name: string;
+    lastFourDigits?: string;
     cardType: CardType;
     spendingLimit?: string;
     userId: string;
@@ -162,6 +163,7 @@ const CardsPage = () => {
       // Create a copy with "Copy" appended to the name
       const copyData = {
         name: `${originalApiCard.name} Copy`,
+        lastFourDigits: originalApiCard.lastFourDigits ?? undefined,
         cardType: originalApiCard.cardType,
         spendingLimit: originalApiCard.spendingLimit,
         userId: originalApiCard.userId,
@@ -406,6 +408,7 @@ const CardsPage = () => {
                         cardToEdit={{
                           id: cardToEdit.id,
                           name: cardToEdit.name,
+                          lastFourDigits: cardToEdit.lastFourDigits,
                           cardType: cardToEdit.cardType,
                           spendingLimit: cardToEdit.spendingLimit,
                           userId: cardToEdit.userId,
@@ -414,6 +417,7 @@ const CardsPage = () => {
                         loadingUsers={loadingUsers}
                         defaultValues={{
                           name: cardToEdit.name,
+                          lastFourDigits: cardToEdit.lastFourDigits ?? "",
                           cardType: cardToEdit.cardType,
                           spendingLimit:
                             cardToEdit.spendingLimit?.toString() ?? "",
@@ -452,6 +456,7 @@ const CardsPage = () => {
                         cardToEdit={{
                           id: cardToEdit.id,
                           name: cardToEdit.name,
+                          lastFourDigits: cardToEdit.lastFourDigits,
                           cardType: cardToEdit.cardType,
                           spendingLimit: cardToEdit.spendingLimit,
                           userId: cardToEdit.userId,
@@ -460,6 +465,7 @@ const CardsPage = () => {
                         loadingUsers={loadingUsers}
                         defaultValues={{
                           name: cardToEdit.name,
+                          lastFourDigits: cardToEdit.lastFourDigits ?? "",
                           cardType: cardToEdit.cardType,
                           spendingLimit:
                             cardToEdit.spendingLimit?.toString() ?? "",
@@ -498,6 +504,7 @@ const CardsPage = () => {
                         cardToEdit={{
                           id: cardToEdit.id,
                           name: cardToEdit.name,
+                          lastFourDigits: cardToEdit.lastFourDigits,
                           cardType: cardToEdit.cardType,
                           spendingLimit: cardToEdit.spendingLimit,
                           userId: cardToEdit.userId,
@@ -506,6 +513,7 @@ const CardsPage = () => {
                         loadingUsers={loadingUsers}
                         defaultValues={{
                           name: cardToEdit.name,
+                          lastFourDigits: cardToEdit.lastFourDigits ?? "",
                           cardType: cardToEdit.cardType,
                           spendingLimit:
                             cardToEdit.spendingLimit?.toString() ?? "",

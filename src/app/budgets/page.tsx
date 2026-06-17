@@ -382,7 +382,7 @@ const BudgetsPage = () => {
             {/* Daily spending trend */}
             <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
               <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                Daily spending
+                Avg daily spending
               </h3>
               {budgetStats.dailySpendingData.length > 0 &&
               budgetStats.dailySpendingData.some((d) => d.spending > 0) ? (
@@ -440,7 +440,7 @@ const BudgetsPage = () => {
                         const date = payloadData?.payload?.date ?? "";
                         return [
                           `$${value.toLocaleString()}`,
-                          date ? `Spending (${date})` : "Spending",
+                          date ? `Avg (${date})` : "Avg spending",
                         ];
                       }}
                     />

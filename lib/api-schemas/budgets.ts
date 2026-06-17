@@ -131,6 +131,11 @@ export const createBudgetSchema = createBudgetBaseSchema.superRefine(
 
 const cardToIncludeSchema = z.object({
   name: z.string().min(1, "Card name is required"),
+  lastFourDigits: z
+    .string()
+    .regex(/^\d{4}$/, "Must be exactly 4 digits")
+    .optional()
+    .or(z.literal("")),
   cardType: z.nativeEnum(CardType),
   spendingLimit: z.coerce.number().optional(),
   userId: z.string().min(1, "User id is required"),

@@ -63,6 +63,9 @@ export default function CardsStep({
                       </p>
                       <p className="text-xs text-gray-500">
                         {mapCardType(card.cardType)}
+                        {card.lastFourDigits
+                          ? ` •••• ${card.lastFourDigits}`
+                          : ""}
                       </p>
                     </div>
                     {card.spendingLimit != null && (

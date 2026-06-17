@@ -137,6 +137,7 @@ export async function createCard(
   return await tx.card.create({
     data: {
       name: data.name,
+      lastFourDigits: data.lastFourDigits?.length ? data.lastFourDigits : null,
       cardType: data.cardType,
       spendingLimit: data.spendingLimit,
       userId: data.userId,
@@ -187,6 +188,11 @@ export async function updateCard(
     },
     data: {
       ...(data.name && { name: data.name }),
+      ...(data.lastFourDigits !== undefined && {
+        lastFourDigits: data.lastFourDigits?.length
+          ? data.lastFourDigits
+          : null,
+      }),
       ...(data.cardType && { cardType: data.cardType }),
       ...(data.spendingLimit !== undefined && {
         spendingLimit: data.spendingLimit,
