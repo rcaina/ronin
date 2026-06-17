@@ -72,8 +72,8 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
   return (
     <>
       {/* Create User Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 backdrop-blur-sm">
-        <div className="mx-4 max-w-md animate-scale-in rounded-2xl bg-surface-card p-6 shadow-lifted">
+      <div className="fixed inset-0 z-50 flex justify-center overflow-y-auto bg-primary-950/40 p-4 backdrop-blur-sm">
+        <div className="my-auto max-w-md animate-scale-in rounded-2xl bg-surface-card p-6 shadow-lifted">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-medium text-gray-900">
               Create New User

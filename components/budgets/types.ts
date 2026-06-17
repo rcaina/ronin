@@ -27,7 +27,6 @@ export interface CreateBudgetFormData {
   period: PeriodType;
   startAt: string;
   endAt: string;
-  isRecurring: boolean;
 }
 
 export interface CategoryAllocation {
