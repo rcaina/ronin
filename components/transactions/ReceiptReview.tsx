@@ -6,7 +6,11 @@ import { toast } from "react-hot-toast";
 import Button from "../Button";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import { useCreateTransactionsBatch } from "@/lib/data-hooks/transactions/useTransactions";
-import { formatCurrency, getCategoryBadgeColor, roundToCents } from "@/lib/utils";
+import {
+  formatCurrency,
+  getCategoryBadgeColor,
+  roundToCents,
+} from "@/lib/utils";
 import { allocateReceipt } from "@/lib/utils/receipt";
 import type { CreateTransactionRequest } from "@/lib/types/transaction";
 import type { Card } from "@/lib/types/card";
@@ -137,9 +141,7 @@ export default function ReceiptReview({
                 roundToCents(c.allocatedTax + c.allocatedExtra),
               )} tax/fees`
             : "";
-        const description = [itemList, taxNote]
-          .filter(Boolean)
-          .join(" • ");
+        const description = [itemList, taxNote].filter(Boolean).join(" • ");
 
         return {
           name: merchant.trim() || undefined,
@@ -189,7 +191,9 @@ export default function ReceiptReview({
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h3 className="text-lg font-semibold text-gray-900">Review receipt</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Review receipt
+          </h3>
         </div>
         <span className="text-xs text-gray-400">
           Confidence {(extraction.confidence * 100).toFixed(0)}%
@@ -262,7 +266,12 @@ export default function ReceiptReview({
       <div className="mt-6">
         <div className="mb-2 flex items-center justify-between">
           <h4 className="text-sm font-semibold text-gray-900">Items</h4>
-          <Button onClick={addItem} variant="ghost" size="sm" disabled={isPending}>
+          <Button
+            onClick={addItem}
+            variant="ghost"
+            size="sm"
+            disabled={isPending}
+          >
             <Plus className="mr-1 h-4 w-4" />
             Add item
           </Button>
@@ -339,7 +348,9 @@ export default function ReceiptReview({
             Tax
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-2 text-sm text-gray-500">$</span>
+            <span className="absolute left-3 top-2 text-sm text-gray-500">
+              $
+            </span>
             <input
               type="number"
               step="0.01"
@@ -355,7 +366,9 @@ export default function ReceiptReview({
             Tip
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-2 text-sm text-gray-500">$</span>
+            <span className="absolute left-3 top-2 text-sm text-gray-500">
+              $
+            </span>
             <input
               type="number"
               step="0.01"
@@ -371,7 +384,9 @@ export default function ReceiptReview({
             Other fees
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-2 text-sm text-gray-500">$</span>
+            <span className="absolute left-3 top-2 text-sm text-gray-500">
+              $
+            </span>
             <input
               type="number"
               step="0.01"
@@ -454,7 +469,8 @@ export default function ReceiptReview({
           isLoading={isPending}
         >
           <Check className="mr-2 h-4 w-4" />
-          Save {allocation.categories.filter((c) => c.categoryId).length || ""}{" "}
+          Save {allocation.categories.filter((c) => c.categoryId).length ||
+            ""}{" "}
           transaction
           {allocation.categories.filter((c) => c.categoryId).length === 1
             ? ""

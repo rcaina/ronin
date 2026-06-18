@@ -8,6 +8,7 @@ import ReceiptReview from "./ReceiptReview";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useScanReceipt } from "@/lib/data-hooks/transactions/useReceiptScan";
 import { downscaleImageToBase64 } from "@/lib/utils/image";
+import { useLockBodyScroll } from "@/lib/utils/hooks";
 import type { ScanReceiptResult } from "@/lib/types/receipt";
 
 interface ReceiptScanModalProps {
@@ -80,11 +81,13 @@ export default function ReceiptScanModal({
     }
   };
 
+  useLockBodyScroll(isOpen);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto overscroll-contain">
         {result ? (
           <ReceiptReview
             result={result}
@@ -170,7 +173,11 @@ export default function ReceiptScanModal({
             )}
 
             <div className="mt-6 flex justify-end">
-              <Button onClick={handleClose} variant="outline" disabled={isPending}>
+              <Button
+                onClick={handleClose}
+                variant="outline"
+                disabled={isPending}
+              >
                 Cancel
               </Button>
             </div>

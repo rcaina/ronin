@@ -1,12 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { HttpError } from "@/lib/errors";
 import { buildReceiptPrompt, parseReceiptResponse } from "./prompt";
-import type {
-  ReceiptExtractor,
-  ReceiptExtractionRequest,
-} from "./types";
+import type { ReceiptExtractor, ReceiptExtractionRequest } from "./types";
 
-type AnthropicMediaType = "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+type AnthropicMediaType =
+  | "image/jpeg"
+  | "image/png"
+  | "image/gif"
+  | "image/webp";
 
 /**
  * Anthropic Claude implementation. Requests JSON via the prompt and validates
@@ -69,7 +70,10 @@ export class AnthropicReceiptExtractor implements ReceiptExtractor {
       .join("");
 
     if (!text.trim()) {
-      throw new HttpError("Could not read the receipt. Please try another photo.", 502);
+      throw new HttpError(
+        "Could not read the receipt. Please try another photo.",
+        502,
+      );
     }
 
     return parseReceiptResponse(text);

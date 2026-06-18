@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, UserIcon, Eye, EyeOff } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useCreateUser } from "@/lib/data-hooks/useCreateUser";
+import { useLockBodyScroll } from "@/lib/utils/hooks";
 import type { CreateUserRequest } from "@/lib/types/user";
 import { Role, type User as PrismaUser } from "@prisma/client";
 import Button from "./Button";
@@ -67,13 +68,15 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
     resetError();
   };
 
+  useLockBodyScroll(isOpen);
+
   if (!isOpen) return null;
 
   return (
     <>
       {/* Create User Modal */}
-      <div className="fixed inset-0 z-50 flex justify-center overflow-y-auto bg-primary-950/40 p-4 backdrop-blur-sm">
-        <div className="my-auto max-w-md animate-scale-in rounded-2xl bg-surface-card p-6 shadow-lifted">
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
+        <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md animate-scale-in overflow-y-auto overscroll-contain rounded-2xl bg-surface-card p-6 shadow-lifted">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-medium text-gray-900">
               Create New User
@@ -222,8 +225,8 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
 
       {/* Created User Success Modal */}
       {createdUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 backdrop-blur-sm">
-          <div className="mx-4 max-w-md animate-scale-in rounded-2xl bg-surface-card p-6 shadow-lifted">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md animate-scale-in overflow-y-auto overscroll-contain rounded-2xl bg-surface-card p-6 shadow-lifted">
             <div className="mb-4 flex items-center">
               <div className="mr-3 rounded-full bg-green-100 p-2">
                 <UserIcon className="h-5 w-5 text-green-600" />

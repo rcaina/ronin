@@ -7,6 +7,7 @@ import { CategoryType } from "@prisma/client";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useImportBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import { formatCurrency, getCategoryBadgeColor } from "@/lib/utils";
+import { useLockBodyScroll } from "@/lib/utils/hooks";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import Button from "../Button";
 import LoadingSpinner from "../LoadingSpinner";
@@ -113,11 +114,13 @@ export default function ImportCategoriesModal({
     }
   };
 
+  useLockBodyScroll(isOpen);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
-      <div className="flex max-h-[85vh] w-full max-w-lg animate-scale-in flex-col rounded-2xl bg-surface-card shadow-lifted">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-lg animate-scale-in flex-col rounded-2xl bg-surface-card shadow-lifted">
         {/* Header */}
         <div className="flex flex-shrink-0 items-start justify-between border-b p-5">
           <div className="flex items-center gap-3">
@@ -142,7 +145,7 @@ export default function ImportCategoriesModal({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-5">
           {isLoading ? (
             <div className="flex justify-center py-8">
               <LoadingSpinner message="Loading budgets..." />

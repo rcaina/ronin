@@ -7,6 +7,7 @@ import { useBudgetCards } from "@/lib/data-hooks/budgets/useBudgetCards";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useCreateCardPayment } from "@/lib/data-hooks/transactions/useTransactions";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
+import { useLockBodyScroll } from "@/lib/utils/hooks";
 
 import Button from "@/components/Button";
 import { CardType } from "@prisma/client";
@@ -102,6 +103,8 @@ export function CardPaymentModal({
     }
   }, [budgets, editingTransaction, budgetId, formData.budgetId]);
 
+  useLockBodyScroll(isOpen);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -151,8 +154,8 @@ export function CardPaymentModal({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border bg-surface-card p-6 shadow-sm">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-xl border bg-surface-card p-6 shadow-sm">
         <div className="mb-6 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">
             {editingTransaction ? "Edit Card Payment" : "Pay Credit Card"}

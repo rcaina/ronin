@@ -113,7 +113,8 @@ export async function createBudget(
       strategy: data.strategy,
       period: data.period,
       startAt: new Date(data.startAt),
-      endAt: new Date(data.endAt),      accountId: user.accountId,
+      endAt: new Date(data.endAt),
+      accountId: user.accountId,
     },
   });
 
@@ -219,7 +220,8 @@ async function createBudgetWithCardsAndIncomes(
       strategy: data.strategy,
       period: data.period,
       startAt: new Date(data.startAt),
-      endAt: new Date(data.endAt),      accountId: user.accountId,
+      endAt: new Date(data.endAt),
+      accountId: user.accountId,
     },
   });
 
@@ -376,7 +378,8 @@ export async function updateBudget(
       strategy: data.strategy,
       period: data.period,
       startAt: data.startAt ? new Date(data.startAt) : undefined,
-      endAt: data.endAt ? new Date(data.endAt) : undefined,    },
+      endAt: data.endAt ? new Date(data.endAt) : undefined,
+    },
   });
 
   // Update budget category allocations if provided
@@ -644,7 +647,8 @@ export async function duplicateBudget(
       strategy: originalBudget.strategy,
       period: originalBudget.period,
       startAt: new Date(),
-      endAt: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),      accountId: user.accountId,
+      endAt: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+      accountId: user.accountId,
     },
   });
 

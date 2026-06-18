@@ -1,8 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import {
-  scanReceipt,
-  type ScanReceiptRequest,
-} from "../services/receipts";
+import { scanReceipt, type ScanReceiptRequest } from "../services/receipts";
 
 /**
  * Sends a receipt image to the AI scan endpoint and returns the extraction +

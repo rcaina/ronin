@@ -60,12 +60,18 @@ export function parseReceiptResponse(text: string): ReceiptExtraction {
   try {
     parsed = JSON.parse(cleaned);
   } catch {
-    throw new HttpError("Could not read the receipt. Please try another photo.", 502);
+    throw new HttpError(
+      "Could not read the receipt. Please try another photo.",
+      502,
+    );
   }
 
   const result = receiptExtractionSchema.safeParse(parsed);
   if (!result.success) {
-    throw new HttpError("Could not read the receipt. Please try another photo.", 502);
+    throw new HttpError(
+      "Could not read the receipt. Please try another photo.",
+      502,
+    );
   }
   return result.data;
 }

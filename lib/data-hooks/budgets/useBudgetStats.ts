@@ -111,7 +111,8 @@ export const useBudgetStats = (
 
     const allTransactions = flattenBudgetTransactions(activeBudgets);
     const recentSpending = calculateRecentSpending(allTransactions, 7);
-    const dailySpendingData = calculateAverageSpendingByWeekday(allTransactions);
+    const dailySpendingData =
+      calculateAverageSpendingByWeekday(allTransactions);
 
     return {
       totalBudgets,
@@ -164,7 +165,9 @@ export const useBudgetDetailStats = (
 
   const dailySpendingData = useMemo(() => {
     if (!budget) return [];
-    return calculateAverageSpendingByWeekday(flattenBudgetTransactions([budget]));
+    return calculateAverageSpendingByWeekday(
+      flattenBudgetTransactions([budget]),
+    );
   }, [budget]);
 
   const categoryUsageData = useMemo(() => {

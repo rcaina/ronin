@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import { PeriodType, StrategyType } from "@prisma/client";
 import { calculateEndDate } from "@/lib/utils";
+import { useLockBodyScroll } from "@/lib/utils/hooks";
 import Button from "../Button";
 
 interface EditBudgetModalProps {
@@ -78,8 +79,7 @@ export default function EditBudgetModal({
       // free-form). This is what prevents period/date drift on edit — e.g.
       // a "Monthly" budget that somehow spans a single week.
       if (field === "period" || field === "startAt") {
-        const period =
-          field === "period" ? (value as PeriodType) : prev.period;
+        const period = field === "period" ? (value as PeriodType) : prev.period;
         if (period !== PeriodType.ONE_TIME) {
           const startDate = parseInputDate(next.startAt);
           if (startDate) {
@@ -162,11 +162,13 @@ export default function EditBudgetModal({
 
   const isEndDateLocked = formData.period !== PeriodType.ONE_TIME;
 
+  useLockBodyScroll(isOpen);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-center overflow-y-auto bg-primary-950/40 p-4 backdrop-blur-sm">
-      <div className="my-auto w-full max-w-md animate-scale-in rounded-2xl bg-surface-card p-6 shadow-lifted">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md animate-scale-in overflow-y-auto overscroll-contain rounded-2xl bg-surface-card p-6 shadow-lifted">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">Edit Budget</h2>
           <button

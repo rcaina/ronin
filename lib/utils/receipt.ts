@@ -103,8 +103,10 @@ export function allocateReceipt(
 
   // Group items by category, preserving first-seen order. Uncategorized items
   // (categoryId === null) collapse into their own group.
-  const groups: Array<{ categoryId: string | null; items: ReceiptLineItemInput[] }> =
-    [];
+  const groups: Array<{
+    categoryId: string | null;
+    items: ReceiptLineItemInput[];
+  }> = [];
   const indexByKey = new Map<string, number>();
   for (const item of lineItems) {
     const key = item.categoryId ?? "__uncategorized__";

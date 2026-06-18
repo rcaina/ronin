@@ -1,5 +1,8 @@
+"use client";
+
 import { AlertTriangle } from "lucide-react";
 import Button from "./Button";
+import { useLockBodyScroll } from "@/lib/utils/hooks";
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -26,11 +29,13 @@ export default function DeleteConfirmationModal({
   confirmText = "Delete",
   cancelText = "Cancel",
 }: DeleteConfirmationModalProps) {
+  useLockBodyScroll(isOpen);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md animate-scale-in rounded-2xl bg-surface-card p-6 shadow-lifted">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md animate-scale-in overflow-y-auto overscroll-contain rounded-2xl bg-surface-card p-6 shadow-lifted">
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-50">
             <AlertTriangle className="h-5 w-5 text-red-600" />

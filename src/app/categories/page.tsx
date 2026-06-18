@@ -15,12 +15,13 @@ import {
 import { usePageLoading } from "@/components/ConditionalLayout";
 import { Plus, AlertCircle, Search, X } from "lucide-react";
 import AddCategoryForm from "@/components/categories/AddCategoryForm";
-import { useDebounce } from "@/lib/utils/hooks";
+import { useDebounce, useLockBodyScroll } from "@/lib/utils/hooks";
 
 const CategoriesPage = () => {
   const [view, setView] = useState<CategoryViewType>("grid");
   const [localSearchQuery, setLocalSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
+  useLockBodyScroll(showAddModal);
   const { data: categories, isLoading, error } = useCategories();
   const createCategoryMutation = useCreateCategory();
 
@@ -188,8 +189,8 @@ const CategoriesPage = () => {
 
       {/* Add Category Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md animate-scale-in rounded-2xl bg-surface-card p-6 shadow-lifted">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md animate-scale-in overflow-y-auto overscroll-contain rounded-2xl bg-surface-card p-6 shadow-lifted">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold tracking-tight text-gray-900">
                 Add category

@@ -232,7 +232,8 @@ export const calculateAverageSpendingByWeekday = (
   for (const transaction of transactions) {
     const transactionDate = startOfDay(new Date(transaction.createdAt ?? 0));
     const dayIndex = transactionDate.getDay();
-    totals[dayIndex] = (totals[dayIndex] ?? 0) + getTransactionSpending(transaction);
+    totals[dayIndex] =
+      (totals[dayIndex] ?? 0) + getTransactionSpending(transaction);
 
     if (!minDate || transactionDate < minDate) minDate = transactionDate;
     if (!maxDate || transactionDate > maxDate) maxDate = transactionDate;

@@ -18,7 +18,11 @@ const DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-8";
 export function getReceiptExtractor(): ReceiptExtractor {
   const provider =
     env.AI_PROVIDER ??
-    (env.GEMINI_API_KEY ? "gemini" : env.ANTHROPIC_API_KEY ? "anthropic" : null);
+    (env.GEMINI_API_KEY
+      ? "gemini"
+      : env.ANTHROPIC_API_KEY
+        ? "anthropic"
+        : null);
 
   switch (provider) {
     case "gemini":

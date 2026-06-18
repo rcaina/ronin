@@ -39,6 +39,7 @@ import type {
   CardToInclude,
 } from "./types";
 import type { BudgetWithRelations } from "@/lib/types/budget";
+import { useLockBodyScroll } from "@/lib/utils/hooks";
 import Button from "../Button";
 import AddCardForm from "../cards/AddCardForm";
 
@@ -676,11 +677,13 @@ export default function CreateBudgetModal({
     );
   };
 
+  useLockBodyScroll(isOpen);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 backdrop-blur-sm">
-      <div className="mx-4 flex h-[70vh] w-full max-w-4xl animate-scale-in flex-col rounded-2xl bg-surface-card shadow-lifted">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
+      <div className="flex h-[70vh] max-h-[calc(100dvh-2rem)] w-full max-w-4xl animate-scale-in flex-col rounded-2xl bg-surface-card shadow-lifted">
         {/* Header - Full Width */}
         <div className="flex flex-shrink-0 items-center justify-between border-b p-6">
           <div>
@@ -731,7 +734,7 @@ export default function CreateBudgetModal({
               onSubmit={handleSubmit(onSubmit)}
               className="flex flex-1 flex-col overflow-hidden"
             >
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto overscroll-contain p-6">
                 {/* Step Content */}
                 {currentStep === "basic" && (
                   <BasicBudgetStep
@@ -847,7 +850,10 @@ export default function CreateBudgetModal({
           className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 p-4"
           onClick={() => setShowAddCardModal(false)}
         >
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md">
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-full w-full max-w-md overflow-y-auto overscroll-contain"
+          >
             <AddCardForm
               onSubmit={handleAddCard}
               onCancel={() => setShowAddCardModal(false)}

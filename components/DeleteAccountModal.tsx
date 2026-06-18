@@ -5,6 +5,7 @@ import { AlertTriangle, X, Trash2 } from "lucide-react";
 import Button from "@/components/Button";
 import ButtonSpinner from "@/components/ButtonSpinner";
 import { useDeleteAccount } from "@/lib/data-hooks/useDeleteAccount";
+import { useLockBodyScroll } from "@/lib/utils/hooks";
 
 interface DeleteAccountModalProps {
   isOpen: boolean;
@@ -36,11 +37,13 @@ const DeleteAccountModal = ({ isOpen, onClose }: DeleteAccountModalProps) => {
     }
   };
 
+  useLockBodyScroll(isOpen);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-center overflow-y-auto bg-primary-950/40 p-4 backdrop-blur-sm">
-      <div className="my-auto max-w-md animate-scale-in rounded-2xl bg-surface-card p-6 shadow-lifted">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md animate-scale-in overflow-y-auto overscroll-contain rounded-2xl bg-surface-card p-6 shadow-lifted">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center">
             <AlertTriangle className="mr-3 h-6 w-6 text-red-500" />

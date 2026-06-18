@@ -27,6 +27,7 @@ import { usePageLoading } from "@/components/ConditionalLayout";
 import { type CardType } from "@prisma/client";
 import Button from "@/components/Button";
 import { type Card, mapCardType, getCardColor } from "@/lib/utils/cards";
+import { useLockBodyScroll } from "@/lib/utils/hooks";
 import StatsCard from "@/components/StatsCard";
 import type { Card as PrismaCard } from "@prisma/client";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
@@ -74,6 +75,7 @@ const BudgetCardsPage = () => {
   const updateCardMutation = useUpdateCard();
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
+  useLockBodyScroll(showAddCardModal);
   const [cardToEdit, setCardToEdit] = useState<BudgetCard | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -640,11 +642,11 @@ const BudgetCardsPage = () => {
       {/* Add Card Modal */}
       {showAddCardModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm"
           onClick={handleCancelAdd}
         >
           <div
-            className="w-full max-w-md transform transition-all"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-md transform overflow-y-auto overscroll-contain transition-all"
             onClick={(e) => e.stopPropagation()}
           >
             <AddCardForm

@@ -2,7 +2,10 @@ import { roundToCents } from "@/lib/utils";
 import { getReceiptExtractor } from "@/lib/ai";
 import type { ScanReceiptSchema } from "@/lib/api-schemas/receipt";
 import type { ReceiptExtraction } from "@/lib/api-schemas/receipt";
-import type { ScanReceiptResult, ReceiptCategoryOption } from "@/lib/types/receipt";
+import type {
+  ScanReceiptResult,
+  ReceiptCategoryOption,
+} from "@/lib/types/receipt";
 import type { PrismaClientTx } from "../prisma";
 
 /**

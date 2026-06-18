@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import type { CreateAllocationSchema } from "@/lib/api-schemas/savings";
+import { useLockBodyScroll } from "@/lib/utils/hooks";
 import Button from "../Button";
 
 interface AddAllocationModalProps {
@@ -33,6 +34,8 @@ export default function AddAllocationModal({
       setOccurredAt("");
     }
   }, [isOpen]);
+
+  useLockBodyScroll(isOpen);
 
   if (!isOpen) return null;
 
@@ -67,8 +70,8 @@ export default function AddAllocationModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-center overflow-y-auto bg-primary-950/40 p-4 backdrop-blur-sm">
-      <div className="my-auto w-full max-w-md animate-scale-in rounded-2xl bg-surface-card shadow-lifted">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md animate-scale-in overflow-y-auto overscroll-contain rounded-2xl bg-surface-card shadow-lifted">
         <div className="flex items-center justify-between border-b p-5">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">

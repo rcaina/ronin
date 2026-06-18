@@ -1,9 +1,6 @@
 import { HttpError } from "@/lib/errors";
 import { buildReceiptPrompt, parseReceiptResponse } from "./prompt";
-import type {
-  ReceiptExtractor,
-  ReceiptExtractionRequest,
-} from "./types";
+import type { ReceiptExtractor, ReceiptExtractionRequest } from "./types";
 
 interface GeminiResponse {
   candidates?: Array<{
@@ -74,12 +71,14 @@ export class GeminiReceiptExtractor implements ReceiptExtractor {
     }
 
     const text =
-      data.candidates?.[0]?.content?.parts
-        ?.map((p) => p.text ?? "")
-        .join("") ?? "";
+      data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ??
+      "";
 
     if (!text.trim()) {
-      throw new HttpError("Could not read the receipt. Please try another photo.", 502);
+      throw new HttpError(
+        "Could not read the receipt. Please try another photo.",
+        502,
+      );
     }
 
     return parseReceiptResponse(text);
