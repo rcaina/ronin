@@ -69,6 +69,30 @@ export const createTransaction = async (
   return response.json() as Promise<TransactionWithRelations>;
 };
 
+export const createTransactionsBatch = async (
+  transactions: CreateTransactionRequest[],
+): Promise<TransactionWithRelations[]> => {
+  const response = await fetch("/api/transactions/batch", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ transactions }),
+  });
+
+  if (!response.ok) {
+    const error = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(error?.message ?? "Failed to create transactions");
+  }
+
+  const result = (await response.json()) as {
+    transactions: TransactionWithRelations[];
+  };
+  return result.transactions;
+};
+
 export const updateTransaction = async (
   id: string,
   data: UpdateTransactionRequest,

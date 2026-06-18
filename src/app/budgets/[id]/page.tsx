@@ -11,10 +11,12 @@ import {
   Info,
   Plus,
   Trash2,
+  ScanLine,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
+import ReceiptScanModal from "@/components/transactions/ReceiptScanModal";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
@@ -75,6 +77,7 @@ const BudgetDetailsPage = () => {
   const { id } = useParams();
   const router = useRouter();
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
+  const [isReceiptScanOpen, setIsReceiptScanOpen] = useState(false);
   const [isEditBudgetOpen, setIsEditBudgetOpen] = useState(false);
   const [isCardPaymentOpen, setIsCardPaymentOpen] = useState(false);
   const [editingTransactionId, setEditingTransactionId] = useState<
@@ -94,6 +97,12 @@ const BudgetDetailsPage = () => {
         label: "Add transaction",
         onClick: () => setIsAddTransactionOpen(true),
         variant: "primary" as const,
+      },
+      {
+        icon: <ScanLine className="h-4 w-4" />,
+        label: "Scan receipt",
+        onClick: () => setIsReceiptScanOpen(true),
+        variant: "outline" as const,
       },
       {
         icon: <DollarSign className="h-4 w-4" />,
@@ -1006,6 +1015,13 @@ const BudgetDetailsPage = () => {
           isOpen={isAddTransactionOpen}
           budgetId={id as string}
           onClose={() => setIsAddTransactionOpen(false)}
+        />
+      )}
+      {isReceiptScanOpen && id && (
+        <ReceiptScanModal
+          isOpen={isReceiptScanOpen}
+          budgetId={id as string}
+          onClose={() => setIsReceiptScanOpen(false)}
         />
       )}
       {isEditBudgetOpen && (

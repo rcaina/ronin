@@ -39,6 +39,7 @@ import type {
   CardToInclude,
 } from "./types";
 import type { BudgetWithRelations } from "@/lib/types/budget";
+import { useLockBodyScroll } from "@/lib/utils/hooks";
 import Button from "../Button";
 import AddCardForm from "../cards/AddCardForm";
 
@@ -446,6 +447,15 @@ export default function CreateBudgetModal({
     else if (currentStep === "allocation") setCurrentStep("categories");
   };
 
+  // Only allow jumping back to completed steps or the current step.
+  const handleStepClick = (step: StepType) => {
+    const currentIndex = visibleSteps.indexOf(currentStep);
+    const targetIndex = visibleSteps.indexOf(step);
+    if (targetIndex <= currentIndex) {
+      setCurrentStep(step);
+    }
+  };
+
   const resetModal = () => {
     reset();
     setSelectedCategories([]);
@@ -676,15 +686,17 @@ export default function CreateBudgetModal({
     );
   };
 
+  useLockBodyScroll(isOpen);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/40 backdrop-blur-sm">
-      <div className="mx-4 flex h-[70vh] w-full max-w-4xl animate-scale-in flex-col rounded-2xl bg-surface-card shadow-lifted">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-2 backdrop-blur-sm sm:p-4">
+      <div className="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-4xl animate-scale-in flex-col rounded-2xl bg-surface-card shadow-lifted sm:h-[70vh] sm:max-h-[calc(100dvh-2rem)]">
         {/* Header - Full Width */}
-        <div className="flex flex-shrink-0 items-center justify-between border-b p-6">
+        <div className="flex flex-shrink-0 items-start justify-between gap-3 border-b p-4 sm:items-center sm:p-6">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">
               {initialBudget ? "Duplicate Budget" : "Create New Budget"}
             </h2>
             <p className="text-sm text-gray-500">
@@ -703,26 +715,30 @@ export default function CreateBudgetModal({
           </div>
           <button
             onClick={handleClose}
-            className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            aria-label="Close"
+            className="-mr-1 flex-shrink-0 rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
+        {/* Mobile step indicator (vertical sidebar is hidden below lg) */}
+        <BudgetStepsSidebar
+          variant="horizontal"
+          className="lg:hidden"
+          currentStep={currentStep}
+          visibleSteps={visibleSteps}
+          onStepClick={handleStepClick}
+        />
+
         {/* Main Content Area with Sidebar */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar */}
+          {/* Sidebar (desktop) */}
           <BudgetStepsSidebar
+            className="hidden lg:block"
             currentStep={currentStep}
             visibleSteps={visibleSteps}
-            onStepClick={(step) => {
-              // Only allow navigation to completed steps or current step
-              const currentIndex = visibleSteps.indexOf(currentStep);
-              const targetIndex = visibleSteps.indexOf(step);
-              if (targetIndex <= currentIndex) {
-                setCurrentStep(step);
-              }
-            }}
+            onStepClick={handleStepClick}
           />
 
           {/* Main Content */}
@@ -731,7 +747,7 @@ export default function CreateBudgetModal({
               onSubmit={handleSubmit(onSubmit)}
               className="flex flex-1 flex-col overflow-hidden"
             >
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
                 {/* Step Content */}
                 {currentStep === "basic" && (
                   <BasicBudgetStep
@@ -792,22 +808,22 @@ export default function CreateBudgetModal({
         </div>
 
         {/* Navigation Buttons - Full Width */}
-        <div className="flex-shrink-0 border-t bg-gray-50 p-6">
-          <div className="flex items-center justify-between">
+        <div className="flex-shrink-0 border-t bg-gray-50 p-4 sm:p-6">
+          <div className="flex items-center justify-between gap-3">
             <div>
               {currentStep !== "basic" && (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="rounded-lg border border-gray-300 bg-surface-card px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-                >
+                <Button type="button" variant="outline" onClick={handleBack}>
                   Back
-                </button>
+                </Button>
               )}
             </div>
 
-            <div className="flex space-x-3">
-              <Button variant="ghost" onClick={handleClose}>
+            <div className="flex gap-3">
+              <Button
+                variant="ghost"
+                onClick={handleClose}
+                className="hidden sm:inline-flex"
+              >
                 Cancel
               </Button>
 
@@ -847,7 +863,10 @@ export default function CreateBudgetModal({
           className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 p-4"
           onClick={() => setShowAddCardModal(false)}
         >
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md">
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-full w-full max-w-md overflow-y-auto overscroll-contain"
+          >
             <AddCardForm
               onSubmit={handleAddCard}
               onCancel={() => setShowAddCardModal(false)}

@@ -3,6 +3,7 @@ import type {
   CreateTransactionSchema,
   UpdateTransactionSchema,
   CreateCardPaymentSchema,
+  CreateTransactionsBatchSchema,
 } from "@/lib/api-schemas/transactions";
 import type { PrismaClientTx } from "../prisma";
 
@@ -87,6 +88,20 @@ export const createTransaction = async (
   });
 
   return transaction;
+};
+
+export const createTransactionsBatch = async (
+  tx: PrismaClientTx,
+  data: CreateTransactionsBatchSchema,
+  user: User & { accountId: string },
+) => {
+  // Sequential within the caller's prisma.$transaction so the whole receipt
+  // either lands or doesn't — no half-saved splits.
+  const created = [];
+  for (const transaction of data.transactions) {
+    created.push(await createTransaction(tx, transaction, user));
+  }
+  return created;
 };
 
 export async function updateTransaction(

@@ -470,7 +470,7 @@ export default function TransactionForm({
           )}
 
           {/* Occurred At */}
-          <div>
+          <div className="min-w-0">
             <label
               htmlFor="occurredAt"
               className="mb-1 block text-sm font-medium text-gray-700"
@@ -484,7 +484,7 @@ export default function TransactionForm({
                 onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
                   e.target.blur(),
               })}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+              className="block w-full min-w-0 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               disabled={isPending}
             />
           </div>

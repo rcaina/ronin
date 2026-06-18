@@ -29,6 +29,14 @@ export const createCardPaymentSchema = z.object({
   occurredAt: z.string().optional(),
 });
 
+// Schema for creating several transactions atomically (e.g. a receipt split
+// across multiple categories).
+export const createTransactionsBatchSchema = z.object({
+  transactions: z
+    .array(createTransactionSchema)
+    .min(1, "At least one transaction is required"),
+});
+
 export const updateTransactionSchema = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
@@ -45,3 +53,6 @@ export const updateTransactionSchema = z.object({
 export type CreateTransactionSchema = z.infer<typeof createTransactionSchema>;
 export type UpdateTransactionSchema = z.infer<typeof updateTransactionSchema>;
 export type CreateCardPaymentSchema = z.infer<typeof createCardPaymentSchema>;
+export type CreateTransactionsBatchSchema = z.infer<
+  typeof createTransactionsBatchSchema
+>;
