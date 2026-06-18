@@ -59,7 +59,7 @@ export default function IncomeStep({
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           {totalIncome > 0 && (
             <div className="rounded-xl border border-secondary-200 bg-secondary-50 p-3">
               <div className="space-y-2">
