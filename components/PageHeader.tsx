@@ -87,15 +87,11 @@ const PageHeader = ({
               {action && (
                 <Button onClick={action.onClick} variant="primary">
                   {action.icon && (
-                    <span className={action.label ? "sm:mr-2" : ""}>
+                    <span className={action.label ? "mr-2" : ""}>
                       {action.icon}
                     </span>
                   )}
-                  {/* Icon-only on mobile when an icon exists; otherwise keep the
-                      label so the button is never empty. */}
-                  <span className={action.icon ? "hidden sm:inline" : ""}>
-                    {action.label}
-                  </span>
+                  <span>{action.label}</span>
                 </Button>
               )}
               {actions?.map((actionItem, index) => (
@@ -105,13 +101,11 @@ const PageHeader = ({
                   variant={actionItem.variant ?? "secondary"}
                 >
                   {actionItem.icon && (
-                    <span className={actionItem.label ? "sm:mr-2" : ""}>
+                    <span className={actionItem.label ? "mr-2" : ""}>
                       {actionItem.icon}
                     </span>
                   )}
-                  <span className={actionItem.icon ? "hidden sm:inline" : ""}>
-                    {actionItem.label}
-                  </span>
+                  <span>{actionItem.label}</span>
                 </Button>
               ))}
             </div>

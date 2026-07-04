@@ -1039,7 +1039,7 @@ const BudgetDetailsPage = () => {
                               className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
                               title="Edit transaction"
                             >
-                              <EditIcon className="h-4 w-4" />
+                              <Pencil className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() =>

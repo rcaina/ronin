@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
 export interface MobileHeaderAction {
   icon: ReactNode;
@@ -24,10 +30,13 @@ export function MobileHeaderActionProvider({
 }) {
   const [action, setAction] = useState<MobileHeaderAction | null>(null);
 
+  const value = useMemo(
+    () => ({ action, setMobileHeaderAction: setAction }),
+    [action],
+  );
+
   return (
-    <MobileHeaderActionContext.Provider
-      value={{ action, setMobileHeaderAction: setAction }}
-    >
+    <MobileHeaderActionContext.Provider value={value}>
       {children}
     </MobileHeaderActionContext.Provider>
   );

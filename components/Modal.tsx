@@ -15,6 +15,12 @@ interface ModalProps {
   onClose: () => void;
   /** Renders a header row with the title and an X close button. */
   title?: string;
+  /**
+   * Accessible name for the dialog when no `title` header is rendered (e.g.
+   * dialogs with fully custom chrome). Ignored when `title` is set, which
+   * already names the dialog via `aria-labelledby`.
+   */
+  ariaLabel?: string;
   children: ReactNode;
   /**
    * `dialog` is the canonical centered modal. `sheet` is a bottom sheet on
@@ -41,6 +47,7 @@ export default function Modal({
   isOpen,
   onClose,
   title,
+  ariaLabel,
   children,
   variant = "dialog",
   maxWidth = "max-w-md",
@@ -156,6 +163,7 @@ export default function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
+        aria-label={!title ? ariaLabel : undefined}
         onKeyDown={handleTabKey}
         className={`flex flex-col border border-gray-400/60 bg-surface-card shadow-lifted outline-none ${panelShapeClasses} ${panelHeightClasses} ${
           hasChrome

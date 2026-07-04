@@ -29,6 +29,39 @@ interface IncomeTransaction {
   } | null;
 }
 
+/**
+ * Info-icon tooltip for a transaction's description. Shows on hover for
+ * pointer devices and toggles on tap for touch devices (Safari doesn't focus
+ * buttons on tap, so hover/focus alone isn't enough). The bubble wraps and is
+ * capped to the viewport width so long descriptions stay readable on mobile.
+ */
+function DescriptionTooltip({ description }: { description: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="group/tip relative flex-shrink-0">
+      <button
+        type="button"
+        aria-label="Show description"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((open) => !open)}
+        onBlur={() => setIsOpen(false)}
+        className="flex items-center rounded-full text-gray-400"
+      >
+        <Info className="h-4 w-4" />
+      </button>
+      <div
+        className={`pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max max-w-[calc(100vw-4rem)] -translate-x-1/2 break-words rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white shadow-lifted transition-opacity duration-200 sm:max-w-xs ${
+          isOpen ? "opacity-100" : "opacity-0 group-hover/tip:opacity-100"
+        }`}
+      >
+        {description}
+        <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-transparent border-t-primary-950/90"></div>
+      </div>
+    </div>
+  );
+}
+
 export default function IncomePage() {
   const params = useParams();
   const budgetId = params.id as string;
@@ -137,7 +170,10 @@ export default function IncomePage() {
           <div className="card-surface mt-4 overflow-hidden">
             <div className="divide-y divide-gray-100">
               {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between p-3 sm:p-4">
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3 sm:p-4"
+                >
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="h-4 w-32 animate-pulse rounded-full bg-surface-muted" />
                     <div className="h-3 w-20 animate-pulse rounded-full bg-surface-muted" />
@@ -247,13 +283,9 @@ export default function IncomePage() {
                               Income
                             </span>
                             {transaction.description && (
-                              <div className="group relative flex-shrink-0">
-                                <Info className="h-4 w-4 cursor-help text-gray-400" />
-                                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
-                                  {transaction.description}
-                                  <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-primary-950/90"></div>
-                                </div>
-                              </div>
+                              <DescriptionTooltip
+                                description={transaction.description}
+                              />
                             )}
                           </div>
                           <p className="mt-1 text-xs text-gray-400">

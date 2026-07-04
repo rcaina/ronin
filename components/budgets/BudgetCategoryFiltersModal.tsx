@@ -82,6 +82,7 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={isActive}
       className={`min-h-[36px] rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors duration-200 ${
         isActive
           ? "bg-secondary text-primary-950"

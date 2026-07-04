@@ -526,14 +526,15 @@ export default function TransactionForm({
             />
           </div>
 
-          {/* Card Selection - a single available debit card is auto-selected
-              (see the defaulting effect above), so just show it read-only
-              instead of a select with one option. */}
-          {isIncome && debitCards.length === 1 ? (
+          {/* Card Selection - when creating, a single available debit card is
+              auto-selected (see the defaulting effect above), so just show it
+              read-only instead of a select with one option. Editing always
+              uses the registered select so the display matches `cardId`. */}
+          {!isEditing && isIncome && debitCards.length === 1 ? (
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">
+              <p className="mb-1 block text-xs font-medium text-gray-500">
                 Payment method
-              </label>
+              </p>
               <div className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
                 {debitCards[0]?.name}
                 {debitCards[0]?.lastFourDigits

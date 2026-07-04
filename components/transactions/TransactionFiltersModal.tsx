@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { type CategoryType } from "@prisma/client";
 import Button from "@/components/Button";
 import DateInput from "@/components/DateInput";
@@ -73,6 +73,7 @@ const TransactionFiltersModal = ({
   budgets,
 }: TransactionFiltersModalProps) => {
   const [draft, setDraft] = useState<TransactionFilterValues>(values);
+  const fieldId = useId();
 
   // Keep the latest committed values around without making them a dependency
   // of the seed effect below (they can change identity on every render).
@@ -125,10 +126,14 @@ const TransactionFiltersModal = ({
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">
+            <label
+              htmlFor={`${fieldId}-start-date`}
+              className="mb-1 block text-xs font-medium text-gray-500"
+            >
               Start date
             </label>
             <DateInput
+              id={`${fieldId}-start-date`}
               value={draft.startDate}
               onChange={(e) =>
                 setDraft((d) => ({ ...d, startDate: e.target.value }))
@@ -137,10 +142,14 @@ const TransactionFiltersModal = ({
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">
+            <label
+              htmlFor={`${fieldId}-end-date`}
+              className="mb-1 block text-xs font-medium text-gray-500"
+            >
               End date
             </label>
             <DateInput
+              id={`${fieldId}-end-date`}
               value={draft.endDate}
               onChange={(e) =>
                 setDraft((d) => ({ ...d, endDate: e.target.value }))
@@ -151,10 +160,14 @@ const TransactionFiltersModal = ({
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500">
+          <label
+            htmlFor={`${fieldId}-sort`}
+            className="mb-1 block text-xs font-medium text-gray-500"
+          >
             Sort by
           </label>
           <select
+            id={`${fieldId}-sort`}
             value={`${draft.sortBy}-${draft.sortOrder}`}
             onChange={(e) => {
               const [sortBy, sortOrder] = e.target.value.split("-") as [
@@ -176,10 +189,14 @@ const TransactionFiltersModal = ({
 
         {showPageSize && (
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">
+            <label
+              htmlFor={`${fieldId}-page-size`}
+              className="mb-1 block text-xs font-medium text-gray-500"
+            >
               Per page
             </label>
             <select
+              id={`${fieldId}-page-size`}
               value={draft.pageSize}
               onChange={(e) =>
                 setDraft((d) => ({
@@ -199,10 +216,14 @@ const TransactionFiltersModal = ({
 
         {showCategoryType && (
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">
+            <label
+              htmlFor={`${fieldId}-category-type`}
+              className="mb-1 block text-xs font-medium text-gray-500"
+            >
               Category type
             </label>
             <select
+              id={`${fieldId}-category-type`}
               value={draft.selectedCategoryType}
               onChange={(e) =>
                 setDraft((d) => ({
@@ -221,10 +242,14 @@ const TransactionFiltersModal = ({
         )}
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500">
+          <label
+            htmlFor={`${fieldId}-category`}
+            className="mb-1 block text-xs font-medium text-gray-500"
+          >
             Category
           </label>
           <select
+            id={`${fieldId}-category`}
             value={draft.selectedCategory}
             onChange={(e) =>
               setDraft((d) => ({ ...d, selectedCategory: e.target.value }))
@@ -242,10 +267,14 @@ const TransactionFiltersModal = ({
 
         {showBudget && (
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">
+            <label
+              htmlFor={`${fieldId}-budget`}
+              className="mb-1 block text-xs font-medium text-gray-500"
+            >
               Budget
             </label>
             <select
+              id={`${fieldId}-budget`}
               value={draft.selectedBudget}
               onChange={(e) =>
                 setDraft((d) => ({ ...d, selectedBudget: e.target.value }))
@@ -264,10 +293,14 @@ const TransactionFiltersModal = ({
         )}
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500">
+          <label
+            htmlFor={`${fieldId}-card`}
+            className="mb-1 block text-xs font-medium text-gray-500"
+          >
             Card
           </label>
           <select
+            id={`${fieldId}-card`}
             value={draft.selectedCard}
             onChange={(e) =>
               setDraft((d) => ({ ...d, selectedCard: e.target.value }))

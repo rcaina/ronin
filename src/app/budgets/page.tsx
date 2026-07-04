@@ -31,7 +31,7 @@ import CreateBudgetModal from "@/components/budgets/CreateBudgetModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import { CategoryType } from "@prisma/client";
 import Button from "@/components/Button";
-import { roundToCents } from "@/lib/utils";
+import { formatCurrency, roundToCents } from "@/lib/utils";
 import {
   calculateBudgetSpent,
   calculateSpendingPercentage,
@@ -277,7 +277,7 @@ const BudgetsPage = () => {
                     <span className="text-xs text-gray-500">Last 7 days</span>
                   </div>
                   <span className="text-sm font-bold tabular-nums text-gray-900">
-                    ${budgetStats.recentSpending.toLocaleString()}
+                    {formatCurrency(roundToCents(budgetStats.recentSpending))}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -286,7 +286,9 @@ const BudgetsPage = () => {
                     <span className="text-xs text-gray-500">Daily avg</span>
                   </div>
                   <span className="text-sm font-bold tabular-nums text-gray-900">
-                    ${budgetStats.averageDailySpending.toLocaleString()}
+                    {formatCurrency(
+                      roundToCents(budgetStats.averageDailySpending),
+                    )}
                   </span>
                 </div>
               </div>

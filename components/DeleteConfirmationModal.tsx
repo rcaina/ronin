@@ -30,7 +30,7 @@ export default function DeleteConfirmationModal({
   cancelText = "Cancel",
 }: DeleteConfirmationModalProps) {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} variant="dialog">
+    <Modal isOpen={isOpen} onClose={onClose} variant="dialog" ariaLabel={title}>
       <div className="mb-4 flex items-center gap-3">
         <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-50">
           <AlertTriangle className="h-5 w-5 text-red-600" />
