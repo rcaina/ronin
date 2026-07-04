@@ -42,7 +42,7 @@ export default function BudgetCategoriesGridView({
     new Set(Object.values(CategoryType)), // All groups expanded by default
   );
   const [isMobile, setIsMobile] = useState(false);
-  const { data: categories } = useCategories();
+  const { data: defaultCategories } = useCategories();
   const createBudgetCategoryMutation = useCreateBudgetCategory();
   const updateBudgetCategoryMutation = useUpdateBudgetCategory();
   const scrollContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -185,7 +185,7 @@ export default function BudgetCategoriesGridView({
     );
 
     const budgetCategoryId = e.dataTransfer.getData("text/plain");
-    if (!budgetCategoryId || !categories) return;
+    if (!budgetCategoryId || !defaultCategories) return;
 
     // Find the budget category being dragged
     const draggedBudgetCategory = (budgetCategories ?? []).find(
@@ -285,6 +285,10 @@ export default function BudgetCategoriesGridView({
                       onSubmit={handleSubmitAddCategory}
                       onCancel={handleCancelAddCategory}
                       isLoading={createBudgetCategoryMutation.isPending}
+                      group={groupType}
+                      existingCategoryNames={(categories ?? []).map(
+                        (category: BudgetCategoryWithCategory) => category.name,
+                      )}
                     />
                   )}
 

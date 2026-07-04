@@ -148,6 +148,9 @@ export const useCreateBudgetCategory = () => {
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
       // Invalidate the specific budget to refresh the main page
       void queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
+      // Creating a budget category may create a new default (template)
+      // category, so refresh the default categories list too.
+      void queryClient.invalidateQueries({ queryKey: ["categories"] });
     },
   });
 };

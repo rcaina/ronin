@@ -4,7 +4,7 @@ import BudgetPageNavigation from "@/components/budgets/BudgetPageNavigation";
 import PageHeader from "@/components/PageHeader";
 import { useParams, usePathname } from "next/navigation";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
-import { useBackNavigation } from "@/lib/utils/hooks";
+import { useBackNavigation } from "@/lib/utils/navigation-history";
 import { useMemo } from "react";
 import {
   BudgetHeaderProvider,
@@ -93,9 +93,15 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     return null;
   }, [pathname, id, budget]);
 
-  // Returns the user to their actual previous view; the per-page `backTo` is
-  // only used as a fallback for deep links / refreshes (see useBackNavigation).
-  const handleBack = useBackNavigation(pageHeaderConfig?.backTo ?? `/budgets`);
+  // Scoped history: back returns to the previous page within this budget
+  // (e.g. Categories -> Cards -> back = Categories), falling back to this
+  // page's logical parent (`backTo`) when the previous page was outside the
+  // budget (a different budget, the budgets list, the dashboard, etc.) —
+  // see useBackNavigation.
+  const handleBack = useBackNavigation(
+    pageHeaderConfig?.backTo ?? `/budgets`,
+    `/budgets/${id}`,
+  );
 
   // Use dynamic title/description if provided, otherwise use config
   const finalTitle = dynamicTitle ?? pageHeaderConfig?.title ?? "";

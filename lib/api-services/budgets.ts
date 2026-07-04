@@ -853,25 +853,38 @@ export const createBudgetCategory = async (
     throw new HttpError("Budget not found", 404);
   }
 
-  // Find matching default category if it exists
-  const defaultCategory = await tx.category.findFirst({
+  const trimmedName = data.categoryName.trim();
+
+  // Find matching default category if it exists, ignoring casing differences
+  let defaultCategory = await tx.category.findFirst({
     where: {
       budgetId: null,
       defaultCategoryId: null,
-      name: data.categoryName,
+      name: { equals: trimmedName, mode: "insensitive" },
       group: data.group,
       deleted: null,
     },
   });
 
-  // Create the category with proper defaultCategoryId linking
+  // No matching default category yet — create one so future budget
+  // categories with this name can link back to it too
+  defaultCategory ??= await tx.category.create({
+    data: {
+      budgetId: null,
+      name: trimmedName,
+      group: data.group,
+    },
+  });
+
+  // Create the category with proper defaultCategoryId linking, using the
+  // default category's canonical name rather than the raw typed casing
   const category = await tx.category.create({
     data: {
       budgetId: budgetId,
-      name: data.categoryName,
+      name: defaultCategory.name,
       group: data.group,
       allocatedAmount: data.allocatedAmount,
-      defaultCategoryId: defaultCategory?.id ?? null,
+      defaultCategoryId: defaultCategory.id,
     },
   });
 

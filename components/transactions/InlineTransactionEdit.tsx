@@ -16,6 +16,7 @@ import type {
 } from "@/lib/types/transaction";
 import type { Card } from "@/lib/types/card";
 import Button from "../Button";
+import DateInput from "../DateInput";
 import { formatCurrency } from "@/lib/utils";
 import { CategoryType, TransactionType } from "@prisma/client";
 
@@ -243,12 +244,7 @@ export default function InlineTransactionEdit({
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
             <div className="flex-1">
               <div className="text-xs text-gray-500">Date</div>
-              <input
-                type="date"
-                {...register("occurredAt")}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                disabled={isUpdating}
-              />
+              <DateInput {...register("occurredAt")} disabled={isUpdating} />
             </div>
 
             <div className="flex-1">

@@ -9,6 +9,7 @@ import { PeriodType, StrategyType } from "@prisma/client";
 import { calculateEndDate } from "@/lib/utils";
 import { useLockBodyScroll } from "@/lib/utils/hooks";
 import Button from "../Button";
+import DateInput from "../DateInput";
 
 interface EditBudgetModalProps {
   isOpen: boolean;
@@ -270,12 +271,11 @@ export default function EditBudgetModal({
                 Start Date
               </label>
               <div className="relative mt-1">
-                <input
-                  type="date"
+                <DateInput
                   id="startAt"
                   value={formData.startAt}
                   onChange={(e) => handleInputChange("startAt", e.target.value)}
-                  className="block w-full cursor-pointer rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                  className="cursor-pointer"
                   required
                   min="1900-01-01"
                   max="2100-12-31"
@@ -296,18 +296,17 @@ export default function EditBudgetModal({
                 )}
               </label>
               <div className="relative mt-1">
-                <input
-                  type="date"
+                <DateInput
                   id="endAt"
                   value={formData.endAt}
                   onChange={(e) => handleInputChange("endAt", e.target.value)}
                   readOnly={isEndDateLocked}
                   aria-readonly={isEndDateLocked}
-                  className={`block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary ${
+                  className={
                     isEndDateLocked
                       ? "cursor-not-allowed bg-gray-50 text-gray-600"
                       : "cursor-pointer"
-                  }`}
+                  }
                   required
                   min="1900-01-01"
                   max="2100-12-31"

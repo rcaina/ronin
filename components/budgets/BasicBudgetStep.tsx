@@ -8,6 +8,7 @@ import type {
 } from "react-hook-form";
 import { StrategyType, PeriodType } from "@prisma/client";
 import type { CreateBudgetFormData } from "./types";
+import DateInput from "../DateInput";
 interface BasicBudgetStepProps {
   register: UseFormRegister<CreateBudgetFormData>;
   watch: UseFormWatch<CreateBudgetFormData>;
@@ -81,10 +82,9 @@ export default function BasicBudgetStep({
           <label className="block text-sm font-medium text-gray-700">
             Start Date
           </label>
-          <input
-            type="date"
+          <DateInput
             {...register("startAt")}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
+            className="mt-1 shadow-sm"
             onChange={onStartDateChange}
           />
           {errors.startAt && (
@@ -103,12 +103,11 @@ export default function BasicBudgetStep({
               </span>
             )}
           </label>
-          <input
-            type="date"
+          <DateInput
             {...register("endAt")}
             readOnly={isEndDateLocked}
             aria-readonly={isEndDateLocked}
-            className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary ${
+            className={`mt-1 shadow-sm ${
               isEndDateLocked
                 ? "cursor-not-allowed bg-gray-50 text-gray-600"
                 : ""

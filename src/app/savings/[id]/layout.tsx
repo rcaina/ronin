@@ -4,7 +4,7 @@ import SavingsPageNavigation from "@/components/savings/SavingsPageNavigation";
 import PageHeader from "@/components/PageHeader";
 import { useParams, usePathname } from "next/navigation";
 import { useSavingsAccount } from "@/lib/data-hooks/savings/useSavings";
-import { useBackNavigation } from "@/lib/utils/hooks";
+import { useBackNavigation } from "@/lib/utils/navigation-history";
 import { useMemo } from "react";
 
 export default function SavingsLayout({
@@ -47,9 +47,14 @@ export default function SavingsLayout({
     return null;
   }, [pathname, id, savings]);
 
-  // Returns the user to their actual previous view; `backTo` is the fallback
-  // for deep links / refreshes only (see useBackNavigation).
-  const handleBack = useBackNavigation(pageHeaderConfig?.backTo ?? `/savings`);
+  // Scoped history: back returns to the previous page within this savings
+  // account (e.g. a pocket -> back = the account overview), falling back to
+  // this page's logical parent (`backTo`) when the previous page was
+  // outside this account — see useBackNavigation.
+  const handleBack = useBackNavigation(
+    pageHeaderConfig?.backTo ?? `/savings`,
+    `/savings/${id}`,
+  );
 
   return (
     <div className="flex flex-col bg-surface lg:h-screen">

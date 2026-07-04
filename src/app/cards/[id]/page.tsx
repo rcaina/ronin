@@ -26,7 +26,7 @@ import {
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import { formatCurrency } from "@/lib/utils";
-import { useBackNavigation } from "@/lib/utils/hooks";
+import { useBackNavigation } from "@/lib/utils/navigation-history";
 import { getCardTransactionDisplay } from "@/lib/utils/transactions";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import Button from "@/components/Button";
@@ -45,6 +45,10 @@ interface User {
 const CardDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  // Pure scoped history with no scope prefix: this page is reachable from
+  // many places (the cards list, a budget's cards tab, another card), and
+  // going back to wherever the user actually came from is correct here.
+  // Falls back to the cards list when there's no tracked previous page.
   const handleBack = useBackNavigation("/cards");
   const { data: card, isLoading: cardLoading, error: cardError } = useCard(id);
   const { data: transactions = [], isLoading: transactionsLoading } =
