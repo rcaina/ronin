@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useBudgetTransactions } from "@/lib/data-hooks/budgets/useBudgetTransactions";
@@ -15,9 +15,10 @@ import {
   AlertCircle,
   Copy,
   Edit,
+  Pencil,
   Trash2,
   Info,
-  Filter,
+  SlidersHorizontal,
   Target,
   Receipt,
   TrendingDown,
@@ -26,12 +27,18 @@ import {
 } from "lucide-react";
 
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import SwipeableRow from "@/components/SwipeableRow";
 import { usePageLoading } from "@/components/ConditionalLayout";
+import { useMobileHeaderAction } from "@/components/MobileHeaderActionContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import ReceiptScanModal from "@/components/transactions/ReceiptScanModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
+import TransactionFiltersModal, {
+  type TransactionFilterValues,
+  type TransactionSortBy,
+  type TransactionSortOrder,
+} from "@/components/transactions/TransactionFiltersModal";
 import StatsCard from "@/components/StatsCard";
-import DateInput from "@/components/DateInput";
 
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
@@ -45,7 +52,33 @@ import {
 } from "@/lib/utils";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 
-const BudgetTransactionsPage = () => {
+// URL param scheme (only non-default values are written to the URL). `category`
+// and `card` are an existing deep-link contract from category cards elsewhere
+// in the app — keep those exact names.
+const SORT_VALUES: readonly TransactionSortBy[] = ["date", "amount", "name"];
+const ORDER_VALUES: readonly TransactionSortOrder[] = ["asc", "desc"];
+const DATE_PARAM_RE = /^\d{4}-\d{2}-\d{2}$/;
+const CATEGORY_TYPE_VALUES = Object.values(CategoryType);
+
+const parseSortByParam = (value: string | null): TransactionSortBy =>
+  SORT_VALUES.includes(value as TransactionSortBy)
+    ? (value as TransactionSortBy)
+    : "date";
+
+const parseSortOrderParam = (value: string | null): TransactionSortOrder =>
+  ORDER_VALUES.includes(value as TransactionSortOrder)
+    ? (value as TransactionSortOrder)
+    : "desc";
+
+const parseDateParam = (value: string | null): string =>
+  value && DATE_PARAM_RE.test(value) ? value : "";
+
+const parseCategoryTypeParam = (value: string | null): CategoryType | "all" =>
+  value && CATEGORY_TYPE_VALUES.includes(value as CategoryType)
+    ? (value as CategoryType)
+    : "all";
+
+const BudgetTransactionsPageContent = () => {
   const params = useParams();
   const budgetId = params.id as string;
   const searchParams = useSearchParams();
@@ -64,19 +97,35 @@ const BudgetTransactionsPage = () => {
   const deleteTransactionMutation = useDeleteTransaction();
   const createTransactionMutation = useCreateTransaction();
   const { setActions } = useBudgetHeader();
+  const { setMobileHeaderAction } = useMobileHeaderAction();
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState(
+    () => searchParams.get("q") ?? "",
+  );
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    () => searchParams.get("category") ?? "all",
+  );
   const [selectedCategoryType, setSelectedCategoryType] = useState<
     CategoryType | "all"
-  >("all");
-  const [selectedCard, setSelectedCard] = useState<string>("all");
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
-  const [sortBy, setSortBy] = useState<"date" | "amount" | "name">("date");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  >(() => parseCategoryTypeParam(searchParams.get("type")));
+  const [selectedCard, setSelectedCard] = useState<string>(
+    () => searchParams.get("card") ?? "all",
+  );
+  const [startDate, setStartDate] = useState<string>(() =>
+    parseDateParam(searchParams.get("start")),
+  );
+  const [endDate, setEndDate] = useState<string>(() =>
+    parseDateParam(searchParams.get("end")),
+  );
+  const [sortBy, setSortBy] = useState<TransactionSortBy>(() =>
+    parseSortByParam(searchParams.get("sort")),
+  );
+  const [sortOrder, setSortOrder] = useState<TransactionSortOrder>(() =>
+    parseSortOrderParam(searchParams.get("order")),
+  );
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
   const [showReceiptScanModal, setShowReceiptScanModal] = useState(false);
+  const [showFiltersModal, setShowFiltersModal] = useState(false);
 
   const [editingTransactionId, setEditingTransactionId] = useState<
     string | null
@@ -105,6 +154,17 @@ const BudgetTransactionsPage = () => {
       },
     ]);
   }, [setActions]);
+
+  // Register the mobile header's scan-receipt shortcut; clean up on unmount
+  // so it doesn't leak into other pages.
+  useEffect(() => {
+    setMobileHeaderAction({
+      icon: <ScanLine className="h-5 w-5" />,
+      label: "Scan receipt",
+      onClick: () => setShowReceiptScanModal(true),
+    });
+    return () => setMobileHeaderAction(null);
+  }, [setMobileHeaderAction]);
 
   // Filter and sort transactions
   const filteredAndSortedTransactions = useMemo(() => {
@@ -267,32 +327,36 @@ const BudgetTransactionsPage = () => {
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
   }, [transactions, cards]);
 
-  // Handle URL parameters for initial filtering
+  // Keep filter/sort state mirrored into the URL (via replaceState, not
+  // router.replace, so this never re-runs server components) so refresh,
+  // back-navigation, and shared/deep links (e.g. `?category=` / `?card=` from
+  // category cards elsewhere in the app) restore the same view. Only
+  // non-default values are written, keeping the URL clean when unfiltered.
   useEffect(() => {
-    const categoryParam = searchParams.get("category");
-    const cardParam = searchParams.get("card");
+    const params = new URLSearchParams();
+    if (searchTerm) params.set("q", searchTerm);
+    if (selectedCategory !== "all") params.set("category", selectedCategory);
+    if (selectedCategoryType !== "all")
+      params.set("type", selectedCategoryType);
+    if (selectedCard !== "all") params.set("card", selectedCard);
+    if (startDate) params.set("start", startDate);
+    if (endDate) params.set("end", endDate);
+    if (sortBy !== "date") params.set("sort", sortBy);
+    if (sortOrder !== "desc") params.set("order", sortOrder);
 
-    if (categoryParam && categoryParam !== "all" && categories.length > 0) {
-      // Check if the category exists in our categories list (check both budget category ID and actual category ID)
-      const categoryExists = categories.some(
-        (cat) =>
-          cat.id === categoryParam || cat.actualCategoryId === categoryParam,
-      );
-
-      if (categoryExists) {
-        setSelectedCategory(categoryParam);
-      }
-    }
-
-    if (cardParam && cardParam !== "all") {
-      // Check if the card exists in our available cards list
-      const cardExists = availableCards.some((card) => card.id === cardParam);
-
-      if (cardExists) {
-        setSelectedCard(cardParam);
-      }
-    }
-  }, [searchParams, categories, availableCards]);
+    const query = params.toString();
+    const newUrl = `${window.location.pathname}${query ? `?${query}` : ""}`;
+    window.history.replaceState(null, "", newUrl);
+  }, [
+    searchTerm,
+    selectedCategory,
+    selectedCategoryType,
+    selectedCard,
+    startDate,
+    endDate,
+    sortBy,
+    sortOrder,
+  ]);
 
   const handleCopyTransaction = async (
     transaction: TransactionWithRelations,
@@ -430,14 +494,16 @@ const BudgetTransactionsPage = () => {
     setShowBulkDeleteModal(false);
   };
 
-  // Clear all filters
-  const clearAllFilters = () => {
-    setSearchTerm("");
+  // Clear filters from the filters modal — search stays untouched
+  // since it lives on the page row, outside the modal.
+  const clearModalFilters = () => {
     setSelectedCategory("all");
     setSelectedCategoryType("all");
     setSelectedCard("all");
     setStartDate("");
     setEndDate("");
+    setSortBy("date");
+    setSortOrder("desc");
   };
 
   // Check if any filters are active
@@ -448,6 +514,47 @@ const BudgetTransactionsPage = () => {
     selectedCard !== "all" ||
     startDate ||
     endDate;
+
+  // Count non-search filters for the mobile filter icon badge
+  const activeModalFilterCount = [
+    selectedCategory !== "all",
+    selectedCategoryType !== "all",
+    selectedCard !== "all",
+    !!startDate,
+    !!endDate,
+    sortBy !== "date" || sortOrder !== "desc",
+  ].filter(Boolean).length;
+
+  const currentFilterValues: TransactionFilterValues = {
+    startDate,
+    endDate,
+    sortBy,
+    sortOrder,
+    selectedCategory,
+    selectedCard,
+    selectedCategoryType,
+  };
+
+  const defaultFilterValues: TransactionFilterValues = {
+    startDate: "",
+    endDate: "",
+    sortBy: "date",
+    sortOrder: "desc",
+    selectedCategory: "all",
+    selectedCard: "all",
+    selectedCategoryType: "all",
+  };
+
+  const handleApplyFilters = (values: TransactionFilterValues) => {
+    setStartDate(values.startDate);
+    setEndDate(values.endDate);
+    setSortBy(values.sortBy);
+    setSortOrder(values.sortOrder);
+    setSelectedCategory(values.selectedCategory);
+    setSelectedCard(values.selectedCard);
+    if (values.selectedCategoryType !== undefined)
+      setSelectedCategoryType(values.selectedCategoryType);
+  };
 
   // Calculate total spent from filtered transactions
   const totalSpent = useMemo(() => {
@@ -540,167 +647,50 @@ const BudgetTransactionsPage = () => {
               iconColor="text-green-600"
             />
           </div>
-          {/* Filters and Search */}
+          {/* Filters and Search — search + filter icon on one row at every
+              breakpoint; full filters live in TransactionFiltersModal. */}
           <div className="card-surface mb-4 p-3 sm:mb-6 sm:p-4 lg:p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Filter className="h-4 w-4 text-gray-500" />
-                <h3 className="text-sm font-semibold text-gray-900">Filters</h3>
-              </div>
-              {hasActiveFilters && (
-                <Button
-                  onClick={clearAllFilters}
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-secondary-700 hover:text-secondary-800"
-                >
-                  Clear all filters
-                </Button>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              {/* Search */}
-              <div className="relative">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search transactions, amounts, descriptions..."
+                  placeholder="Search transactions..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                  className="w-full rounded-xl border border-gray-300 bg-surface-card py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                 />
               </div>
-
-              {/* Filter Row: Category Type, Categories, Cards, and Sort */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div>
-                  <div className="mb-1 flex items-center space-x-2">
-                    <label className="block text-xs font-medium text-gray-500">
-                      Category type
-                    </label>
-                    {selectedCategoryType !== "all" && (
-                      <span className="inline-flex items-center rounded-full bg-secondary-100 px-2 py-0.5 text-xs font-medium text-secondary-800">
-                        Filtered
-                      </span>
-                    )}
-                  </div>
-                  <select
-                    value={selectedCategoryType}
-                    onChange={(e) =>
-                      setSelectedCategoryType(
-                        e.target.value as CategoryType | "all",
-                      )
-                    }
-                    className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                  >
-                    <option value="all">All types</option>
-                    <option value={CategoryType.WANTS}>Wants</option>
-                    <option value={CategoryType.NEEDS}>Needs</option>
-                    <option value={CategoryType.INVESTMENT}>Investments</option>
-                  </select>
-                </div>
-
-                <div>
-                  <div className="mb-1 flex items-center space-x-2">
-                    <label className="block text-xs font-medium text-gray-500">
-                      Category
-                    </label>
-                    {selectedCategory !== "all" && (
-                      <span className="inline-flex items-center rounded-full bg-secondary-100 px-2 py-0.5 text-xs font-medium text-secondary-800">
-                        Filtered
-                      </span>
-                    )}
-                  </div>
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                    title={
-                      selectedCategory !== "all"
-                        ? `Viewing transactions for ${categories.find((c) => c.actualCategoryId === selectedCategory)?.name ?? "selected category"}`
-                        : "Select a category to filter transactions"
-                    }
-                  >
-                    <option value="all">All categories</option>
-                    {categories.map((category) => (
-                      <option
-                        key={category.id}
-                        value={category.actualCategoryId}
-                      >
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">
-                    Card
-                  </label>
-                  <select
-                    value={selectedCard}
-                    onChange={(e) => setSelectedCard(e.target.value)}
-                    className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                  >
-                    <option value="all">All cards</option>
-                    <option value="no-card">No card</option>
-                    {availableCards.map((card) => (
-                      <option key={card.id} value={card.id}>
-                        {card.displayName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">
-                    Start date
-                  </label>
-                  <DateInput
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="rounded-xl"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">
-                    End date
-                  </label>
-                  <DateInput
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="rounded-xl"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">
-                    Sort by
-                  </label>
-                  <select
-                    value={`${sortBy}-${sortOrder}`}
-                    onChange={(e) => {
-                      const [newSortBy, newSortOrder] = e.target.value.split(
-                        "-",
-                      ) as [typeof sortBy, typeof sortOrder];
-                      setSortBy(newSortBy);
-                      setSortOrder(newSortOrder);
-                    }}
-                    className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                  >
-                    <option value="date-desc">Date (newest)</option>
-                    <option value="date-asc">Date (oldest)</option>
-                    <option value="amount-desc">Amount (high to low)</option>
-                    <option value="amount-asc">Amount (low to high)</option>
-                    <option value="name-asc">Name (A-Z)</option>
-                    <option value="name-desc">Name (Z-A)</option>
-                  </select>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowFiltersModal(true)}
+                className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-gray-300 bg-surface-card text-gray-600 transition-colors duration-200 hover:border-gray-400 hover:bg-gray-50"
+                aria-label="Open filters"
+              >
+                <SlidersHorizontal className="h-5 w-5" />
+                {activeModalFilterCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-semibold text-primary-950">
+                    {activeModalFilterCount}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
+
+          {/* Filters Modal */}
+          <TransactionFiltersModal
+            isOpen={showFiltersModal}
+            onClose={() => setShowFiltersModal(false)}
+            values={currentFilterValues}
+            defaultValues={defaultFilterValues}
+            onApply={handleApplyFilters}
+            onClear={clearModalFilters}
+            categories={categories.map((category) => ({
+              id: category.actualCategoryId,
+              name: category.name,
+            }))}
+            cards={availableCards}
+          />
 
           {/* Add Transaction Modal */}
           <AddTransactionModal
@@ -794,125 +784,144 @@ const BudgetTransactionsPage = () => {
                   }
 
                   return (
-                    <div
+                    <SwipeableRow
                       key={transaction.id}
-                      className="group flex items-center justify-between p-3 transition-colors duration-200 hover:bg-surface sm:p-4"
+                      disabled={isEditing}
+                      actions={[
+                        {
+                          icon: <Pencil className="h-4 w-4" />,
+                          label: "Edit",
+                          onClick: () => handleEditTransaction(transaction),
+                        },
+                        {
+                          icon: <Trash2 className="h-4 w-4" />,
+                          label: "Delete",
+                          onClick: () => handleDeleteTransaction(transaction),
+                          tone: "danger",
+                        },
+                      ]}
                     >
-                      <div className="flex min-w-0 flex-1 items-center space-x-3 sm:space-x-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedTransactions.has(transaction.id)}
-                          onChange={() =>
-                            handleSelectTransaction(transaction.id)
-                          }
-                          disabled={isEditing}
-                          className="h-4 w-4 rounded border-gray-300 text-secondary-600 focus:ring-secondary disabled:opacity-50"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium text-gray-900">
-                              {transaction.name ?? "Unnamed transaction"}
-                            </span>
-                            <span
-                              className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                                transaction.transactionType ===
+                      <div className="group flex items-center justify-between p-3 transition-colors duration-200 hover:bg-surface sm:p-4">
+                        <div className="flex min-w-0 flex-1 items-center space-x-3 sm:space-x-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedTransactions.has(transaction.id)}
+                            onChange={() =>
+                              handleSelectTransaction(transaction.id)
+                            }
+                            disabled={isEditing}
+                            className="h-4 w-4 rounded border-gray-300 text-secondary-600 focus:ring-secondary disabled:opacity-50"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm font-medium text-gray-900">
+                                {transaction.name ?? "Unnamed transaction"}
+                              </span>
+                              <span
+                                className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                  transaction.transactionType ===
+                                  TransactionType.CARD_PAYMENT
+                                    ? "bg-gray-200 text-gray-500"
+                                    : transaction.transactionType ===
+                                          TransactionType.INCOME &&
+                                        !transaction.category
+                                      ? "bg-accent text-primary"
+                                      : transaction.category
+                                        ? getCategoryBadgeColor(
+                                            transaction.category.group,
+                                          )
+                                        : getCategoryBadgeColor()
+                                }`}
+                              >
+                                {transaction.transactionType ===
                                 TransactionType.CARD_PAYMENT
-                                  ? "bg-gray-200 text-gray-500"
+                                  ? "Card Payment"
                                   : transaction.transactionType ===
                                         TransactionType.INCOME &&
                                       !transaction.category
-                                    ? "bg-accent text-primary"
-                                    : transaction.category
-                                      ? getCategoryBadgeColor(
-                                          transaction.category.group,
-                                        )
-                                      : getCategoryBadgeColor()
+                                    ? "Income"
+                                    : (transaction.category?.name ??
+                                      "No Category")}
+                              </span>
+                              {transaction.description && (
+                                <div className="group relative flex-shrink-0">
+                                  <Info className="h-4 w-4 cursor-help text-gray-400" />
+                                  <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
+                                    {transaction.description}
+                                    <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-primary-950/90"></div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <p className="mt-1 text-xs text-gray-400">
+                              {parseLocalDate(
+                                transaction.createdAt,
+                              )?.toLocaleDateString() ?? ""}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 sm:space-x-4">
+                          {/* Action Icons - Copy stays visible on mobile;
+                            Edit/Delete are desktop-hover only there since
+                            mobile exposes them via swipe (SwipeableRow). */}
+                          <div className="flex items-center space-x-1 opacity-100 transition-opacity sm:space-x-2 lg:opacity-0 lg:group-hover:opacity-100">
+                            <button
+                              onClick={() => handleCopyTransaction(transaction)}
+                              className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
+                              title="Copy transaction"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleEditTransaction(transaction)}
+                              className="hidden rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 lg:block"
+                              title="Edit transaction"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleDeleteTransaction(transaction)
+                              }
+                              className="hidden rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 lg:block"
+                              title="Delete transaction"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          <div className="text-right">
+                            <div
+                              className={`text-sm font-semibold tabular-nums ${
+                                transaction.transactionType ===
+                                TransactionType.RETURN
+                                  ? "text-green-600" // Return transactions in green
+                                  : transaction.transactionType ===
+                                      TransactionType.CARD_PAYMENT
+                                    ? transaction.amount < 0
+                                      ? "text-green-600" // Source transaction (money going out from debit card)
+                                      : "text-gray-900" // Destination transaction (money being added back to credit card)
+                                    : transaction.amount < 0
+                                      ? "text-green-600"
+                                      : "text-gray-900"
                               }`}
                             >
                               {transaction.transactionType ===
-                              TransactionType.CARD_PAYMENT
-                                ? "Card Payment"
-                                : transaction.transactionType ===
-                                      TransactionType.INCOME &&
-                                    !transaction.category
-                                  ? "Income"
-                                  : (transaction.category?.name ??
-                                    "No Category")}
-                            </span>
-                            {transaction.description && (
-                              <div className="group relative flex-shrink-0">
-                                <Info className="h-4 w-4 cursor-help text-gray-400" />
-                                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
-                                  {transaction.description}
-                                  <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-primary-950/90"></div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <p className="mt-1 text-xs text-gray-400">
-                            {parseLocalDate(
-                              transaction.createdAt,
-                            )?.toLocaleDateString() ?? ""}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center space-x-2 sm:space-x-4">
-                        {/* Action Icons - Always visible on mobile, hover on desktop */}
-                        <div className="flex items-center space-x-1 opacity-100 transition-opacity sm:space-x-2 lg:opacity-0 lg:group-hover:opacity-100">
-                          <button
-                            onClick={() => handleCopyTransaction(transaction)}
-                            className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
-                            title="Copy transaction"
-                          >
-                            <Copy className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleEditTransaction(transaction)}
-                            className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
-                            title="Edit transaction"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteTransaction(transaction)}
-                            className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
-                            title="Delete transaction"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-
-                        <div className="text-right">
-                          <div
-                            className={`text-sm font-semibold tabular-nums ${
-                              transaction.transactionType ===
                               TransactionType.RETURN
-                                ? "text-green-600" // Return transactions in green
-                                : transaction.transactionType ===
-                                    TransactionType.CARD_PAYMENT
-                                  ? transaction.amount < 0
-                                    ? "text-green-600" // Source transaction (money going out from debit card)
-                                    : "text-gray-900" // Destination transaction (money being added back to credit card)
-                                  : transaction.amount < 0
-                                    ? "text-green-600"
-                                    : "text-gray-900"
-                            }`}
-                          >
-                            {transaction.transactionType ===
-                            TransactionType.RETURN
-                              ? "+"
-                              : ""}
-                            {formatCurrency(Math.abs(transaction.amount))}
-                          </div>
-                          <div className="text-xs capitalize text-gray-500">
-                            {transaction.transactionType
-                              .toLowerCase()
-                              .replace("_", " ")}
+                                ? "+"
+                                : ""}
+                              {formatCurrency(Math.abs(transaction.amount))}
+                            </div>
+                            <div className="text-xs capitalize text-gray-500">
+                              {transaction.transactionType
+                                .toLowerCase()
+                                .replace("_", " ")}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </SwipeableRow>
                   );
                 })
               ) : (
@@ -977,5 +986,11 @@ const BudgetTransactionsPage = () => {
     </>
   );
 };
+
+const BudgetTransactionsPage = () => (
+  <Suspense fallback={null}>
+    <BudgetTransactionsPageContent />
+  </Suspense>
+);
 
 export default BudgetTransactionsPage;

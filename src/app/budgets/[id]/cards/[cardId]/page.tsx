@@ -6,10 +6,13 @@ import {
   Calendar,
   User,
   Edit,
+  Pencil,
   Trash2,
   Plus,
+  Search,
+  SlidersHorizontal,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
@@ -17,6 +20,8 @@ import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
+import SwipeableRow from "@/components/SwipeableRow";
+import Modal from "@/components/Modal";
 import {
   useCard,
   useCardTransactions,
@@ -25,7 +30,7 @@ import {
 } from "@/lib/data-hooks/cards/useCards";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useDeleteTransaction } from "@/lib/data-hooks/transactions/useTransactions";
-import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
+import { isDebitCard, mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import Button from "@/components/Button";
 import { CardType, TransactionType } from "@prisma/client";
@@ -45,6 +50,136 @@ interface User {
   email: string | null;
   role: string;
 }
+
+type CardTransactionSortBy = "date" | "amount" | "name";
+type CardTransactionSortOrder = "asc" | "desc";
+
+interface CardTransactionFilterValues {
+  filterType: TransactionType | "all";
+  sortBy: CardTransactionSortBy;
+  sortOrder: CardTransactionSortOrder;
+}
+
+const DEFAULT_CARD_TRANSACTION_FILTERS: CardTransactionFilterValues = {
+  filterType: "all",
+  sortBy: "date",
+  sortOrder: "desc",
+};
+
+const FILTER_SELECT_CLASSES =
+  "w-full rounded-xl border border-gray-300 bg-surface-card px-3 py-2 text-sm text-gray-900 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary";
+
+interface CardTransactionFiltersModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  values: CardTransactionFilterValues;
+  onApply: (values: CardTransactionFilterValues) => void;
+  onClear: () => void;
+}
+
+const CardTransactionFiltersModal = ({
+  isOpen,
+  onClose,
+  values,
+  onApply,
+  onClear,
+}: CardTransactionFiltersModalProps) => {
+  const [draft, setDraft] = useState<CardTransactionFilterValues>(values);
+
+  // Keep the latest committed values around without making them a dependency
+  // of the seed effect below (they can change identity on every render).
+  const valuesRef = useRef(values);
+  valuesRef.current = values;
+
+  // Seed the draft from the currently applied filters every time the modal
+  // opens. Editing controls only ever updates the draft; closing without
+  // saving simply discards it.
+  useEffect(() => {
+    if (isOpen) {
+      setDraft(valuesRef.current);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleClear = () => {
+    setDraft(DEFAULT_CARD_TRANSACTION_FILTERS);
+    onClear();
+    onClose();
+  };
+
+  const handleSave = () => {
+    onApply(draft);
+    onClose();
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      variant="sheet"
+      title="Filters"
+      footer={
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={handleClear} className="flex-1">
+            Clear
+          </Button>
+          <Button variant="primary" onClick={handleSave} className="flex-1">
+            Save
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="mb-1 block text-xs font-medium text-gray-500">
+            Transaction type
+          </label>
+          <select
+            value={draft.filterType}
+            onChange={(e) =>
+              setDraft((d) => ({
+                ...d,
+                filterType: e.target.value as TransactionType | "all",
+              }))
+            }
+            className={FILTER_SELECT_CLASSES}
+          >
+            <option value="all">All types</option>
+            <option value={TransactionType.REGULAR}>Regular</option>
+            <option value={TransactionType.RETURN}>Return</option>
+            <option value={TransactionType.INCOME}>Income</option>
+            <option value={TransactionType.CARD_PAYMENT}>Card payment</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs font-medium text-gray-500">
+            Sort by
+          </label>
+          <select
+            value={`${draft.sortBy}-${draft.sortOrder}`}
+            onChange={(e) => {
+              const [sortBy, sortOrder] = e.target.value.split("-") as [
+                CardTransactionSortBy,
+                CardTransactionSortOrder,
+              ];
+              setDraft((d) => ({ ...d, sortBy, sortOrder }));
+            }}
+            className={FILTER_SELECT_CLASSES}
+          >
+            <option value="date-desc">Date (newest)</option>
+            <option value="date-asc">Date (oldest)</option>
+            <option value="amount-desc">Amount (high to low)</option>
+            <option value="amount-asc">Amount (low to high)</option>
+            <option value="name-asc">Name (A-Z)</option>
+            <option value="name-desc">Name (Z-A)</option>
+          </select>
+        </div>
+      </div>
+    </Modal>
+  );
+};
 
 const CardDetailsPage = () => {
   const params = useParams<{ id: string; cardId: string }>();
@@ -75,6 +210,19 @@ const CardDetailsPage = () => {
   const [transactionToDelete, setTransactionToDelete] =
     useState<TransactionWithRelations | null>(null);
   const deleteTransactionMutation = useDeleteTransaction();
+
+  // Search/filter/sort for the transaction list below.
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<TransactionType | "all">(
+    DEFAULT_CARD_TRANSACTION_FILTERS.filterType,
+  );
+  const [sortBy, setSortBy] = useState<CardTransactionSortBy>(
+    DEFAULT_CARD_TRANSACTION_FILTERS.sortBy,
+  );
+  const [sortOrder, setSortOrder] = useState<CardTransactionSortOrder>(
+    DEFAULT_CARD_TRANSACTION_FILTERS.sortOrder,
+  );
+  const [showFiltersModal, setShowFiltersModal] = useState(false);
 
   // Form state for editing
   const [editFormData, setEditFormData] = useState({
@@ -280,13 +428,13 @@ const CardDetailsPage = () => {
     const actions: HeaderAction[] = [
       {
         icon: <Plus className="h-4 w-4" />,
-        label: "Add Transaction",
+        label: "Add transaction",
         onClick: handleOpenAddTransactionModal,
         variant: "primary",
       },
       {
         icon: <Trash2 className="h-4 w-4" />,
-        label: "Delete Card",
+        label: "Delete card",
         onClick: handleDeleteCard,
         variant: "danger",
       },
@@ -299,7 +447,7 @@ const CardDetailsPage = () => {
     ) {
       actions.push({
         icon: <CreditCard className="h-4 w-4" />,
-        label: "Pay Credit Card",
+        label: "Pay credit card",
         onClick: handleOpenCardPaymentModal,
         variant: "secondary",
       });
@@ -308,6 +456,64 @@ const CardDetailsPage = () => {
     setActions(actions);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card, isCardOwner, setActions]);
+
+  // Search/filter/sort the card's transactions for the list below. Search
+  // matches transaction name and description.
+  const filteredAndSortedTransactions = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    const filtered = transactions.filter((transaction) => {
+      const matchesSearch =
+        query === "" ||
+        (transaction.name?.toLowerCase().includes(query) ?? false) ||
+        (transaction.description?.toLowerCase().includes(query) ?? false);
+      const matchesType =
+        filterType === "all" || transaction.transactionType === filterType;
+      return matchesSearch && matchesType;
+    });
+
+    return [...filtered].sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case "date":
+          comparison =
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          break;
+        case "amount":
+          comparison = a.amount - b.amount;
+          break;
+        case "name":
+          comparison = (a.name ?? "").localeCompare(b.name ?? "");
+          break;
+      }
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+  }, [transactions, searchQuery, filterType, sortBy, sortOrder]);
+
+  const activeFilterCount =
+    (filterType !== "all" ? 1 : 0) +
+    (sortBy !== DEFAULT_CARD_TRANSACTION_FILTERS.sortBy ||
+    sortOrder !== DEFAULT_CARD_TRANSACTION_FILTERS.sortOrder
+      ? 1
+      : 0);
+
+  const currentFilterValues: CardTransactionFilterValues = {
+    filterType,
+    sortBy,
+    sortOrder,
+  };
+
+  const handleApplyFilters = (newValues: CardTransactionFilterValues) => {
+    setFilterType(newValues.filterType);
+    setSortBy(newValues.sortBy);
+    setSortOrder(newValues.sortOrder);
+  };
+
+  const handleClearFilters = () => {
+    setFilterType(DEFAULT_CARD_TRANSACTION_FILTERS.filterType);
+    setSortBy(DEFAULT_CARD_TRANSACTION_FILTERS.sortBy);
+    setSortOrder(DEFAULT_CARD_TRANSACTION_FILTERS.sortOrder);
+  };
 
   const isPageLoading = cardLoading || transactionsLoading;
   usePageLoading(isPageLoading, "Loading card details...");
@@ -562,6 +768,92 @@ const CardDetailsPage = () => {
                 </h2>
               </div>
 
+              {transactions.length > 0 && (
+                <div className="mb-4">
+                  {/* Below lg: search + filter icon that opens the filters sheet. */}
+                  <div className="flex items-center gap-2 lg:hidden">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search transactions..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full rounded-xl border border-gray-300 bg-surface-card py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowFiltersModal(true)}
+                      className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-gray-300 bg-surface-card text-gray-600 transition-colors duration-200 hover:border-gray-400 hover:bg-gray-50"
+                      aria-label="Open filters"
+                    >
+                      <SlidersHorizontal className="h-5 w-5" />
+                      {activeFilterCount > 0 && (
+                        <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-semibold text-primary-950">
+                          {activeFilterCount}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* At lg+: keep the inline filter/sort selects, plus search. */}
+                  <div className="hidden items-center gap-3 lg:flex">
+                    <div className="relative max-w-xs flex-1">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search transactions..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full rounded-xl border border-gray-300 bg-surface-card py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                      />
+                    </div>
+                    <select
+                      value={filterType}
+                      onChange={(e) =>
+                        setFilterType(e.target.value as TransactionType | "all")
+                      }
+                      className={FILTER_SELECT_CLASSES.replace(
+                        "w-full",
+                        "w-auto",
+                      )}
+                      aria-label="Filter by transaction type"
+                    >
+                      <option value="all">All types</option>
+                      <option value={TransactionType.REGULAR}>Regular</option>
+                      <option value={TransactionType.RETURN}>Return</option>
+                      <option value={TransactionType.INCOME}>Income</option>
+                      <option value={TransactionType.CARD_PAYMENT}>
+                        Card payment
+                      </option>
+                    </select>
+                    <select
+                      value={`${sortBy}-${sortOrder}`}
+                      onChange={(e) => {
+                        const [newSortBy, newSortOrder] = e.target.value.split(
+                          "-",
+                        ) as [CardTransactionSortBy, CardTransactionSortOrder];
+                        setSortBy(newSortBy);
+                        setSortOrder(newSortOrder);
+                      }}
+                      className={FILTER_SELECT_CLASSES.replace(
+                        "w-full",
+                        "w-auto",
+                      )}
+                      aria-label="Sort transactions"
+                    >
+                      <option value="date-desc">Date (newest)</option>
+                      <option value="date-asc">Date (oldest)</option>
+                      <option value="amount-desc">Amount (high to low)</option>
+                      <option value="amount-asc">Amount (low to high)</option>
+                      <option value="name-asc">Name (A-Z)</option>
+                      <option value="name-desc">Name (Z-A)</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
               {transactions.length === 0 ? (
                 <div className="rounded-xl border-2 border-dashed border-gray-300 bg-surface-card py-12 text-center">
                   <Calendar className="mx-auto mb-4 h-12 w-12 text-gray-400" />
@@ -581,9 +873,19 @@ const CardDetailsPage = () => {
                     </Button>
                   )}
                 </div>
+              ) : filteredAndSortedTransactions.length === 0 ? (
+                <div className="rounded-xl border-2 border-dashed border-gray-300 bg-surface-card py-12 text-center">
+                  <Search className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+                  <h3 className="mb-2 text-lg font-medium text-gray-900">
+                    No matching transactions
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Try adjusting your search or filters.
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-3">
-                  {transactions.map((transaction) => {
+                  {filteredAndSortedTransactions.map((transaction) => {
                     // Check if this transaction is being edited
                     const isEditing = editingTransactionId === transaction.id;
 
@@ -600,104 +902,117 @@ const CardDetailsPage = () => {
                     }
 
                     return (
-                      <div
+                      <SwipeableRow
                         key={transaction.id}
-                        className="group flex items-center justify-between rounded-lg border bg-surface-card p-4 shadow-sm hover:bg-gray-50"
+                        disabled={isEditing}
+                        className="rounded-lg"
+                        actions={[
+                          {
+                            icon: <Pencil className="h-4 w-4" />,
+                            label: "Edit",
+                            onClick: () => handleEditTransaction(transaction),
+                          },
+                          {
+                            icon: <Trash2 className="h-4 w-4" />,
+                            label: "Delete",
+                            onClick: () => handleDeleteTransaction(transaction),
+                            tone: "danger",
+                          },
+                        ]}
                       >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1">
-                              <p className="font-medium text-gray-900">
-                                {transaction.name ?? "Unnamed Transaction"}
-                              </p>
-                              {transaction.transactionType ===
-                              TransactionType.INCOME ? (
-                                <p className="text-sm font-medium text-green-600">
-                                  Income
+                        <div className="group flex items-center justify-between rounded-lg border bg-surface-card p-4 shadow-sm hover:bg-gray-50">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-900">
+                                  {transaction.name ?? "Unnamed Transaction"}
                                 </p>
-                              ) : (
-                                <p className="text-sm text-gray-500">
-                                  {transaction.category?.name ??
-                                    "Uncategorized"}
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {/* Action Icons - Always visible on mobile, hover on desktop */}
-                              <div className="flex items-center space-x-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                                <button
-                                  onClick={() =>
-                                    handleEditTransaction(transaction)
-                                  }
-                                  className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                                  title="Edit transaction"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handleDeleteTransaction(transaction)
-                                  }
-                                  className="rounded p-1 text-red-300 transition-colors hover:bg-gray-100 hover:text-red-600"
-                                  title="Delete transaction"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
+                                {transaction.transactionType ===
+                                TransactionType.INCOME ? (
+                                  <p className="text-sm font-medium text-green-600">
+                                    Income
+                                  </p>
+                                ) : (
+                                  <p className="text-sm text-gray-500">
+                                    {transaction.category?.name ??
+                                      "Uncategorized"}
+                                  </p>
+                                )}
                               </div>
-                              <div className="text-right">
-                                <p
-                                  className={`font-semibold ${
-                                    transaction.transactionType ===
+                              <div className="flex items-center gap-2">
+                                {/* Action Icons — desktop hover only; mobile
+                                  exposes them via swipe (SwipeableRow). */}
+                                <div className="hidden items-center space-x-1 opacity-0 transition-opacity lg:flex lg:group-hover:opacity-100">
+                                  <button
+                                    onClick={() =>
+                                      handleEditTransaction(transaction)
+                                    }
+                                    className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                                    title="Edit transaction"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteTransaction(transaction)
+                                    }
+                                    className="rounded p-1 text-red-300 transition-colors hover:bg-gray-100 hover:text-red-600"
+                                    title="Delete transaction"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+                                <div className="text-right">
+                                  <p
+                                    className={`font-semibold ${
+                                      transaction.transactionType ===
+                                      TransactionType.INCOME
+                                        ? "text-green-600" // Income transactions are always green
+                                        : transaction.transactionType ===
+                                            TransactionType.CARD_PAYMENT
+                                          ? "text-red-600" // Always red for card payments
+                                          : // For debit (and cash) cards: returns are green, regular transactions are red
+                                            isDebitCard(card) ||
+                                              card.cardType === CardType.CASH
+                                            ? transaction.transactionType ===
+                                              TransactionType.RETURN
+                                              ? "text-green-600" // Returns are green for debit cards
+                                              : "text-red-600" // Regular transactions are red for debit cards
+                                            : transaction.transactionType ===
+                                                TransactionType.RETURN
+                                              ? "text-green-600"
+                                              : "text-red-600"
+                                    }`}
+                                  >
+                                    {transaction.transactionType ===
                                     TransactionType.INCOME
-                                      ? "text-green-600" // Income transactions are always green
+                                      ? "+$" // Income transactions are always positive
                                       : transaction.transactionType ===
                                           TransactionType.CARD_PAYMENT
-                                        ? "text-red-600" // Always red for card payments
-                                        : // For debit cards: returns are green, regular transactions are red
-                                          card.cardType === CardType.DEBIT ||
-                                            card.cardType ===
-                                              CardType.BUSINESS_DEBIT ||
+                                        ? "-$" // Always negative for card payments
+                                        : // For debit (and cash) cards: returns are positive, regular transactions are negative
+                                          isDebitCard(card) ||
                                             card.cardType === CardType.CASH
                                           ? transaction.transactionType ===
                                             TransactionType.RETURN
-                                            ? "text-green-600" // Returns are green for debit cards
-                                            : "text-red-600" // Regular transactions are red for debit cards
-                                          : transaction.transactionType ===
-                                              TransactionType.RETURN
-                                            ? "text-green-600"
-                                            : "text-red-600"
-                                  }`}
-                                >
-                                  {transaction.transactionType ===
-                                  TransactionType.INCOME
-                                    ? "+$" // Income transactions are always positive
-                                    : transaction.transactionType ===
-                                        TransactionType.CARD_PAYMENT
-                                      ? "-$" // Always negative for card payments
-                                      : // For debit cards: returns are positive, regular transactions are negative
-                                        card.cardType === CardType.DEBIT ||
-                                          card.cardType ===
-                                            CardType.BUSINESS_DEBIT ||
-                                          card.cardType === CardType.CASH
-                                        ? transaction.transactionType ===
-                                          TransactionType.RETURN
-                                          ? "+$" // Returns are positive for debit cards
-                                          : "-$" // Regular transactions are negative for debit cards
-                                        : transaction.amount >= 0
-                                          ? "+$"
-                                          : "$"}
-                                  {Math.abs(transaction.amount).toFixed(2)}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {new Date(
-                                    transaction.createdAt,
-                                  ).toLocaleDateString()}
-                                </p>
+                                            ? "+$" // Returns are positive for debit cards
+                                            : "-$" // Regular transactions are negative for debit cards
+                                          : transaction.amount >= 0
+                                            ? "+$"
+                                            : "$"}
+                                    {Math.abs(transaction.amount).toFixed(2)}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {new Date(
+                                      transaction.createdAt,
+                                    ).toLocaleDateString()}
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </SwipeableRow>
                     );
                   })}
                 </div>
@@ -747,6 +1062,15 @@ const CardDetailsPage = () => {
         loadingText="Deleting..."
         confirmText="Delete Transaction"
         cancelText="Cancel"
+      />
+
+      {/* Transaction Filters Modal (mobile) */}
+      <CardTransactionFiltersModal
+        isOpen={showFiltersModal}
+        onClose={() => setShowFiltersModal(false)}
+        values={currentFilterValues}
+        onApply={handleApplyFilters}
+        onClear={handleClearFilters}
       />
     </>
   );

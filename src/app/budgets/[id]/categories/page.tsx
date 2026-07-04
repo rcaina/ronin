@@ -8,10 +8,15 @@ import BudgetCategoriesViewToggle, {
 } from "@/components/budgets/BudgetCategoriesViewToggle";
 import BudgetCategoriesListView from "@/components/budgets/BudgetCategoriesListView";
 import BudgetCategoriesSearch from "@/components/budgets/BudgetCategoriesSearch";
-import { CategoryType, TransactionType, CardType } from "@prisma/client";
+import BudgetCategoryFiltersModal, {
+  DEFAULT_BUDGET_CATEGORY_FILTERS,
+  type BudgetCategoryFilters,
+} from "@/components/budgets/BudgetCategoryFiltersModal";
+import { CategoryType, TransactionType } from "@prisma/client";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import { usePageLoading } from "@/components/ConditionalLayout";
+import { useMobileHeaderAction } from "@/components/MobileHeaderActionContext";
 import {
   Target,
   AlertCircle,
@@ -22,12 +27,22 @@ import {
   Plus,
   ScanLine,
   FolderInput,
+  SlidersHorizontal,
 } from "lucide-react";
 import { roundToCents } from "@/lib/utils";
+import { isDebitCard } from "@/lib/utils/cards";
+import {
+  calculateCategorySpent,
+  type SpendingCategory,
+  type SpendingTransaction,
+} from "@/lib/utils/spending";
+import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
+import { useLocalStorageState } from "@/lib/utils/hooks";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import ReceiptScanModal from "@/components/transactions/ReceiptScanModal";
 import ImportCategoriesModal from "@/components/budgets/ImportCategoriesModal";
+import Button from "@/components/Button";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
 import {
   CHART_COLORS,
@@ -89,6 +104,11 @@ function OverlapBarShape(props: {
   );
 }
 
+const BUDGET_CATEGORIES_VIEW_STORAGE_KEY = "ronin.budgetCategoriesView";
+const isBudgetCategoriesViewType = (
+  value: unknown,
+): value is BudgetCategoriesViewType => value === "grid" || value === "list";
+
 const BudgetCategoriesPage = () => {
   const { id } = useParams();
   const budgetId = id as string;
@@ -97,12 +117,21 @@ const BudgetCategoriesPage = () => {
     isLoading: budgetLoading,
     error: budgetError,
   } = useBudget(budgetId);
-  const [view, setView] = useState<BudgetCategoriesViewType>("grid");
+  const [view, setView] = useLocalStorageState<BudgetCategoriesViewType>(
+    BUDGET_CATEGORIES_VIEW_STORAGE_KEY,
+    "grid",
+    isBudgetCategoriesViewType,
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
   const [isReceiptScanOpen, setIsReceiptScanOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState<BudgetCategoryFilters>(
+    DEFAULT_BUDGET_CATEGORY_FILTERS,
+  );
   const { setActions } = useBudgetHeader();
+  const { setMobileHeaderAction } = useMobileHeaderAction();
 
   // Register header actions
   useEffect(() => {
@@ -128,6 +157,17 @@ const BudgetCategoriesPage = () => {
     ]);
   }, [setActions]);
 
+  // Register the mobile header's scan-receipt shortcut; clean up on unmount
+  // so it doesn't leak into other pages.
+  useEffect(() => {
+    setMobileHeaderAction({
+      icon: <ScanLine className="h-5 w-5" />,
+      label: "Scan receipt",
+      onClick: () => setIsReceiptScanOpen(true),
+    });
+    return () => setMobileHeaderAction(null);
+  }, [setMobileHeaderAction]);
+
   // Use the search query in the hook
   const {
     data: budgetCategories,
@@ -141,11 +181,7 @@ const BudgetCategoriesPage = () => {
     if (!budget) return 0;
 
     // Get all debit cards for this budget
-    const debitCards = (budget.cards ?? []).filter(
-      (card: { cardType: string }) =>
-        card.cardType === CardType.DEBIT ||
-        card.cardType === CardType.BUSINESS_DEBIT,
-    );
+    const debitCards = (budget.cards ?? []).filter(isDebitCard);
 
     const debitCardIds = debitCards.map((card: { id: string }) => card.id);
 
@@ -402,6 +438,85 @@ const BudgetCategoriesPage = () => {
     };
   }, [budget]);
 
+  // Convert a budget category's transactions into the shape the shared
+  // spending utils expect, then run the canonical spend calculation so we
+  // never re-derive spent/remaining math inline.
+  const getCategorySpent = (category: BudgetCategoryWithCategory): number => {
+    const spendingCategory: SpendingCategory = {
+      transactions: category.transactions.map(
+        (transaction): SpendingTransaction => ({
+          ...transaction,
+          transactionType: transaction.transactionType as TransactionType,
+        }),
+      ),
+    };
+    return roundToCents(calculateCategorySpent(spendingCategory));
+  };
+
+  // Apply client-side filtering + sorting on top of the (already
+  // server-searched) category list. Both the grid and list views render
+  // whatever comes out of this so filters apply consistently in either view.
+  const filteredBudgetCategories = useMemo(() => {
+    const list = budgetCategories ?? [];
+
+    const filtered = list.filter((category) => {
+      if (filters.group !== "all" && category.group !== filters.group) {
+        return false;
+      }
+
+      if (filters.unusedOnly && (category.transactions?.length ?? 0) > 0) {
+        return false;
+      }
+
+      if (filters.status !== "all") {
+        const spent = getCategorySpent(category);
+        const allocated = roundToCents(category.allocatedAmount ?? 0);
+
+        if (filters.status === "inProgress" && !(spent < allocated)) {
+          return false;
+        }
+        if (filters.status === "completed" && spent !== allocated) {
+          return false;
+        }
+        if (filters.status === "overBudget" && !(spent > allocated)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    return [...filtered].sort((a, b) => {
+      switch (filters.sort) {
+        case "percentSpent": {
+          const aAllocated = a.allocatedAmount ?? 0;
+          const bAllocated = b.allocatedAmount ?? 0;
+          const aPercent =
+            aAllocated > 0 ? getCategorySpent(a) / aAllocated : 0;
+          const bPercent =
+            bAllocated > 0 ? getCategorySpent(b) / bAllocated : 0;
+          return bPercent - aPercent;
+        }
+        case "remaining": {
+          const aRemaining = (a.allocatedAmount ?? 0) - getCategorySpent(a);
+          const bRemaining = (b.allocatedAmount ?? 0) - getCategorySpent(b);
+          return aRemaining - bRemaining;
+        }
+        case "allocated":
+          return (b.allocatedAmount ?? 0) - (a.allocatedAmount ?? 0);
+        case "name":
+        default:
+          return a.name.localeCompare(b.name);
+      }
+    });
+  }, [budgetCategories, filters]);
+
+  const activeFilterCount =
+    (filters.status !== DEFAULT_BUDGET_CATEGORY_FILTERS.status ? 1 : 0) +
+    (filters.group !== DEFAULT_BUDGET_CATEGORY_FILTERS.group ? 1 : 0) +
+    (filters.sort !== DEFAULT_BUDGET_CATEGORY_FILTERS.sort ? 1 : 0) +
+    (filters.unusedOnly !== DEFAULT_BUDGET_CATEGORY_FILTERS.unusedOnly ? 1 : 0);
+
   // Show loading state while either budget or categories are loading
   const isPageLoading = budgetLoading || categoriesLoading;
   usePageLoading(isPageLoading, "Loading budget categories...");
@@ -477,6 +592,14 @@ const BudgetCategoriesPage = () => {
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
+  };
+
+  const handleApplyFilters = (newFilters: BudgetCategoryFilters) => {
+    setFilters(newFilters);
+  };
+
+  const handleClearFilters = () => {
+    setFilters(DEFAULT_BUDGET_CATEGORY_FILTERS);
   };
 
   return (
@@ -857,11 +980,27 @@ const BudgetCategoriesPage = () => {
           </div>
 
           <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex-1">
-              <BudgetCategoriesSearch
-                onSearchChange={handleSearchChange}
-                searchQuery={searchQuery}
-              />
+            <div className="flex flex-1 items-center gap-2">
+              <div className="flex-1">
+                <BudgetCategoriesSearch
+                  onSearchChange={handleSearchChange}
+                  searchQuery={searchQuery}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsFiltersOpen(true)}
+                className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-gray-300 bg-surface-card text-gray-600 shadow-soft transition-colors duration-200 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900"
+                aria-label="Filter categories"
+                title="Filter categories"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-semibold text-primary-950">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4">
               <BudgetCategoriesViewToggle view={view} onViewChange={setView} />
@@ -869,19 +1008,40 @@ const BudgetCategoriesPage = () => {
           </div>
 
           <div className="lg:min-h-0 lg:flex-1">
-            {view === "grid" ? (
+            {filteredBudgetCategories.length === 0 ? (
+              <div className="card-surface flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+                  <SlidersHorizontal className="h-7 w-7" strokeWidth={1.5} />
+                </div>
+                <div>
+                  <p className="text-base font-semibold text-gray-900">
+                    No categories match
+                  </p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {activeFilterCount > 0
+                      ? "Try adjusting or clearing your filters."
+                      : "No categories yet — add your first one."}
+                  </p>
+                </div>
+                {activeFilterCount > 0 && (
+                  <Button variant="outline" onClick={handleClearFilters}>
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            ) : view === "grid" ? (
               <BudgetCategoriesGridView
                 budgetId={budgetId}
                 getGroupColor={getGroupColor}
                 getGroupLabel={getGroupLabel}
-                budgetCategories={budgetCategories}
+                budgetCategories={filteredBudgetCategories}
               />
             ) : (
               <BudgetCategoriesListView
                 budgetId={budgetId}
                 getGroupColor={getGroupColor}
                 getGroupLabel={getGroupLabel}
-                budgetCategories={budgetCategories}
+                budgetCategories={filteredBudgetCategories}
               />
             )}
           </div>
@@ -908,6 +1068,14 @@ const BudgetCategoriesPage = () => {
         isOpen={isImportOpen}
         budgetId={budgetId}
         onClose={() => setIsImportOpen(false)}
+      />
+
+      <BudgetCategoryFiltersModal
+        isOpen={isFiltersOpen}
+        onClose={() => setIsFiltersOpen(false)}
+        filters={filters}
+        onApply={handleApplyFilters}
+        onClear={handleClearFilters}
       />
     </>
   );

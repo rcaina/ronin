@@ -8,6 +8,7 @@ import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useCreateCardPayment } from "@/lib/data-hooks/transactions/useTransactions";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import { useLockBodyScroll } from "@/lib/utils/hooks";
+import { isDebitCard } from "@/lib/utils/cards";
 
 import Button from "@/components/Button";
 import { CardType } from "@prisma/client";
@@ -140,12 +141,10 @@ export function CardPaymentModal({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Filter cards by type for better UX
+  // Filter cards by type for better UX. Note: "debit" here intentionally
+  // includes CASH as a payment source, in addition to DEBIT/BUSINESS_DEBIT.
   const debitCards = cards.filter(
-    (card) =>
-      card.cardType === CardType.DEBIT ||
-      card.cardType === CardType.CASH ||
-      card.cardType === CardType.BUSINESS_DEBIT,
+    (card) => isDebitCard(card) || card.cardType === CardType.CASH,
   );
   const creditCards = cards.filter(
     (card) =>

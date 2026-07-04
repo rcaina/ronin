@@ -61,7 +61,7 @@ export default function MobileBottomNav() {
             onClick={() => setIsMoreOpen(false)}
           />
           <div
-            className="fixed right-3 z-[60] w-56 animate-fade-in overflow-hidden rounded-2xl border border-gray-200/70 bg-surface-card p-1.5 shadow-lifted lg:hidden"
+            className="fixed right-3 z-[60] w-56 animate-fade-in overflow-hidden rounded-2xl border border-gray-400/60 bg-surface-card p-1.5 shadow-lifted lg:hidden"
             style={{
               bottom: "calc(56px + env(safe-area-inset-bottom) + 0.5rem)",
             }}

@@ -10,13 +10,14 @@ import {
   HandCoins,
   Target,
 } from "lucide-react";
-import { CardType } from "@prisma/client";
 import { toast } from "react-hot-toast";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { formatCurrency } from "@/lib/utils";
+import { isDebitCard, oldestDebitCard } from "@/lib/utils/cards";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import Button from "@/components/Button";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import SwipeableRow from "@/components/SwipeableRow";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 
@@ -64,11 +65,7 @@ export default function IncomePage() {
     if (!budget) return [];
 
     // Get all debit cards for this budget
-    const debitCards = (budget.cards ?? []).filter(
-      (card: { cardType: string }) =>
-        card.cardType === CardType.DEBIT ||
-        card.cardType === CardType.BUSINESS_DEBIT,
-    );
+    const debitCards = (budget.cards ?? []).filter(isDebitCard);
 
     const debitCardIds = debitCards.map((card: { id: string }) => card.id);
 
@@ -134,7 +131,30 @@ export default function IncomePage() {
 
   usePageLoading(isLoading, "Loading income data...");
   if (isLoading) {
-    return null;
+    return (
+      <div className="bg-surface lg:h-full lg:overflow-y-auto">
+        <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:px-8 lg:py-4 lg:pb-8">
+          {/* Total income hero skeleton */}
+          <div className="h-24 animate-pulse rounded-4xl bg-surface-muted sm:h-28" />
+
+          {/* Search skeleton */}
+          <div className="mt-4 h-10 animate-pulse rounded-xl bg-surface-muted" />
+
+          {/* Income list skeleton */}
+          <div className="card-surface mt-4 p-4 sm:p-5 lg:p-6">
+            <div className="mb-4 h-5 w-40 animate-pulse rounded-full bg-surface-muted" />
+            <div className="space-y-2">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-16 animate-pulse rounded-xl bg-surface-muted"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!budget) {
@@ -152,19 +172,9 @@ export default function IncomePage() {
     );
   }
 
-  // Get main debit card for adding income
-  const mainDebitCard =
-    (budget.cards ?? []).find(
-      (card: { cardType: string; name: string }) =>
-        (card.cardType === CardType.DEBIT ||
-          card.cardType === CardType.BUSINESS_DEBIT) &&
-        card.name === "Main",
-    ) ??
-    (budget.cards ?? []).find(
-      (card: { cardType: string }) =>
-        card.cardType === CardType.DEBIT ||
-        card.cardType === CardType.BUSINESS_DEBIT,
-    );
+  // Get the oldest-created debit card for adding income (used as the
+  // default payment method in the add-income modal).
+  const defaultDebitCard = oldestDebitCard(budget.cards ?? []);
 
   return (
     <>
@@ -202,7 +212,7 @@ export default function IncomePage() {
               placeholder="Search income transactions..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 bg-surface-card px-10 py-3 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+              className="w-full rounded-xl border border-gray-300 bg-surface-card py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
             />
           </div>
 
@@ -230,7 +240,7 @@ export default function IncomePage() {
                     ? "No income transactions match your search."
                     : "Get started by adding your first income transaction."}
                 </p>
-                {!searchQuery && mainDebitCard && (
+                {!searchQuery && defaultDebitCard && (
                   <Button
                     onClick={() => setIsAddModalOpen(true)}
                     className="mt-4"
@@ -254,36 +264,46 @@ export default function IncomePage() {
                     .join(" • ");
 
                   return (
-                    <div
+                    <SwipeableRow
                       key={transaction.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-gray-200/70 bg-surface-card p-3 transition-all duration-200 ease-out hover:shadow-soft sm:p-4"
+                      className="rounded-xl"
+                      actions={[
+                        {
+                          icon: <Trash2 className="h-4 w-4" />,
+                          label: "Delete",
+                          onClick: () => void handleDeleteIncome(transaction),
+                          tone: "danger",
+                        },
+                      ]}
                     >
-                      <div className="flex min-w-0 flex-1 items-center gap-3">
-                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-green-50 text-green-600">
-                          <HandCoins className="h-4 w-4" />
+                      <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-200/70 bg-surface-card p-3 transition-all duration-200 ease-out hover:shadow-soft sm:p-4">
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-green-50 text-green-600">
+                            <HandCoins className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-gray-900 sm:text-base">
+                              {transaction.name ?? "Unnamed income"}
+                            </p>
+                            <p className="truncate text-xs text-gray-500 sm:text-sm">
+                              {meta}
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-gray-900 sm:text-base">
-                            {transaction.name ?? "Unnamed income"}
-                          </p>
-                          <p className="truncate text-xs text-gray-500 sm:text-sm">
-                            {meta}
-                          </p>
+                        <div className="flex flex-shrink-0 items-center gap-1">
+                          <span className="text-sm font-semibold tabular-nums text-green-600 sm:text-base">
+                            +{formatCurrency(transaction.amount)}
+                          </span>
+                          <button
+                            onClick={() => handleDeleteIncome(transaction)}
+                            className="hidden rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 lg:flex"
+                            title="Delete income transaction"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
-                      <div className="flex flex-shrink-0 items-center gap-1">
-                        <span className="text-sm font-semibold tabular-nums text-green-600 sm:text-base">
-                          +{formatCurrency(transaction.amount)}
-                        </span>
-                        <button
-                          onClick={() => handleDeleteIncome(transaction)}
-                          className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
-                          title="Delete income transaction"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
+                    </SwipeableRow>
                   );
                 })}
               </div>
@@ -296,7 +316,7 @@ export default function IncomePage() {
       <AddTransactionModal
         isOpen={isAddModalOpen}
         budgetId={budgetId}
-        cardId={mainDebitCard?.id}
+        cardId={defaultDebitCard?.id}
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={() => {
           void refetch();

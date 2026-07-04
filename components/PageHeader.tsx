@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import Button from "./Button";
+import HeaderActionMenu from "./HeaderActionMenu";
 
 interface PageHeaderProps {
   title: string;
@@ -31,6 +32,16 @@ const PageHeader = ({
   action,
   actions,
 }: PageHeaderProps) => {
+  // Full ordered list of actions (primary `action` first, then `actions`).
+  // On mobile, any action(s) collapse into a single kebab menu so the header
+  // never renders unlabeled icon buttons; the regular button row still
+  // renders normally at sm and up.
+  const allActions = [
+    ...(action ? [{ ...action, variant: "primary" as const }] : []),
+    ...(actions ?? []),
+  ];
+  const useOverflowMenu = allActions.length >= 1;
+
   return (
     <div className="fixed left-0 right-0 top-16 z-[30] border-b border-gray-200/70 bg-surface-card/90 backdrop-blur-md lg:sticky lg:top-0">
       {/* Fixed height while the header is position:fixed (below lg) so it never
@@ -63,38 +74,47 @@ const PageHeader = ({
             )}
           </div>
         </div>
-        {(action ?? actions) && (
+        {allActions.length > 0 && (
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            {action && (
-              <Button onClick={action.onClick} variant="primary">
-                {action.icon && (
-                  <span className={action.label ? "sm:mr-2" : ""}>
-                    {action.icon}
-                  </span>
-                )}
-                {/* Icon-only on mobile when an icon exists; otherwise keep the
-                    label so the button is never empty. */}
-                <span className={action.icon ? "hidden sm:inline" : ""}>
-                  {action.label}
-                </span>
-              </Button>
+            {useOverflowMenu && (
+              <div className="sm:hidden">
+                <HeaderActionMenu actions={allActions} />
+              </div>
             )}
-            {actions?.map((actionItem, index) => (
-              <Button
-                key={index}
-                onClick={actionItem.onClick}
-                variant={actionItem.variant ?? "secondary"}
-              >
-                {actionItem.icon && (
-                  <span className={actionItem.label ? "sm:mr-2" : ""}>
-                    {actionItem.icon}
+            <div
+              className={`items-center gap-2 sm:flex sm:gap-3 ${useOverflowMenu ? "hidden" : "flex"}`}
+            >
+              {action && (
+                <Button onClick={action.onClick} variant="primary">
+                  {action.icon && (
+                    <span className={action.label ? "sm:mr-2" : ""}>
+                      {action.icon}
+                    </span>
+                  )}
+                  {/* Icon-only on mobile when an icon exists; otherwise keep the
+                      label so the button is never empty. */}
+                  <span className={action.icon ? "hidden sm:inline" : ""}>
+                    {action.label}
                   </span>
-                )}
-                <span className={actionItem.icon ? "hidden sm:inline" : ""}>
-                  {actionItem.label}
-                </span>
-              </Button>
-            ))}
+                </Button>
+              )}
+              {actions?.map((actionItem, index) => (
+                <Button
+                  key={index}
+                  onClick={actionItem.onClick}
+                  variant={actionItem.variant ?? "secondary"}
+                >
+                  {actionItem.icon && (
+                    <span className={actionItem.label ? "sm:mr-2" : ""}>
+                      {actionItem.icon}
+                    </span>
+                  )}
+                  <span className={actionItem.icon ? "hidden sm:inline" : ""}>
+                    {actionItem.label}
+                  </span>
+                </Button>
+              ))}
+            </div>
           </div>
         )}
       </div>

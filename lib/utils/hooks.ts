@@ -1,6 +1,50 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+/**
+ * `useState` that persists its value to `localStorage`, read back on next
+ * visit. SSR-safe: the lazy initializer only touches `window`/`localStorage`
+ * when running in the browser, so it's safe to call from `"use client"`
+ * pages rendered on the server first.
+ *
+ * `isValid` guards against corrupt/stale/foreign values in storage (e.g. an
+ * old enum member that no longer exists) — when it returns false the
+ * `defaultValue` is used instead.
+ */
+export const useLocalStorageState = <T>(
+  key: string,
+  defaultValue: T,
+  isValid: (value: unknown) => value is T,
+): [T, (value: T) => void] => {
+  const [value, setValue] = useState<T>(() => {
+    if (typeof window === "undefined") return defaultValue;
+    try {
+      const stored = window.localStorage.getItem(key);
+      if (stored === null) return defaultValue;
+      const parsed: unknown = JSON.parse(stored);
+      return isValid(parsed) ? parsed : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  });
+
+  const setPersistedValue = useCallback(
+    (next: T) => {
+      setValue(next);
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.setItem(key, JSON.stringify(next));
+        } catch {
+          // Ignore write failures (e.g. private browsing storage limits).
+        }
+      }
+    },
+    [key],
+  );
+
+  return [value, setPersistedValue];
+};
 
 export const useDebounce = <T>(value: T, delay: number): T => {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);

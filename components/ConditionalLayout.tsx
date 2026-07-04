@@ -14,6 +14,7 @@ import SideNav from "./SideNav";
 import MobileHeader from "./MobileHeader";
 import MobileBottomNav from "./MobileBottomNav";
 import LoadingSpinner from "./LoadingSpinner";
+import { MobileHeaderActionProvider } from "./MobileHeaderActionContext";
 import { useTrackNavigationHistory } from "@/lib/utils/navigation-history";
 
 // Create context for main navigation state
@@ -150,44 +151,46 @@ export default function ConditionalLayout({
         }}
       >
         <PageLoadingContext.Provider value={{ pageLoading, setPageLoading }}>
-          <main className="flex h-screen bg-surface text-gray-900">
-            {/* Mobile Header - only visible on mobile */}
-            <MobileHeader />
+          <MobileHeaderActionProvider>
+            <main className="flex h-screen bg-surface text-gray-900">
+              {/* Mobile Header - only visible on mobile */}
+              <MobileHeader />
 
-            {/* Mobile Bottom Tab Bar - primary mobile navigation */}
-            <MobileBottomNav />
+              {/* Mobile Bottom Tab Bar - primary mobile navigation */}
+              <MobileBottomNav />
 
-            {/* Desktop Side Navigation - hidden on mobile */}
-            <div className="hidden lg:block">
-              <SideNav
-                isCollapsed={isCollapsed}
-                setIsCollapsed={setIsCollapsed}
-              />
-            </div>
-
-            {/* Main Content Area */}
-            <div
-              className={`relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden transition-all duration-300 lg:overflow-hidden ${
-                isCollapsed ? "lg:ml-16" : "lg:ml-64"
-              } pb-16 pt-32 lg:pb-0 lg:pt-0`}
-            >
-              {children}
-              {/*
-                Single, shell-owned loading state. Pages report their aggregate
-                loading via `usePageLoading` and render null while loading; the
-                page stays mounted (so its data hooks keep running). This overlay
-                sits above any in-page chrome (e.g. a route layout's PageHeader,
-                z-30) but below the fixed app nav, so the nav stays visible while
-                a single spinner covers the content until all data is ready.
-              */}
-              {pageLoading && (
-                <LoadingSpinner
-                  message={pageLoadingMessage}
-                  className="absolute inset-0 z-[45]"
+              {/* Desktop Side Navigation - hidden on mobile */}
+              <div className="hidden lg:block">
+                <SideNav
+                  isCollapsed={isCollapsed}
+                  setIsCollapsed={setIsCollapsed}
                 />
-              )}
-            </div>
-          </main>
+              </div>
+
+              {/* Main Content Area */}
+              <div
+                className={`relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden transition-all duration-300 lg:overflow-hidden ${
+                  isCollapsed ? "lg:ml-16" : "lg:ml-64"
+                } pb-16 pt-32 lg:pb-0 lg:pt-0`}
+              >
+                {children}
+                {/*
+                  Single, shell-owned loading state. Pages report their aggregate
+                  loading via `usePageLoading` and render null while loading; the
+                  page stays mounted (so its data hooks keep running). This overlay
+                  sits above any in-page chrome (e.g. a route layout's PageHeader,
+                  z-30) but below the fixed app nav, so the nav stays visible while
+                  a single spinner covers the content until all data is ready.
+                */}
+                {pageLoading && (
+                  <LoadingSpinner
+                    message={pageLoadingMessage}
+                    className="absolute inset-0 z-[45]"
+                  />
+                )}
+              </div>
+            </main>
+          </MobileHeaderActionProvider>
         </PageLoadingContext.Provider>
       </MainNavContext.Provider>
     );

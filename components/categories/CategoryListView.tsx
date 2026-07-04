@@ -97,6 +97,7 @@ export default function CategoryListView({
                 <CategoryCard
                   category={category}
                   getGroupColor={getGroupColor}
+                  swipeable
                 />
               </div>
             ))}

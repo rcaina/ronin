@@ -17,12 +17,14 @@ import {
   DollarSign,
   Plus,
   Edit,
+  Pencil,
   Trash2,
 } from "lucide-react";
 import { roundToCents, formatCurrency, formatDateUTC } from "@/lib/utils";
 import { toast } from "react-hot-toast";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import AddAllocationModal from "@/components/savings/AddAllocationModal";
+import SwipeableRow from "@/components/SwipeableRow";
 import type { AllocationSummary } from "@/lib/types/savings";
 import type {
   CreateAllocationSchema,
@@ -317,127 +319,153 @@ const PocketDetailPage = () => {
             {/* Allocations List */}
             <div className="space-y-2 pb-4">
               {pocket.allocations && pocket.allocations.length > 0 ? (
-                pocket.allocations.map((allocation) => (
-                  <div
-                    key={allocation.id}
-                    className={`rounded-xl border p-3 transition-colors duration-200 ${
-                      editingAllocationId === allocation.id
-                        ? "border-secondary-200 bg-secondary-50"
-                        : "border-gray-200/70 bg-surface"
-                    }`}
-                  >
-                    {editingAllocationId === allocation.id ? (
-                      <div className="space-y-3">
+                pocket.allocations.map((allocation) => {
+                  const isEditingAllocation =
+                    editingAllocationId === allocation.id;
+
+                  if (isEditingAllocation) {
+                    return (
+                      <div
+                        key={allocation.id}
+                        className="rounded-xl border border-secondary-200 bg-secondary-50 p-3 transition-colors duration-200"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="text-xs text-gray-500">
+                                {allocation.occurredAt
+                                  ? formatDateUTC(String(allocation.occurredAt))
+                                  : formatDateUTC(allocation.createdAt)}
+                              </p>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-medium text-gray-500">
+                              Note
+                            </label>
+                            <textarea
+                              value={editingNote}
+                              onChange={(e) => setEditingNote(e.target.value)}
+                              placeholder="Add a note about this allocation..."
+                              rows={2}
+                              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-gray-500">
+                                Amount
+                              </label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                value={editingAmount}
+                                onChange={(e) =>
+                                  setEditingAmount(e.target.value)
+                                }
+                                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm tabular-nums focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                                placeholder="Amount"
+                              />
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-gray-500">
+                                Occurred at (optional)
+                              </label>
+                              <DateInput
+                                value={editingOccurredAt}
+                                onChange={(e) =>
+                                  setEditingOccurredAt(e.target.value)
+                                }
+                                className="rounded-xl"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              onClick={handleCancelEditAllocation}
+                              disabled={updateAllocationMutation.isPending}
+                              variant="secondary"
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={() => handleSaveAllocation(allocation)}
+                              disabled={updateAllocationMutation.isPending}
+                            >
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <SwipeableRow
+                      key={allocation.id}
+                      disabled={isEditingAllocation}
+                      className="rounded-xl"
+                      actions={[
+                        {
+                          icon: <Pencil className="h-4 w-4" />,
+                          label: "Edit",
+                          onClick: () => handleStartEditAllocation(allocation),
+                        },
+                        {
+                          icon: <Trash2 className="h-4 w-4" />,
+                          label: "Delete",
+                          onClick: () => handleDeleteAllocation(allocation.id),
+                          tone: "danger",
+                        },
+                      ]}
+                    >
+                      <div className="rounded-xl border border-gray-200/70 bg-surface p-3 transition-colors duration-200">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">
+                              {allocation.note ?? "Allocation"}
+                            </p>
                             <p className="text-xs text-gray-500">
                               {allocation.occurredAt
                                 ? formatDateUTC(String(allocation.occurredAt))
                                 : formatDateUTC(allocation.createdAt)}
                             </p>
                           </div>
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-xs font-medium text-gray-500">
-                            Note
-                          </label>
-                          <textarea
-                            value={editingNote}
-                            onChange={(e) => setEditingNote(e.target.value)}
-                            placeholder="Add a note about this allocation..."
-                            rows={2}
-                            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="mb-1 block text-xs font-medium text-gray-500">
-                              Amount
-                            </label>
-                            <input
-                              type="number"
-                              step="0.01"
-                              min="0.01"
-                              value={editingAmount}
-                              onChange={(e) => setEditingAmount(e.target.value)}
-                              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm tabular-nums focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                              placeholder="Amount"
-                            />
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-xs font-medium text-gray-500">
-                              Occurred at (optional)
-                            </label>
-                            <DateInput
-                              value={editingOccurredAt}
-                              onChange={(e) =>
-                                setEditingOccurredAt(e.target.value)
+                          <div className="flex items-center gap-1">
+                            <span
+                              className={`font-medium tabular-nums ${
+                                allocation.withdrawal
+                                  ? "text-red-600"
+                                  : "text-green-600"
+                              }`}
+                            >
+                              {formatCurrency(allocation.amount)}
+                            </span>
+                            <button
+                              onClick={() =>
+                                handleStartEditAllocation(allocation)
                               }
-                              className="rounded-xl"
-                            />
+                              className="hidden rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600 lg:block"
+                              title="Edit allocation"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleDeleteAllocation(allocation.id)
+                              }
+                              className="hidden rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 lg:block"
+                              title="Remove allocation"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </div>
                         </div>
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            onClick={handleCancelEditAllocation}
-                            disabled={updateAllocationMutation.isPending}
-                            variant="secondary"
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            onClick={() => handleSaveAllocation(allocation)}
-                            disabled={updateAllocationMutation.isPending}
-                          >
-                            Save
-                          </Button>
-                        </div>
                       </div>
-                    ) : (
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">
-                            {allocation.note ?? "Allocation"}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {allocation.occurredAt
-                              ? formatDateUTC(String(allocation.occurredAt))
-                              : formatDateUTC(allocation.createdAt)}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span
-                            className={`font-medium tabular-nums ${
-                              allocation.withdrawal
-                                ? "text-red-600"
-                                : "text-green-600"
-                            }`}
-                          >
-                            {formatCurrency(allocation.amount)}
-                          </span>
-                          <button
-                            onClick={() =>
-                              handleStartEditAllocation(allocation)
-                            }
-                            className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
-                            title="Edit allocation"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleDeleteAllocation(allocation.id)
-                            }
-                            className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
-                            title="Remove allocation"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))
+                    </SwipeableRow>
+                  );
+                })
               ) : (
                 <div className="flex flex-col items-center justify-center gap-3 p-8 text-center">
                   <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">

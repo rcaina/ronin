@@ -8,6 +8,7 @@ import {
   DollarSign,
   Target,
   EditIcon,
+  Pencil,
   Info,
   Plus,
   Trash2,
@@ -15,16 +16,19 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { usePageLoading } from "@/components/ConditionalLayout";
+import { useMobileHeaderAction } from "@/components/MobileHeaderActionContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import ReceiptScanModal from "@/components/transactions/ReceiptScanModal";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import SwipeableRow from "@/components/SwipeableRow";
 import { useState, useEffect } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 import BudgetStrategyIndicator from "@/components/budgets/BudgetStrategyIndicator";
-import { TransactionType, CardType } from "@prisma/client";
+import { TransactionType } from "@prisma/client";
 import { formatDateUTC, roundToCents, getGroupColor } from "@/lib/utils";
+import { isDebitCard } from "@/lib/utils/cards";
 import { calculateCategorySpent } from "@/lib/utils/spending";
 import { useDeleteTransaction } from "@/lib/data-hooks/transactions/useTransactions";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
@@ -87,6 +91,7 @@ const BudgetDetailsPage = () => {
     useState<TransactionWithRelations | null>(null);
   const { data: budget, isLoading, error } = useBudget(id as string, true); // Exclude card payments for calculations
   const { setActions } = useBudgetHeader();
+  const { setMobileHeaderAction } = useMobileHeaderAction();
   const deleteTransactionMutation = useDeleteTransaction();
 
   // Register header actions
@@ -113,6 +118,17 @@ const BudgetDetailsPage = () => {
     ]);
   }, [setActions]);
 
+  // Register the mobile header's scan-receipt shortcut; clean up on unmount
+  // so it doesn't leak into other pages.
+  useEffect(() => {
+    setMobileHeaderAction({
+      icon: <ScanLine className="h-5 w-5" />,
+      label: "Scan receipt",
+      onClick: () => setIsReceiptScanOpen(true),
+    });
+    return () => setMobileHeaderAction(null);
+  }, [setMobileHeaderAction]);
+
   // Per-budget statistics (totals + chart data), computed from shared utils
   const {
     totalIncome,
@@ -126,7 +142,43 @@ const BudgetDetailsPage = () => {
 
   usePageLoading(isLoading, "Loading budget...");
   if (isLoading) {
-    return null;
+    return (
+      <div className="flex flex-col bg-surface lg:h-full lg:flex-col">
+        <div className="mx-auto flex w-full flex-col px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:flex-1 lg:overflow-hidden lg:px-8 lg:py-4 lg:pb-8">
+          {/* Charts row skeleton */}
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:gap-3 lg:grid-cols-4 lg:gap-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="card-surface p-4">
+                <div className="h-32 animate-pulse rounded-xl bg-surface-muted" />
+              </div>
+            ))}
+          </div>
+
+          {/* Category group cards skeleton */}
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:mb-6 sm:grid-cols-3 sm:gap-4">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="h-32 animate-pulse rounded-xl bg-surface-muted"
+              />
+            ))}
+          </div>
+
+          {/* Recent transactions skeleton */}
+          <div className="card-surface flex-1 p-3 sm:p-4">
+            <div className="mb-4 h-5 w-48 animate-pulse rounded-full bg-surface-muted" />
+            <div className="space-y-2">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-14 animate-pulse rounded-xl bg-surface-muted"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -751,9 +803,7 @@ const BudgetDetailsPage = () => {
                   <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
                     {(() => {
                       const debitCards = (budget.cards ?? []).filter(
-                        (card: { cardType: string }) =>
-                          card.cardType === CardType.DEBIT ||
-                          card.cardType === CardType.BUSINESS_DEBIT,
+                        isDebitCard,
                       );
                       const debitCardIds = debitCards.map(
                         (card: { id: string }) => card.id,
@@ -898,7 +948,9 @@ const BudgetDetailsPage = () => {
                   .slice(0, 5);
 
                 return recentTransactions.map((transaction) => {
-                  if (editingTransactionId === transaction.id) {
+                  const isEditing = editingTransactionId === transaction.id;
+
+                  if (isEditing) {
                     return (
                       <div
                         key={transaction.id}
@@ -915,93 +967,114 @@ const BudgetDetailsPage = () => {
                   }
 
                   return (
-                    <div
+                    <SwipeableRow
                       key={transaction.id}
-                      className="group/row flex items-center justify-between rounded-xl border border-gray-100 bg-surface p-3"
+                      disabled={isEditing}
+                      className="rounded-xl"
+                      actions={[
+                        {
+                          icon: <Pencil className="h-4 w-4" />,
+                          label: "Edit",
+                          onClick: () => handleEditTransaction(transaction),
+                        },
+                        {
+                          icon: <Trash2 className="h-4 w-4" />,
+                          label: "Delete",
+                          onClick: () => setTransactionToDelete(transaction),
+                          tone: "danger",
+                        },
+                      ]}
                     >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-medium text-gray-900">
-                            {transaction.name ?? "Unnamed transaction"}
-                          </span>
-                          <span
-                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                              transaction.transactionType ===
+                      <div className="group/row flex items-center justify-between rounded-xl border border-gray-100 bg-surface p-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium text-gray-900">
+                              {transaction.name ?? "Unnamed transaction"}
+                            </span>
+                            <span
+                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                transaction.transactionType ===
+                                TransactionType.CARD_PAYMENT
+                                  ? "bg-gray-100 text-gray-500"
+                                  : getGroupChipClasses(
+                                      transaction.categoryName
+                                        ? transaction.categoryGroup
+                                        : undefined,
+                                    )
+                              }`}
+                            >
+                              {transaction.transactionType ===
                               TransactionType.CARD_PAYMENT
-                                ? "bg-gray-100 text-gray-500"
-                                : getGroupChipClasses(
-                                    transaction.categoryName
-                                      ? transaction.categoryGroup
-                                      : undefined,
-                                  )
-                            }`}
-                          >
-                            {transaction.transactionType ===
-                            TransactionType.CARD_PAYMENT
-                              ? "Card payment"
-                              : (transaction.categoryName ?? "No category")}
-                          </span>
-                          {transaction.description && (
-                            <div className="group relative flex-shrink-0">
-                              <Info className="h-4 w-4 cursor-help text-gray-400" />
-                              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
-                                {transaction.description}
-                                <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-primary-950/90"></div>
+                                ? "Card payment"
+                                : (transaction.categoryName ?? "No category")}
+                            </span>
+                            {transaction.description && (
+                              <div className="group relative flex-shrink-0">
+                                <Info className="h-4 w-4 cursor-help text-gray-400" />
+                                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
+                                  {transaction.description}
+                                  <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-primary-950/90"></div>
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
+                          </div>
+                          <p className="mt-1 text-xs text-gray-400">
+                            {transaction.occurredAt
+                              ? formatDateUTC(
+                                  new Date(
+                                    transaction.occurredAt,
+                                  ).toISOString(),
+                                )
+                              : formatDateUTC(
+                                  new Date(transaction.createdAt).toISOString(),
+                                )}
+                          </p>
                         </div>
-                        <p className="mt-1 text-xs text-gray-400">
-                          {transaction.occurredAt
-                            ? formatDateUTC(
-                                new Date(transaction.occurredAt).toISOString(),
-                              )
-                            : formatDateUTC(
-                                new Date(transaction.createdAt).toISOString(),
-                              )}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2 sm:space-x-3">
-                        {/* Action icons — always visible on mobile, hover on desktop */}
-                        <div className="flex items-center space-x-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover/row:opacity-100">
-                          <button
-                            onClick={() => handleEditTransaction(transaction)}
-                            className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
-                            title="Edit transaction"
-                          >
-                            <EditIcon className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => setTransactionToDelete(transaction)}
-                            className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
-                            title="Delete transaction"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                        <div className="text-right">
-                          <div
-                            className={`text-sm font-semibold tabular-nums ${
-                              transaction.transactionType ===
+                        <div className="flex items-center space-x-2 sm:space-x-3">
+                          {/* Action icons — desktop hover only; mobile exposes
+                            these via swipe (SwipeableRow). */}
+                          <div className="hidden items-center space-x-1 opacity-0 transition-opacity lg:flex lg:group-hover/row:opacity-100">
+                            <button
+                              onClick={() => handleEditTransaction(transaction)}
+                              className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
+                              title="Edit transaction"
+                            >
+                              <EditIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                setTransactionToDelete(transaction)
+                              }
+                              className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
+                              title="Delete transaction"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <div className="text-right">
+                            <div
+                              className={`text-sm font-semibold tabular-nums ${
+                                transaction.transactionType ===
+                                TransactionType.RETURN
+                                  ? "text-green-600"
+                                  : ""
+                              }`}
+                            >
+                              {transaction.transactionType ===
                               TransactionType.RETURN
-                                ? "text-green-600"
-                                : ""
-                            }`}
-                          >
-                            {transaction.transactionType ===
-                            TransactionType.RETURN
-                              ? "+"
-                              : ""}
-                            ${Math.abs(transaction.amount).toFixed(2)}
-                          </div>
-                          <div className="text-xs capitalize text-gray-500">
-                            {transaction.transactionType
-                              .toLowerCase()
-                              .replace("_", " ")}
+                                ? "+"
+                                : ""}
+                              ${Math.abs(transaction.amount).toFixed(2)}
+                            </div>
+                            <div className="text-xs capitalize text-gray-500">
+                              {transaction.transactionType
+                                .toLowerCase()
+                                .replace("_", " ")}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </SwipeableRow>
                   );
                 });
               })()}
