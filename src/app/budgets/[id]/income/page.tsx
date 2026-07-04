@@ -2,14 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useParams } from "next/navigation";
-import {
-  Search,
-  Plus,
-  Trash2,
-  DollarSign,
-  HandCoins,
-  Target,
-} from "lucide-react";
+import { Search, Plus, Trash2, DollarSign, Info, Target } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { formatCurrency } from "@/lib/utils";
@@ -141,14 +134,16 @@ export default function IncomePage() {
           <div className="mt-4 h-10 animate-pulse rounded-xl bg-surface-muted" />
 
           {/* Income list skeleton */}
-          <div className="card-surface mt-4 p-4 sm:p-5 lg:p-6">
-            <div className="mb-4 h-5 w-40 animate-pulse rounded-full bg-surface-muted" />
-            <div className="space-y-2">
+          <div className="card-surface mt-4 overflow-hidden">
+            <div className="divide-y divide-gray-100">
               {[0, 1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-16 animate-pulse rounded-xl bg-surface-muted"
-                />
+                <div key={i} className="flex items-center justify-between p-3 sm:p-4">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="h-4 w-32 animate-pulse rounded-full bg-surface-muted" />
+                    <div className="h-3 w-20 animate-pulse rounded-full bg-surface-muted" />
+                  </div>
+                  <div className="h-4 w-16 animate-pulse rounded-full bg-surface-muted" />
+                </div>
               ))}
             </div>
           </div>
@@ -217,48 +212,15 @@ export default function IncomePage() {
           </div>
 
           {/* Income List */}
-          <div className="card-surface mt-4 p-4 sm:p-5 lg:p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-gray-900 sm:text-base">
-                Income transactions
-              </h3>
-              <span className="rounded-full bg-secondary/15 px-2.5 py-0.5 text-xs font-medium tabular-nums text-secondary-700">
-                {filteredTransactions.length}
-              </span>
-            </div>
-
-            {filteredTransactions.length === 0 ? (
-              <div className="flex flex-col items-center py-12 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
-                  <DollarSign className="h-7 w-7" strokeWidth={1.5} />
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-gray-900">
-                  No income transactions
-                </h3>
-                <p className="mt-2 text-sm text-gray-500">
-                  {searchQuery
-                    ? "No income transactions match your search."
-                    : "Get started by adding your first income transaction."}
-                </p>
-                {!searchQuery && defaultDebitCard && (
-                  <Button
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="mt-4"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add income
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {filteredTransactions.map((transaction) => {
-                  const meta = [
+          <div className="card-surface mt-4 overflow-hidden">
+            <div className="divide-y divide-gray-100">
+              {filteredTransactions.length > 0 ? (
+                filteredTransactions.map((transaction) => {
+                  const dateLabel = [
                     transaction.occurredAt
                       ? new Date(transaction.occurredAt).toLocaleDateString()
                       : new Date(transaction.createdAt).toLocaleDateString(),
                     transaction.card?.name,
-                    transaction.description,
                   ]
                     .filter(Boolean)
                     .join(" • ");
@@ -266,7 +228,6 @@ export default function IncomePage() {
                   return (
                     <SwipeableRow
                       key={transaction.id}
-                      className="rounded-xl"
                       actions={[
                         {
                           icon: <Trash2 className="h-4 w-4" />,
@@ -276,38 +237,79 @@ export default function IncomePage() {
                         },
                       ]}
                     >
-                      <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-200/70 bg-surface-card p-3 transition-all duration-200 ease-out hover:shadow-soft sm:p-4">
-                        <div className="flex min-w-0 flex-1 items-center gap-3">
-                          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-green-50 text-green-600">
-                            <HandCoins className="h-4 w-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-gray-900 sm:text-base">
+                      <div className="group flex items-center justify-between p-3 transition-colors duration-200 hover:bg-surface sm:p-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium text-gray-900">
                               {transaction.name ?? "Unnamed income"}
-                            </p>
-                            <p className="truncate text-xs text-gray-500 sm:text-sm">
-                              {meta}
-                            </p>
+                            </span>
+                            <span className="inline-flex items-center rounded-full bg-accent px-2 py-1 text-xs font-medium text-primary">
+                              Income
+                            </span>
+                            {transaction.description && (
+                              <div className="group relative flex-shrink-0">
+                                <Info className="h-4 w-4 cursor-help text-gray-400" />
+                                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
+                                  {transaction.description}
+                                  <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-primary-950/90"></div>
+                                </div>
+                              </div>
+                            )}
                           </div>
+                          <p className="mt-1 text-xs text-gray-400">
+                            {dateLabel}
+                          </p>
                         </div>
-                        <div className="flex flex-shrink-0 items-center gap-1">
-                          <span className="text-sm font-semibold tabular-nums text-green-600 sm:text-base">
-                            +{formatCurrency(transaction.amount)}
-                          </span>
-                          <button
-                            onClick={() => handleDeleteIncome(transaction)}
-                            className="hidden rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 lg:flex"
-                            title="Delete income transaction"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+
+                        <div className="flex items-center space-x-2 sm:space-x-4">
+                          <div className="flex items-center opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
+                            <button
+                              onClick={() => handleDeleteIncome(transaction)}
+                              className="hidden rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 lg:block"
+                              title="Delete income transaction"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          <div className="text-right">
+                            <div className="text-sm font-semibold tabular-nums text-green-600">
+                              +{formatCurrency(transaction.amount)}
+                            </div>
+                            <div className="text-xs capitalize text-gray-500">
+                              income
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </SwipeableRow>
                   );
-                })}
-              </div>
-            )}
+                })
+              ) : (
+                <div className="flex flex-col items-center px-3 py-12 text-center sm:px-6">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+                    <DollarSign className="h-7 w-7" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="mb-2 text-lg font-semibold text-gray-900">
+                    No income transactions
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {searchQuery
+                      ? "No income transactions match your search."
+                      : "Get started by adding your first income transaction."}
+                  </p>
+                  {!searchQuery && defaultDebitCard && (
+                    <Button
+                      onClick={() => setIsAddModalOpen(true)}
+                      className="mt-4"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add income
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
