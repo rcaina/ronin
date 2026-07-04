@@ -31,7 +31,7 @@ import CreateBudgetModal from "@/components/budgets/CreateBudgetModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import { CategoryType } from "@prisma/client";
 import Button from "@/components/Button";
-import { roundToCents } from "@/lib/utils";
+import { formatCurrency, roundToCents } from "@/lib/utils";
 import {
   calculateBudgetSpent,
   calculateSpendingPercentage,
@@ -247,6 +247,53 @@ const BudgetsPage = () => {
         <div className="mx-auto w-full px-4 py-4 sm:px-6 lg:px-8">
           {/* Budget overview charts — swipeable row on mobile, grid on larger screens */}
           <div className="scrollbar-hide mb-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 xl:grid-cols-4">
+            {/* Active budgets summary */}
+            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
+              <h3 className="mb-3 text-sm font-semibold text-gray-900">
+                Summary
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-4 w-4 text-secondary-600" />
+                    <span className="text-xs text-gray-500">Active</span>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums text-gray-900">
+                    {budgetStats.activeBudgetsCount}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-xs text-gray-500">Completed</span>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums text-gray-900">
+                    {completedBudgets.length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-secondary-600" />
+                    <span className="text-xs text-gray-500">Last 7 days</span>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums text-gray-900">
+                    {formatCurrency(roundToCents(budgetStats.recentSpending))}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-secondary-600" />
+                    <span className="text-xs text-gray-500">Daily avg</span>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums text-gray-900">
+                    {formatCurrency(
+                      roundToCents(budgetStats.averageDailySpending),
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Spending by category group donut */}
             <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
               <h3 className="mb-2 text-sm font-semibold text-gray-900">
@@ -458,51 +505,6 @@ const BudgetsPage = () => {
               ) : (
                 <ChartEmptyState icon={TrendingUp} message="No spending data" />
               )}
-            </div>
-
-            {/* Active budgets summary */}
-            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-              <h3 className="mb-3 text-sm font-semibold text-gray-900">
-                Summary
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Target className="h-4 w-4 text-secondary-600" />
-                    <span className="text-xs text-gray-500">Active</span>
-                  </div>
-                  <span className="text-sm font-bold tabular-nums text-gray-900">
-                    {budgetStats.activeBudgetsCount}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-xs text-gray-500">Completed</span>
-                  </div>
-                  <span className="text-sm font-bold tabular-nums text-gray-900">
-                    {completedBudgets.length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-secondary-600" />
-                    <span className="text-xs text-gray-500">Last 7 days</span>
-                  </div>
-                  <span className="text-sm font-bold tabular-nums text-gray-900">
-                    ${budgetStats.recentSpending.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-secondary-600" />
-                    <span className="text-xs text-gray-500">Daily avg</span>
-                  </div>
-                  <span className="text-sm font-bold tabular-nums text-gray-900">
-                    ${budgetStats.averageDailySpending.toLocaleString()}
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
 

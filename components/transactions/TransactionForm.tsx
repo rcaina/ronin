@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -23,6 +23,10 @@ import type { Card } from "@/lib/types/card";
 import Button from "../Button";
 import DateInput from "../DateInput";
 import { formatCurrency } from "@/lib/utils";
+import {
+  isDebitCard as isDebitCardType,
+  oldestDebitCard,
+} from "@/lib/utils/cards";
 import { CardType, TransactionType } from "@prisma/client";
 
 // Validation schema
@@ -66,6 +70,11 @@ export default function TransactionForm({
   const { data: budgets = [] } = useBudgets();
   const { data: cards = [] } = useCards(undefined, budgetId);
 
+  // Income transactions can only be deposited to a debit-type card.
+  const debitCards = useMemo(() => cards.filter(isDebitCardType), [cards]);
+  // The list of cards to show in the "Payment Method" select.
+  const cardOptions = isIncome ? debitCards : cards;
+
   const [selectedBudgetId, setSelectedBudgetId] = useState<string>("");
   const { data: budgetCategories = [] } = useBudgetCategories(selectedBudgetId);
   const isEditing = !!transaction;
@@ -81,6 +90,7 @@ export default function TransactionForm({
     formState: { errors },
     setValue,
     watch,
+    getValues,
   } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
@@ -114,10 +124,7 @@ export default function TransactionForm({
       selectedCard.cardType === CardType.BUSINESS_CREDIT);
 
   // Determine if the selected card is a debit card (for income)
-  const isDebitCard =
-    selectedCard &&
-    (selectedCard.cardType === CardType.DEBIT ||
-      selectedCard.cardType === CardType.BUSINESS_DEBIT);
+  const isDebitCard = selectedCard && isDebitCardType(selectedCard);
 
   // Determine if current transaction type is income
   const isIncomeTransaction = watchedTransactionType === TransactionType.INCOME;
@@ -146,16 +153,50 @@ export default function TransactionForm({
         setValue("budgetId", budgetId);
         setSelectedBudgetId(budgetId);
       }
-      if (cardId) {
-        setValue("cardId", cardId);
-      }
       // Set default transaction type based on isIncome prop
       setValue(
         "transactionType",
         isIncome ? TransactionType.INCOME : TransactionType.REGULAR,
       );
     }
-  }, [transaction, budgetId, cardId, isIncome, setValue]);
+  }, [transaction, budgetId, isIncome, setValue]);
+
+  // Default the payment method once the (filtered) card list has actually
+  // loaded. This effect is keyed on `cards`/`debitCards` so it re-runs when
+  // the cards query resolves, fixing the case where the modal is opened for
+  // the first time with a cold query cache (the select's <option> elements
+  // don't exist yet when the editing-flow effect above runs, so setValue has
+  // nothing to match against). It never overwrites a value the user already
+  // picked.
+  useEffect(() => {
+    if (transaction) return; // editing flow is handled separately above
+    if (getValues("cardId")) return; // don't clobber an existing selection
+    if (cardOptions.length === 0) return; // nothing loaded yet to default to
+
+    const propCard = cardId
+      ? cardOptions.find((card) => card.id === cardId)
+      : undefined;
+
+    if (propCard) {
+      setValue("cardId", propCard.id);
+      return;
+    }
+
+    if (isIncome && debitCards.length > 0) {
+      const defaultDebitCard = oldestDebitCard(debitCards);
+      if (defaultDebitCard) {
+        setValue("cardId", defaultDebitCard.id);
+      }
+    }
+  }, [
+    cardOptions,
+    debitCards,
+    isIncome,
+    cardId,
+    transaction,
+    setValue,
+    getValues,
+  ]);
 
   const onSubmit = (data: TransactionFormData) => {
     if (isEditing && transaction) {
@@ -485,28 +526,45 @@ export default function TransactionForm({
             />
           </div>
 
-          {/* Card Selection */}
-          <div>
-            <label
-              htmlFor="cardId"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Payment Method (Optional)
-            </label>
-            <select
-              id="cardId"
-              {...register("cardId")}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-              disabled={isPending}
-            >
-              <option value="">Select a payment method</option>
-              {cards.map((card: Card) => (
-                <option key={card.id} value={card.id}>
-                  {card.name} ({card.cardType}) - {card.user.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Card Selection - when creating, a single available debit card is
+              auto-selected (see the defaulting effect above), so just show it
+              read-only instead of a select with one option. Editing always
+              uses the registered select so the display matches `cardId`. */}
+          {!isEditing && isIncome && debitCards.length === 1 ? (
+            <div>
+              <p className="mb-1 block text-xs font-medium text-gray-500">
+                Payment method
+              </p>
+              <div className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                {debitCards[0]?.name}
+                {debitCards[0]?.lastFourDigits
+                  ? ` •••• ${debitCards[0].lastFourDigits}`
+                  : ""}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label
+                htmlFor="cardId"
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
+                Payment Method (Optional)
+              </label>
+              <select
+                id="cardId"
+                {...register("cardId")}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                disabled={isPending}
+              >
+                <option value="">Select a payment method</option>
+                {cardOptions.map((card: Card) => (
+                  <option key={card.id} value={card.id}>
+                    {card.name} ({card.cardType}) - {card.user.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Description - spans full width */}
           <div className="sm:col-span-2">

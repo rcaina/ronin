@@ -37,7 +37,7 @@ export default function BudgetCategoriesSearch({
           placeholder="Search categories, amounts, transactions..."
           value={localSearchQuery}
           onChange={(e) => setLocalSearchQuery(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 bg-surface-card py-2 pl-10 pr-10 text-sm text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full rounded-xl border border-gray-300 bg-surface-card py-2 pl-10 pr-10 text-sm text-gray-900 placeholder-gray-500 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
         />
         {localSearchQuery && (
           <button

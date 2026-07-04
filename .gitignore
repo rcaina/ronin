@@ -44,3 +44,9 @@ yarn-error.log*
 
 # idea files
 .idea
+
+#md files
+BANK_SYNC_PLAN.md
+MOBILE_PLAN.md
+PREMIUM_FEATURES_PLAN.md
+SUBSCRIPTION_PLAN.md

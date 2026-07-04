@@ -123,11 +123,16 @@ const config: Config = {
           from: { opacity: "0", transform: "scale(0.97)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
+        "slide-up": {
+          from: { opacity: "0", transform: "translateY(16px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "fade-in": "fade-in 0.3s ease-out both",
         "fade-in-up": "fade-in-up 0.35s ease-out both",
         "scale-in": "scale-in 0.2s ease-out both",
+        "slide-up": "slide-up 0.25s ease-out both",
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",

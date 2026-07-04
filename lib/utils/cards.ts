@@ -56,6 +56,31 @@ export const getCardColor = (userId: string): string => {
 };
 
 /**
+ * Whether a card is a debit-type card (personal or business debit).
+ * Centralizes the `cardType === "DEBIT" || cardType === "BUSINESS_DEBIT"`
+ * check that used to be duplicated (with inconsistent definitions) across
+ * the app.
+ */
+export const isDebitCard = (card: { cardType: string }): boolean =>
+  card.cardType === CardType.DEBIT || card.cardType === CardType.BUSINESS_DEBIT;
+
+/**
+ * The oldest-created debit card in a list, used as the default payment
+ * method when depositing income.
+ */
+export const oldestDebitCard = <
+  T extends { cardType: string; createdAt: string | Date },
+>(
+  cards: T[],
+): T | undefined =>
+  [...cards]
+    .filter(isDebitCard)
+    .sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    )[0];
+
+/**
  * Maps card type from API format to component format
  * @param cardType - The card type from the API
  * @returns The card type for the component

@@ -2,21 +2,15 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useParams } from "next/navigation";
-import {
-  Search,
-  Plus,
-  Trash2,
-  DollarSign,
-  HandCoins,
-  Target,
-} from "lucide-react";
-import { CardType } from "@prisma/client";
+import { Search, Plus, Trash2, DollarSign, Info, Target } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { formatCurrency } from "@/lib/utils";
+import { isDebitCard, oldestDebitCard } from "@/lib/utils/cards";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import Button from "@/components/Button";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import SwipeableRow from "@/components/SwipeableRow";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 
@@ -33,6 +27,39 @@ interface IncomeTransaction {
     name: string;
     cardType: string;
   } | null;
+}
+
+/**
+ * Info-icon tooltip for a transaction's description. Shows on hover for
+ * pointer devices and toggles on tap for touch devices (Safari doesn't focus
+ * buttons on tap, so hover/focus alone isn't enough). The bubble wraps and is
+ * capped to the viewport width so long descriptions stay readable on mobile.
+ */
+function DescriptionTooltip({ description }: { description: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="group/tip relative flex-shrink-0">
+      <button
+        type="button"
+        aria-label="Show description"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((open) => !open)}
+        onBlur={() => setIsOpen(false)}
+        className="flex items-center rounded-full text-gray-400"
+      >
+        <Info className="h-4 w-4" />
+      </button>
+      <div
+        className={`pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max max-w-[calc(100vw-4rem)] -translate-x-1/2 break-words rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white shadow-lifted transition-opacity duration-200 sm:max-w-xs ${
+          isOpen ? "opacity-100" : "opacity-0 group-hover/tip:opacity-100"
+        }`}
+      >
+        {description}
+        <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-transparent border-t-primary-950/90"></div>
+      </div>
+    </div>
+  );
 }
 
 export default function IncomePage() {
@@ -64,11 +91,7 @@ export default function IncomePage() {
     if (!budget) return [];
 
     // Get all debit cards for this budget
-    const debitCards = (budget.cards ?? []).filter(
-      (card: { cardType: string }) =>
-        card.cardType === CardType.DEBIT ||
-        card.cardType === CardType.BUSINESS_DEBIT,
-    );
+    const debitCards = (budget.cards ?? []).filter(isDebitCard);
 
     const debitCardIds = debitCards.map((card: { id: string }) => card.id);
 
@@ -134,7 +157,35 @@ export default function IncomePage() {
 
   usePageLoading(isLoading, "Loading income data...");
   if (isLoading) {
-    return null;
+    return (
+      <div className="bg-surface lg:h-full lg:overflow-y-auto">
+        <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:px-8 lg:py-4 lg:pb-8">
+          {/* Total income hero skeleton */}
+          <div className="h-24 animate-pulse rounded-4xl bg-surface-muted sm:h-28" />
+
+          {/* Search skeleton */}
+          <div className="mt-4 h-10 animate-pulse rounded-xl bg-surface-muted" />
+
+          {/* Income list skeleton */}
+          <div className="card-surface mt-4 overflow-hidden">
+            <div className="divide-y divide-gray-100">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3 sm:p-4"
+                >
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="h-4 w-32 animate-pulse rounded-full bg-surface-muted" />
+                    <div className="h-3 w-20 animate-pulse rounded-full bg-surface-muted" />
+                  </div>
+                  <div className="h-4 w-16 animate-pulse rounded-full bg-surface-muted" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!budget) {
@@ -152,19 +203,9 @@ export default function IncomePage() {
     );
   }
 
-  // Get main debit card for adding income
-  const mainDebitCard =
-    (budget.cards ?? []).find(
-      (card: { cardType: string; name: string }) =>
-        (card.cardType === CardType.DEBIT ||
-          card.cardType === CardType.BUSINESS_DEBIT) &&
-        card.name === "Main",
-    ) ??
-    (budget.cards ?? []).find(
-      (card: { cardType: string }) =>
-        card.cardType === CardType.DEBIT ||
-        card.cardType === CardType.BUSINESS_DEBIT,
-    );
+  // Get the oldest-created debit card for adding income (used as the
+  // default payment method in the add-income modal).
+  const defaultDebitCard = oldestDebitCard(budget.cards ?? []);
 
   return (
     <>
@@ -202,92 +243,105 @@ export default function IncomePage() {
               placeholder="Search income transactions..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 bg-surface-card px-10 py-3 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+              className="w-full rounded-xl border border-gray-300 bg-surface-card py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
             />
           </div>
 
           {/* Income List */}
-          <div className="card-surface mt-4 p-4 sm:p-5 lg:p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-gray-900 sm:text-base">
-                Income transactions
-              </h3>
-              <span className="rounded-full bg-secondary/15 px-2.5 py-0.5 text-xs font-medium tabular-nums text-secondary-700">
-                {filteredTransactions.length}
-              </span>
-            </div>
-
-            {filteredTransactions.length === 0 ? (
-              <div className="flex flex-col items-center py-12 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
-                  <DollarSign className="h-7 w-7" strokeWidth={1.5} />
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-gray-900">
-                  No income transactions
-                </h3>
-                <p className="mt-2 text-sm text-gray-500">
-                  {searchQuery
-                    ? "No income transactions match your search."
-                    : "Get started by adding your first income transaction."}
-                </p>
-                {!searchQuery && mainDebitCard && (
-                  <Button
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="mt-4"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add income
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {filteredTransactions.map((transaction) => {
-                  const meta = [
+          <div className="card-surface mt-4 overflow-hidden">
+            <div className="divide-y divide-gray-100">
+              {filteredTransactions.length > 0 ? (
+                filteredTransactions.map((transaction) => {
+                  const dateLabel = [
                     transaction.occurredAt
                       ? new Date(transaction.occurredAt).toLocaleDateString()
                       : new Date(transaction.createdAt).toLocaleDateString(),
                     transaction.card?.name,
-                    transaction.description,
                   ]
                     .filter(Boolean)
                     .join(" • ");
 
                   return (
-                    <div
+                    <SwipeableRow
                       key={transaction.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-gray-200/70 bg-surface-card p-3 transition-all duration-200 ease-out hover:shadow-soft sm:p-4"
+                      actions={[
+                        {
+                          icon: <Trash2 className="h-4 w-4" />,
+                          label: "Delete",
+                          onClick: () => void handleDeleteIncome(transaction),
+                          tone: "danger",
+                        },
+                      ]}
                     >
-                      <div className="flex min-w-0 flex-1 items-center gap-3">
-                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-green-50 text-green-600">
-                          <HandCoins className="h-4 w-4" />
+                      <div className="group flex items-center justify-between p-3 transition-colors duration-200 hover:bg-surface sm:p-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium text-gray-900">
+                              {transaction.name ?? "Unnamed income"}
+                            </span>
+                            <span className="inline-flex items-center rounded-full bg-accent px-2 py-1 text-xs font-medium text-primary">
+                              Income
+                            </span>
+                            {transaction.description && (
+                              <DescriptionTooltip
+                                description={transaction.description}
+                              />
+                            )}
+                          </div>
+                          <p className="mt-1 text-xs text-gray-400">
+                            {dateLabel}
+                          </p>
                         </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-gray-900 sm:text-base">
-                            {transaction.name ?? "Unnamed income"}
-                          </p>
-                          <p className="truncate text-xs text-gray-500 sm:text-sm">
-                            {meta}
-                          </p>
+
+                        <div className="flex items-center space-x-2 sm:space-x-4">
+                          <div className="flex items-center opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
+                            <button
+                              onClick={() => handleDeleteIncome(transaction)}
+                              className="hidden rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 lg:block"
+                              title="Delete income transaction"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          <div className="text-right">
+                            <div className="text-sm font-semibold tabular-nums text-green-600">
+                              +{formatCurrency(transaction.amount)}
+                            </div>
+                            <div className="text-xs capitalize text-gray-500">
+                              income
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex flex-shrink-0 items-center gap-1">
-                        <span className="text-sm font-semibold tabular-nums text-green-600 sm:text-base">
-                          +{formatCurrency(transaction.amount)}
-                        </span>
-                        <button
-                          onClick={() => handleDeleteIncome(transaction)}
-                          className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
-                          title="Delete income transaction"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
+                    </SwipeableRow>
                   );
-                })}
-              </div>
-            )}
+                })
+              ) : (
+                <div className="flex flex-col items-center px-3 py-12 text-center sm:px-6">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+                    <DollarSign className="h-7 w-7" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="mb-2 text-lg font-semibold text-gray-900">
+                    No income transactions
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {searchQuery
+                      ? "No income transactions match your search."
+                      : "Get started by adding your first income transaction."}
+                  </p>
+                  {!searchQuery && defaultDebitCard && (
+                    <Button
+                      onClick={() => setIsAddModalOpen(true)}
+                      className="mt-4"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add income
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -296,7 +350,7 @@ export default function IncomePage() {
       <AddTransactionModal
         isOpen={isAddModalOpen}
         budgetId={budgetId}
-        cardId={mainDebitCard?.id}
+        cardId={defaultDebitCard?.id}
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={() => {
           void refetch();

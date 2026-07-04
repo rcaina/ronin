@@ -15,10 +15,22 @@ import {
 import { usePageLoading } from "@/components/ConditionalLayout";
 import { Plus, AlertCircle, Search, X } from "lucide-react";
 import AddCategoryForm from "@/components/categories/AddCategoryForm";
-import { useDebounce, useLockBodyScroll } from "@/lib/utils/hooks";
+import {
+  useDebounce,
+  useLocalStorageState,
+  useLockBodyScroll,
+} from "@/lib/utils/hooks";
+
+const CATEGORIES_VIEW_STORAGE_KEY = "ronin.categoriesView";
+const isCategoryViewType = (value: unknown): value is CategoryViewType =>
+  value === "grid" || value === "list";
 
 const CategoriesPage = () => {
-  const [view, setView] = useState<CategoryViewType>("grid");
+  const [view, setView] = useLocalStorageState<CategoryViewType>(
+    CATEGORIES_VIEW_STORAGE_KEY,
+    "grid",
+    isCategoryViewType,
+  );
   const [localSearchQuery, setLocalSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   useLockBodyScroll(showAddModal);

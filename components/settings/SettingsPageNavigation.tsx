@@ -62,7 +62,7 @@ export default function SettingsPageNavigation({
         className="fixed inset-x-0 z-50 flex justify-center px-3 lg:hidden"
         style={{ bottom: "calc(56px + env(safe-area-inset-bottom) + 0.5rem)" }}
       >
-        <nav className="scrollbar-hide flex max-w-full gap-1 overflow-x-auto rounded-full border border-gray-200/70 bg-surface-card/95 p-1 shadow-lifted backdrop-blur-md">
+        <nav className="scrollbar-hide flex max-w-full gap-1 overflow-x-auto rounded-full border border-gray-400/60 bg-surface-muted/95 p-1 shadow-lifted backdrop-blur-md">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -73,7 +73,7 @@ export default function SettingsPageNavigation({
                 onClick={() => onTabChange(tab.id)}
                 className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-all duration-200 ease-out ${
                   isActive
-                    ? "bg-secondary/15 text-secondary-700"
+                    ? "bg-secondary/15 text-gray-900"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
