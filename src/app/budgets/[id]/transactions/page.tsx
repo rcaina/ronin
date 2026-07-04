@@ -31,6 +31,7 @@ import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import ReceiptScanModal from "@/components/transactions/ReceiptScanModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
 import StatsCard from "@/components/StatsCard";
+import DateInput from "@/components/DateInput";
 
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
@@ -656,11 +657,10 @@ const BudgetTransactionsPage = () => {
                   <label className="mb-1 block text-xs font-medium text-gray-500">
                     Start date
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="block w-full min-w-0 appearance-none rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                    className="rounded-xl"
                   />
                 </div>
 
@@ -668,11 +668,10 @@ const BudgetTransactionsPage = () => {
                   <label className="mb-1 block text-xs font-medium text-gray-500">
                     End date
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="block w-full min-w-0 appearance-none rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                    className="rounded-xl"
                   />
                 </div>
 

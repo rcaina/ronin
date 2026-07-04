@@ -21,6 +21,7 @@ import type {
 } from "@/lib/types/transaction";
 import type { Card } from "@/lib/types/card";
 import Button from "../Button";
+import DateInput from "../DateInput";
 import { formatCurrency } from "@/lib/utils";
 import { CardType, TransactionType } from "@prisma/client";
 
@@ -477,14 +478,9 @@ export default function TransactionForm({
             >
               Occurred At (Optional)
             </label>
-            <input
-              type="date"
+            <DateInput
               id="occurredAt"
-              {...register("occurredAt", {
-                onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-                  e.target.blur(),
-              })}
-              className="block w-full min-w-0 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+              {...register("occurredAt")}
               disabled={isPending}
             />
           </div>

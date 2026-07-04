@@ -14,6 +14,7 @@ import SideNav from "./SideNav";
 import MobileHeader from "./MobileHeader";
 import MobileBottomNav from "./MobileBottomNav";
 import LoadingSpinner from "./LoadingSpinner";
+import { useTrackNavigationHistory } from "@/lib/utils/navigation-history";
 
 // Create context for main navigation state
 interface MainNavContextType {
@@ -97,6 +98,12 @@ export default function ConditionalLayout({
     setPageLoadingState(loading);
     setPageLoadingMessage(message);
   }, []);
+
+  // Record every route change into the scoped-history stack used by
+  // `useBackNavigation`. Mounted here (top-level client component that
+  // renders on every authenticated and public page) so it runs regardless
+  // of section.
+  useTrackNavigationHistory();
 
   // Auto-collapse main nav when entering budget pages
   useEffect(() => {

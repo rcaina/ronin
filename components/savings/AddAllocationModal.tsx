@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import type { CreateAllocationSchema } from "@/lib/api-schemas/savings";
 import { useLockBodyScroll } from "@/lib/utils/hooks";
 import Button from "../Button";
+import DateInput from "../DateInput";
 
 interface AddAllocationModalProps {
   isOpen: boolean;
@@ -146,11 +147,9 @@ export default function AddAllocationModal({
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Occurred At (optional)
               </label>
-              <input
-                type="date"
+              <DateInput
                 value={occurredAt}
                 onChange={(e) => setOccurredAt(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none transition-colors focus:border-gray-400"
               />
             </div>
 

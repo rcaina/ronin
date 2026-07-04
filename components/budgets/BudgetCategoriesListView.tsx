@@ -198,6 +198,10 @@ export default function BudgetCategoriesListView({
                       onSubmit={handleSubmitAddCategory}
                       onCancel={handleCancelAddCategory}
                       isLoading={createBudgetCategoryMutation.isPending}
+                      group={groupType}
+                      existingCategoryNames={(categories ?? []).map(
+                        (category: BudgetCategoryWithCategory) => category.name,
+                      )}
                     />
                   </div>
                 )}

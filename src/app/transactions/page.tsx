@@ -36,6 +36,7 @@ import InlineTransactionEdit from "@/components/transactions/InlineTransactionEd
 
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
+import DateInput from "@/components/DateInput";
 import StatsCard from "@/components/StatsCard";
 import {
   getGroupColor,
@@ -532,13 +533,12 @@ const TransactionsPage = () => {
                     <label className="mb-1 block text-xs font-medium text-gray-500">
                       Start date
                     </label>
-                    <input
-                      type="date"
+                    <DateInput
                       value={startDate}
                       onChange={(e) =>
                         handleFilterChange("startDate", e.target.value)
                       }
-                      className="block w-full min-w-0 appearance-none rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                      className="rounded-xl"
                     />
                   </div>
 
@@ -546,13 +546,12 @@ const TransactionsPage = () => {
                     <label className="mb-1 block text-xs font-medium text-gray-500">
                       End date
                     </label>
-                    <input
-                      type="date"
+                    <DateInput
                       value={endDate}
                       onChange={(e) =>
                         handleFilterChange("endDate", e.target.value)
                       }
-                      className="block w-full min-w-0 appearance-none rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                      className="rounded-xl"
                     />
                   </div>
 

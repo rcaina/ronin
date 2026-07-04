@@ -29,6 +29,7 @@ import type {
   UpdateAllocationSchema,
 } from "@/lib/api-schemas/savings";
 import Button from "@/components/Button";
+import DateInput from "@/components/DateInput";
 import { usePocketHeader } from "@/components/savings/PocketHeaderContext";
 
 const PocketDetailPage = () => {
@@ -367,13 +368,12 @@ const PocketDetailPage = () => {
                             <label className="mb-1 block text-xs font-medium text-gray-500">
                               Occurred at (optional)
                             </label>
-                            <input
-                              type="date"
+                            <DateInput
                               value={editingOccurredAt}
                               onChange={(e) =>
                                 setEditingOccurredAt(e.target.value)
                               }
-                              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                              className="rounded-xl"
                             />
                           </div>
                         </div>

@@ -4,7 +4,7 @@ import PageHeader from "@/components/PageHeader";
 import { useParams, usePathname } from "next/navigation";
 import { useSavingsAccount } from "@/lib/data-hooks/savings/useSavings";
 import { usePocket } from "@/lib/data-hooks/savings/usePocket";
-import { useBackNavigation } from "@/lib/utils/hooks";
+import { useBackNavigation } from "@/lib/utils/navigation-history";
 import { useMemo, type ReactNode } from "react";
 import {
   PocketHeaderProvider,
@@ -21,9 +21,14 @@ function PocketDetailLayoutContent({ children }: { children: ReactNode }) {
   const { data: pocket } = usePocket(pocketId ?? "");
   const { action: pocketAction } = usePocketHeader();
 
-  // Returns the user to their actual previous view; falls back to the parent
-  // savings account only on deep links / refreshes (see useBackNavigation).
-  const handleBack = useBackNavigation(id ? `/savings/${id}` : `/savings`);
+  // Scoped history: back returns to the previous page within this savings
+  // account, falling back to the account overview (or the savings list when
+  // there's no account) when the previous page was outside this account —
+  // see useBackNavigation.
+  const handleBack = useBackNavigation(
+    id ? `/savings/${id}` : `/savings`,
+    id ? `/savings/${id}` : undefined,
+  );
 
   // Configure page header for pocket detail page
   const pageHeaderConfig = useMemo(() => {

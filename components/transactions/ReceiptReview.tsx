@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { ArrowLeft, Check, Plus, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "react-hot-toast";
 import Button from "../Button";
+import DateInput from "../DateInput";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import { useCreateTransactionsBatch } from "@/lib/data-hooks/transactions/useTransactions";
 import {
@@ -234,11 +235,9 @@ export default function ReceiptReview({
           <label className="mb-1 block text-sm font-medium text-gray-700">
             Date
           </label>
-          <input
-            type="date"
+          <DateInput
             value={purchasedAt}
             onChange={(e) => setPurchasedAt(e.target.value)}
-            className={inputClass}
             disabled={isPending}
           />
         </div>

@@ -12,6 +12,7 @@ import { useCards } from "@/lib/data-hooks/cards/useCards";
 import type { UpdateTransactionRequest } from "@/lib/types/transaction";
 import type { Card } from "@/lib/types/card";
 import Button from "../Button";
+import DateInput from "../DateInput";
 import { TransactionType } from "@prisma/client";
 
 // Validation schema
@@ -218,14 +219,9 @@ export default function BudgetTransactionInlineEdit({
             </div>
 
             <div className="flex items-center space-x-2">
-              <div>
+              <div className="min-w-0 flex-1">
                 <div className="text-xs text-gray-500">Date</div>
-                <input
-                  type="date"
-                  {...register("occurredAt")}
-                  className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                  disabled={isUpdating}
-                />
+                <DateInput {...register("occurredAt")} disabled={isUpdating} />
               </div>
 
               <div>
