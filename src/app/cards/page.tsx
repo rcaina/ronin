@@ -332,6 +332,16 @@ const CardsPage = () => {
     });
   }, [ownerFilteredCards]);
 
+  // Keep the chosen survivor in sync with the selection: if the selected
+  // cards change while the merge modal is open (e.g. the pruning above
+  // removed one), a survivor that's no longer selected must be re-chosen
+  // rather than silently merged into.
+  useEffect(() => {
+    setMergeTargetId((prev) =>
+      prev && !selectedCardIds.includes(prev) ? null : prev,
+    );
+  }, [selectedCardIds]);
+
   // Memoize filtered card arrays
   const creditCardsArray = useMemo(() => {
     return ownerFilteredCards.filter(

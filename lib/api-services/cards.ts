@@ -477,7 +477,16 @@ export async function mergeCards(
     data: { deleted: new Date() },
   });
 
-  return target;
+  // Return the survivor in the same shape as the other card endpoints — the
+  // client-side Card type includes the owning user.
+  return await tx.card.findUniqueOrThrow({
+    where: { id: targetId },
+    include: {
+      user: {
+        select: { id: true, name: true, firstName: true, lastName: true },
+      },
+    },
+  });
 }
 
 export async function deleteCard(

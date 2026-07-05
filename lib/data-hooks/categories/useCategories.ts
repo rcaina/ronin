@@ -159,8 +159,15 @@ export const useMergeCategories = () => {
   return useMutation({
     mutationFn: (data: MergeCategoriesRequest) => mergeCategories(data),
     onSuccess: () => {
-      // Invalidate and refetch categories
       void queryClient.invalidateQueries({ queryKey: ["categories"] });
+      // A merge rewrites budget copies' template links (collapsing duplicate
+      // copies within a budget) and repoints transactions, so budget and
+      // transaction views need to refetch too.
+      void queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      void queryClient.invalidateQueries({ queryKey: ["budget"] });
+      void queryClient.invalidateQueries({ queryKey: ["budgetCategories"] });
+      void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      void queryClient.invalidateQueries({ queryKey: ["allTransactions"] });
     },
   });
 };

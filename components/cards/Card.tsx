@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { Card } from "@/lib/utils/cards";
 import { formatCurrency, roundToCents } from "@/lib/utils";
+import { getSelectableTileProps } from "@/lib/utils/selection";
 
 interface CardProps {
   card: Card;
@@ -66,33 +67,18 @@ const CardComponent = ({
   // dimmed and inert instead of navigating or exposing edit/copy/delete.
   const isSelectDisabled = selectable && !canEdit;
 
-  const handleCardClick = () => {
-    if (selectable) {
-      if (!isSelectDisabled) {
-        onToggleSelect?.(card);
-      }
-      return;
-    }
-    onClick?.(card);
-  };
+  const selectionProps = getSelectableTileProps({
+    selectionMode: selectable,
+    selected,
+    disabled: isSelectDisabled,
+    label: `Select ${card.name}`,
+    onToggle: () => onToggleSelect?.(card),
+    onActivate: onClick ? () => onClick(card) : undefined,
+  });
 
   return (
     <div
-      role={selectable ? "checkbox" : undefined}
-      aria-checked={selectable ? selected : undefined}
-      aria-disabled={isSelectDisabled ? true : undefined}
-      aria-label={selectable ? `Select ${card.name}` : undefined}
-      tabIndex={selectable && !isSelectDisabled ? 0 : undefined}
-      onKeyDown={
-        selectable && !isSelectDisabled
-          ? (e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onToggleSelect?.(card);
-              }
-            }
-          : undefined
-      }
+      {...selectionProps}
       className={`card-interactive group relative overflow-hidden ${
         selectable ? "" : "cursor-pointer"
       } ${!card.isActive && !selectable ? "opacity-60" : ""} ${
@@ -104,7 +90,6 @@ const CardComponent = ({
             ? "cursor-pointer"
             : ""
       }`}
-      onClick={handleCardClick}
     >
       {/* Card face — styled like a physical payment card */}
       <div className={`relative overflow-hidden ${card.color} p-5 text-white`}>
@@ -135,6 +120,7 @@ const CardComponent = ({
           ) : (
             <div className="flex items-center gap-1">
               <button
+                type="button"
                 className={`rounded-lg p-1.5 transition-all duration-200 ${
                   canEdit
                     ? "opacity-100 hover:bg-white/20 lg:opacity-0 lg:group-hover:opacity-100"
@@ -154,6 +140,7 @@ const CardComponent = ({
 
               {canEdit && (
                 <button
+                  type="button"
                   className="rounded-lg p-1.5 opacity-100 transition-all duration-200 hover:bg-white/20 lg:opacity-0 lg:group-hover:opacity-100"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -165,6 +152,7 @@ const CardComponent = ({
                 </button>
               )}
               <button
+                type="button"
                 className={`rounded-lg p-1.5 transition-all duration-200 ${
                   canEdit
                     ? "opacity-100 hover:bg-white/20 hover:text-red-200 lg:opacity-0 lg:group-hover:opacity-100"

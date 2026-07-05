@@ -27,7 +27,7 @@ export default function MergeSelectionBar({
 }: MergeSelectionBarProps) {
   return (
     <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 mx-2 mb-2 flex items-center justify-between gap-3 rounded-2xl border border-gray-200/70 bg-surface-card/95 p-3 shadow-lifted backdrop-blur-md sm:mx-4 sm:p-4 lg:sticky lg:bottom-4 lg:mx-0">
-      <span className="text-sm font-medium text-gray-700">
+      <span aria-live="polite" className="text-sm font-medium text-gray-700">
         {selectedCount === 0
           ? `Select ${itemNoun} to merge`
           : `${selectedCount} selected`}

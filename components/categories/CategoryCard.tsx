@@ -6,9 +6,10 @@ import {
   useUpdateCategory,
   useDeleteCategory,
 } from "@/lib/data-hooks/categories/useCategories";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import SwipeableRow from "@/components/SwipeableRow";
+import { getSelectableTileProps } from "@/lib/utils/selection";
 import type { GroupColorFunction } from "@/lib/types/budget";
 import type { CategoryType } from "@prisma/client";
 
@@ -59,6 +60,15 @@ export default function CategoryCard({
 
   const updateCategoryMutation = useUpdateCategory();
   const deleteCategoryMutation = useDeleteCategory();
+
+  // Entering selection mode hides the inline edit form; drop the in-progress
+  // edit too so a stale half-typed name doesn't reappear when selection ends.
+  useEffect(() => {
+    if (selectionMode) {
+      setEditingCategoryId(null);
+      setEditingName("");
+    }
+  }, [selectionMode]);
 
   const handleStartEditCategory = () => {
     setEditingCategoryId(category.id);
@@ -117,28 +127,16 @@ export default function CategoryCard({
 
   const isEditing = !selectionMode && editingCategoryId === category.id;
 
-  const handleCardClick = () => {
-    if (selectionMode) {
-      onToggleSelect?.(category.id);
-    }
-  };
+  const selectionProps = getSelectableTileProps({
+    selectionMode,
+    selected,
+    label: `Select ${category.name}`,
+    onToggle: () => onToggleSelect?.(category.id),
+  });
 
   const cardContent = (
     <div
-      role={selectionMode ? "checkbox" : undefined}
-      aria-checked={selectionMode ? selected : undefined}
-      tabIndex={selectionMode ? 0 : undefined}
-      onClick={handleCardClick}
-      onKeyDown={
-        selectionMode
-          ? (e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onToggleSelect?.(category.id);
-              }
-            }
-          : undefined
-      }
+      {...selectionProps}
       className={`card-surface group relative overflow-hidden p-5 transition-all duration-200 ease-out sm:p-6 ${
         selectionMode
           ? `cursor-pointer ${
