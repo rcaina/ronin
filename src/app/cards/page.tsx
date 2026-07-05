@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, CreditCard, DollarSign, Shield } from "lucide-react";
+import { Plus, CreditCard, DollarSign, Shield, Merge, X } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -9,12 +9,15 @@ import PageHeader from "@/components/PageHeader";
 import { default as CardComponent } from "@/components/cards/Card";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import AddCardForm from "@/components/cards/AddCardForm";
+import MergeCardsModal from "@/components/cards/MergeCardsModal";
+import MergeSelectionBar from "@/components/MergeSelectionBar";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import {
   useGeneralCards,
   useDeleteCard,
   useCreateCard,
   useUpdateCard,
+  useMergeCards,
 } from "@/lib/data-hooks/cards/useCards";
 import { CardApiError } from "@/lib/data-hooks/services/cards";
 import type { Card as ApiCard } from "@/lib/types/card";
@@ -47,6 +50,7 @@ const CardsPage = () => {
   const deleteCardMutation = useDeleteCard();
   const createCardMutation = useCreateCard();
   const updateCardMutation = useUpdateCard();
+  const mergeCardsMutation = useMergeCards();
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   useLockBodyScroll(showAddCardModal);
@@ -55,6 +59,13 @@ const CardsPage = () => {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [showCardPaymentModal, setShowCardPaymentModal] = useState(false);
   const [activeOwner, setActiveOwner] = useState<string>("all");
+
+  // Merge cards: selecting 2+ of the user's own general cards to combine
+  // into one they explicitly choose as the survivor.
+  const [isSelectingForMerge, setIsSelectingForMerge] = useState(false);
+  const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
+  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [mergeTargetId, setMergeTargetId] = useState<string | null>(null);
 
   // Map API cards to component cards
   const cards: Card[] = useMemo(() => {
@@ -207,6 +218,55 @@ const CardsPage = () => {
     router.push(`/cards/${card.id}`);
   };
 
+  // Toggles merge-selection mode on/off, clearing any selection and closing
+  // other in-flight card actions so they don't overlap with it.
+  const handleToggleMergeMode = () => {
+    setIsSelectingForMerge((prev) => !prev);
+    setSelectedCardIds([]);
+    setCardToEdit(null);
+    setShowAddCardModal(false);
+  };
+
+  const handleToggleCardSelection = (card: Card) => {
+    setSelectedCardIds((prev) =>
+      prev.includes(card.id)
+        ? prev.filter((id) => id !== card.id)
+        : [...prev, card.id],
+    );
+  };
+
+  const handleOpenMergeModal = () => {
+    setMergeTargetId(null);
+    setShowMergeModal(true);
+  };
+
+  const handleCloseMergeModal = () => {
+    setShowMergeModal(false);
+    setMergeTargetId(null);
+  };
+
+  const handleConfirmMerge = async (targetId: string) => {
+    try {
+      await mergeCardsMutation.mutateAsync({
+        sourceIds: selectedCardIds.filter((id) => id !== targetId),
+        targetId,
+      });
+      toast.success(`Merged ${selectedCardIds.length} cards successfully!`);
+      setShowMergeModal(false);
+      setMergeTargetId(null);
+      setIsSelectingForMerge(false);
+      setSelectedCardIds([]);
+    } catch (err) {
+      console.error("Failed to merge cards:", err);
+      toast.error("Failed to merge cards. Please try again.");
+    }
+  };
+
+  const selectedCardsForMerge = useMemo(
+    () => cards.filter((card) => selectedCardIds.includes(card.id)),
+    [cards, selectedCardIds],
+  );
+
   const { totalSpent, totalLimit, activeCards, creditCards } = useMemo(() => {
     const totalSpent = cards.reduce((sum, card) => sum + card.amountSpent, 0);
     const totalLimit = cards
@@ -259,6 +319,28 @@ const CardsPage = () => {
     if (effectiveOwner === "all") return cards;
     return cards.filter((card) => card.userId === effectiveOwner);
   }, [cards, effectiveOwner]);
+
+  // Prune selections that fall out of the owner filter (e.g. the user
+  // switches tabs mid-selection) so the merge count never includes hidden
+  // cards.
+  useEffect(() => {
+    setSelectedCardIds((prev) => {
+      const next = prev.filter((id) =>
+        ownerFilteredCards.some((card) => card.id === id),
+      );
+      return next.length === prev.length ? prev : next;
+    });
+  }, [ownerFilteredCards]);
+
+  // Keep the chosen survivor in sync with the selection: if the selected
+  // cards change while the merge modal is open (e.g. the pruning above
+  // removed one), a survivor that's no longer selected must be re-chosen
+  // rather than silently merged into.
+  useEffect(() => {
+    setMergeTargetId((prev) =>
+      prev && !selectedCardIds.includes(prev) ? null : prev,
+    );
+  }, [selectedCardIds]);
 
   // Memoize filtered card arrays
   const creditCardsArray = useMemo(() => {
@@ -321,6 +403,9 @@ const CardsPage = () => {
         onClick={handleCardClick}
         canEdit={card.userId === session?.user?.id}
         general={true}
+        selectable={isSelectingForMerge}
+        selected={selectedCardIds.includes(card.id)}
+        onToggleSelect={handleToggleCardSelection}
       />
     );
   };
@@ -343,26 +428,54 @@ const CardsPage = () => {
   return (
     <div className="flex flex-col bg-surface lg:h-screen">
       <PageHeader
-        title="Cards"
-        description="The cards on your account, tracked across every budget"
-        actions={[
-          {
-            label: "Add card",
-            onClick: handleAddCard,
-            icon: <Plus className="h-4 w-4" />,
-            variant: "primary",
-          },
-          {
-            label: "Pay credit card",
-            onClick: () => setShowCardPaymentModal(true),
-            icon: <CreditCard className="h-4 w-4" />,
-          },
-        ]}
+        title={isSelectingForMerge ? "Select cards to merge" : "Cards"}
+        description={
+          isSelectingForMerge
+            ? selectedCardIds.length > 0
+              ? `${selectedCardIds.length} selected — tap your own cards to choose which to merge`
+              : "Tap your own cards to choose which to merge"
+            : "The cards on your account, tracked across every budget"
+        }
+        actions={
+          isSelectingForMerge
+            ? [
+                {
+                  label: "Cancel",
+                  onClick: handleToggleMergeMode,
+                  icon: <X className="h-4 w-4" />,
+                  variant: "outline" as const,
+                },
+              ]
+            : [
+                {
+                  label: "Add card",
+                  onClick: handleAddCard,
+                  icon: <Plus className="h-4 w-4" />,
+                  variant: "primary" as const,
+                },
+                {
+                  label: "Merge cards",
+                  onClick: handleToggleMergeMode,
+                  icon: <Merge className="h-4 w-4" />,
+                },
+                {
+                  label: "Pay credit card",
+                  onClick: () => setShowCardPaymentModal(true),
+                  icon: <CreditCard className="h-4 w-4" />,
+                },
+              ]
+        }
       />
 
       <div className="pt-4 lg:flex-1 lg:overflow-hidden lg:pt-0">
         <div className="lg:h-full lg:overflow-y-auto">
-          <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8">
+          <div
+            className={`mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8 ${
+              isSelectingForMerge
+                ? "pb-40 sm:pb-40 lg:pb-24"
+                : "pb-28 sm:pb-28 lg:pb-8"
+            }`}
+          >
             {/* Overview Stats */}
             <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
               <StatsCard
@@ -472,6 +585,17 @@ const CardsPage = () => {
               )}
             </div>
           </div>
+
+          {/* Merge selection action bar — sticks to the bottom of the
+              scrollable content, offset above the mobile bottom tab bar
+              (~56px + safe area) so it never sits underneath it. */}
+          {isSelectingForMerge && (
+            <MergeSelectionBar
+              selectedCount={selectedCardIds.length}
+              itemNoun="cards"
+              onMerge={handleOpenMergeModal}
+            />
+          )}
         </div>
       </div>
 
@@ -521,6 +645,19 @@ const CardsPage = () => {
         <CardPaymentModal
           isOpen={showCardPaymentModal}
           onClose={() => setShowCardPaymentModal(false)}
+        />
+      )}
+
+      {/* Merge Cards Modal */}
+      {showMergeModal && (
+        <MergeCardsModal
+          isOpen={showMergeModal}
+          onClose={handleCloseMergeModal}
+          onConfirm={handleConfirmMerge}
+          cards={selectedCardsForMerge}
+          targetId={mergeTargetId}
+          onSelectTarget={setMergeTargetId}
+          isLoading={mergeCardsMutation.isPending}
         />
       )}
     </div>

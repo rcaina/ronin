@@ -1,14 +1,15 @@
 "use client";
 
-import { Edit, Pencil, Trash2 } from "lucide-react";
+import { CheckCircle2, Circle, Edit, Pencil, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   useUpdateCategory,
   useDeleteCategory,
 } from "@/lib/data-hooks/categories/useCategories";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import SwipeableRow from "@/components/SwipeableRow";
+import { getSelectableTileProps } from "@/lib/utils/selection";
 import type { GroupColorFunction } from "@/lib/types/budget";
 import type { CategoryType } from "@prisma/client";
 
@@ -30,12 +31,23 @@ interface CategoryCardProps {
    * in a multi-column grid where horizontal swipes would misfire.
    */
   swipeable?: boolean;
+  /**
+   * While true, the card renders as a selectable tile for the "merge
+   * categories" flow: edit/delete/swipe actions are suppressed and clicking
+   * the card toggles `selected` via `onToggleSelect` instead.
+   */
+  selectionMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
 export default function CategoryCard({
   category,
   getGroupColor,
   swipeable = false,
+  selectionMode = false,
+  selected = false,
+  onToggleSelect,
 }: CategoryCardProps) {
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
     null,
@@ -48,6 +60,15 @@ export default function CategoryCard({
 
   const updateCategoryMutation = useUpdateCategory();
   const deleteCategoryMutation = useDeleteCategory();
+
+  // Entering selection mode hides the inline edit form; drop the in-progress
+  // edit too so a stale half-typed name doesn't reappear when selection ends.
+  useEffect(() => {
+    if (selectionMode) {
+      setEditingCategoryId(null);
+      setEditingName("");
+    }
+  }, [selectionMode]);
 
   const handleStartEditCategory = () => {
     setEditingCategoryId(category.id);
@@ -104,14 +125,28 @@ export default function CategoryCard({
     setCategoryToDelete(null);
   };
 
-  const isEditing = editingCategoryId === category.id;
+  const isEditing = !selectionMode && editingCategoryId === category.id;
+
+  const selectionProps = getSelectableTileProps({
+    selectionMode,
+    selected,
+    label: `Select ${category.name}`,
+    onToggle: () => onToggleSelect?.(category.id),
+  });
 
   const cardContent = (
     <div
+      {...selectionProps}
       className={`card-surface group relative overflow-hidden p-5 transition-all duration-200 ease-out sm:p-6 ${
-        isEditing
-          ? "border-secondary-200 bg-secondary-50"
-          : "hover:shadow-lifted"
+        selectionMode
+          ? `cursor-pointer ${
+              selected
+                ? "border-secondary bg-secondary/5 ring-2 ring-secondary"
+                : "hover:border-secondary/40 hover:bg-secondary/5"
+            }`
+          : isEditing
+            ? "border-secondary-200 bg-secondary-50"
+            : "hover:shadow-lifted"
       }`}
     >
       <div className="mb-4 flex items-center justify-between">
@@ -125,62 +160,72 @@ export default function CategoryCard({
           />
         ) : (
           <div className="flex items-center space-x-3">
-            <div
-              className={`h-3 w-3 rounded-full ${getGroupColor(category.group)}`}
-            />
+            {selectionMode ? (
+              selected ? (
+                <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-secondary-700" />
+              ) : (
+                <Circle className="h-5 w-5 flex-shrink-0 text-gray-300" />
+              )
+            ) : (
+              <div
+                className={`h-3 w-3 rounded-full ${getGroupColor(category.group)}`}
+              />
+            )}
             <h3 className="text-lg font-semibold tracking-tight text-gray-900">
               {category.name}
             </h3>
           </div>
         )}
-        <div className="flex items-center space-x-2">
-          {/* Action Icons - Only visible on hover when not editing.
-              When swipeable (list view), these are desktop-hover only since
-              mobile exposes Edit/Delete via swipe (SwipeableRow). */}
-          {!isEditing ? (
-            <div
-              className={
-                swipeable
-                  ? "hidden items-center gap-0.5 transition-opacity lg:flex lg:opacity-0 lg:group-hover:opacity-100"
-                  : "flex items-center gap-0.5 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100"
-              }
-            >
-              <button
-                onClick={handleStartEditCategory}
-                className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
-                title="Edit category"
+        {!selectionMode && (
+          <div className="flex items-center space-x-2">
+            {/* Action Icons - Only visible on hover when not editing.
+                When swipeable (list view), these are desktop-hover only since
+                mobile exposes Edit/Delete via swipe (SwipeableRow). */}
+            {!isEditing ? (
+              <div
+                className={
+                  swipeable
+                    ? "hidden items-center gap-0.5 transition-opacity lg:flex lg:opacity-0 lg:group-hover:opacity-100"
+                    : "flex items-center gap-0.5 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100"
+                }
               >
-                <Edit className="h-4 w-4" />
-              </button>
-              <button
-                onClick={handleDeleteCategory}
-                className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
-                title="Delete category"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-0.5">
-              <button
-                onClick={handleSaveCategory}
-                disabled={updateCategoryMutation.isPending}
-                className="rounded-lg p-2 text-green-600 transition-colors duration-200 hover:bg-green-50 disabled:opacity-50"
-                title="Save changes"
-              >
-                ✓
-              </button>
-              <button
-                onClick={handleCancelEditCategory}
-                disabled={updateCategoryMutation.isPending}
-                className="rounded-lg p-2 text-gray-500 transition-colors duration-200 hover:bg-gray-100 disabled:opacity-50"
-                title="Cancel editing"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-        </div>
+                <button
+                  onClick={handleStartEditCategory}
+                  className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
+                  title="Edit category"
+                >
+                  <Edit className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={handleDeleteCategory}
+                  className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
+                  title="Delete category"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={handleSaveCategory}
+                  disabled={updateCategoryMutation.isPending}
+                  className="rounded-lg p-2 text-green-600 transition-colors duration-200 hover:bg-green-50 disabled:opacity-50"
+                  title="Save changes"
+                >
+                  ✓
+                </button>
+                <button
+                  onClick={handleCancelEditCategory}
+                  disabled={updateCategoryMutation.isPending}
+                  className="rounded-lg p-2 text-gray-500 transition-colors duration-200 hover:bg-gray-100 disabled:opacity-50"
+                  title="Cancel editing"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -195,7 +240,7 @@ export default function CategoryCard({
     <>
       {swipeable ? (
         <SwipeableRow
-          disabled={isEditing}
+          disabled={isEditing || selectionMode}
           className="rounded-2xl"
           actions={[
             {

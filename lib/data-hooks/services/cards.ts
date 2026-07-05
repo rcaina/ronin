@@ -3,6 +3,7 @@ import type {
   Card,
   CreateCardRequest,
   UpdateCardRequest,
+  MergeCardsRequest,
 } from "@/lib/types/card";
 
 export const getCards = async (
@@ -51,8 +52,15 @@ export class CardApiError extends Error {
   }
 }
 
-export const createCard = async (data: CreateCardRequest): Promise<Card> => {
-  const response = await fetch("/api/cards", {
+// Shared POST flow for the card endpoints. Preserves the status code (and
+// server-provided message, when present) so callers can distinguish e.g. a
+// 409 duplicate-card conflict from a generic failure.
+const postJson = async <T>(
+  url: string,
+  data: unknown,
+  action: string,
+): Promise<T> => {
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -60,9 +68,6 @@ export const createCard = async (data: CreateCardRequest): Promise<Card> => {
     body: JSON.stringify(data),
   });
   if (!response.ok) {
-    // Preserve the status code (and server-provided message, when present)
-    // so callers can distinguish e.g. a 409 duplicate-card conflict from a
-    // generic failure.
     let message = response.statusText;
     try {
       const body = (await response.json()) as { error?: string };
@@ -70,10 +75,13 @@ export const createCard = async (data: CreateCardRequest): Promise<Card> => {
     } catch {
       // Response wasn't JSON — fall back to statusText.
     }
-    throw new CardApiError(`Failed to create card: ${message}`, response.status);
+    throw new CardApiError(`Failed to ${action}: ${message}`, response.status);
   }
-  return response.json() as Promise<Card>;
+  return response.json() as Promise<T>;
 };
+
+export const createCard = async (data: CreateCardRequest): Promise<Card> =>
+  postJson<Card>("/api/cards", data, "create card");
 
 export const updateCard = async (
   id: string,
@@ -91,6 +99,9 @@ export const updateCard = async (
   }
   return response.json() as Promise<Card>;
 };
+
+export const mergeCards = async (data: MergeCardsRequest): Promise<Card> =>
+  postJson<Card>("/api/cards/merge", data, "merge cards");
 
 export const deleteCard = async (id: string): Promise<void> => {
   const response = await fetch(`/api/cards/${id}`, {

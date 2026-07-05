@@ -1,6 +1,14 @@
-import { CreditCard, DollarSign, Edit, Trash2, CopyIcon } from "lucide-react";
+import {
+  CreditCard,
+  DollarSign,
+  Edit,
+  Trash2,
+  CopyIcon,
+  Check,
+} from "lucide-react";
 import type { Card } from "@/lib/utils/cards";
 import { formatCurrency, roundToCents } from "@/lib/utils";
+import { getSelectableTileProps } from "@/lib/utils/selection";
 
 interface CardProps {
   card: Card;
@@ -10,6 +18,15 @@ interface CardProps {
   canEdit?: boolean;
   onClick?: (card: Card) => void;
   general?: boolean;
+  /**
+   * Selection mode (e.g. for merging cards). While true the normal
+   * click-through and edit/copy/delete actions are suppressed in favor of a
+   * checkbox; only cards the user can edit (their own) are selectable —
+   * others render dimmed and disabled.
+   */
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (card: Card) => void;
 }
 
 const getCardTypeIcon = (type: string) => {
@@ -42,13 +59,37 @@ const CardComponent = ({
   canEdit = true,
   onClick,
   general = false,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
 }: CardProps) => {
+  // In selection mode only the user's own cards can be picked; others render
+  // dimmed and inert instead of navigating or exposing edit/copy/delete.
+  const isSelectDisabled = selectable && !canEdit;
+
+  const selectionProps = getSelectableTileProps({
+    selectionMode: selectable,
+    selected,
+    disabled: isSelectDisabled,
+    label: `Select ${card.name}`,
+    onToggle: () => onToggleSelect?.(card),
+    onActivate: onClick ? () => onClick(card) : undefined,
+  });
+
   return (
     <div
-      className={`card-interactive group relative cursor-pointer overflow-hidden ${
-        !card.isActive ? "opacity-60" : ""
+      {...selectionProps}
+      className={`card-interactive group relative overflow-hidden ${
+        selectable ? "" : "cursor-pointer"
+      } ${!card.isActive && !selectable ? "opacity-60" : ""} ${
+        selectable && selected ? "ring-2 ring-secondary" : ""
+      } ${
+        isSelectDisabled
+          ? "cursor-not-allowed opacity-50"
+          : selectable
+            ? "cursor-pointer"
+            : ""
       }`}
-      onClick={() => onClick?.(card)}
     >
       {/* Card face — styled like a physical payment card */}
       <div className={`relative overflow-hidden ${card.color} p-5 text-white`}>
@@ -63,55 +104,73 @@ const CardComponent = ({
               {card.type}
             </span>
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              className={`rounded-lg p-1.5 transition-all duration-200 ${
-                canEdit
-                  ? "opacity-100 hover:bg-white/20 lg:opacity-0 lg:group-hover:opacity-100"
-                  : "cursor-not-allowed opacity-50"
+          {selectable ? (
+            <div
+              aria-hidden="true"
+              className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all duration-200 ${
+                isSelectDisabled
+                  ? "border-white/30 bg-white/10"
+                  : selected
+                    ? "border-secondary bg-secondary text-primary-950"
+                    : "border-white/60 bg-white/10"
               }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (canEdit) {
-                  onCopy?.(card);
-                }
-              }}
-              title={canEdit ? "Copy" : "Only owner can edit"}
-              disabled={!canEdit}
             >
-              <CopyIcon className="h-4 w-4" />
-            </button>
-
-            {canEdit && (
+              {selected && !isSelectDisabled && <Check className="h-4 w-4" />}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1">
               <button
-                className="rounded-lg p-1.5 opacity-100 transition-all duration-200 hover:bg-white/20 lg:opacity-0 lg:group-hover:opacity-100"
+                type="button"
+                className={`rounded-lg p-1.5 transition-all duration-200 ${
+                  canEdit
+                    ? "opacity-100 hover:bg-white/20 lg:opacity-0 lg:group-hover:opacity-100"
+                    : "cursor-not-allowed opacity-50"
+                }`}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onEdit?.(card);
+                  if (canEdit) {
+                    onCopy?.(card);
+                  }
                 }}
-                title="Edit"
+                title={canEdit ? "Copy" : "Only owner can edit"}
+                disabled={!canEdit}
               >
-                <Edit className="h-4 w-4" />
+                <CopyIcon className="h-4 w-4" />
               </button>
-            )}
-            <button
-              className={`rounded-lg p-1.5 transition-all duration-200 ${
-                canEdit
-                  ? "opacity-100 hover:bg-white/20 hover:text-red-200 lg:opacity-0 lg:group-hover:opacity-100"
-                  : "cursor-not-allowed opacity-50"
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (canEdit) {
-                  onDelete?.(card);
-                }
-              }}
-              title={canEdit ? "Delete card" : "Only owner can edit"}
-              disabled={!canEdit}
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
+
+              {canEdit && (
+                <button
+                  type="button"
+                  className="rounded-lg p-1.5 opacity-100 transition-all duration-200 hover:bg-white/20 lg:opacity-0 lg:group-hover:opacity-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit?.(card);
+                  }}
+                  title="Edit"
+                >
+                  <Edit className="h-4 w-4" />
+                </button>
+              )}
+              <button
+                type="button"
+                className={`rounded-lg p-1.5 transition-all duration-200 ${
+                  canEdit
+                    ? "opacity-100 hover:bg-white/20 hover:text-red-200 lg:opacity-0 lg:group-hover:opacity-100"
+                    : "cursor-not-allowed opacity-50"
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (canEdit) {
+                    onDelete?.(card);
+                  }
+                }}
+                title={canEdit ? "Delete card" : "Only owner can edit"}
+                disabled={!canEdit}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Chip */}
@@ -147,16 +206,26 @@ const CardComponent = ({
           <h3 className="text-base font-semibold tracking-tight text-gray-900">
             {card.name}
           </h3>
-          {/* Status Badge */}
-          <span
-            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-              card.isActive
-                ? "bg-green-50 text-green-700"
-                : "bg-gray-100 text-gray-600"
-            }`}
-          >
-            {card.isActive ? "Active" : "Inactive"}
-          </span>
+          <div className="flex items-center gap-1.5">
+            {/* In selection mode the dimmed treatment alone is ambiguous
+                (inactive cards also dim), so label non-owned cards
+                explicitly. */}
+            {isSelectDisabled && (
+              <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                Not yours
+              </span>
+            )}
+            {/* Status Badge */}
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                card.isActive
+                  ? "bg-green-50 text-green-700"
+                  : "bg-gray-100 text-gray-600"
+              }`}
+            >
+              {card.isActive ? "Active" : "Inactive"}
+            </span>
+          </div>
         </div>
 
         {/* Balance and Limit */}
