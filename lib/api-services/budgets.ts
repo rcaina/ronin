@@ -666,7 +666,42 @@ export async function duplicateBudget(
     },
   });
 
-  // Copy income transactions (INCOME type transactions on debit cards)
+  // Copy cards from original budget to new budget, keeping them linked to
+  // the same general card (resolving/creating one if the source predates it),
+  // and remember the old-card -> new-card mapping so income transactions can
+  // be re-pointed at the right new card below.
+  const newCardsByOldId = new Map<string, { id: string }>();
+  for (const card of originalBudget.cards) {
+    const defaultCardId =
+      card.defaultCardId ??
+      (
+        await resolveDefaultCard(tx, {
+          name: card.name,
+          lastFourDigits: card.lastFourDigits,
+          cardType: card.cardType,
+          spendingLimit: card.spendingLimit,
+          userId: card.userId,
+        })
+      ).id;
+
+    const newCard = await tx.card.create({
+      data: {
+        name: card.name,
+        lastFourDigits: card.lastFourDigits,
+        cardType: card.cardType,
+        spendingLimit: card.spendingLimit,
+        userId: card.userId,
+        budgetId: newBudget.id,
+        amountSpent: 0,
+        defaultCardId,
+      },
+    });
+
+    newCardsByOldId.set(card.id, newCard);
+  }
+
+  // Copy income transactions (INCOME type transactions on debit cards),
+  // preserving which debit card each income transaction landed on
   const debitCards =
     originalBudget.cards?.filter(
       (card) =>
@@ -684,34 +719,27 @@ export async function duplicateBudget(
           debitCardIds.includes(transaction.cardId),
       ) ?? [];
 
-    // Find the main debit card in the new budget (should be created above)
-    const newMainDebitCard = await tx.card.findFirst({
-      where: {
-        budgetId: newBudget.id,
-        cardType: {
-          in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
-        },
-        deleted: null,
-      },
-    });
-
-    if (newMainDebitCard) {
-      for (const transaction of incomeTransactions) {
-        await tx.transaction.create({
-          data: {
-            name: transaction.name,
-            description: transaction.description,
-            amount: transaction.amount,
-            budgetId: newBudget.id,
-            cardId: newMainDebitCard.id,
-            accountId: user.accountId,
-            userId: user.id,
-            transactionType: TransactionType.INCOME,
-            categoryId: null,
-            occurredAt: transaction.occurredAt ?? new Date(),
-          },
-        });
+    for (const transaction of incomeTransactions) {
+      // transaction.cardId is guaranteed by the filter above
+      const newCard = newCardsByOldId.get(transaction.cardId!);
+      if (!newCard) {
+        continue;
       }
+
+      await tx.transaction.create({
+        data: {
+          name: transaction.name,
+          description: transaction.description,
+          amount: transaction.amount,
+          budgetId: newBudget.id,
+          cardId: newCard.id,
+          accountId: user.accountId,
+          userId: user.id,
+          transactionType: TransactionType.INCOME,
+          categoryId: null,
+          occurredAt: transaction.occurredAt ?? new Date(),
+        },
+      });
     }
   }
 
@@ -724,35 +752,6 @@ export async function duplicateBudget(
         group: category.group,
         allocatedAmount: category.allocatedAmount,
         defaultCategoryId: category.defaultCategoryId,
-      },
-    });
-  }
-
-  // Copy cards from original budget to new budget, keeping them linked to
-  // the same general card (resolving/creating one if the source predates it)
-  for (const card of originalBudget.cards) {
-    const defaultCardId =
-      card.defaultCardId ??
-      (
-        await resolveDefaultCard(tx, {
-          name: card.name,
-          lastFourDigits: card.lastFourDigits,
-          cardType: card.cardType,
-          spendingLimit: card.spendingLimit,
-          userId: card.userId,
-        })
-      ).id;
-
-    await tx.card.create({
-      data: {
-        name: card.name,
-        lastFourDigits: card.lastFourDigits,
-        cardType: card.cardType,
-        spendingLimit: card.spendingLimit,
-        userId: card.userId,
-        budgetId: newBudget.id,
-        amountSpent: 0,
-        defaultCardId,
       },
     });
   }

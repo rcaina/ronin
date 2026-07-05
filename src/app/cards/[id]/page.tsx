@@ -25,7 +25,8 @@ import {
 } from "@/lib/data-hooks/cards/useCards";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, roundToCents } from "@/lib/utils";
+import { calculateSpendingPercentage } from "@/lib/utils/spending";
 import { useBackNavigation } from "@/lib/utils/navigation-history";
 import { getCardTransactionDisplay } from "@/lib/utils/transactions";
 import { usePageLoading } from "@/components/ConditionalLayout";
@@ -181,10 +182,11 @@ const CardDetailsPage = () => {
   const spendingLimit = mappedCard.spendingLimit;
   // For credit cards the limit is the credit line; for debit/cash cards it is
   // the income deposited on the card. Either way, available = limit - spent.
-  const availableAmount = (spendingLimit ?? 0) - totalSpent;
-  const utilizationRate = spendingLimit
-    ? (totalSpent / spendingLimit) * 100
-    : 0;
+  const availableAmount = roundToCents((spendingLimit ?? 0) - totalSpent);
+  const utilizationRate = calculateSpendingPercentage(
+    totalSpent,
+    spendingLimit ?? 0,
+  );
 
   return (
     <div className="flex flex-col bg-surface lg:h-screen">
@@ -192,14 +194,21 @@ const CardDetailsPage = () => {
         title={card.name}
         description={`${card.cardType.toLowerCase().replace("_", " ")} card details`}
         backButton={{ onClick: handleBack }}
+        // Template cards are read-only for money movement: transactions live
+        // on the linked budget cards, not on the general card itself.
         actions={[
-          {
-            label: "Add transaction",
-            onClick: () => setShowAddTransactionModal(true),
-            icon: <Plus className="h-4 w-4" />,
-          },
-          ...(card.cardType === CardType.CREDIT ||
-          card.cardType === CardType.BUSINESS_CREDIT
+          ...(isGeneralCard
+            ? []
+            : [
+                {
+                  label: "Add transaction",
+                  onClick: () => setShowAddTransactionModal(true),
+                  icon: <Plus className="h-4 w-4" />,
+                },
+              ]),
+          ...(!isGeneralCard &&
+          (card.cardType === CardType.CREDIT ||
+            card.cardType === CardType.BUSINESS_CREDIT)
             ? [
                 {
                   label: "Pay credit card",
@@ -336,14 +345,18 @@ const CardDetailsPage = () => {
               <h2 className="text-xl font-semibold tracking-tight text-gray-900">
                 Recent transactions
               </h2>
-              <Button
-                onClick={() => setShowAddTransactionModal(true)}
-                variant="primary"
-                size="sm"
-              >
-                <Plus className="h-4 w-4" />
-                Add transaction
-              </Button>
+              {/* Template cards are read-only for money movement: transactions
+                  belong to the linked budget cards, not the general card. */}
+              {!isGeneralCard && (
+                <Button
+                  onClick={() => setShowAddTransactionModal(true)}
+                  variant="primary"
+                  size="sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add transaction
+                </Button>
+              )}
             </div>
 
             {transactions.length === 0 ? (
@@ -357,13 +370,15 @@ const CardDetailsPage = () => {
                 <p className="text-sm text-gray-500">
                   Add your first transaction to this card to get started
                 </p>
-                <Button
-                  onClick={() => setShowAddTransactionModal(true)}
-                  variant="primary"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add transaction
-                </Button>
+                {!isGeneralCard && (
+                  <Button
+                    onClick={() => setShowAddTransactionModal(true)}
+                    variant="primary"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add transaction
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="space-y-3">

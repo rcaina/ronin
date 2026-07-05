@@ -80,6 +80,7 @@ export default function AddCardForm({
     handleSubmit,
     setValue,
     watch,
+    setError,
     formState: { errors },
   } = useForm<CardFormData>({
     resolver: zodResolver(cardSchema),
@@ -125,7 +126,10 @@ export default function AddCardForm({
     [suggestions, trimmedTypedLower],
   );
 
-  const showCreateOption = trimmedTypedLower !== "" && !hasExactMatch;
+  const showCreateOption =
+    trimmedTypedLower !== "" &&
+    !hasExactMatch &&
+    !existingNamesLower.includes(trimmedTypedLower);
 
   const items: ComboboxItem[] = useMemo(
     () => [
@@ -201,6 +205,20 @@ export default function AddCardForm({
   const nameField = register("name");
   const lastFourDigitsField = register("lastFourDigits");
 
+  // Block submitting a name that already exists in this budget, even if the
+  // combobox create option was never shown (e.g. pasted text or a name typed
+  // after the suggestions loaded).
+  const guardedSubmit = (data: CardFormData) => {
+    if (
+      !isEditing &&
+      existingNamesLower.includes(data.name.trim().toLowerCase())
+    ) {
+      setError("name", { message: "This card is already in this budget" });
+      return;
+    }
+    onSubmit(data);
+  };
+
   return (
     <div className="group relative overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-surface-card p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
@@ -217,12 +235,12 @@ export default function AddCardForm({
       </div>
 
       <form
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={handleSubmit(guardedSubmit)}
         className="space-y-4"
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
-            void handleSubmit(onSubmit)();
+            void handleSubmit(guardedSubmit)();
           }
         }}
       >

@@ -177,8 +177,9 @@ export async function getCardById(
 
 // Find the user's general (template) card matching the given identity —
 // preferring the last-four-digits match when available, otherwise a
-// case-insensitive trimmed name match — lazily creating one if none exists.
-// Mirrors the default-category resolution in createBudgetCategory.
+// case-insensitive trimmed name match, always scoped to the same cardType so
+// debit and credit cards never share a template — lazily creating one if
+// none exists. Mirrors the default-category resolution in createBudgetCategory.
 export async function resolveDefaultCard(
   tx: PrismaClientTx,
   params: {
@@ -200,6 +201,7 @@ export async function resolveDefaultCard(
           budgetId: null,
           userId: params.userId,
           lastFourDigits,
+          cardType: params.cardType,
           deleted: null,
         },
       })
@@ -208,6 +210,7 @@ export async function resolveDefaultCard(
           budgetId: null,
           userId: params.userId,
           name: { equals: trimmedName, mode: "insensitive" },
+          cardType: params.cardType,
           deleted: null,
         },
       });
@@ -250,13 +253,14 @@ export async function createCard(
 
   if (!data.budgetId) {
     // Creating a general (template) card directly — guard against creating a
-    // duplicate of one that already exists for this user.
+    // duplicate of one that already exists for this user with the same cardType.
     const trimmedName = data.name.trim();
 
     const existingGeneralCard = await tx.card.findFirst({
       where: {
         budgetId: null,
         userId: data.userId,
+        cardType: data.cardType,
         deleted: null,
         OR: [
           { name: { equals: trimmedName, mode: "insensitive" } },
@@ -326,10 +330,18 @@ export async function updateCard(
     where: {
       id,
       deleted: null,
+      user: {
+        accountUsers: { some: { accountId: user.accountId } },
+        deleted: null,
+      },
     },
     select: {
       userId: true,
       budgetId: true,
+      name: true,
+      lastFourDigits: true,
+      cardType: true,
+      spendingLimit: true,
     },
   });
 
@@ -340,6 +352,27 @@ export async function updateCard(
   const lastFourDigits = data.lastFourDigits?.length
     ? data.lastFourDigits
     : null;
+
+  // A budget card whose identity is changing needs to be relinked to the
+  // general card matching its new identity, not the one matching its old one.
+  const isBudgetCard = existingCard.budgetId !== null;
+  const isChangingIdentity =
+    Boolean(data.name) ||
+    data.lastFourDigits !== undefined ||
+    Boolean(data.cardType);
+  const relinkedDefaultCard =
+    isBudgetCard && isChangingIdentity
+      ? await resolveDefaultCard(tx, {
+          name: data.name ?? existingCard.name,
+          lastFourDigits:
+            data.lastFourDigits !== undefined
+              ? lastFourDigits
+              : existingCard.lastFourDigits,
+          cardType: data.cardType ?? existingCard.cardType,
+          spendingLimit: data.spendingLimit ?? existingCard.spendingLimit,
+          userId: data.userId ?? existingCard.userId,
+        })
+      : null;
 
   const updatedCard = await tx.card.update({
     where: {
@@ -356,6 +389,7 @@ export async function updateCard(
       }),
       ...(data.budgetId && { budgetId: data.budgetId }),
       ...(data.userId && { userId: data.userId }),
+      ...(relinkedDefaultCard && { defaultCardId: relinkedDefaultCard.id }),
     },
   });
 

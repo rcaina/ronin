@@ -131,7 +131,9 @@ const CardsPage = () => {
     } catch (err) {
       console.error("Failed to save card:", err);
       if (isDuplicateCardError(err)) {
-        toast.error("You already have a card with this name");
+        toast.error(
+          "You already have a card with this name or last four digits",
+        );
       } else {
         toast.error("Failed to save card. Please try again.");
       }
