@@ -9,10 +9,12 @@ import {
   deleteCategory,
   createCategory,
   updateCategory,
+  mergeCategories,
 } from "@/lib/data-hooks/services/categories";
 import type {
   CreateCategoryRequest,
   GroupedCategories,
+  MergeCategoriesRequest,
 } from "@/lib/types/category";
 import { useSession } from "next-auth/react";
 import { CategoryType } from "@prisma/client";
@@ -144,6 +146,18 @@ export const useDeleteCategory = () => {
 
   return useMutation({
     mutationFn: (id: string) => deleteCategory(id),
+    onSuccess: () => {
+      // Invalidate and refetch categories
+      void queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+};
+
+export const useMergeCategories = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: MergeCategoriesRequest) => mergeCategories(data),
     onSuccess: () => {
       // Invalidate and refetch categories
       void queryClient.invalidateQueries({ queryKey: ["categories"] });

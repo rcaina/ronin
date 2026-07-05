@@ -40,3 +40,8 @@ export interface UpdateCardRequest {
   budgetId?: string;
   userId?: string;
 }
+
+export interface MergeCardsRequest {
+  sourceIds: string[];
+  targetId: string;
+}

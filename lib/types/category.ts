@@ -24,3 +24,10 @@ export interface UpdateCategoryRequest {
   name: string;
   group: CategoryType;
 }
+
+export interface MergeCategoriesRequest {
+  /** IDs of the default categories being merged away. */
+  sourceIds: string[];
+  /** ID of the default category the user chose to keep. */
+  targetId: string;
+}

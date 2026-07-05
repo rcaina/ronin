@@ -2,6 +2,7 @@ import { type Category } from "@prisma/client";
 import type {
   GroupedCategories,
   CreateCategoryRequest,
+  MergeCategoriesRequest,
   UpdateCategoryRequest,
 } from "@/lib/types/category";
 
@@ -50,4 +51,20 @@ export const deleteCategory = async (id: string): Promise<void> => {
   if (!response.ok) {
     throw new Error(`Failed to delete category: ${response.statusText}`);
   }
+};
+
+export const mergeCategories = async (
+  data: MergeCategoriesRequest,
+): Promise<Category> => {
+  const response = await fetch("/api/categories/merge", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to merge categories: ${response.statusText}`);
+  }
+  return response.json() as Promise<Category>;
 };

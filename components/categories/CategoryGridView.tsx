@@ -19,12 +19,19 @@ interface CategoryGridViewProps {
   getGroupColor: GroupColorFunction;
   getGroupLabel: GroupLabelFunction;
   categories?: GroupedCategories;
+  /** "Merge categories" selection mode — see CategoryCard for behavior. */
+  selectionMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }
 
 export default function CategoryGridView({
   getGroupColor,
   getGroupLabel,
   categories: propCategories,
+  selectionMode = false,
+  selectedIds,
+  onToggleSelect,
 }: CategoryGridViewProps) {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [activeGroup, setActiveGroup] = useState<CategoryType | null>(null);
@@ -97,33 +104,37 @@ export default function CategoryGridView({
                 key={category.id}
                 category={category}
                 getGroupColor={getGroupColor}
+                selectionMode={selectionMode}
+                selected={selectedIds?.has(category.id) ?? false}
+                onToggleSelect={onToggleSelect}
               />
             ))}
 
             {/* Add Category Form */}
-            {isAddingCategory && activeGroup === group.type ? (
-              <AddCategoryForm
-                onSubmit={(data) =>
-                  handleSubmitAddCategory({ ...data, group: group.type })
-                }
-                onCancel={handleCancelAddCategory}
-                isLoading={createCategoryMutation.isPending}
-              />
-            ) : (
-              !isAddingCategory && (
-                <button
-                  onClick={() => handleStartAddCategory(group.type)}
-                  className="flex min-h-[180px] items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-surface-card text-gray-500 transition-all duration-200 ease-out hover:border-secondary hover:bg-secondary/5 hover:text-secondary-700 active:scale-[0.98]"
-                >
-                  <div className="text-center">
-                    <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-surface-muted text-gray-400">
-                      +
+            {!selectionMode &&
+              (isAddingCategory && activeGroup === group.type ? (
+                <AddCategoryForm
+                  onSubmit={(data) =>
+                    handleSubmitAddCategory({ ...data, group: group.type })
+                  }
+                  onCancel={handleCancelAddCategory}
+                  isLoading={createCategoryMutation.isPending}
+                />
+              ) : (
+                !isAddingCategory && (
+                  <button
+                    onClick={() => handleStartAddCategory(group.type)}
+                    className="flex min-h-[180px] items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-surface-card text-gray-500 transition-all duration-200 ease-out hover:border-secondary hover:bg-secondary/5 hover:text-secondary-700 active:scale-[0.98]"
+                  >
+                    <div className="text-center">
+                      <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+                        +
+                      </div>
+                      <p className="text-sm font-medium">Add category</p>
                     </div>
-                    <p className="text-sm font-medium">Add category</p>
-                  </div>
-                </button>
-              )
-            )}
+                  </button>
+                )
+              ))}
           </div>
         </div>
       ))}

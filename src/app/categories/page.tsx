@@ -1,19 +1,23 @@
 "use client";
 
 import PageHeader from "@/components/PageHeader";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "react-hot-toast";
 import CategoryGridView from "@/components/categories/CategoryGridView";
 import CategoryViewToggle, {
   type CategoryViewType,
 } from "@/components/categories/CategoryViewToggle";
 import CategoryListView from "@/components/categories/CategoryListView";
+import MergeCategoriesModal from "@/components/categories/MergeCategoriesModal";
+import MergeSelectionBar from "@/components/MergeSelectionBar";
 import { CategoryType } from "@prisma/client";
 import {
   useCategories,
   useCreateCategory,
+  useMergeCategories,
 } from "@/lib/data-hooks/categories/useCategories";
 import { usePageLoading } from "@/components/ConditionalLayout";
-import { Plus, AlertCircle, Search, X } from "lucide-react";
+import { Merge, Plus, AlertCircle, Search, X } from "lucide-react";
 import AddCategoryForm from "@/components/categories/AddCategoryForm";
 import {
   useDebounce,
@@ -36,24 +40,35 @@ const CategoriesPage = () => {
   useLockBodyScroll(showAddModal);
   const { data: categories, isLoading, error } = useCategories();
   const createCategoryMutation = useCreateCategory();
+  const mergeCategoriesMutation = useMergeCategories();
+
+  // "Merge categories" selection mode
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [mergeTargetId, setMergeTargetId] = useState<string | null>(null);
 
   // Debounce the search to avoid too many updates
   const debouncedSearch = useDebounce(localSearchQuery, 300);
 
   // Filter categories based on search query
-  const filteredCategories = categories
-    ? {
-        needs: (categories.needs || []).filter((cat) =>
-          cat.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
-        ),
-        wants: (categories.wants || []).filter((cat) =>
-          cat.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
-        ),
-        investment: (categories.investment || []).filter((cat) =>
-          cat.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
-        ),
-      }
-    : undefined;
+  const filteredCategories = useMemo(
+    () =>
+      categories
+        ? {
+            needs: (categories.needs || []).filter((cat) =>
+              cat.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
+            ),
+            wants: (categories.wants || []).filter((cat) =>
+              cat.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
+            ),
+            investment: (categories.investment || []).filter((cat) =>
+              cat.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
+            ),
+          }
+        : undefined,
+    [categories, debouncedSearch],
+  );
 
   // Aligned with GROUP_COLORS from components/recharts/theme.tsx
   const getGroupColor = (group: CategoryType) => {
@@ -88,6 +103,82 @@ const CategoriesPage = () => {
 
   const handleAddCategoryClick = () => {
     setShowAddModal(true);
+  };
+
+  const allCategories = useMemo(
+    () =>
+      categories
+        ? [...categories.needs, ...categories.wants, ...categories.investment]
+        : [],
+    [categories],
+  );
+
+  const selectedCategories = useMemo(
+    () => allCategories.filter((category) => selectedIds.has(category.id)),
+    [allCategories, selectedIds],
+  );
+
+  const handleToggleSelectionMode = () => {
+    setSelectionMode((prev) => !prev);
+    setSelectedIds(new Set());
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  // Prune selections that fall out of the filtered set (e.g. the user
+  // searches while in selection mode and a previously-selected category is
+  // no longer visible) so the merge count never includes hidden items.
+  useEffect(() => {
+    if (!selectionMode || !filteredCategories) return;
+    const visibleIds = new Set([
+      ...filteredCategories.needs.map((category) => category.id),
+      ...filteredCategories.wants.map((category) => category.id),
+      ...filteredCategories.investment.map((category) => category.id),
+    ]);
+    setSelectedIds((prev) => {
+      const next = new Set([...prev].filter((id) => visibleIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [debouncedSearch, selectionMode, filteredCategories]);
+
+  const handleOpenMergeModal = () => {
+    setMergeTargetId(null);
+    setShowMergeModal(true);
+  };
+
+  const handleCloseMergeModal = () => {
+    setShowMergeModal(false);
+    setMergeTargetId(null);
+  };
+
+  const handleConfirmMerge = async (targetId: string) => {
+    const sourceIds = selectedCategories
+      .filter((category) => category.id !== targetId)
+      .map((category) => category.id);
+
+    try {
+      await mergeCategoriesMutation.mutateAsync({
+        sourceIds,
+        targetId,
+      });
+      toast.success(`Merged ${sourceIds.length + 1} categories successfully!`);
+      handleCloseMergeModal();
+      setSelectionMode(false);
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error("Failed to merge categories:", error);
+      toast.error("Failed to merge categories. Please try again.");
+    }
   };
 
   const handleCloseAddModal = () => {
@@ -143,16 +234,38 @@ const CategoriesPage = () => {
         <PageHeader
           title="Categories"
           description="Manage your template categories"
-          action={{
-            label: "Add category",
-            onClick: handleAddCategoryClick,
-            icon: <Plus className="h-4 w-4" />,
-          }}
+          action={
+            selectionMode
+              ? undefined
+              : {
+                  label: "Add category",
+                  onClick: handleAddCategoryClick,
+                  icon: <Plus className="h-4 w-4" />,
+                }
+          }
+          actions={[
+            {
+              label: selectionMode ? "Cancel merge" : "Merge",
+              onClick: handleToggleSelectionMode,
+              icon: selectionMode ? (
+                <X className="h-4 w-4" />
+              ) : (
+                <Merge className="h-4 w-4" />
+              ),
+              variant: selectionMode ? "outline" : "secondary",
+            },
+          ]}
         />
 
         <div className="pt-4 lg:flex-1 lg:overflow-hidden lg:pt-0">
           <div className="lg:h-full lg:overflow-y-auto">
-            <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 sm:pb-28 lg:px-8 lg:py-4 lg:pb-8">
+            <div
+              className={`mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-4 ${
+                selectionMode
+                  ? "pb-40 sm:pb-40 lg:pb-24"
+                  : "pb-28 sm:pb-28 lg:pb-8"
+              }`}
+            >
               <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex-1">
                   <div className="relative w-full">
@@ -186,15 +299,32 @@ const CategoriesPage = () => {
                   getGroupColor={getGroupColor}
                   getGroupLabel={getGroupLabel}
                   categories={filteredCategories}
+                  selectionMode={selectionMode}
+                  selectedIds={selectedIds}
+                  onToggleSelect={handleToggleSelect}
                 />
               ) : (
                 <CategoryListView
                   getGroupColor={getGroupColor}
                   getGroupLabel={getGroupLabel}
                   categories={filteredCategories}
+                  selectionMode={selectionMode}
+                  selectedIds={selectedIds}
+                  onToggleSelect={handleToggleSelect}
                 />
               )}
             </div>
+
+            {/* Merge selection action bar — sticks to the bottom of the
+                scrollable content, offset above the mobile bottom tab bar
+                (~56px + safe area) so it never sits underneath it. */}
+            {selectionMode && (
+              <MergeSelectionBar
+                selectedCount={selectedIds.size}
+                itemNoun="categories"
+                onMerge={handleOpenMergeModal}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -222,6 +352,19 @@ const CategoriesPage = () => {
           </div>
         </div>
       )}
+
+      {/* Merge Categories Modal */}
+      <MergeCategoriesModal
+        isOpen={showMergeModal}
+        onClose={handleCloseMergeModal}
+        categories={selectedCategories}
+        targetId={mergeTargetId}
+        onSelectTarget={setMergeTargetId}
+        onConfirm={handleConfirmMerge}
+        isLoading={mergeCategoriesMutation.isPending}
+        getGroupColor={getGroupColor}
+        getGroupLabel={getGroupLabel}
+      />
     </>
   );
 };

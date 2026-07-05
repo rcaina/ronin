@@ -2,8 +2,10 @@ import { type CategoryType } from "@prisma/client";
 import type { PrismaClientTx } from "../prisma";
 import type { z } from "zod";
 import type { createCategorySchema } from "../api-schemas/categories";
+import { HttpError } from "../errors";
 import type {
   GroupedCategories,
+  MergeCategoriesRequest,
   UpdateCategoryRequest,
 } from "../types/category";
 
@@ -93,4 +95,71 @@ export async function updateCategory(
       group: data.group,
     },
   });
+}
+
+/**
+ * Merges one or more default/template categories (`sourceIds`) into a
+ * surviving category (`targetId`) that the user explicitly chose. The
+ * survivor keeps its own name and group unchanged.
+ *
+ * - Budget-level copies that pointed at a source template are repointed to
+ *   the survivor (`defaultCategoryId`).
+ * - Any transactions attached directly to a source template are repointed
+ *   to the survivor.
+ * - The source templates are soft-deleted.
+ */
+export async function mergeCategories(
+  tx: PrismaClientTx,
+  { sourceIds, targetId }: MergeCategoriesRequest,
+) {
+  const candidates = await tx.category.findMany({
+    where: {
+      id: { in: [targetId, ...sourceIds] },
+      budgetId: null,
+      defaultCategoryId: null,
+      deleted: null,
+    },
+  });
+
+  const target = candidates.find((category) => category.id === targetId);
+  if (!target) {
+    throw new HttpError(
+      "Target category not found or is not a default category",
+      404,
+    );
+  }
+
+  const foundSourceIds = new Set(
+    candidates
+      .filter((category) => category.id !== targetId)
+      .map((category) => category.id),
+  );
+  const missingSourceIds = sourceIds.filter((id) => !foundSourceIds.has(id));
+  if (missingSourceIds.length > 0) {
+    throw new HttpError(
+      "One or more categories to merge were not found or are not default categories",
+      404,
+    );
+  }
+
+  // Repoint budget copies that reference the source templates to the survivor.
+  await tx.category.updateMany({
+    where: { defaultCategoryId: { in: sourceIds } },
+    data: { defaultCategoryId: targetId },
+  });
+
+  // Safety net: repoint any transactions attached directly to the source
+  // templates (default categories aren't normally transacted against, but
+  // relink defensively rather than leave a dangling reference).
+  await tx.transaction.updateMany({
+    where: { categoryId: { in: sourceIds } },
+    data: { categoryId: targetId },
+  });
+
+  await tx.category.updateMany({
+    where: { id: { in: sourceIds } },
+    data: { deleted: new Date() },
+  });
+
+  return target;
 }

@@ -24,3 +24,13 @@ export const updateCardSchema = z.object({
   budgetId: z.string().min(1).optional(),
   userId: z.string().min(1).optional(),
 });
+
+export const mergeCardsSchema = z
+  .object({
+    sourceIds: z.array(z.string().min(1)).min(1),
+    targetId: z.string().min(1),
+  })
+  .refine((data) => !data.sourceIds.includes(data.targetId), {
+    message: "targetId must not be one of the sourceIds",
+    path: ["targetId"],
+  });

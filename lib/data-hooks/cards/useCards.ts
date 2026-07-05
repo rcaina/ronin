@@ -12,11 +12,13 @@ import {
   createCard,
   updateCard,
   deleteCard,
+  mergeCards,
 } from "../services/cards";
 import type {
   Card as ApiCard,
   CreateCardRequest,
   UpdateCardRequest,
+  MergeCardsRequest,
 } from "@/lib/types/card";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 
@@ -100,6 +102,23 @@ export const useDeleteCard = () => {
       // Also invalidate all budget cards queries since we don't know which budget the card belonged to
       void queryClient.invalidateQueries({ queryKey: ["budgetCards"] });
       // Invalidate all budget queries since card deletions could affect any budget
+      void queryClient.invalidateQueries({ queryKey: ["budget"] });
+    },
+  });
+};
+
+// Merge two or more of the user's own general (template) cards into one
+// they've explicitly chosen as the survivor. Uses the same invalidation set
+// as delete, since a merge both removes cards and can move budget cards /
+// transactions across whichever budgets they belonged to.
+export const useMergeCards = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: MergeCardsRequest) => mergeCards(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["cards"] });
+      void queryClient.invalidateQueries({ queryKey: ["budgetCards"] });
       void queryClient.invalidateQueries({ queryKey: ["budget"] });
     },
   });

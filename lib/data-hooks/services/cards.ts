@@ -3,6 +3,7 @@ import type {
   Card,
   CreateCardRequest,
   UpdateCardRequest,
+  MergeCardsRequest,
 } from "@/lib/types/card";
 
 export const getCards = async (
@@ -70,7 +71,10 @@ export const createCard = async (data: CreateCardRequest): Promise<Card> => {
     } catch {
       // Response wasn't JSON — fall back to statusText.
     }
-    throw new CardApiError(`Failed to create card: ${message}`, response.status);
+    throw new CardApiError(
+      `Failed to create card: ${message}`,
+      response.status,
+    );
   }
   return response.json() as Promise<Card>;
 };
@@ -88,6 +92,30 @@ export const updateCard = async (
   });
   if (!response.ok) {
     throw new Error(`Failed to update card: ${response.statusText}`);
+  }
+  return response.json() as Promise<Card>;
+};
+
+export const mergeCards = async (data: MergeCardsRequest): Promise<Card> => {
+  const response = await fetch("/api/cards/merge", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    let message = response.statusText;
+    try {
+      const body = (await response.json()) as { error?: string };
+      if (body?.error) message = body.error;
+    } catch {
+      // Response wasn't JSON — fall back to statusText.
+    }
+    throw new CardApiError(
+      `Failed to merge cards: ${message}`,
+      response.status,
+    );
   }
   return response.json() as Promise<Card>;
 };

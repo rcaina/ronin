@@ -5,7 +5,11 @@ import {
   TransactionType,
 } from "@prisma/client";
 import type { PrismaClientTx } from "../prisma";
-import type { createCardSchema, updateCardSchema } from "../api-schemas/cards";
+import type {
+  createCardSchema,
+  updateCardSchema,
+  mergeCardsSchema,
+} from "../api-schemas/cards";
 import type { z } from "zod";
 import { HttpError } from "../errors";
 import {
@@ -412,6 +416,68 @@ export async function updateCard(
   }
 
   return updatedCard;
+}
+
+// Merge two or more of the requesting user's own general (template) cards
+// into one they explicitly choose as the survivor. Any budget cards or
+// transactions linked to the sources are repointed at the survivor (mirroring
+// the identity-sync that updateCard already does when a general card is
+// renamed), then the sources are soft-deleted.
+export async function mergeCards(
+  tx: PrismaClientTx,
+  { sourceIds, targetId }: z.infer<typeof mergeCardsSchema>,
+  user: User & { accountId: string },
+): Promise<Card> {
+  const candidates = await tx.card.findMany({
+    where: { id: { in: [...sourceIds, targetId] } },
+  });
+
+  // Every card in the merge must exist, be a general (template) card, not
+  // already deleted, and be owned by the requesting user — never let a user
+  // merge cards they don't own, or budget cards that aren't merge candidates.
+  const requireOwnedGeneralCard = (id: string): Card => {
+    const card = candidates.find((c) => c.id === id);
+    if (!card || card.deleted !== null || card.budgetId !== null) {
+      throw new HttpError("Card not found", 404);
+    }
+    if (card.userId !== user.id) {
+      throw new HttpError("You can only merge cards you own", 403);
+    }
+    return card;
+  };
+
+  const target = requireOwnedGeneralCard(targetId);
+  for (const sourceId of sourceIds) {
+    requireOwnedGeneralCard(sourceId);
+  }
+
+  // Repoint budget cards linked to the merged-away cards, syncing their
+  // identity to the survivor's (mirrors updateCard's rename propagation).
+  await tx.card.updateMany({
+    where: {
+      defaultCardId: { in: sourceIds },
+      deleted: null,
+    },
+    data: {
+      defaultCardId: targetId,
+      name: target.name,
+      lastFourDigits: target.lastFourDigits,
+    },
+  });
+
+  // Repoint transactions attached directly to the source general cards.
+  await tx.transaction.updateMany({
+    where: { cardId: { in: sourceIds } },
+    data: { cardId: targetId },
+  });
+
+  // Soft-delete the merged-away cards.
+  await tx.card.updateMany({
+    where: { id: { in: sourceIds } },
+    data: { deleted: new Date() },
+  });
+
+  return target;
 }
 
 export async function deleteCard(
