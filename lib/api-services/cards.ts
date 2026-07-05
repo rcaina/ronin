@@ -1,9 +1,17 @@
-import { type User, TransactionType } from "@prisma/client";
+import {
+  type User,
+  type Card,
+  type CardType,
+  TransactionType,
+} from "@prisma/client";
 import type { PrismaClientTx } from "../prisma";
 import type { createCardSchema, updateCardSchema } from "../api-schemas/cards";
 import type { z } from "zod";
 import { HttpError } from "../errors";
-import { calculateCardFinancials } from "./card-financials";
+import {
+  calculateCardFinancials,
+  calculateGeneralCardFinancials,
+} from "./card-financials";
 
 export async function getCards(
   tx: PrismaClientTx,
@@ -12,6 +20,7 @@ export async function getCards(
 ) {
   const excludeCardPayments = params.get("excludeCardPayments") === "true";
   const budgetId = params.get("budgetId");
+  const general = params.get("general") === "true";
 
   // Get all users in the same account
   const accountUsers = await tx.accountUser.findMany({
@@ -25,13 +34,64 @@ export async function getCards(
 
   const userIds = accountUsers.map((au) => au.userId);
 
+  const transactionsFilter = {
+    where: {
+      deleted: null,
+      ...(excludeCardPayments && {
+        transactionType: {
+          not: TransactionType.CARD_PAYMENT,
+        },
+      }),
+    },
+    select: {
+      amount: true,
+      transactionType: true,
+    },
+  };
+
+  if (general) {
+    // General (template) cards have no budgetId of their own — their
+    // amountSpent is rolled up from every budget card linked to them.
+    const generalCards = await tx.card.findMany({
+      where: {
+        userId: {
+          in: userIds,
+        },
+        deleted: null,
+        budgetId: null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        transactions: transactionsFilter,
+        budgetCards: {
+          where: { deleted: null },
+          include: {
+            transactions: transactionsFilter,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return generalCards.map(calculateGeneralCardFinancials);
+  }
+
   const cards = await tx.card.findMany({
     where: {
       userId: {
         in: userIds,
       },
       deleted: null,
-      ...(budgetId && { budgetId }),
+      // Never mix general (template) cards into budget-card lists — callers
+      // attach transactions/payments to these, which templates can't take.
+      budgetId: budgetId ?? { not: null },
     },
     include: {
       user: {
@@ -42,20 +102,7 @@ export async function getCards(
           lastName: true,
         },
       },
-      transactions: {
-        where: {
-          deleted: null,
-          ...(excludeCardPayments && {
-            transactionType: {
-              not: TransactionType.CARD_PAYMENT,
-            },
-          }),
-        },
-        select: {
-          amount: true,
-          transactionType: true,
-        },
-      },
+      transactions: transactionsFilter,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -70,6 +117,21 @@ export async function getCardById(
   accountId: string,
   excludeCardPayments = false,
 ) {
+  const transactionsFilter = {
+    where: {
+      deleted: null,
+      ...(excludeCardPayments && {
+        transactionType: {
+          not: TransactionType.CARD_PAYMENT,
+        },
+      }),
+    },
+    select: {
+      amount: true,
+      transactionType: true,
+    },
+  };
+
   const card = await tx.card.findFirst({
     where: {
       id,
@@ -92,18 +154,11 @@ export async function getCardById(
           lastName: true,
         },
       },
-      transactions: {
-        where: {
-          deleted: null,
-          ...(excludeCardPayments && {
-            transactionType: {
-              not: TransactionType.CARD_PAYMENT,
-            },
-          }),
-        },
-        select: {
-          amount: true,
-          transactionType: true,
+      transactions: transactionsFilter,
+      budgetCards: {
+        where: { deleted: null },
+        include: {
+          transactions: transactionsFilter,
         },
       },
     },
@@ -113,8 +168,63 @@ export async function getCardById(
     throw new HttpError("Card not found", 404);
   }
 
-  // Calculate amountSpent by summing related transactions
-  return calculateCardFinancials(card);
+  // A general (template) card's financials roll up its linked budget cards;
+  // a budget card's come from its own transactions.
+  return card.budgetId === null
+    ? calculateGeneralCardFinancials(card)
+    : calculateCardFinancials(card);
+}
+
+// Find the user's general (template) card matching the given identity —
+// preferring the last-four-digits match when available, otherwise a
+// case-insensitive trimmed name match — lazily creating one if none exists.
+// Mirrors the default-category resolution in createBudgetCategory.
+export async function resolveDefaultCard(
+  tx: PrismaClientTx,
+  params: {
+    name: string;
+    lastFourDigits?: string | null;
+    cardType: CardType;
+    spendingLimit?: number | null;
+    userId: string;
+  },
+): Promise<Card> {
+  const trimmedName = params.name.trim();
+  const lastFourDigits = params.lastFourDigits?.length
+    ? params.lastFourDigits
+    : null;
+
+  let generalCard = lastFourDigits
+    ? await tx.card.findFirst({
+        where: {
+          budgetId: null,
+          userId: params.userId,
+          lastFourDigits,
+          deleted: null,
+        },
+      })
+    : await tx.card.findFirst({
+        where: {
+          budgetId: null,
+          userId: params.userId,
+          name: { equals: trimmedName, mode: "insensitive" },
+          deleted: null,
+        },
+      });
+
+  // No matching general card yet — create one so future budget cards with
+  // this identity can link back to it too
+  generalCard ??= await tx.card.create({
+    data: {
+      name: trimmedName,
+      lastFourDigits,
+      cardType: params.cardType,
+      spendingLimit: params.spendingLimit,
+      userId: params.userId,
+    },
+  });
+
+  return generalCard;
 }
 
 export async function createCard(
@@ -134,14 +244,60 @@ export async function createCard(
     throw new HttpError("User not found in account", 400);
   }
 
+  const lastFourDigits = data.lastFourDigits?.length
+    ? data.lastFourDigits
+    : null;
+
+  if (!data.budgetId) {
+    // Creating a general (template) card directly — guard against creating a
+    // duplicate of one that already exists for this user.
+    const trimmedName = data.name.trim();
+
+    const existingGeneralCard = await tx.card.findFirst({
+      where: {
+        budgetId: null,
+        userId: data.userId,
+        deleted: null,
+        OR: [
+          { name: { equals: trimmedName, mode: "insensitive" } },
+          ...(lastFourDigits ? [{ lastFourDigits }] : []),
+        ],
+      },
+    });
+
+    if (existingGeneralCard) {
+      throw new HttpError("A card with this name already exists", 409);
+    }
+
+    return await tx.card.create({
+      data: {
+        name: trimmedName,
+        lastFourDigits,
+        cardType: data.cardType,
+        spendingLimit: data.spendingLimit,
+        userId: data.userId,
+      },
+    });
+  }
+
+  // Creating a budget card — link it to (and lazily create) its general card
+  const defaultCard = await resolveDefaultCard(tx, {
+    name: data.name,
+    lastFourDigits,
+    cardType: data.cardType,
+    spendingLimit: data.spendingLimit,
+    userId: data.userId,
+  });
+
   return await tx.card.create({
     data: {
-      name: data.name,
-      lastFourDigits: data.lastFourDigits?.length ? data.lastFourDigits : null,
+      name: defaultCard.name,
+      lastFourDigits,
       cardType: data.cardType,
       spendingLimit: data.spendingLimit,
       userId: data.userId,
       budgetId: data.budgetId,
+      defaultCardId: defaultCard.id,
     },
   });
 }
@@ -165,7 +321,7 @@ export async function updateCard(
     }
   }
 
-  // Find the card first to get its current userId for the where clause
+  // Find the card first to get its current userId/budgetId for the where clause
   const existingCard = await tx.card.findFirst({
     where: {
       id,
@@ -173,6 +329,7 @@ export async function updateCard(
     },
     select: {
       userId: true,
+      budgetId: true,
     },
   });
 
@@ -180,7 +337,11 @@ export async function updateCard(
     throw new HttpError("Card not found", 404);
   }
 
-  return await tx.card.update({
+  const lastFourDigits = data.lastFourDigits?.length
+    ? data.lastFourDigits
+    : null;
+
+  const updatedCard = await tx.card.update({
     where: {
       id,
       userId: existingCard.userId, // Use the existing userId to find the card
@@ -188,11 +349,7 @@ export async function updateCard(
     },
     data: {
       ...(data.name && { name: data.name }),
-      ...(data.lastFourDigits !== undefined && {
-        lastFourDigits: data.lastFourDigits?.length
-          ? data.lastFourDigits
-          : null,
-      }),
+      ...(data.lastFourDigits !== undefined && { lastFourDigits }),
       ...(data.cardType && { cardType: data.cardType }),
       ...(data.spendingLimit !== undefined && {
         spendingLimit: data.spendingLimit,
@@ -201,6 +358,26 @@ export async function updateCard(
       ...(data.userId && { userId: data.userId }),
     },
   });
+
+  // General (template) cards propagate name/last-four-digits changes to
+  // every budget card linked to them so both stay in sync.
+  const isGeneralCard = existingCard.budgetId === null;
+  const isChangingNameOrLastFourDigits =
+    Boolean(data.name) || data.lastFourDigits !== undefined;
+  if (isGeneralCard && isChangingNameOrLastFourDigits) {
+    await tx.card.updateMany({
+      where: {
+        defaultCardId: id,
+        deleted: null,
+      },
+      data: {
+        ...(data.name && { name: data.name }),
+        ...(data.lastFourDigits !== undefined && { lastFourDigits }),
+      },
+    });
+  }
+
+  return updatedCard;
 }
 
 export async function deleteCard(
@@ -225,8 +402,12 @@ export async function deleteCard(
 export const getCardTransactions = async (tx: PrismaClientTx, cardId: string) =>
   await tx.transaction.findMany({
     where: {
-      cardId,
       deleted: null,
+      // A general (template) card's transactions are the union of the
+      // transactions on every budget card linked to it.
+      card: {
+        OR: [{ id: cardId }, { defaultCardId: cardId }],
+      },
     },
     include: {
       category: true,

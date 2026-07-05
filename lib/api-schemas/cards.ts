@@ -13,7 +13,7 @@ export const createCardSchema = z.object({
   cardType: z.nativeEnum(CardType),
   spendingLimit: z.number().optional(),
   userId: z.string().min(1),
-  budgetId: z.string().min(1),
+  budgetId: z.string().min(1).optional(),
 });
 
 export const updateCardSchema = z.object({

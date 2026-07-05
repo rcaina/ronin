@@ -1,0 +1,46 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm check)",
+      "Bash(pnpm lint)",
+      "Bash(pnpm lint:fix)",
+      "Bash(pnpm typecheck)",
+      "Bash(pnpm format:check)",
+      "Bash(pnpm format:write)",
+      "Bash(pnpm exec prettier *)",
+      "Bash(pnpm exec tsc *)",
+      "Bash(pnpm test)",
+      "Bash(pnpm exec vitest *)"
+    ],
+    "ask": [
+      "Bash(pnpm db:reset)",
+      "Bash(pnpm db:push)",
+      "Bash(pnpm db:generate)"
+    ],
+    "deny": ["Read(./.env)", "Read(./.env.*)"]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_response.filePath // .tool_input.file_path' | { read -r f; [ -n \"$f\" ] && pnpm exec prettier --write --ignore-unknown \"$f\"; } 2>/dev/null || true",
+            "timeout": 30,
+            "statusMessage": "Formatting with Prettier"
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_response.filePath // .tool_input.file_path' | { read -r f; case \"$f\" in *.ts|*.tsx) out=$(pnpm exec vitest related --run --passWithNoTests \"$f\" 2>&1) || { echo \"$out\" | tail -30; exit 2; };; esac; }",
+            "timeout": 120,
+            "asyncRewake": true,
+            "rewakeSummary": "Related tests failed",
+            "statusMessage": "Running related tests"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledMcpjsonServers": ["playwright", "prisma"]
+}

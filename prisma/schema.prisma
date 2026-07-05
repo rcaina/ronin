@@ -140,22 +140,26 @@ model Category {
 }
 
 model Card {
-    id            String        @id @default(cuid())
-    name          String
+    id             String        @id @default(cuid())
+    name           String
     lastFourDigits String?
-    cardType      CardType
-    amountSpent   Float?
-    spendingLimit Float?
-    budgetId      String?
-    budget        Budget?       @relation(fields: [budgetId], references: [id])
-    userId        String
-    user          User          @relation(fields: [userId], references: [id])
-    transactions  Transaction[]
-    deleted       DateTime?
-    createdAt     DateTime      @default(now())
-    updatedAt     DateTime      @updatedAt
+    cardType       CardType
+    amountSpent    Float?
+    spendingLimit  Float?
+    budgetId       String?
+    budget         Budget?       @relation(fields: [budgetId], references: [id])
+    defaultCardId  String?
+    defaultCard    Card?         @relation("DefaultCard", fields: [defaultCardId], references: [id])
+    budgetCards    Card[]        @relation("DefaultCard")
+    userId         String
+    user           User          @relation(fields: [userId], references: [id])
+    transactions   Transaction[]
+    deleted        DateTime?
+    createdAt      DateTime      @default(now())
+    updatedAt      DateTime      @updatedAt
 
     @@index([id])
+    @@index([defaultCardId])
     @@map("card")
 }
 

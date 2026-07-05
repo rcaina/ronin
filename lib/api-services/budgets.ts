@@ -18,7 +18,7 @@ import type {
   createBudgetSchema,
   createBudgetWithCardsSchema,
 } from "../api-schemas/budgets";
-import { createCard as createCardService } from "./cards";
+import { createCard as createCardService, resolveDefaultCard } from "./cards";
 import { calculateCardFinancials } from "./card-financials";
 import type {
   UpdateBudgetData,
@@ -138,15 +138,26 @@ export async function createBudget(
       },
     });
 
-    mainDebitCard ??= await tx.card.create({
-      data: {
+    if (!mainDebitCard) {
+      const defaultCard = await resolveDefaultCard(tx, {
         name: "Main",
+        lastFourDigits: null,
         cardType: CardType.DEBIT,
+        spendingLimit: null,
         userId: user.id,
-        budgetId: budget.id,
-        amountSpent: 0,
-      },
-    });
+      });
+
+      mainDebitCard = await tx.card.create({
+        data: {
+          name: defaultCard.name,
+          cardType: CardType.DEBIT,
+          userId: user.id,
+          budgetId: budget.id,
+          amountSpent: 0,
+          defaultCardId: defaultCard.id,
+        },
+      });
+    }
   }
 
   // Create income transactions only when we can link them to a debit card.
@@ -608,9 +619,11 @@ export async function duplicateBudget(
         select: {
           id: true,
           name: true,
+          lastFourDigits: true,
           cardType: true,
           spendingLimit: true,
           userId: true,
+          defaultCardId: true,
         },
       },
       transactions: {
@@ -631,6 +644,7 @@ export async function duplicateBudget(
           name: true,
           group: true,
           allocatedAmount: true,
+          defaultCategoryId: true,
         },
       },
     },
@@ -701,7 +715,7 @@ export async function duplicateBudget(
     }
   }
 
-  // Copy budget category allocations
+  // Copy budget category allocations, preserving the default-category link
   for (const category of originalBudget.categories) {
     await tx.category.create({
       data: {
@@ -709,17 +723,36 @@ export async function duplicateBudget(
         name: category.name,
         group: category.group,
         allocatedAmount: category.allocatedAmount,
+        defaultCategoryId: category.defaultCategoryId,
       },
     });
   }
 
-  // Copy cards from original budget to new budget
+  // Copy cards from original budget to new budget, keeping them linked to
+  // the same general card (resolving/creating one if the source predates it)
   for (const card of originalBudget.cards) {
+    const defaultCardId =
+      card.defaultCardId ??
+      (
+        await resolveDefaultCard(tx, {
+          name: card.name,
+          lastFourDigits: card.lastFourDigits,
+          cardType: card.cardType,
+          spendingLimit: card.spendingLimit,
+          userId: card.userId,
+        })
+      ).id;
+
     await tx.card.create({
       data: {
-        ...card,
+        name: card.name,
+        lastFourDigits: card.lastFourDigits,
+        cardType: card.cardType,
+        spendingLimit: card.spendingLimit,
+        userId: card.userId,
         budgetId: newBudget.id,
         amountSpent: 0,
+        defaultCardId,
       },
     });
   }
@@ -1029,16 +1062,33 @@ export const importBudgetCards = async (
       continue;
     }
 
+    const lastFourDigits = sourceCard.lastFourDigits?.length
+      ? sourceCard.lastFourDigits
+      : null;
+
+    // Keep the imported card linked to the same general card (resolving/
+    // creating one if the source predates it)
+    const defaultCardId =
+      sourceCard.defaultCardId ??
+      (
+        await resolveDefaultCard(tx, {
+          name: sourceCard.name,
+          lastFourDigits,
+          cardType: sourceCard.cardType,
+          spendingLimit: sourceCard.spendingLimit,
+          userId: sourceCard.userId,
+        })
+      ).id;
+
     const card = await tx.card.create({
       data: {
         name: sourceCard.name,
-        lastFourDigits: sourceCard.lastFourDigits?.length
-          ? sourceCard.lastFourDigits
-          : null,
+        lastFourDigits,
         cardType: sourceCard.cardType,
         spendingLimit: sourceCard.spendingLimit,
         userId: sourceCard.userId,
         budgetId: targetBudgetId,
+        defaultCardId,
       },
     });
     created.push(card);

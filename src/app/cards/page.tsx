@@ -11,12 +11,12 @@ import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import AddCardForm from "@/components/cards/AddCardForm";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import {
-  useCards,
+  useGeneralCards,
   useDeleteCard,
   useCreateCard,
   useUpdateCard,
 } from "@/lib/data-hooks/cards/useCards";
-import { useActiveBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { CardApiError } from "@/lib/data-hooks/services/cards";
 import type { Card as ApiCard } from "@/lib/types/card";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import type { CardType } from "@prisma/client";
@@ -35,11 +35,15 @@ interface User {
   role: string;
 }
 
+// A 409 from the create endpoint means the user already has a general card
+// with this name or last-four digits.
+const isDuplicateCardError = (err: unknown): boolean =>
+  err instanceof CardApiError && err.status === 409;
+
 const CardsPage = () => {
   const router = useRouter();
   const { data: session } = useSession();
-  const { data: apiCards, isLoading, error } = useCards(false);
-  const { data: activeBudgets = [] } = useActiveBudgets();
+  const { data: apiCards, isLoading, error } = useGeneralCards();
   const deleteCardMutation = useDeleteCard();
   const createCardMutation = useCreateCard();
   const updateCardMutation = useUpdateCard();
@@ -103,12 +107,6 @@ const CardsPage = () => {
     userId: string;
   }) => {
     try {
-      // Get the first active budget ID, or throw an error if none exist
-      if (activeBudgets.length === 0) {
-        toast.error("No active budget found. Please create a budget first.");
-        return;
-      }
-
       const cardData = {
         ...data,
         spendingLimit:
@@ -116,7 +114,6 @@ const CardsPage = () => {
             ? undefined
             : Number(data.spendingLimit),
         cardType: data.cardType,
-        budgetId: activeBudgets[0]!.id,
       };
 
       if (cardToEdit) {
@@ -133,7 +130,11 @@ const CardsPage = () => {
       }
     } catch (err) {
       console.error("Failed to save card:", err);
-      toast.error("Failed to save card. Please try again.");
+      if (isDuplicateCardError(err)) {
+        toast.error("You already have a card with this name");
+      } else {
+        toast.error("Failed to save card. Please try again.");
+      }
     }
   };
 
@@ -149,12 +150,6 @@ const CardsPage = () => {
 
   const handleCopyCard = async (card: Card) => {
     try {
-      // Get the first active budget ID, or throw an error if none exist
-      if (activeBudgets.length === 0) {
-        toast.error("No active budget found. Please create a budget first.");
-        return;
-      }
-
       const originalApiCard = apiCards?.find((c) => c.id === card.id);
       if (!originalApiCard) {
         console.error("Failed to load card data for copying");
@@ -162,21 +157,25 @@ const CardsPage = () => {
         return;
       }
 
-      // Create a copy with "Copy" appended to the name
+      // Create a copy with "Copy" appended to the name. The copy is a
+      // different physical card, so don't carry over the last-four digits —
+      // they must stay unique per owner (the server 409s on a match).
       const copyData = {
         name: `${originalApiCard.name} Copy`,
-        lastFourDigits: originalApiCard.lastFourDigits ?? undefined,
         cardType: originalApiCard.cardType,
         spendingLimit: originalApiCard.spendingLimit,
         userId: originalApiCard.userId,
-        budgetId: activeBudgets[0]!.id,
       };
 
       await createCardMutation.mutateAsync(copyData);
       toast.success("Card copied successfully!");
     } catch (err) {
       console.error("Failed to copy card:", err);
-      toast.error("Failed to copy card. Please try again.");
+      if (isDuplicateCardError(err)) {
+        toast.error("You already have a card with this name");
+      } else {
+        toast.error("Failed to copy card. Please try again.");
+      }
     }
   };
 
@@ -276,6 +275,54 @@ const CardsPage = () => {
     return ownerFilteredCards.filter((card) => card.type === "cash");
   }, [ownerFilteredCards]);
 
+  // Renders either the inline edit form (when this card is the one being
+  // edited) or the card tile itself. Shared by the credit/debit/cash
+  // sections below so the markup is written once instead of three times.
+  const renderCardTile = (card: Card) => {
+    const isEditing = cardToEdit?.id === card.id;
+
+    if (isEditing) {
+      return (
+        <AddCardForm
+          key={`edit-${card.id}`}
+          onSubmit={handleSubmitCard}
+          onCancel={handleCancelEdit}
+          isLoading={updateCardMutation.isPending}
+          cardToEdit={{
+            id: cardToEdit.id,
+            name: cardToEdit.name,
+            lastFourDigits: cardToEdit.lastFourDigits,
+            cardType: cardToEdit.cardType,
+            spendingLimit: cardToEdit.spendingLimit,
+            userId: cardToEdit.userId,
+          }}
+          users={users}
+          loadingUsers={loadingUsers}
+          defaultValues={{
+            name: cardToEdit.name,
+            lastFourDigits: cardToEdit.lastFourDigits ?? "",
+            cardType: cardToEdit.cardType,
+            spendingLimit: cardToEdit.spendingLimit?.toString() ?? "",
+            userId: cardToEdit.userId,
+          }}
+        />
+      );
+    }
+
+    return (
+      <CardComponent
+        key={card.id}
+        card={card}
+        onEdit={handleEditCard}
+        onCopy={handleCopyCard}
+        onDelete={handleDeleteCard}
+        onClick={handleCardClick}
+        canEdit={card.userId === session?.user?.id}
+        general={true}
+      />
+    );
+  };
+
   usePageLoading(isLoading, "Loading cards...");
   if (isLoading) {
     return null;
@@ -295,7 +342,7 @@ const CardsPage = () => {
     <div className="flex flex-col bg-surface lg:h-screen">
       <PageHeader
         title="Cards"
-        description="View and manage credit and debit cards in your account"
+        description="The cards on your account, tracked across every budget"
         actions={[
           {
             label: "Add card",
@@ -395,149 +442,11 @@ const CardsPage = () => {
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {/* Credit Cards Section */}
-              {creditCardsArray.length > 0 &&
-                creditCardsArray.map((card) => {
-                  const isEditing = cardToEdit?.id === card.id;
-
-                  if (isEditing) {
-                    return (
-                      <AddCardForm
-                        key={`edit-${card.id}`}
-                        onSubmit={handleSubmitCard}
-                        onCancel={handleCancelEdit}
-                        isLoading={updateCardMutation.isPending}
-                        cardToEdit={{
-                          id: cardToEdit.id,
-                          name: cardToEdit.name,
-                          lastFourDigits: cardToEdit.lastFourDigits,
-                          cardType: cardToEdit.cardType,
-                          spendingLimit: cardToEdit.spendingLimit,
-                          userId: cardToEdit.userId,
-                        }}
-                        users={users}
-                        loadingUsers={loadingUsers}
-                        defaultValues={{
-                          name: cardToEdit.name,
-                          lastFourDigits: cardToEdit.lastFourDigits ?? "",
-                          cardType: cardToEdit.cardType,
-                          spendingLimit:
-                            cardToEdit.spendingLimit?.toString() ?? "",
-                          userId: cardToEdit.userId,
-                        }}
-                      />
-                    );
-                  }
-
-                  return (
-                    <CardComponent
-                      key={card.id}
-                      card={card}
-                      onEdit={handleEditCard}
-                      onCopy={handleCopyCard}
-                      onDelete={handleDeleteCard}
-                      onClick={handleCardClick}
-                      canEdit={card.userId === session?.user?.id}
-                      general={true}
-                    />
-                  );
-                })}
-
-              {/* Debit Cards Section */}
-              {debitCardsArray.length > 0 &&
-                debitCardsArray.map((card) => {
-                  const isEditing = cardToEdit?.id === card.id;
-
-                  if (isEditing) {
-                    return (
-                      <AddCardForm
-                        key={`edit-${card.id}`}
-                        onSubmit={handleSubmitCard}
-                        onCancel={handleCancelEdit}
-                        isLoading={updateCardMutation.isPending}
-                        cardToEdit={{
-                          id: cardToEdit.id,
-                          name: cardToEdit.name,
-                          lastFourDigits: cardToEdit.lastFourDigits,
-                          cardType: cardToEdit.cardType,
-                          spendingLimit: cardToEdit.spendingLimit,
-                          userId: cardToEdit.userId,
-                        }}
-                        users={users}
-                        loadingUsers={loadingUsers}
-                        defaultValues={{
-                          name: cardToEdit.name,
-                          lastFourDigits: cardToEdit.lastFourDigits ?? "",
-                          cardType: cardToEdit.cardType,
-                          spendingLimit:
-                            cardToEdit.spendingLimit?.toString() ?? "",
-                          userId: cardToEdit.userId,
-                        }}
-                      />
-                    );
-                  }
-
-                  return (
-                    <CardComponent
-                      key={card.id}
-                      card={card}
-                      onEdit={handleEditCard}
-                      onCopy={handleCopyCard}
-                      onDelete={handleDeleteCard}
-                      onClick={handleCardClick}
-                      canEdit={card.userId === session?.user?.id}
-                      general={true}
-                    />
-                  );
-                })}
-
-              {/* Cash Cards Section */}
-              {cashCardsArray.length > 0 &&
-                cashCardsArray.map((card) => {
-                  const isEditing = cardToEdit?.id === card.id;
-
-                  if (isEditing) {
-                    return (
-                      <AddCardForm
-                        key={`edit-${card.id}`}
-                        onSubmit={handleSubmitCard}
-                        onCancel={handleCancelEdit}
-                        isLoading={updateCardMutation.isPending}
-                        cardToEdit={{
-                          id: cardToEdit.id,
-                          name: cardToEdit.name,
-                          lastFourDigits: cardToEdit.lastFourDigits,
-                          cardType: cardToEdit.cardType,
-                          spendingLimit: cardToEdit.spendingLimit,
-                          userId: cardToEdit.userId,
-                        }}
-                        users={users}
-                        loadingUsers={loadingUsers}
-                        defaultValues={{
-                          name: cardToEdit.name,
-                          lastFourDigits: cardToEdit.lastFourDigits ?? "",
-                          cardType: cardToEdit.cardType,
-                          spendingLimit:
-                            cardToEdit.spendingLimit?.toString() ?? "",
-                          userId: cardToEdit.userId,
-                        }}
-                      />
-                    );
-                  }
-
-                  return (
-                    <CardComponent
-                      key={card.id}
-                      card={card}
-                      onEdit={handleEditCard}
-                      onCopy={handleCopyCard}
-                      onDelete={handleDeleteCard}
-                      onClick={handleCardClick}
-                      canEdit={card.userId === session?.user?.id}
-                      general={true}
-                    />
-                  );
-                })}
+              {/* Credit, debit, and cash cards, each rendered through the same
+                  card-or-inline-edit-form helper below. */}
+              {creditCardsArray.map(renderCardTile)}
+              {debitCardsArray.map(renderCardTile)}
+              {cashCardsArray.map(renderCardTile)}
 
               {/* Empty State - only show if no cards */}
               {cards.length === 0 && (
@@ -550,7 +459,7 @@ const CardsPage = () => {
                       No cards yet
                     </h3>
                     <p className="text-sm text-gray-500">
-                      Add your first credit or debit card to get started
+                      Add a card once and use it across all your budgets
                     </p>
                     <Button onClick={handleAddCard} variant="primary">
                       <Plus className="h-4 w-4" />

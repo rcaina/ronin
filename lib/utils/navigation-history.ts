@@ -36,7 +36,9 @@ export const readStack = (): string[] => {
 export const writeStack = (stack: string[]): void => {
   try {
     const capped =
-      stack.length > MAX_ENTRIES ? stack.slice(stack.length - MAX_ENTRIES) : stack;
+      stack.length > MAX_ENTRIES
+        ? stack.slice(stack.length - MAX_ENTRIES)
+        : stack;
     window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(capped));
   } catch {
     // Ignore private-mode/quota errors — worst case, scoped back falls back

@@ -15,6 +15,15 @@ export interface Card {
   color: string;
 }
 
+// Human-readable labels for each card type, shared by card forms and modals.
+export const CARD_TYPE_LABELS: Record<CardType, string> = {
+  [CardType.CASH]: "Cash",
+  [CardType.DEBIT]: "Debit",
+  [CardType.CREDIT]: "Credit",
+  [CardType.BUSINESS_DEBIT]: "Business debit",
+  [CardType.BUSINESS_CREDIT]: "Business credit",
+};
+
 // Array of different gradient colors for cards
 export const cardColors = [
   "bg-gradient-to-br from-blue-600 to-purple-600",
