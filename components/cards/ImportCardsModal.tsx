@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { X, CheckCircle2, FolderInput, CreditCard } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { CardType } from "@prisma/client";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useImportBudgetCards } from "@/lib/data-hooks/budgets/useBudgetCards";
 import { formatCurrency } from "@/lib/utils";
@@ -11,6 +10,7 @@ import { useLockBodyScroll } from "@/lib/utils/hooks";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import Button from "../Button";
 import LoadingSpinner from "../LoadingSpinner";
+import { CARD_TYPE_LABELS } from "@/lib/utils/cards";
 
 interface ImportCardsModalProps {
   isOpen: boolean;
@@ -18,14 +18,6 @@ interface ImportCardsModalProps {
   /** The budget the cards will be imported into. */
   budgetId: string;
 }
-
-const CARD_TYPE_LABELS: Record<CardType, string> = {
-  [CardType.CASH]: "Cash",
-  [CardType.DEBIT]: "Debit",
-  [CardType.CREDIT]: "Credit",
-  [CardType.BUSINESS_DEBIT]: "Business debit",
-  [CardType.BUSINESS_CREDIT]: "Business credit",
-};
 
 type SourceCard = NonNullable<BudgetWithRelations["cards"]>[number];
 

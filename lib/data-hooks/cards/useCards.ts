@@ -34,6 +34,22 @@ export const useCards = (excludeCardPayments?: boolean, budgetId?: string) => {
   return query;
 };
 
+// General (template) cards — one per distinct card identity, with
+// amountSpent rolled up across every budget card linked to it.
+export const useGeneralCards = () => {
+  const { data: session } = useSession();
+
+  const query = useQuery<ApiCard[]>({
+    queryKey: ["cards", "general"],
+    queryFn: () => getCards(undefined, undefined, true),
+    placeholderData: keepPreviousData,
+    enabled: !!session,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+
+  return query;
+};
+
 export const useCreateCard = () => {
   const queryClient = useQueryClient();
 

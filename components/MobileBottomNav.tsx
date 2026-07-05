@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
   FolderOpen,
   Settings,
+  CreditCard,
   LogOut,
   type LucideIcon,
 } from "lucide-react";
@@ -34,6 +35,7 @@ const tabs: TabItem[] = [
 // Destinations surfaced inside the "More" popup.
 const moreLinks: TabItem[] = [
   { href: "/categories", icon: FolderOpen, label: "Categories" },
+  { href: "/cards", icon: CreditCard, label: "Cards" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 

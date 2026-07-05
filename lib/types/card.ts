@@ -9,6 +9,9 @@ export interface Card {
   amountSpent?: number;
   spendingLimit?: number;
   userId: string;
+  /** null for general (template) cards; set for cards that belong to a budget. */
+  budgetId?: string | null;
+  defaultCardId?: string | null;
   user: {
     id: string;
     name: string;
@@ -26,7 +29,7 @@ export interface CreateCardRequest {
   cardType: CardType;
   spendingLimit?: number;
   userId: string;
-  budgetId: string;
+  budgetId?: string;
 }
 
 export interface UpdateCardRequest {

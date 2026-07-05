@@ -18,7 +18,7 @@ import type {
   createBudgetSchema,
   createBudgetWithCardsSchema,
 } from "../api-schemas/budgets";
-import { createCard as createCardService } from "./cards";
+import { createCard as createCardService, resolveDefaultCard } from "./cards";
 import { calculateCardFinancials } from "./card-financials";
 import type {
   UpdateBudgetData,
@@ -138,15 +138,26 @@ export async function createBudget(
       },
     });
 
-    mainDebitCard ??= await tx.card.create({
-      data: {
+    if (!mainDebitCard) {
+      const defaultCard = await resolveDefaultCard(tx, {
         name: "Main",
+        lastFourDigits: null,
         cardType: CardType.DEBIT,
+        spendingLimit: null,
         userId: user.id,
-        budgetId: budget.id,
-        amountSpent: 0,
-      },
-    });
+      });
+
+      mainDebitCard = await tx.card.create({
+        data: {
+          name: defaultCard.name,
+          cardType: CardType.DEBIT,
+          userId: user.id,
+          budgetId: budget.id,
+          amountSpent: 0,
+          defaultCardId: defaultCard.id,
+        },
+      });
+    }
   }
 
   // Create income transactions only when we can link them to a debit card.
@@ -608,9 +619,11 @@ export async function duplicateBudget(
         select: {
           id: true,
           name: true,
+          lastFourDigits: true,
           cardType: true,
           spendingLimit: true,
           userId: true,
+          defaultCardId: true,
         },
       },
       transactions: {
@@ -631,6 +644,7 @@ export async function duplicateBudget(
           name: true,
           group: true,
           allocatedAmount: true,
+          defaultCategoryId: true,
         },
       },
     },
@@ -652,7 +666,42 @@ export async function duplicateBudget(
     },
   });
 
-  // Copy income transactions (INCOME type transactions on debit cards)
+  // Copy cards from original budget to new budget, keeping them linked to
+  // the same general card (resolving/creating one if the source predates it),
+  // and remember the old-card -> new-card mapping so income transactions can
+  // be re-pointed at the right new card below.
+  const newCardsByOldId = new Map<string, { id: string }>();
+  for (const card of originalBudget.cards) {
+    const defaultCardId =
+      card.defaultCardId ??
+      (
+        await resolveDefaultCard(tx, {
+          name: card.name,
+          lastFourDigits: card.lastFourDigits,
+          cardType: card.cardType,
+          spendingLimit: card.spendingLimit,
+          userId: card.userId,
+        })
+      ).id;
+
+    const newCard = await tx.card.create({
+      data: {
+        name: card.name,
+        lastFourDigits: card.lastFourDigits,
+        cardType: card.cardType,
+        spendingLimit: card.spendingLimit,
+        userId: card.userId,
+        budgetId: newBudget.id,
+        amountSpent: 0,
+        defaultCardId,
+      },
+    });
+
+    newCardsByOldId.set(card.id, newCard);
+  }
+
+  // Copy income transactions (INCOME type transactions on debit cards),
+  // preserving which debit card each income transaction landed on
   const debitCards =
     originalBudget.cards?.filter(
       (card) =>
@@ -670,38 +719,31 @@ export async function duplicateBudget(
           debitCardIds.includes(transaction.cardId),
       ) ?? [];
 
-    // Find the main debit card in the new budget (should be created above)
-    const newMainDebitCard = await tx.card.findFirst({
-      where: {
-        budgetId: newBudget.id,
-        cardType: {
-          in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
-        },
-        deleted: null,
-      },
-    });
-
-    if (newMainDebitCard) {
-      for (const transaction of incomeTransactions) {
-        await tx.transaction.create({
-          data: {
-            name: transaction.name,
-            description: transaction.description,
-            amount: transaction.amount,
-            budgetId: newBudget.id,
-            cardId: newMainDebitCard.id,
-            accountId: user.accountId,
-            userId: user.id,
-            transactionType: TransactionType.INCOME,
-            categoryId: null,
-            occurredAt: transaction.occurredAt ?? new Date(),
-          },
-        });
+    for (const transaction of incomeTransactions) {
+      // transaction.cardId is guaranteed by the filter above
+      const newCard = newCardsByOldId.get(transaction.cardId!);
+      if (!newCard) {
+        continue;
       }
+
+      await tx.transaction.create({
+        data: {
+          name: transaction.name,
+          description: transaction.description,
+          amount: transaction.amount,
+          budgetId: newBudget.id,
+          cardId: newCard.id,
+          accountId: user.accountId,
+          userId: user.id,
+          transactionType: TransactionType.INCOME,
+          categoryId: null,
+          occurredAt: transaction.occurredAt ?? new Date(),
+        },
+      });
     }
   }
 
-  // Copy budget category allocations
+  // Copy budget category allocations, preserving the default-category link
   for (const category of originalBudget.categories) {
     await tx.category.create({
       data: {
@@ -709,17 +751,7 @@ export async function duplicateBudget(
         name: category.name,
         group: category.group,
         allocatedAmount: category.allocatedAmount,
-      },
-    });
-  }
-
-  // Copy cards from original budget to new budget
-  for (const card of originalBudget.cards) {
-    await tx.card.create({
-      data: {
-        ...card,
-        budgetId: newBudget.id,
-        amountSpent: 0,
+        defaultCategoryId: category.defaultCategoryId,
       },
     });
   }
@@ -1029,16 +1061,33 @@ export const importBudgetCards = async (
       continue;
     }
 
+    const lastFourDigits = sourceCard.lastFourDigits?.length
+      ? sourceCard.lastFourDigits
+      : null;
+
+    // Keep the imported card linked to the same general card (resolving/
+    // creating one if the source predates it)
+    const defaultCardId =
+      sourceCard.defaultCardId ??
+      (
+        await resolveDefaultCard(tx, {
+          name: sourceCard.name,
+          lastFourDigits,
+          cardType: sourceCard.cardType,
+          spendingLimit: sourceCard.spendingLimit,
+          userId: sourceCard.userId,
+        })
+      ).id;
+
     const card = await tx.card.create({
       data: {
         name: sourceCard.name,
-        lastFourDigits: sourceCard.lastFourDigits?.length
-          ? sourceCard.lastFourDigits
-          : null,
+        lastFourDigits,
         cardType: sourceCard.cardType,
         spendingLimit: sourceCard.spendingLimit,
         userId: sourceCard.userId,
         budgetId: targetBudgetId,
+        defaultCardId,
       },
     });
     created.push(card);

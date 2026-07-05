@@ -21,6 +21,7 @@ import {
   useDeleteCard,
   useCreateCard,
   useUpdateCard,
+  useGeneralCards,
 } from "@/lib/data-hooks/cards/useCards";
 import { useBudgetCards } from "@/lib/data-hooks/budgets/useBudgetCards";
 import { usePageLoading } from "@/components/ConditionalLayout";
@@ -70,6 +71,7 @@ const BudgetCardsPage = () => {
     isLoading: cardsLoading,
     error: cardsError,
   } = useBudgetCards(budgetId);
+  const { data: generalCards } = useGeneralCards();
   const deleteCardMutation = useDeleteCard();
   const createCardMutation = useCreateCard();
   const updateCardMutation = useUpdateCard();
@@ -132,6 +134,11 @@ const BudgetCardsPage = () => {
       color: getCardColor(prismaCard.userId),
     }));
   }, [apiCards]);
+
+  const existingCardNames = useMemo(
+    () => cards.map((card) => card.name),
+    [cards],
+  );
 
   // Fetch users for the account
   const fetchUsers = async () => {
@@ -661,6 +668,8 @@ const BudgetCardsPage = () => {
                     ? (users[0]?.id ?? "")
                     : (session?.user?.id ?? ""),
               }}
+              suggestions={generalCards}
+              existingCardNames={existingCardNames}
             />
           </div>
         </div>
