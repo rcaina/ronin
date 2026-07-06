@@ -23,6 +23,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useFeatureSettings } from "@/lib/data-hooks/accounts/useFeatureSettings";
 import { isFeatureEnabled } from "@/lib/utils/features";
 import { DEFAULT_FEATURE_SETTINGS } from "@/lib/types/feature-settings";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 interface SideNavProps {
   isCollapsed: boolean;
@@ -88,27 +89,34 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
       <div className="flex h-full flex-col p-3">
         {/**logo*/}
         <div
-          className={`mb-8 mt-2 flex items-center overflow-hidden ${isCollapsed ? "justify-center" : "gap-3 px-2"}`}
+          className={`mb-8 mt-2 flex items-center overflow-hidden ${isCollapsed ? "flex-col gap-2" : "justify-between gap-3 px-2"}`}
         >
           <div
-            className={`flex-shrink-0 ${isCollapsed ? "h-10 w-10" : "h-12 w-12"}`}
+            className={`flex items-center overflow-hidden ${isCollapsed ? "justify-center" : "gap-3"}`}
           >
-            <Image
-              src="/ronin_logo.jpg"
-              alt="Ronin Logo"
-              width={isCollapsed ? 48 : 64}
-              height={isCollapsed ? 48 : 64}
-              className="h-full w-full rounded-full ring-2 ring-secondary/40"
-              priority
-            />
+            <div
+              className={`flex-shrink-0 ${isCollapsed ? "h-10 w-10" : "h-12 w-12"}`}
+            >
+              <Image
+                src="/ronin_logo.jpg"
+                alt="Ronin Logo"
+                width={isCollapsed ? 48 : 64}
+                height={isCollapsed ? 48 : 64}
+                className="h-full w-full rounded-full ring-2 ring-secondary/40"
+                priority
+              />
+            </div>
+            <div
+              className={`transition-all duration-300 ease-in-out ${isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}
+            >
+              <h2 className="whitespace-nowrap text-lg font-bold tracking-[0.2em] text-secondary">
+                RONIN
+              </h2>
+            </div>
           </div>
-          <div
-            className={`transition-all duration-300 ease-in-out ${isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}
-          >
-            <h2 className="whitespace-nowrap text-lg font-bold tracking-[0.2em] text-secondary">
-              RONIN
-            </h2>
-          </div>
+          {isFeatureEnabled(settings, "notifications") && (
+            <NotificationBell variant="dark" />
+          )}
         </div>
 
         <nav className="flex flex-col gap-1">

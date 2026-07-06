@@ -2,11 +2,11 @@ import { z } from "zod";
 
 /**
  * All toggleable/reserved module keys. `savings`, `cards`,
- * `aiReceiptScanning`, and `recurringTransactions` have UI/API wired today
- * (see `lib/utils/features.ts` and the Features tab on `/settings`).
- * `notifications` and `bankSync` are reserved for modules that don't exist
- * yet — keeping them here now means turning them on later is a UI change,
- * not a schema migration.
+ * `aiReceiptScanning`, `recurringTransactions`, and `notifications` have
+ * UI/API wired today (see `lib/utils/features.ts` and the Features tab on
+ * `/settings`). `bankSync` is reserved for a module that doesn't exist yet —
+ * keeping it here now means turning it on later is a UI change, not a schema
+ * migration.
  */
 export const FEATURE_KEYS = [
   "savings",
@@ -77,10 +77,9 @@ export interface ToggleableModule {
 }
 
 /**
- * Modules with a toggle in the Features settings UI today. Reserved keys
- * (`notifications`, `bankSync`) are intentionally excluded until their
- * features ship — showing a toggle for something that doesn't exist yet
- * would be confusing.
+ * Modules with a toggle in the Features settings UI today. `bankSync` is
+ * intentionally excluded until that feature ships — showing a toggle for
+ * something that doesn't exist yet would be confusing.
  */
 export const TOGGLEABLE_MODULES: readonly ToggleableModule[] = [
   {
@@ -102,5 +101,11 @@ export const TOGGLEABLE_MODULES: readonly ToggleableModule[] = [
     key: "recurringTransactions",
     label: "Recurring transactions",
     description: "Auto-post repeating transactions like rent and bills.",
+  },
+  {
+    key: "notifications",
+    label: "Notifications",
+    description:
+      "Get alerted about budget thresholds, period endings, and recurring transactions.",
   },
 ];

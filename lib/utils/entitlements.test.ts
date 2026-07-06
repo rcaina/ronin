@@ -8,6 +8,7 @@ import {
   canInviteMember,
   canScanReceipt,
   canSplitTransactions,
+  canUsePushNotifications,
   canViewReportHistory,
   isBudgetLocked,
   isPocketLocked,
@@ -155,6 +156,28 @@ describe("canScanReceipt", () => {
     expect(canScanReceipt(account({ complimentaryAccess: true })).allowed).toBe(
       true,
     );
+  });
+});
+
+describe("canUsePushNotifications", () => {
+  it("denies a FREE account, with an upgrade reason", () => {
+    const result = canUsePushNotifications(account());
+    expect(result.allowed).toBe(false);
+    expect(!result.allowed && result.reason).toMatch(/premium/i);
+  });
+
+  it("allows a premium account", () => {
+    expect(
+      canUsePushNotifications(
+        account({ plan: "PREMIUM", subscriptionStatus: "ACTIVE" }),
+      ).allowed,
+    ).toBe(true);
+  });
+
+  it("allows a complimentary account even on the FREE plan", () => {
+    expect(
+      canUsePushNotifications(account({ complimentaryAccess: true })).allowed,
+    ).toBe(true);
   });
 });
 
