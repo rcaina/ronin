@@ -192,6 +192,23 @@ export const canViewReportHistory = (
   };
 };
 
+/**
+ * Whether the account may import transactions from a CSV. Free accounts can't
+ * (import is a Premium migration convenience); premium (or comped) accounts
+ * can. Exporting to CSV is always free and has no gate.
+ */
+export const canImportTransactions = (
+  account: AccountEntitlementFields,
+): CheckResult => {
+  if (isPremium(account)) return { allowed: true };
+
+  return {
+    allowed: false,
+    reason:
+      "Importing transactions from a CSV is a Premium feature. Upgrade to Premium to import your data.",
+  };
+};
+
 // ---------------------------------------------------------------------------
 // Downgrade locking
 //

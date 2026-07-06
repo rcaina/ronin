@@ -4,6 +4,7 @@ import {
   canCreateBudget,
   canCreatePocket,
   canCreateRecurring,
+  canImportTransactions,
   canInviteMember,
   canScanReceipt,
   canSplitTransactions,
@@ -224,6 +225,28 @@ describe("canSplitTransactions", () => {
         }),
       ).allowed,
     ).toBe(false);
+  });
+});
+
+describe("canImportTransactions", () => {
+  it("denies a FREE account with an upgrade reason", () => {
+    const result = canImportTransactions(account());
+    expect(result.allowed).toBe(false);
+    expect(!result.allowed && result.reason).toMatch(/premium/i);
+  });
+
+  it("allows a premium account", () => {
+    expect(
+      canImportTransactions(
+        account({ plan: "PREMIUM", subscriptionStatus: "ACTIVE" }),
+      ).allowed,
+    ).toBe(true);
+  });
+
+  it("allows a complimentary account even on the FREE plan", () => {
+    expect(
+      canImportTransactions(account({ complimentaryAccess: true })).allowed,
+    ).toBe(true);
   });
 });
 

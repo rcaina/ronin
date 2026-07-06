@@ -4,6 +4,21 @@ import type {
   TransactionWithRelations,
 } from "@/lib/types/transaction";
 import type { CreateCardPaymentSchema } from "@/lib/api-schemas/transactions";
+import type {
+  ImportPreviewRow,
+  RawImportRow,
+} from "@/lib/utils/transaction-import";
+import { parseErrorResponse } from "./http";
+
+export interface ImportPreviewResponse {
+  budgetName: string;
+  preview: ImportPreviewRow[];
+}
+
+export interface ImportCommitResponse {
+  imported: number;
+  skipped: number;
+}
 
 interface CardPaymentResponse {
   message: string;
@@ -155,4 +170,59 @@ export const createCardPayment = async (
   }
 
   return result.result;
+};
+
+// Fetches the account's transactions as a CSV and triggers a browser
+// download. Export is free (no paywall), so no UpgradeRequiredError handling.
+export const exportTransactionsCsv = async (): Promise<void> => {
+  const response = await fetch("/api/transactions/export");
+  if (!response.ok) return parseErrorResponse(response);
+
+  const blob = await response.blob();
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const match = /filename="?([^";]+)"?/.exec(disposition);
+  const filename = match?.[1] ?? "ronin-transactions.csv";
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+// Preview (dry-run) the import: server validates rows, matches categories,
+// and flags duplicates without persisting anything. Throws
+// UpgradeRequiredError on the 402 paywall so the modal can open UpgradeModal.
+export const previewImportTransactions = async (
+  budgetId: string,
+  rows: RawImportRow[],
+): Promise<ImportPreviewResponse> => {
+  const response = await fetch("/api/transactions/import", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ budgetId, rows, commit: false }),
+  });
+
+  if (!response.ok) return parseErrorResponse(response);
+
+  return response.json() as Promise<ImportPreviewResponse>;
+};
+
+// Commit the import: persist the valid rows via the shared batch path.
+export const commitImportTransactions = async (
+  budgetId: string,
+  rows: RawImportRow[],
+): Promise<ImportCommitResponse> => {
+  const response = await fetch("/api/transactions/import", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ budgetId, rows, commit: true }),
+  });
+
+  if (!response.ok) return parseErrorResponse(response);
+
+  return response.json() as Promise<ImportCommitResponse>;
 };
