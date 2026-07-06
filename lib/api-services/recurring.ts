@@ -13,6 +13,8 @@ import {
   previewUpcomingOccurrences,
   type BudgetWindow,
 } from "../utils/recurring";
+import { evaluateRecurringPosted } from "../utils/notifications";
+import { notifyRecurringPosted } from "./notifications";
 
 const recurringInclude = {
   category: {
@@ -223,6 +225,21 @@ export const postDueOccurrencesForTemplate = async (
           recurringTransactionId: template.id,
         },
       });
+
+      // Trigger (c) — see lib/utils/notifications.ts. Fired only on an
+      // actual new post (not the idempotency-backstop skip above), scoped to
+      // the template's owner rather than every account member.
+      await notifyRecurringPosted(
+        tx,
+        template.accountId,
+        template.userId,
+        evaluateRecurringPosted({
+          recurringTransactionId: template.id,
+          name: template.name,
+          amount: template.amount,
+          occurredAt: occurrenceDate,
+        }),
+      );
     }
     posted++;
 

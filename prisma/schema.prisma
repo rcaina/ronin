@@ -77,6 +77,16 @@ model User {
   savings               Savings[]
   allocations           Allocation[]
   recurringTransactions RecurringTransaction[]
+  notifications         Notification[]
+  pushSubscriptions     PushSubscription[]
+  // Per-user notification trigger preferences (see
+  // lib/types/notification-settings.ts). JSON, like `Account.featureSettings`,
+  // so adding a new trigger later doesn't require a migration. Null means
+  // "never configured" — callers must merge over
+  // DEFAULT_NOTIFICATION_SETTINGS via parseNotificationSettings, never read
+  // raw. Distinct from the account-wide `notifications` feature toggle,
+  // which is the master on/off switch this only refines.
+  notificationSettings  Json?
 
   @@index([email])
   @@index([name])
@@ -287,6 +297,56 @@ model RecurringTransaction {
   @@map("recurring_transactions")
 }
 
+// An in-app notification for a single user, created by the trigger-evaluation
+// logic in lib/utils/notifications.ts (pure) + lib/api-services/notifications.ts
+// (persistence). FREE accounts get these in-app only; PREMIUM accounts with an
+// active `PushSubscription` also get a web push mirroring the same content.
+//
+// `dedupeKey` is the stable event-identity the trigger derives (e.g.
+// `CATEGORY_OVER_THRESHOLD:{categoryId}` or
+// `RECURRING_POSTED:{recurringTransactionId}:{occurredAt}`) — the
+// `(userId, dedupeKey)` unique index is the DB-level backstop that makes each
+// event fire at most once per user, even if the evaluator runs twice
+// concurrently (see `dedupeNotificationTargets` for the in-memory pre-filter).
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  dedupeKey String
+  readAt    DateTime?
+  deleted   DateTime?
+  createdAt DateTime         @default(now())
+
+  @@unique([userId, dedupeKey])
+  @@index([userId])
+  @@index([type])
+  @@index([readAt])
+  @@index([deleted])
+  @@map("notifications")
+}
+
+// A browser's web-push registration for a user (one row per device/browser).
+// Creation is Premium-gated (see `canUsePushNotifications` in
+// lib/utils/entitlements.ts); free accounts stay in-app only. `endpoint` is
+// globally unique per the Push API spec, so re-subscribing the same
+// device/browser upserts rather than duplicating.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  endpoint  String   @unique
+  // `{ p256dh, auth }` keys from the browser's PushSubscription.toJSON().
+  keys      Json
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
 model Savings {
   id        String    @id @default(cuid())
   name      String
@@ -401,6 +461,15 @@ enum SubscriptionStatus {
 enum EmailTokenPurpose {
   PASSWORD_RESET
   LOGIN_CODE
+}
+
+// Trigger kinds the notification evaluator can fire (see
+// lib/utils/notifications.ts). Adding a new trigger means adding a variant
+// here plus a pure `evaluate*` function — no other schema change needed.
+enum NotificationType {
+  CATEGORY_OVER_THRESHOLD
+  BUDGET_PERIOD_ENDING
+  RECURRING_POSTED
 }
 
 model EmailToken {

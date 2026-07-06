@@ -46,6 +46,14 @@ export const env = createEnv({
       process.env.NODE_ENV === "production"
         ? z.string()
         : z.string().optional(),
+    // Web push (Feature 5 — Notifications). Both optional so the app still
+    // builds/runs without push configured: in-app notifications work either
+    // way, and the push-sending helper (lib/server/push.ts) no-ops when
+    // these are unset rather than throwing. Generate a pair with
+    // `npx web-push generate-vapid-keys`.
+    VAPID_PRIVATE_KEY: z.string().optional(),
+    // Contact URI required by the Push spec, e.g. "mailto:support@example.com".
+    VAPID_SUBJECT: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -57,7 +65,10 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    // Public half of the VAPID key pair, used by the browser to subscribe to
+    // push (see lib/utils/push-client.ts). Optional so free/no-push builds
+    // don't need it — the settings UI hides the push toggle when it's unset.
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
   },
 
   /**
@@ -81,6 +92,9 @@ export const env = createEnv({
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     EMAIL_FROM: process.env.EMAIL_FROM,
     CRON_SECRET: process.env.CRON_SECRET,
+    VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+    VAPID_SUBJECT: process.env.VAPID_SUBJECT,
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
     NODE_ENV: process.env.NODE_ENV,
   },
   /**

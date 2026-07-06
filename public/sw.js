@@ -88,3 +88,72 @@ self.addEventListener("fetch", (event) => {
     }),
   );
 });
+
+// ---------------------------------------------------------------------------
+// Web push (Feature 5 — Notifications, PREMIUM tier). The payload shape
+// (`{ title, body, type, data }`) is built by lib/api-services/notifications.ts
+// via src/server/push.ts — see those for what `type`/`data` hold per trigger.
+// ---------------------------------------------------------------------------
+
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    return;
+  }
+
+  const title = payload.title || "Ronin";
+  const options = {
+    body: payload.body || "",
+    icon: "/android-chrome-192x192.png",
+    badge: "/android-chrome-192x192.png",
+    data: { type: payload.type, ...payload.data },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Resolves the page a push notification should open. Mirrors
+// components/notifications/notificationLink.ts — kept in sync manually,
+// since a plain (unbundled) service worker can't import the app's TS.
+function resolveNotificationUrl(data) {
+  if (!data) return "/";
+
+  switch (data.type) {
+    case "CATEGORY_OVER_THRESHOLD":
+      return data.budgetId ? `/budgets/${data.budgetId}/categories` : "/";
+    case "BUDGET_PERIOD_ENDING":
+      return data.budgetId ? `/budgets/${data.budgetId}` : "/";
+    case "RECURRING_POSTED":
+      return "/transactions/recurring";
+    default:
+      return "/";
+  }
+}
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = resolveNotificationUrl(event.notification.data);
+
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if (
+            new URL(client.url).origin === self.location.origin &&
+            "focus" in client
+          ) {
+            if ("navigate" in client) client.navigate(url);
+            return client.focus();
+          }
+        }
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(url);
+        }
+      }),
+  );
+});

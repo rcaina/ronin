@@ -123,3 +123,26 @@ shadow-soft` translating via `translate-x-6` / `translate-x-1`. Disabled
 5. Check at 375 px: touch targets, bottom-nav clearance (`pb-24 lg:pb-8`), no
    hover-only actions.
 6. Run `pnpm check` (lint + typecheck) before committing.
+
+## 10. Notifications (bell + panel)
+
+Introduced with in-app/push notifications (Feature 5). Reuse this pattern for
+any future alert/inbox UI rather than inventing another one.
+
+- **Bell button**: `components/notifications/NotificationBell.tsx` — a 44px
+  icon button (`Bell` from lucide-react) with an unread-count badge
+  (`bg-secondary`, `text-primary-950`, pill, top-right of the icon, "9+" once
+  it clips). Lives in the dark `SideNav` header row (`variant="dark"`) and the
+  light `MobileHeader` action row (`variant="light"`, default) — both gated on
+  the account's `notifications` feature toggle being on.
+- **Panel**: `components/notifications/NotificationPanel.tsx` — the standard
+  `Modal` in `sheet` variant (bottom sheet on mobile, centered dialog at
+  `sm:` and up), titled "Notifications", with a "Mark all as read" button in
+  the footer when there's anything unread. Rows: a `bg-secondary` unread dot,
+  title (`text-sm font-medium`), body (`text-xs text-gray-500`, 2-line clamp),
+  relative timestamp (`text-xs text-gray-400`). Clicking a row marks it read
+  and navigates to its target (see `notificationLink.ts`); empty state
+  follows the standard icon-in-a-circle + headline + helper text pattern.
+- **Settings toggles**: per-trigger and push on/off rows use the shared
+  `components/settings/ToggleRow.tsx` (extracted from the Features tab) — the
+  same switch described in §7 "Toggle rows", never a bespoke checkbox.

@@ -25,6 +25,7 @@ import {
   Palette,
   CreditCard,
   ToggleLeft,
+  Bell,
 } from "lucide-react";
 import Button from "@/components/Button";
 import { usePageLoading } from "@/components/ConditionalLayout";
@@ -32,6 +33,7 @@ import ThemeSelector from "@/components/settings/ThemeSelector";
 import PlanComparison from "@/components/billing/PlanComparison";
 import ChangePasswordForm from "@/components/settings/ChangePasswordForm";
 import FeatureToggles from "@/components/settings/FeatureToggles";
+import NotificationSettingsPanel from "@/components/settings/NotificationSettingsPanel";
 import { Role } from "@prisma/client";
 import { useUpdateProfile } from "@/lib/data-hooks/users/useUser";
 import {
@@ -41,6 +43,9 @@ import {
   billingStatusKey,
 } from "@/lib/data-hooks/billing/useBilling";
 import type { BillingInterval } from "@/lib/data-hooks/services/billing";
+import { useFeatureSettings } from "@/lib/data-hooks/accounts/useFeatureSettings";
+import { isFeatureEnabled } from "@/lib/utils/features";
+import { DEFAULT_FEATURE_SETTINGS } from "@/lib/types/feature-settings";
 
 interface AccountUser {
   id: string;
@@ -69,7 +74,9 @@ const SettingsPageContent = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState(() => {
     const tab = searchParams.get("tab");
-    return tab === "billing" || tab === "features" ? tab : "profile";
+    return tab === "billing" || tab === "features" || tab === "notifications"
+      ? tab
+      : "profile";
   });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
@@ -81,8 +88,22 @@ const SettingsPageContent = () => {
   const { data: billingStatus, isLoading: billingLoading } = useBillingStatus();
   const checkoutMutation = useCheckout();
   const portalMutation = useBillingPortal();
+  const { data: featureSettings } = useFeatureSettings();
+  const notificationsFeatureEnabled = isFeatureEnabled(
+    featureSettings ?? DEFAULT_FEATURE_SETTINGS,
+    "notifications",
+  );
 
   const isAdmin = session?.user?.role === Role.ADMIN;
+
+  // The account admin can turn the `notifications` feature toggle off while
+  // this tab is open (or a deep link points at it) — bounce back to Profile
+  // rather than showing a disabled section with nothing in it.
+  useEffect(() => {
+    if (activeTab === "notifications" && !notificationsFeatureEnabled) {
+      setActiveTab("profile");
+    }
+  }, [activeTab, notificationsFeatureEnabled]);
 
   // Handle the redirect back from Stripe Checkout: toast on success/cancel,
   // refresh billing status, and strip `checkout` from the URL so a refresh
@@ -188,9 +209,20 @@ const SettingsPageContent = () => {
     { id: "profile", label: "Profile", icon: UserIcon },
     { id: "preferences", label: "Preferences", icon: Palette },
     { id: "features", label: "Features", icon: ToggleLeft },
+  ];
+
+  // The notifications tab only exists while the household's `notifications`
+  // feature toggle is on — that toggle is the master switch (see
+  // lib/types/feature-settings.ts), so an off account never even sees the
+  // per-user trigger/push preferences underneath it.
+  if (notificationsFeatureEnabled) {
+    tabs.push({ id: "notifications", label: "Notifications", icon: Bell });
+  }
+
+  tabs.push(
     { id: "billing", label: "Billing", icon: CreditCard },
     { id: "security", label: "Security", icon: Shield },
-  ];
+  );
 
   // Add Users tab for admin users
   if (isAdmin) {
@@ -471,6 +503,12 @@ const SettingsPageContent = () => {
             <div className="space-y-4 sm:space-y-6">
               <FeatureToggles isAdmin={isAdmin} />
             </div>
+          )}
+
+          {/* Notifications Tab — only reachable while the account's
+              `notifications` feature toggle is on (see the tabs array above). */}
+          {activeTab === "notifications" && notificationsFeatureEnabled && (
+            <NotificationSettingsPanel />
           )}
 
           {/* Billing Tab */}

@@ -209,6 +209,24 @@ export const canImportTransactions = (
   };
 };
 
+/**
+ * Whether the account may register a web-push subscription. Free accounts
+ * are in-app only; premium (or comped) accounts additionally get push. This
+ * only gates CREATING a `PushSubscription` (see the subscribe route) —
+ * in-app `Notification` rows are never gated by entitlements.
+ */
+export const canUsePushNotifications = (
+  account: AccountEntitlementFields,
+): CheckResult => {
+  if (isPremium(account)) return { allowed: true };
+
+  return {
+    allowed: false,
+    reason:
+      "Push notifications are a Premium feature. Upgrade to Premium to get alerts outside the app.",
+  };
+};
+
 // ---------------------------------------------------------------------------
 // Downgrade locking
 //
