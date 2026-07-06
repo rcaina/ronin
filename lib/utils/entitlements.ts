@@ -16,6 +16,7 @@ export const FREE_LIMITS = {
   maxMembers: 1,
   maxPockets: 3,
   aiReceiptScanning: false,
+  maxRecurringTransactions: 0,
 } as const;
 
 /** Shared shape for every entitlement check below. */
@@ -147,6 +148,30 @@ export const canSplitTransactions = (
     reason:
       "Splitting a transaction across categories is a Premium feature. Upgrade to Premium to split transactions.",
   };
+};
+
+/**
+ * Whether the account may create another recurring transaction template.
+ * Free accounts can't create any (`FREE_LIMITS.maxRecurringTransactions` is
+ * 0); premium (or comped) accounts are unlimited. Free accounts may still
+ * VIEW templates they already have (e.g. after downgrading) — this check
+ * only gates creation, enforced by the CREATE route handler.
+ */
+export const canCreateRecurring = (
+  account: AccountEntitlementFields,
+  currentCount: number,
+): CheckResult => {
+  if (isPremium(account)) return { allowed: true };
+
+  if (currentCount >= FREE_LIMITS.maxRecurringTransactions) {
+    return {
+      allowed: false,
+      reason:
+        "Recurring transactions are a Premium feature. Upgrade to Premium to automate repeating transactions.",
+    };
+  }
+
+  return { allowed: true };
 };
 
 // ---------------------------------------------------------------------------

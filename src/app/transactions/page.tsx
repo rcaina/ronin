@@ -29,6 +29,7 @@ import {
   SlidersHorizontal,
   ScanLine,
   ChevronDown,
+  Repeat,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
@@ -38,6 +39,7 @@ import { useMobileHeaderAction } from "@/components/MobileHeaderActionContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import ReceiptScanModal from "@/components/transactions/ReceiptScanModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
+import TransactionsPageNavigation from "@/components/transactions/TransactionsPageNavigation";
 import TransactionFiltersModal, {
   type TransactionFilterValues,
   type TransactionSortBy,
@@ -56,6 +58,7 @@ import {
   matchesTransactionFilters,
   SPLIT_BADGE_CLASSES,
   getSplitBadgeLabel,
+  RECURRING_BADGE_CLASSES,
 } from "@/lib/utils/transactions";
 
 // URL param scheme (only non-default values are written to the URL):
@@ -630,6 +633,8 @@ const TransactionsPageContent = () => {
         ]}
       />
 
+      <TransactionsPageNavigation />
+
       <div className="pt-4 lg:flex-1 lg:overflow-hidden lg:pt-0">
         <div className="lg:h-full lg:overflow-y-auto">
           <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 sm:pb-28 lg:px-8 lg:py-4 lg:pb-8">
@@ -903,6 +908,15 @@ const TransactionsPageContent = () => {
                                       : (transaction.category?.name ??
                                         "No Category")}
                                 </span>
+                                {transaction.recurringTransactionId && (
+                                  <span
+                                    className={`inline-flex flex-shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${RECURRING_BADGE_CLASSES}`}
+                                    title="Auto-posted from a recurring transaction"
+                                  >
+                                    <Repeat className="h-3 w-3" />
+                                    Recurring
+                                  </span>
+                                )}
                                 {transaction.description && (
                                   <div className="group relative flex-shrink-0">
                                     <Info className="h-4 w-4 cursor-help text-gray-400" />

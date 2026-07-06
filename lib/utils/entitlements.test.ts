@@ -3,6 +3,7 @@ import {
   FREE_LIMITS,
   canCreateBudget,
   canCreatePocket,
+  canCreateRecurring,
   canInviteMember,
   canScanReceipt,
   canSplitTransactions,
@@ -222,6 +223,31 @@ describe("canCreatePocket", () => {
         account({ plan: "PREMIUM", subscriptionStatus: "ACTIVE" }),
         FREE_LIMITS.maxPockets + 10,
       ).allowed,
+    ).toBe(true);
+  });
+});
+
+describe("canCreateRecurring", () => {
+  it("denies a FREE account even with zero existing templates", () => {
+    const result = canCreateRecurring(account(), 0);
+    expect(result.allowed).toBe(false);
+    if (!result.allowed) {
+      expect(result.reason).toBeTruthy();
+    }
+  });
+
+  it("allows a premium account regardless of template count", () => {
+    expect(
+      canCreateRecurring(
+        account({ plan: "PREMIUM", subscriptionStatus: "ACTIVE" }),
+        50,
+      ).allowed,
+    ).toBe(true);
+  });
+
+  it("allows a complimentary account even on the FREE plan", () => {
+    expect(
+      canCreateRecurring(account({ complimentaryAccess: true }), 0).allowed,
     ).toBe(true);
   });
 });
