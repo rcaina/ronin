@@ -60,6 +60,27 @@ const makeEmptySplitRow = (): SplitRowState => ({
   note: "",
 });
 
+// A single row in the split editor. Kept as free-form string state (like the
+// rest of this form's amount input) rather than react-hook-form fields, since
+// rows are added/removed dynamically and only need to be assembled into the
+// `splits` payload on submit.
+interface SplitRowState {
+  key: string;
+  categoryId: string;
+  amount: string;
+  note: string;
+}
+
+const makeEmptySplitRow = (): SplitRowState => ({
+  key:
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2),
+  categoryId: "",
+  amount: "",
+  note: "",
+});
+
 // Validation schema
 const transactionSchema = z.object({
   name: z.string().optional(),
