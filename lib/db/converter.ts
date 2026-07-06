@@ -5,6 +5,7 @@ import {
   type Category,
   type Transaction,
 } from "@prisma/client";
+import { getSplitSpending, type SpendingSplit } from "@/lib/utils/spending";
 
 // budget region
 
@@ -35,12 +36,17 @@ export const formatBudgetCategories = (
       transactionType: TransactionType;
       createdAt: Date;
     }[];
+    // Split parents' share of this category's spend — the parent transaction
+    // (categoryId = null) carries the sign-determining type, so it isn't
+    // counted in `transactions` above. See lib/utils/spending.ts.
+    transactionSplits?: SpendingSplit[];
   })[],
 ) => {
   // Calculate spent amount for each category
-  return categories.map((category) => ({
-    ...category,
-    spentAmount:
+  return categories.map((category) => {
+    const { transactionSplits, ...categoryFields } = category;
+
+    const transactionsSpent =
       category.transactions?.reduce((sum, transaction) => {
         switch (transaction.transactionType) {
           case TransactionType.RETURN:
@@ -54,15 +60,25 @@ export const formatBudgetCategories = (
             // Regular transactions: positive = purchases (increase spending)
             return sum + (transaction.amount || 0);
         }
-      }, 0) || 0,
-    // Keep transactions for UI display
-    transactions: category.transactions.map((transaction) => ({
-      id: transaction.id,
-      name: transaction.name,
-      description: transaction.description,
-      amount: transaction.amount,
-      transactionType: transaction.transactionType,
-      createdAt: transaction.createdAt.toISOString(),
-    })),
-  }));
+      }, 0) || 0;
+
+    const splitsSpent = (transactionSplits ?? []).reduce(
+      (sum, split) => sum + getSplitSpending(split),
+      0,
+    );
+
+    return {
+      ...categoryFields,
+      spentAmount: transactionsSpent + splitsSpent,
+      // Keep transactions for UI display
+      transactions: category.transactions.map((transaction) => ({
+        id: transaction.id,
+        name: transaction.name,
+        description: transaction.description,
+        amount: transaction.amount,
+        transactionType: transaction.transactionType,
+        createdAt: transaction.createdAt.toISOString(),
+      })),
+    };
+  });
 };

@@ -2,6 +2,7 @@
 
 import TransactionForm from "./TransactionForm";
 import { useLockBodyScroll } from "@/lib/utils/hooks";
+import type { TransactionWithRelations } from "@/lib/types/transaction";
 
 interface AddTransactionModalProps {
   budgetId?: string; // Optional budget ID to pre-select
@@ -10,6 +11,10 @@ interface AddTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   isIncome?: boolean; // If true, this is for income transactions
+  /** When provided, the form opens in edit mode for this transaction instead
+   * of creating a new one. Used as the "full edit" path for split
+   * transactions, which the inline editors don't support. */
+  transaction?: TransactionWithRelations;
 }
 
 export default function AddTransactionModal({
@@ -19,6 +24,7 @@ export default function AddTransactionModal({
   isOpen,
   onClose,
   isIncome = false,
+  transaction,
 }: AddTransactionModalProps) {
   const handleSuccess = () => {
     onSuccess?.();
@@ -38,6 +44,7 @@ export default function AddTransactionModal({
               budgetId={budgetId}
               cardId={cardId}
               isIncome={isIncome}
+              transaction={transaction}
             />
           </div>
         </div>

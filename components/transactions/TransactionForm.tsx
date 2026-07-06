@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { X, Check, Info } from "lucide-react";
+import { X, Check, Info, Plus, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   useCreateTransaction,
@@ -22,12 +22,33 @@ import type {
 import type { Card } from "@/lib/types/card";
 import Button from "../Button";
 import DateInput from "../DateInput";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, roundToCents } from "@/lib/utils";
 import {
   isDebitCard as isDebitCardType,
   oldestDebitCard,
 } from "@/lib/utils/cards";
 import { CardType, TransactionType } from "@prisma/client";
+
+// A single row in the split editor. Kept as free-form string state (like the
+// rest of this form's amount input) rather than react-hook-form fields, since
+// rows are added/removed dynamically and only need to be assembled into the
+// `splits` payload on submit.
+interface SplitRowState {
+  key: string;
+  categoryId: string;
+  amount: string;
+  note: string;
+}
+
+const makeEmptySplitRow = (): SplitRowState => ({
+  key:
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2),
+  categoryId: "",
+  amount: "",
+  note: "",
+});
 
 // Validation schema
 const transactionSchema = z.object({
@@ -80,6 +101,10 @@ export default function TransactionForm({
   const isEditing = !!transaction;
   const isPending = isCreating || isUpdating;
 
+  // Split-across-categories editing state.
+  const [isSplitMode, setIsSplitMode] = useState(false);
+  const [splitRows, setSplitRows] = useState<SplitRowState[]>([]);
+
   // Track if we've already shown the success toast for the current mutation
   const hasShownSuccessToastRef = useRef(false);
 
@@ -129,6 +154,9 @@ export default function TransactionForm({
   // Determine if current transaction type is income
   const isIncomeTransaction = watchedTransactionType === TransactionType.INCOME;
 
+  // Splits are only supported for REGULAR/RETURN transactions (never income).
+  const canSplit = !isIncome && !isIncomeTransaction;
+
   // Set form values when editing
   useEffect(() => {
     if (transaction) {
@@ -148,6 +176,17 @@ export default function TransactionForm({
           : undefined,
       );
       setSelectedBudgetId(transaction.budgetId);
+      if (transaction.splits && transaction.splits.length > 0) {
+        setIsSplitMode(true);
+        setSplitRows(
+          transaction.splits.map((split) => ({
+            key: split.id,
+            categoryId: split.categoryId,
+            amount: split.amount.toString(),
+            note: split.note ?? "",
+          })),
+        );
+      }
     } else {
       if (budgetId) {
         setValue("budgetId", budgetId);
@@ -160,6 +199,58 @@ export default function TransactionForm({
       );
     }
   }, [transaction, budgetId, isIncome, setValue]);
+
+  // Splits only make sense for REGULAR/RETURN transactions — if the user
+  // switches the transaction type to Income while split mode is on, drop
+  // back to single-category mode rather than leaving an invalid combination.
+  useEffect(() => {
+    if (!canSplit && isSplitMode) {
+      setIsSplitMode(false);
+    }
+  }, [canSplit, isSplitMode]);
+
+  const handleToggleSplitMode = (checked: boolean) => {
+    setIsSplitMode(checked);
+    if (checked) {
+      setSplitRows((rows) => {
+        if (rows.length >= 2) return rows;
+        const needed = 2 - rows.length;
+        return [
+          ...rows,
+          ...Array.from({ length: needed }, () => makeEmptySplitRow()),
+        ];
+      });
+    }
+  };
+
+  const addSplitRow = () => {
+    setSplitRows((rows) => [...rows, makeEmptySplitRow()]);
+  };
+
+  const removeSplitRow = (key: string) => {
+    setSplitRows((rows) => rows.filter((row) => row.key !== key));
+  };
+
+  const updateSplitRow = (key: string, patch: Partial<SplitRowState>) => {
+    setSplitRows((rows) =>
+      rows.map((row) => (row.key === key ? { ...row, ...patch } : row)),
+    );
+  };
+
+  const watchedAmount = watch("amount");
+  const totalAmount = roundToCents(parseFloat(watchedAmount || "0") || 0);
+  const allocatedAmount = roundToCents(
+    splitRows.reduce((sum, row) => sum + (parseFloat(row.amount) || 0), 0),
+  );
+  const remainingAmount = roundToCents(totalAmount - allocatedAmount);
+  const splitRowsHaveCategoryAndAmount = splitRows.every(
+    (row) => row.categoryId !== "" && parseFloat(row.amount) > 0,
+  );
+  const isSplitAllocationValid =
+    splitRows.length >= 2 &&
+    splitRowsHaveCategoryAndAmount &&
+    totalAmount > 0 &&
+    Math.abs(remainingAmount) < 0.005;
 
   // Default the payment method once the (filtered) card list has actually
   // loaded. This effect is keyed on `cards`/`debitCards` so it re-runs when
@@ -199,19 +290,33 @@ export default function TransactionForm({
   ]);
 
   const onSubmit = (data: TransactionFormData) => {
+    // When split mode is on and valid, build the splits payload and omit
+    // categoryId entirely (the server clears/ignores it when splits are
+    // present — see lib/api-schemas/transactions.ts).
+    const splitsPayload =
+      isSplitMode && isSplitAllocationValid
+        ? splitRows.map((row) => ({
+            categoryId: row.categoryId,
+            amount: roundToCents(Math.abs(parseFloat(row.amount))),
+            note: row.note.trim() ? row.note.trim() : undefined,
+          }))
+        : undefined;
+
     if (isEditing && transaction) {
       const updateData: UpdateTransactionRequest = {
         name: data.name ?? undefined,
         description: data.description ?? undefined,
         amount: Math.abs(parseFloat(data.amount)),
         budgetId: data.budgetId,
-        categoryId:
-          data.categoryId && data.categoryId.trim() !== ""
+        categoryId: splitsPayload
+          ? undefined
+          : data.categoryId && data.categoryId.trim() !== ""
             ? data.categoryId
             : undefined,
         cardId: data.cardId ?? undefined,
         occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
         transactionType: data.transactionType,
+        splits: splitsPayload,
       };
 
       updateTransaction(
@@ -234,13 +339,15 @@ export default function TransactionForm({
         description: data.description ?? undefined,
         amount: Math.abs(parseFloat(data.amount)),
         budgetId: data.budgetId,
-        categoryId:
-          data.categoryId && data.categoryId.trim() !== ""
+        categoryId: splitsPayload
+          ? undefined
+          : data.categoryId && data.categoryId.trim() !== ""
             ? data.categoryId
             : undefined,
         cardId: data.cardId ?? undefined,
         occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
         transactionType: data.transactionType,
+        splits: splitsPayload,
       };
 
       // Reset the toast flag when starting a new mutation
@@ -266,6 +373,8 @@ export default function TransactionForm({
               ? TransactionType.INCOME
               : TransactionType.REGULAR,
           });
+          setIsSplitMode(false);
+          setSplitRows([]);
           onSuccess?.();
         },
         onError: (error: unknown) => {
@@ -417,93 +526,218 @@ export default function TransactionForm({
 
           {/* Category Selection - hidden for income */}
           {!isIncome && (
-            <div>
-              <label
-                htmlFor="categoryId"
-                className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700"
-              >
-                <span>
-                  Category{" "}
-                  {!isIncomeTransaction && (
-                    <span className="text-red-500">*</span>
-                  )}
-                </span>
-                {!selectedBudgetId && (
-                  <div className="group relative">
-                    <Info className="h-4 w-4 text-secondary-600" />
-                    <div className="absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-xs text-white group-hover:block">
-                      Select a budget to see available categories.
-                    </div>
-                  </div>
-                )}
-              </label>
-              <div className="relative">
-                <select
-                  id="categoryId"
-                  {...register("categoryId")}
-                  className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
-                    errors.categoryId
-                      ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                      : !selectedBudgetId && !isIncomeTransaction
-                        ? "cursor-not-allowed border-gray-300 bg-gray-100 text-gray-500"
-                        : "border-gray-300 focus:border-secondary focus:ring-secondary"
-                  }`}
-                  disabled={
-                    isPending || (!selectedBudgetId && !isIncomeTransaction)
-                  }
+            <div className={isSplitMode ? "sm:col-span-2" : undefined}>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <label
+                  htmlFor="categoryId"
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700"
                 >
-                  <option value="">
-                    {!selectedBudgetId
-                      ? "Please select a budget first"
-                      : budgetCategories.length === 0
-                        ? "No categories found for this budget"
-                        : isEditing && transaction?.category
-                          ? `${transaction.category.name}`
-                          : "Select a category"}
-                  </option>
-                  {budgetCategories.map(
-                    (budgetCategory: BudgetCategoryWithCategory) => {
-                      const allocatedAmount =
-                        budgetCategory.allocatedAmount ?? 0;
-                      const spentAmount = budgetCategory.spentAmount ?? 0;
-                      const availableAmount = allocatedAmount - spentAmount;
-                      return (
-                        <option
-                          key={budgetCategory.id}
-                          value={budgetCategory.id}
-                        >
-                          {budgetCategory.name} (
-                          {formatCurrency(availableAmount)} available)
-                        </option>
-                      );
-                    },
-                  )}
-                  {/* Show current category if editing and it's not in the current budget categories */}
-                  {isEditing &&
-                    transaction &&
-                    transaction.category &&
-                    !budgetCategories.some(
-                      (bc) => bc.id === transaction.categoryId,
-                    ) && (
-                      <option value={transaction.categoryId ?? ""}>
-                        {transaction.category.name} (current category)
-                      </option>
+                  <span>
+                    Category{" "}
+                    {!isIncomeTransaction && !isSplitMode && (
+                      <span className="text-red-500">*</span>
                     )}
-                </select>
-                {selectedBudgetId && budgetCategories.length === 0 && (
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  </span>
+                  {!selectedBudgetId && !isSplitMode && (
                     <div className="group relative">
-                      <Info className="h-4 w-4 text-gray-400" />
-                      <div className="absolute bottom-full right-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-xs text-white group-hover:block">
-                        No categories found for this budget. Please add
-                        categories to your budget first.
-                        <div className="absolute right-2 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                      <Info className="h-4 w-4 text-secondary-600" />
+                      <div className="absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-xs text-white group-hover:block">
+                        Select a budget to see available categories.
                       </div>
                     </div>
-                  </div>
+                  )}
+                </label>
+                {canSplit && (
+                  <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-xs font-medium text-gray-600">
+                    <span className="hidden sm:inline">
+                      Split across categories
+                    </span>
+                    <span className="sm:hidden">Split</span>
+                    <span className="relative inline-flex h-6 w-11 flex-shrink-0 items-center">
+                      <input
+                        type="checkbox"
+                        checked={isSplitMode}
+                        onChange={(e) =>
+                          handleToggleSplitMode(e.target.checked)
+                        }
+                        disabled={isPending}
+                        className="peer sr-only"
+                      />
+                      <span className="absolute inset-0 rounded-full bg-gray-200 transition-colors duration-200 peer-checked:bg-secondary" />
+                      <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white shadow-soft transition-transform duration-200 peer-checked:translate-x-5" />
+                    </span>
+                  </label>
                 )}
               </div>
-              {errors.categoryId && (
+
+              {isSplitMode ? (
+                <div className="space-y-2 rounded-xl border border-gray-200 bg-surface p-3">
+                  {splitRows.map((row) => (
+                    <div
+                      key={row.key}
+                      className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-surface-card p-2 sm:flex-row sm:items-center"
+                    >
+                      <select
+                        value={row.categoryId}
+                        onChange={(e) =>
+                          updateSplitRow(row.key, {
+                            categoryId: e.target.value,
+                          })
+                        }
+                        disabled={isPending || !selectedBudgetId}
+                        className="w-full flex-1 rounded-md border border-gray-300 px-2 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary sm:w-auto"
+                      >
+                        <option value="">Select category</option>
+                        {budgetCategories.map(
+                          (budgetCategory: BudgetCategoryWithCategory) => (
+                            <option
+                              key={budgetCategory.id}
+                              value={budgetCategory.id}
+                            >
+                              {budgetCategory.name}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                      <input
+                        type="text"
+                        value={row.note}
+                        onChange={(e) =>
+                          updateSplitRow(row.key, { note: e.target.value })
+                        }
+                        placeholder="Note (optional)"
+                        disabled={isPending}
+                        className="w-full flex-1 rounded-md border border-gray-300 px-2 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                      />
+                      <div className="flex items-center gap-2">
+                        <div className="relative w-28 flex-shrink-0">
+                          <span className="absolute left-2.5 top-2 text-sm text-gray-500">
+                            $
+                          </span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={row.amount}
+                            onChange={(e) =>
+                              updateSplitRow(row.key, {
+                                amount: e.target.value,
+                              })
+                            }
+                            placeholder="0.00"
+                            disabled={isPending}
+                            className="w-full rounded-md border border-gray-300 py-2 pl-6 pr-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeSplitRow(row.key)}
+                          disabled={isPending}
+                          aria-label="Remove split"
+                          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={addSplitRow}
+                    disabled={isPending}
+                  >
+                    <Plus className="mr-1 h-4 w-4" />
+                    Add split
+                  </Button>
+
+                  {/* Live allocation footer */}
+                  <div className="flex flex-col gap-1 border-t border-gray-200 pt-2 text-xs sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-gray-500">
+                      Total {formatCurrency(totalAmount)} · Allocated{" "}
+                      {formatCurrency(allocatedAmount)}
+                    </span>
+                    <span
+                      className={`font-medium tabular-nums ${
+                        Math.abs(remainingAmount) < 0.005
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      Remaining {formatCurrency(remainingAmount)}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="relative">
+                  <select
+                    id="categoryId"
+                    {...register("categoryId")}
+                    className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
+                      errors.categoryId
+                        ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                        : !selectedBudgetId && !isIncomeTransaction
+                          ? "cursor-not-allowed border-gray-300 bg-gray-100 text-gray-500"
+                          : "border-gray-300 focus:border-secondary focus:ring-secondary"
+                    }`}
+                    disabled={
+                      isPending || (!selectedBudgetId && !isIncomeTransaction)
+                    }
+                  >
+                    <option value="">
+                      {!selectedBudgetId
+                        ? "Please select a budget first"
+                        : budgetCategories.length === 0
+                          ? "No categories found for this budget"
+                          : isEditing && transaction?.category
+                            ? `${transaction.category.name}`
+                            : "Select a category"}
+                    </option>
+                    {budgetCategories.map(
+                      (budgetCategory: BudgetCategoryWithCategory) => {
+                        const allocatedAmount =
+                          budgetCategory.allocatedAmount ?? 0;
+                        const spentAmount = budgetCategory.spentAmount ?? 0;
+                        const availableAmount = allocatedAmount - spentAmount;
+                        return (
+                          <option
+                            key={budgetCategory.id}
+                            value={budgetCategory.id}
+                          >
+                            {budgetCategory.name} (
+                            {formatCurrency(availableAmount)} available)
+                          </option>
+                        );
+                      },
+                    )}
+                    {/* Show current category if editing and it's not in the current budget categories */}
+                    {isEditing &&
+                      transaction &&
+                      transaction.category &&
+                      !budgetCategories.some(
+                        (bc) => bc.id === transaction.categoryId,
+                      ) && (
+                        <option value={transaction.categoryId ?? ""}>
+                          {transaction.category.name} (current category)
+                        </option>
+                      )}
+                  </select>
+                  {selectedBudgetId && budgetCategories.length === 0 && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <div className="group relative">
+                        <Info className="h-4 w-4 text-gray-400" />
+                        <div className="absolute bottom-full right-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-xs text-white group-hover:block">
+                          No categories found for this budget. Please add
+                          categories to your budget first.
+                          <div className="absolute right-2 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {errors.categoryId && !isSplitMode && (
                 <p className="mt-1 text-sm text-red-600">
                   {errors.categoryId.message}
                 </p>
@@ -592,7 +826,7 @@ export default function TransactionForm({
           </Button>
           <Button
             type="submit"
-            disabled={isPending}
+            disabled={isPending || (isSplitMode && !isSplitAllocationValid)}
             variant="primary"
             isLoading={isPending}
           >

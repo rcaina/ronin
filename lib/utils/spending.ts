@@ -7,11 +7,23 @@ import { roundToCents } from "@/lib/utils";
  * shapes returned by the API.
  */
 export interface SpendingTransaction {
+  id?: string;
   transactionType: TransactionType;
   amount: number;
   cardId?: string | null;
   createdAt?: string | Date;
   occurredAt?: string | Date | null;
+}
+
+/**
+ * A single category's share of a split parent transaction (see
+ * `TransactionSplit` in the Prisma schema). The parent transaction carries
+ * `categoryId = null` and the sign-determining `transactionType`/date; the
+ * split only carries its own portion of the amount.
+ */
+export interface SpendingSplit {
+  amount: number;
+  transaction: SpendingTransaction;
 }
 
 /**
@@ -25,6 +37,7 @@ export interface DateWindow {
 
 export interface SpendingCategory {
   transactions?: SpendingTransaction[] | null;
+  transactionSplits?: SpendingSplit[] | null;
 }
 
 export interface IncomeBudget {
@@ -55,6 +68,28 @@ export const getTransactionSpending = (
     return -transaction.amount;
   }
   return transaction.amount;
+};
+
+/**
+ * Net spending contribution of a single transaction split: applies the
+ * *parent* transaction's type sign to the split's own amount.
+ * - INCOME and CARD_PAYMENT parents are impossible by invariant (splits are
+ *   only allowed on REGULAR/RETURN transactions) but are treated as 0,
+ *   defensively.
+ * - RETURN reduces spending (refund received, so negative).
+ * - everything else (REGULAR) is a purchase (positive).
+ */
+export const getSplitSpending = (split: SpendingSplit): number => {
+  if (
+    split.transaction.transactionType === TransactionType.INCOME ||
+    split.transaction.transactionType === TransactionType.CARD_PAYMENT
+  ) {
+    return 0;
+  }
+  if (split.transaction.transactionType === TransactionType.RETURN) {
+    return -split.amount;
+  }
+  return split.amount;
 };
 
 /** Sum spending across a list of transactions. */
@@ -90,14 +125,27 @@ export const isWithinWindow = (
 export const calculateCategorySpentInWindow = (
   category: SpendingCategory,
   window: DateWindow | null,
-): number =>
-  (category.transactions ?? []).reduce(
+): number => {
+  const plainSpending = (category.transactions ?? []).reduce(
     (sum, transaction) =>
       isWithinWindow(transaction, window)
         ? sum + getTransactionSpending(transaction)
         : sum,
     0,
   );
+
+  // Split legs are windowed by their *parent* transaction's date, since the
+  // split itself carries no date of its own.
+  const splitSpending = (category.transactionSplits ?? []).reduce(
+    (sum, split) =>
+      isWithinWindow(split.transaction, window)
+        ? sum + getSplitSpending(split)
+        : sum,
+    0,
+  );
+
+  return plainSpending + splitSpending;
+};
 
 /** Total spending across all categories of a budget, limited to a window. */
 export const calculateBudgetSpentInWindow = (
@@ -161,15 +209,43 @@ export const calculateSpendingPercentage = (
   income: number,
 ): number => (income > 0 ? (spent / income) * 100 : 0);
 
-/** Flatten every category transaction across one or more budgets. */
+/**
+ * Flatten every category transaction across one or more budgets, including
+ * each split parent transaction exactly once. Split parents carry
+ * `categoryId = null` so they never appear in a category's own
+ * `transactions` list — they're only reachable via
+ * `category.transactionSplits[].transaction`, and since a single parent can
+ * span multiple categories (and thus appear once per category it splits
+ * into), we dedupe by `id` when present. Transactions without an `id`
+ * (legacy callers that don't pass one) pass through unconditionally.
+ */
 export const flattenBudgetTransactions = (
   budgets: SpendingBudget[],
-): SpendingTransaction[] =>
-  budgets.flatMap((budget) =>
-    (budget.categories ?? []).flatMap(
-      (category) => category.transactions ?? [],
-    ),
-  );
+): SpendingTransaction[] => {
+  const seenIds = new Set<string>();
+  const result: SpendingTransaction[] = [];
+
+  const addTransaction = (transaction: SpendingTransaction) => {
+    if (transaction.id !== undefined) {
+      if (seenIds.has(transaction.id)) return;
+      seenIds.add(transaction.id);
+    }
+    result.push(transaction);
+  };
+
+  for (const budget of budgets) {
+    for (const category of budget.categories ?? []) {
+      for (const transaction of category.transactions ?? []) {
+        addTransaction(transaction);
+      }
+      for (const split of category.transactionSplits ?? []) {
+        addTransaction(split.transaction);
+      }
+    }
+  }
+
+  return result;
+};
 
 /**
  * Total spending across transactions that occurred within the last `days`

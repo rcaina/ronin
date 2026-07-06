@@ -4,8 +4,77 @@ import type {
   UpdateTransactionSchema,
   CreateCardPaymentSchema,
   CreateTransactionsBatchSchema,
+  TransactionSplitInput,
 } from "@/lib/api-schemas/transactions";
 import type { PrismaClientTx } from "../prisma";
+import { HttpError } from "../errors";
+import { roundToCents } from "../utils";
+
+// Every transaction we return includes its splits + each split's category
+// (with its default category), so callers never need a second fetch to
+// render a split breakdown. Exported so other services querying Transaction
+// directly (e.g. getCardTransactions in cards.ts) can reuse the same shape.
+export const splitsInclude = {
+  splits: {
+    include: {
+      category: {
+        include: {
+          defaultCategory: true,
+        },
+      },
+    },
+  },
+} as const;
+
+const transactionInclude = {
+  category: {
+    include: {
+      defaultCategory: true,
+    },
+  },
+  Budget: true,
+  ...splitsInclude,
+} as const;
+
+// Split legs must sum to the transaction's total amount, within a
+// sub-cent floating point tolerance (mirrors the zod schema check).
+function splitsSumMatchesAmount(
+  splits: Array<Pick<TransactionSplitInput, "amount">>,
+  amount: number,
+): boolean {
+  const sum = roundToCents(
+    splits.reduce((total, split) => total + split.amount, 0),
+  );
+  return Math.abs(sum - roundToCents(amount)) < 0.005;
+}
+
+// Every split categoryId must belong to the transaction's own budget.
+async function validateSplitCategoriesBelongToBudget(
+  tx: PrismaClientTx,
+  budgetId: string,
+  splits: TransactionSplitInput[],
+): Promise<void> {
+  const categoryIds = [...new Set(splits.map((split) => split.categoryId))];
+
+  const categories = await tx.category.findMany({
+    where: {
+      id: { in: categoryIds },
+      budgetId,
+      deleted: null,
+    },
+    select: { id: true },
+  });
+
+  if (categories.length !== categoryIds.length) {
+    const foundIds = new Set(categories.map((c) => c.id));
+    const missing = categoryIds.filter((id) => !foundIds.has(id));
+    throw new HttpError(
+      "One or more split categories do not belong to this budget",
+      400,
+      { missingCategoryIds: missing },
+    );
+  }
+}
 
 export const getTransactions = async (
   tx: PrismaClientTx,
@@ -17,14 +86,7 @@ export const getTransactions = async (
     deleted: null,
   };
 
-  const include = {
-    category: {
-      include: {
-        defaultCategory: true,
-      },
-    },
-    Budget: true,
-  };
+  const include = transactionInclude;
 
   const orderBy = {
     createdAt: "desc" as const,
@@ -59,6 +121,17 @@ export const createTransaction = async (
   data: CreateTransactionSchema,
   user: User & { accountId: string },
 ) => {
+  const hasSplits = !!data.splits && data.splits.length > 0;
+
+  if (hasSplits) {
+    // data.splits is guaranteed defined by hasSplits, but narrow for TS.
+    await validateSplitCategoriesBelongToBudget(
+      tx,
+      data.budgetId,
+      data.splits!,
+    );
+  }
+
   // Create the transaction first
   const transaction = await tx.transaction.create({
     data: {
@@ -67,24 +140,28 @@ export const createTransaction = async (
       amount: data.amount,
       budgetId: data.budgetId,
       categoryId:
-        data.categoryId && data.categoryId.trim() !== ""
-          ? data.categoryId
-          : null,
+        hasSplits || !data.categoryId || data.categoryId.trim() === ""
+          ? null
+          : data.categoryId,
       cardId: data.cardId && data.cardId.trim() !== "" ? data.cardId : null,
       accountId: user.accountId,
       userId: user.id,
       transactionType: data.transactionType ?? TransactionType.REGULAR,
       createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
       occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
-    },
-    include: {
-      category: {
-        include: {
-          defaultCategory: true,
+      ...(hasSplits && {
+        splits: {
+          createMany: {
+            data: data.splits!.map((split) => ({
+              categoryId: split.categoryId,
+              amount: split.amount,
+              note: split.note,
+            })),
+          },
         },
-      },
-      Budget: true,
+      }),
     },
+    include: transactionInclude,
   });
 
   return transaction;
@@ -110,6 +187,103 @@ export async function updateTransaction(
   data: UpdateTransactionSchema,
   user: User & { accountId: string },
 ) {
+  const hasSplits = !!data.splits && data.splits.length > 0;
+  const clearsSplits =
+    !hasSplits && !!data.categoryId && data.categoryId.trim() !== "";
+
+  if (hasSplits) {
+    // Re-check §2 invariants against the final state (payload value if
+    // provided, otherwise the value already stored on the row).
+    const existing = await tx.transaction.findFirst({
+      where: {
+        id,
+        accountId: user.accountId,
+        deleted: null,
+      },
+      select: {
+        amount: true,
+        budgetId: true,
+        transactionType: true,
+      },
+    });
+
+    if (!existing) {
+      throw new HttpError(
+        "Transaction does not exist or is not in user's account",
+        404,
+      );
+    }
+
+    const finalBudgetId = data.budgetId ?? existing.budgetId;
+    const finalTransactionType =
+      data.transactionType ?? existing.transactionType;
+    const finalAmount = data.amount ?? existing.amount;
+
+    if (
+      finalTransactionType !== TransactionType.REGULAR &&
+      finalTransactionType !== TransactionType.RETURN
+    ) {
+      throw new HttpError(
+        "Splits are only supported for REGULAR or RETURN transactions",
+        400,
+      );
+    }
+
+    if (!splitsSumMatchesAmount(data.splits!, finalAmount)) {
+      throw new HttpError(
+        "Split amounts must sum to the transaction amount",
+        400,
+      );
+    }
+
+    await validateSplitCategoriesBelongToBudget(
+      tx,
+      finalBudgetId,
+      data.splits!,
+    );
+  } else if (
+    !clearsSplits &&
+    (data.amount !== undefined || data.transactionType !== undefined)
+  ) {
+    // The payload neither replaces nor clears splits, but touches a field the
+    // split invariants depend on. If the stored row is a split transaction,
+    // the update must keep splits summing to the amount and the type
+    // splittable — otherwise callers must send new splits (or a categoryId).
+    const existing = await tx.transaction.findFirst({
+      where: {
+        id,
+        accountId: user.accountId,
+        deleted: null,
+      },
+      select: {
+        splits: { select: { amount: true } },
+      },
+    });
+
+    if (existing && existing.splits.length > 0) {
+      if (
+        data.transactionType !== undefined &&
+        data.transactionType !== TransactionType.REGULAR &&
+        data.transactionType !== TransactionType.RETURN
+      ) {
+        throw new HttpError(
+          "Splits are only supported for REGULAR or RETURN transactions",
+          400,
+        );
+      }
+
+      if (
+        data.amount !== undefined &&
+        !splitsSumMatchesAmount(existing.splits, data.amount)
+      ) {
+        throw new HttpError(
+          "Changing the amount of a split transaction requires updated splits that sum to the new amount",
+          400,
+        );
+      }
+    }
+  }
+
   return await tx.transaction.update({
     where: {
       id,
@@ -121,23 +295,33 @@ export async function updateTransaction(
       description: data.description,
       amount: data.amount,
       budgetId: data.budgetId,
-      categoryId:
-        data.categoryId && data.categoryId.trim() !== ""
+      categoryId: hasSplits
+        ? null
+        : data.categoryId && data.categoryId.trim() !== ""
           ? data.categoryId
           : null,
       cardId: data.cardId && data.cardId.trim() !== "" ? data.cardId : null,
       createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
       occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
       transactionType: data.transactionType,
+      ...(hasSplits
+        ? {
+            splits: {
+              deleteMany: {},
+              createMany: {
+                data: data.splits!.map((split) => ({
+                  categoryId: split.categoryId,
+                  amount: split.amount,
+                  note: split.note,
+                })),
+              },
+            },
+          }
+        : clearsSplits
+          ? { splits: { deleteMany: {} } }
+          : {}),
     },
-    include: {
-      category: {
-        include: {
-          defaultCategory: true,
-        },
-      },
-      Budget: true,
-    },
+    include: transactionInclude,
   });
 }
 
@@ -181,14 +365,7 @@ export async function createCardPayment(
       createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
       occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
     },
-    include: {
-      category: {
-        include: {
-          defaultCategory: true,
-        },
-      },
-      Budget: true,
-    },
+    include: transactionInclude,
   });
 
   const toTransaction = await tx.transaction.create({
@@ -206,14 +383,7 @@ export async function createCardPayment(
       createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
       occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
     },
-    include: {
-      category: {
-        include: {
-          defaultCategory: true,
-        },
-      },
-      Budget: true,
-    },
+    include: transactionInclude,
   });
 
   // Update the source transaction to link to the destination transaction

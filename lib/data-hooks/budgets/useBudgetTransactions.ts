@@ -1,27 +1,30 @@
 import type { Budget, Category, Transaction } from "@prisma/client";
 import { useSession } from "next-auth/react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import type { TransactionSplitWithCategory } from "@/lib/types/transaction";
+
+type BudgetTransaction = Transaction & {
+  category: Category | null;
+  Budget: Budget;
+  splits: TransactionSplitWithCategory[];
+};
 
 const getBudgetTransactions = async (
   budgetId: string,
-): Promise<(Transaction & { category: Category | null; Budget: Budget })[]> => {
+): Promise<BudgetTransaction[]> => {
   const response = await fetch(`/api/budgets/${budgetId}/transactions`);
   if (!response.ok) {
     throw new Error(
       `Failed to fetch budget transactions: ${response.statusText}`,
     );
   }
-  return response.json() as Promise<
-    (Transaction & { category: Category | null; Budget: Budget })[]
-  >;
+  return response.json() as Promise<BudgetTransaction[]>;
 };
 
 export const useBudgetTransactions = (budgetId: string) => {
   const { data: session } = useSession();
 
-  const query = useQuery<
-    (Transaction & { category: Category | null; Budget: Budget })[]
-  >({
+  const query = useQuery<BudgetTransaction[]>({
     queryKey: ["budgetTransactions", budgetId],
     queryFn: () => getBudgetTransactions(budgetId),
     placeholderData: keepPreviousData,

@@ -18,6 +18,7 @@ import type { Card } from "@/lib/types/card";
 import Button from "../Button";
 import DateInput from "../DateInput";
 import { formatCurrency } from "@/lib/utils";
+import { getSplitBadgeLabel } from "@/lib/utils/transactions";
 import { CategoryType, TransactionType } from "@prisma/client";
 
 // Validation schema
@@ -114,6 +115,36 @@ export default function InlineTransactionEdit({
       },
     );
   };
+
+  // Split transactions carry their amount across multiple categories —
+  // editing category/amount inline here would silently corrupt that
+  // breakdown, so show a read-only summary instead. The row's "Edit" action
+  // (see the pages that render this component) already routes split
+  // transactions to the full TransactionForm modal instead of this inline
+  // editor; this branch is a defensive fallback in case that guard is ever
+  // bypassed.
+  if (transaction.splits && transaction.splits.length > 0) {
+    return (
+      <div className="flex items-center justify-between gap-3 bg-secondary-50 px-3 py-3 sm:px-6 sm:py-4">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="h-3 w-3 flex-shrink-0 rounded-full bg-accent" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-gray-900">
+              {transaction.name ?? "Unnamed transaction"}
+            </p>
+            <p className="text-xs text-gray-500">
+              {getSplitBadgeLabel(transaction.splits.length)} ·{" "}
+              {formatCurrency(Math.abs(transaction.amount))}
+            </p>
+          </div>
+        </div>
+        <Button type="button" onClick={onCancel} variant="outline" size="sm">
+          <X className="mr-1 h-3 w-3" />
+          Close
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="group flex items-center justify-between bg-secondary-50 px-3 py-3 sm:px-6 sm:py-4">

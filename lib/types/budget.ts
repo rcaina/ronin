@@ -2,6 +2,7 @@ import type {
   Budget,
   Category,
   Transaction,
+  TransactionSplit,
   CategoryType,
   Card,
   CardType,
@@ -9,6 +10,14 @@ import type {
   StrategyType,
   TransactionType,
 } from "@prisma/client";
+
+// A category's share of a split parent transaction, as returned by queries
+// that `include: { transactionSplits: { include: { transaction: true } } }`
+// alongside `categories.transactions` (see lib/api-services/budgets.ts).
+// Feeds `SpendingSplit` in lib/utils/spending.ts.
+export type CategoryTransactionSplit = TransactionSplit & {
+  transaction: Transaction;
+};
 
 export type SerializedBudget = Omit<
   Budget,
@@ -25,6 +34,7 @@ export type SerializedBudget = Omit<
 export type BudgetWithRelations = SerializedBudget & {
   categories: (Category & {
     transactions: Transaction[];
+    transactionSplits?: CategoryTransactionSplit[];
   })[];
   transactions: Transaction[];
   cards?: (Card & {
