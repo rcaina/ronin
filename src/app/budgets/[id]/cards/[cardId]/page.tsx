@@ -41,6 +41,7 @@ import {
 } from "../../../../../../components/budgets/BudgetHeaderContext";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import { getGroupColor } from "@/lib/utils";
+import { getSplitBadgeLabel } from "@/lib/utils/transactions";
 
 interface User {
   id: string;
@@ -207,6 +208,8 @@ const CardDetailsPage = () => {
   const [editingTransactionId, setEditingTransactionId] = useState<
     string | null
   >(null);
+  const [editingSplitTransaction, setEditingSplitTransaction] =
+    useState<TransactionWithRelations | null>(null);
   const [transactionToDelete, setTransactionToDelete] =
     useState<TransactionWithRelations | null>(null);
   const deleteTransactionMutation = useDeleteTransaction();
@@ -354,6 +357,12 @@ const CardDetailsPage = () => {
       toast.error(
         "Card payment transactions cannot be edited. Please delete and recreate if needed.",
       );
+      return;
+    }
+    // Split transactions aren't safe to edit inline (it could corrupt the
+    // per-category breakdown) — route to the full form modal instead.
+    if (transaction.splits && transaction.splits.length > 0) {
+      setEditingSplitTransaction(transaction);
       return;
     } else {
       setEditingTransactionId(transaction.id);
@@ -932,6 +941,13 @@ const CardDetailsPage = () => {
                                   <p className="text-sm font-medium text-green-600">
                                     Income
                                   </p>
+                                ) : transaction.splits &&
+                                  transaction.splits.length > 0 ? (
+                                  <p className="text-sm text-gray-500">
+                                    {getSplitBadgeLabel(
+                                      transaction.splits.length,
+                                    )}
+                                  </p>
                                 ) : (
                                   <p className="text-sm text-gray-500">
                                     {transaction.category?.name ??
@@ -1043,6 +1059,17 @@ const CardDetailsPage = () => {
         onSuccess={handleTransactionSuccess}
       />
 
+      {/* Edit Split Transaction Modal — split transactions route here
+          instead of the inline editor (see handleEditTransaction). */}
+      <AddTransactionModal
+        isOpen={!!editingSplitTransaction}
+        transaction={editingSplitTransaction ?? undefined}
+        budgetId={budgets[0]?.id ?? ""}
+        cardId={cardId ?? ""}
+        onClose={() => setEditingSplitTransaction(null)}
+        onSuccess={() => setEditingSplitTransaction(null)}
+      />
+
       {/* Card Payment Modal */}
       <CardPaymentModal
         isOpen={showCardPaymentModal}
@@ -1056,7 +1083,11 @@ const CardDetailsPage = () => {
         onClose={handleCancelDeleteTransaction}
         onConfirm={handleConfirmDeleteTransaction}
         title="Delete Transaction"
-        message="Are you sure you want to delete the transaction '{itemName}'? This action cannot be undone."
+        message={
+          transactionToDelete?.splits && transactionToDelete.splits.length > 0
+            ? `This will delete the transaction '{itemName}' and its ${transactionToDelete.splits.length} category splits. This action cannot be undone.`
+            : "Are you sure you want to delete the transaction '{itemName}'? This action cannot be undone."
+        }
         itemName={transactionToDelete?.name ?? "Unnamed transaction"}
         isLoading={deleteTransactionMutation.isPending}
         loadingText="Deleting..."

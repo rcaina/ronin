@@ -16,6 +16,7 @@ import {
   calculateCardFinancials,
   calculateGeneralCardFinancials,
 } from "./card-financials";
+import { splitsInclude } from "./transactions";
 
 export async function getCards(
   tx: PrismaClientTx,
@@ -536,6 +537,9 @@ export const getCardTransactions = async (tx: PrismaClientTx, cardId: string) =>
           lastName: true,
         },
       },
+      // So split transactions render a "Split · N categories" badge instead
+      // of silently losing their category breakdown on the card page.
+      ...splitsInclude,
     },
     orderBy: {
       createdAt: "desc",

@@ -26,12 +26,19 @@ import SwipeableRow from "@/components/SwipeableRow";
 import { useState, useEffect } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 import BudgetStrategyIndicator from "@/components/budgets/BudgetStrategyIndicator";
-import { TransactionType } from "@prisma/client";
+import { TransactionType, type Transaction } from "@prisma/client";
 import { formatDateUTC, roundToCents, getGroupColor } from "@/lib/utils";
 import { isDebitCard } from "@/lib/utils/cards";
 import { calculateCategorySpent } from "@/lib/utils/spending";
 import { useDeleteTransaction } from "@/lib/data-hooks/transactions/useTransactions";
-import type { TransactionWithRelations } from "@/lib/types/transaction";
+import type {
+  TransactionSplitWithCategory,
+  TransactionWithRelations,
+} from "@/lib/types/transaction";
+import {
+  SPLIT_BADGE_CLASSES,
+  getSplitBadgeLabel,
+} from "@/lib/utils/transactions";
 import { useBudgetDetailStats } from "@/lib/data-hooks/budgets/useBudgetStats";
 import { useBudgetHeader } from "../../../../components/budgets/BudgetHeaderContext";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
@@ -87,6 +94,8 @@ const BudgetDetailsPage = () => {
   const [editingTransactionId, setEditingTransactionId] = useState<
     string | null
   >(null);
+  const [editingSplitTransaction, setEditingSplitTransaction] =
+    useState<TransactionWithRelations | null>(null);
   const [transactionToDelete, setTransactionToDelete] =
     useState<TransactionWithRelations | null>(null);
   const { data: budget, isLoading, error } = useBudget(id as string, true); // Exclude card payments for calculations
@@ -299,6 +308,12 @@ const BudgetDetailsPage = () => {
       toast.error(
         "Card payment transactions cannot be edited. Please delete and recreate if needed.",
       );
+      return;
+    }
+    // Split transactions aren't safe to edit inline (it could corrupt the
+    // per-category breakdown) — route to the full form modal instead.
+    if (transaction.splits && transaction.splits.length > 0) {
+      setEditingSplitTransaction(transaction);
       return;
     }
     setEditingTransactionId(transaction.id);
@@ -906,7 +921,7 @@ const BudgetDetailsPage = () => {
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
               {(() => {
                 // Collect all transactions from all categories
-                const allTransactions = (budget.categories ?? []).flatMap(
+                const categoryTransactions = (budget.categories ?? []).flatMap(
                   (cat) =>
                     (cat.transactions ?? []).map((transaction) => ({
                       ...transaction,
@@ -915,8 +930,65 @@ const BudgetDetailsPage = () => {
                       category: cat,
                       categoryName: cat.name,
                       categoryGroup: cat.group,
+                      splits: undefined as
+                        | TransactionSplitWithCategory[]
+                        | undefined,
                     })),
                 );
+
+                // Split parents have categoryId=null, so they never show up in
+                // any category's `transactions` list above — they only appear
+                // in `transactionSplits` (once per category they're split
+                // across). Surface each split parent exactly once, with its
+                // full split breakdown reconstructed from every category that
+                // references it.
+                const splitEntriesByTransactionId = new Map<
+                  string,
+                  TransactionSplitWithCategory[]
+                >();
+                const splitParentsById = new Map<string, Transaction>();
+                (budget.categories ?? []).forEach((cat) => {
+                  (cat.transactionSplits ?? []).forEach((split) => {
+                    const entries =
+                      splitEntriesByTransactionId.get(split.transactionId) ??
+                      [];
+                    entries.push({
+                      id: split.id,
+                      transactionId: split.transactionId,
+                      categoryId: split.categoryId,
+                      amount: split.amount,
+                      note: split.note,
+                      category: cat,
+                    });
+                    splitEntriesByTransactionId.set(
+                      split.transactionId,
+                      entries,
+                    );
+                    splitParentsById.set(
+                      split.transactionId,
+                      split.transaction,
+                    );
+                  });
+                });
+
+                const splitParentTransactions = Array.from(
+                  splitEntriesByTransactionId.entries(),
+                ).map(([transactionId, splits]) => {
+                  const parent = splitParentsById.get(transactionId)!;
+                  return {
+                    ...parent,
+                    category: null,
+                    categoryName: undefined as string | undefined,
+                    categoryGroup: undefined as string | undefined,
+                    splits,
+                    id: transactionId,
+                  };
+                });
+
+                const allTransactions = [
+                  ...categoryTransactions,
+                  ...splitParentTransactions,
+                ];
 
                 if (allTransactions.length === 0) {
                   return (
@@ -996,17 +1068,25 @@ const BudgetDetailsPage = () => {
                                 transaction.transactionType ===
                                 TransactionType.CARD_PAYMENT
                                   ? "bg-gray-100 text-gray-500"
-                                  : getGroupChipClasses(
-                                      transaction.categoryName
-                                        ? transaction.categoryGroup
-                                        : undefined,
-                                    )
+                                  : transaction.splits &&
+                                      transaction.splits.length > 0
+                                    ? SPLIT_BADGE_CLASSES
+                                    : getGroupChipClasses(
+                                        transaction.categoryName
+                                          ? transaction.categoryGroup
+                                          : undefined,
+                                      )
                               }`}
                             >
                               {transaction.transactionType ===
                               TransactionType.CARD_PAYMENT
                                 ? "Card payment"
-                                : (transaction.categoryName ?? "No category")}
+                                : transaction.splits &&
+                                    transaction.splits.length > 0
+                                  ? getSplitBadgeLabel(
+                                      transaction.splits.length,
+                                    )
+                                  : (transaction.categoryName ?? "No category")}
                             </span>
                             {transaction.description && (
                               <div className="group relative flex-shrink-0">
@@ -1090,6 +1170,17 @@ const BudgetDetailsPage = () => {
           onClose={() => setIsAddTransactionOpen(false)}
         />
       )}
+      {/* Edit Split Transaction Modal — split transactions route here
+          instead of the inline editor (see handleEditTransaction). */}
+      {editingSplitTransaction && id && (
+        <AddTransactionModal
+          isOpen={!!editingSplitTransaction}
+          transaction={editingSplitTransaction}
+          budgetId={id as string}
+          onClose={() => setEditingSplitTransaction(null)}
+          onSuccess={() => setEditingSplitTransaction(null)}
+        />
+      )}
       {isReceiptScanOpen && id && (
         <ReceiptScanModal
           isOpen={isReceiptScanOpen}
@@ -1117,7 +1208,11 @@ const BudgetDetailsPage = () => {
         onClose={() => setTransactionToDelete(null)}
         onConfirm={handleConfirmDelete}
         title="Delete Transaction"
-        message="Are you sure you want to delete the transaction '{itemName}'? This action cannot be undone."
+        message={
+          transactionToDelete?.splits && transactionToDelete.splits.length > 0
+            ? `This will delete the transaction '{itemName}' and its ${transactionToDelete.splits.length} category splits. This action cannot be undone.`
+            : "Are you sure you want to delete the transaction '{itemName}'? This action cannot be undone."
+        }
         itemName={transactionToDelete?.name ?? "Unnamed transaction"}
         isLoading={deleteTransactionMutation.isPending}
         loadingText="Deleting..."

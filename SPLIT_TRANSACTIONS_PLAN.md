@@ -17,9 +17,50 @@ Status: **approved — implementation in progress on `feat-one-transaction-multi
   `lib/api-schemas/transactions.ts` with tests in `lib/api-schemas/transactions.test.ts`;
   types in `lib/types/transaction.ts` (`TransactionSplitWithCategory`,
   `TransactionWithRelations.splits`).
-- ⬜ Phase 2 — server (services, route includes, spending math, tests)
+- ✅ **Phase 2 done** — `createTransaction`/`updateTransaction` in
+  `lib/api-services/transactions.ts` validate/create/replace splits (budget
+  ownership check, REGULAR/RETURN-only, sum-matches-amount with cent
+  tolerance), force `categoryId: null` on split transactions, and every
+  returned transaction now includes `splits.category.defaultCategory`.
+  `lib/utils/spending.ts` gained `SpendingSplit`/`getSplitSpending`, split-aware
+  `calculateCategorySpentInWindow`, and a rewritten `flattenBudgetTransactions`
+  that surfaces split parents exactly once (dedup by new optional
+  `SpendingTransaction.id`). Prisma include audit done across
+  `lib/api-services/budgets.ts` (`getBudgetById`, `getBudgets`,
+  `getBudgetCategories`, `getBudgetTransactions`) plus `lib/db/converter.ts`
+  (`formatBudgetCategories` now folds split spend into `spentAmount`) and
+  `lib/types/budget.ts` (`CategoryTransactionSplit`). The known trap at
+  `budgets.ts` budget-level `transactions: { categoryId: null }` lists is
+  closed with `splits: { none: {} }` so split parents don't leak into the
+  card-payment/income list. Tests added to `lib/utils/spending.test.ts`
+  (mixed plain+split sums, RETURN sign, window-by-parent-date, dedup across
+  N categories, budget/flat consistency). `pnpm check` and `pnpm test` green.
 - ⬜ Phase 3 — receipt flow (ReceiptReview single-transaction save)
-- ⬜ Phase 4 — display & edit surfaces
+- ✅ **Phase 4 done** — display & edit surfaces. Transactions list
+  (`src/app/transactions/page.tsx`) and budget transactions list
+  (`src/app/budgets/[id]/transactions/page.tsx`) show a "Split · N categories"
+  badge (`SPLIT_BADGE_CLASSES`/`getSplitBadgeLabel` in `lib/utils/transactions.ts`)
+  with an expandable chevron row revealing category/note/amount per split.
+  Dashboard recent activity (`src/app/page.tsx`) shows a compact "Split" chip;
+  card detail page (`cards/[cardId]/page.tsx`) shows the split label in place
+  of "Uncategorized" (required adding the missing `splits` Prisma include to
+  `getCardTransactions` in `lib/api-services/cards.ts` — a Phase 2 gap this
+  surfaced). Budget overview's recent-transactions widget
+  (`src/app/budgets/[id]/page.tsx`) now also surfaces split parents (previously
+  invisible there since they carry `categoryId: null`), reconstructing each
+  parent's split breakdown from `category.transactionSplits`; the
+  category-totals panel needed no change since `calculateCategorySpent`
+  already folds in splits. `TransactionForm.tsx` gained a "Split across
+  categories" toggle (REGULAR/RETURN only) with add/remove rows and a live
+  total/allocated/remaining footer gating submit. Inline editors
+  (`InlineTransactionEdit.tsx`) render a read-only summary for split
+  transactions; edits route to a new full-modal path (`AddTransactionModal`
+  now accepts an optional `transaction` prop) since none existed before.
+  `matchesTransactionFilters` and the per-budget transactions page's inline
+  filter now match split categories too. Delete confirmations mention the
+  split count. `BudgetTransactionInlineEdit.tsx` is unused dead code (no
+  imports found anywhere) and was left as-is. `pnpm check` and `pnpm test`
+  green.
 - ⬜ Phase 5 — verification
 
 ---

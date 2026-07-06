@@ -6,7 +6,7 @@ import { toast } from "react-hot-toast";
 import Button from "../Button";
 import DateInput from "../DateInput";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
-import { useCreateTransactionsBatch } from "@/lib/data-hooks/transactions/useTransactions";
+import { useCreateTransaction } from "@/lib/data-hooks/transactions/useTransactions";
 import {
   formatCurrency,
   getCategoryBadgeColor,
@@ -50,7 +50,7 @@ export default function ReceiptReview({
 }: ReceiptReviewProps) {
   const { extraction, categories } = result;
   const { data: cards = [] } = useCards(undefined, budgetId);
-  const { mutate: createBatch, isPending } = useCreateTransactionsBatch();
+  const { mutate: createTransaction, isPending } = useCreateTransaction();
 
   const keyCounter = useRef(0);
   const nextKey = () => `li-${keyCounter.current++}`;
@@ -118,6 +118,10 @@ export default function ReceiptReview({
   const removeItem = (key: string) =>
     setLineItems((prev) => prev.filter((item) => item.key !== key));
 
+  const categorizedCount = allocation.categories.filter(
+    (c) => c.categoryId,
+  ).length;
+
   const hasUncategorized = lineItems.some((i) => i.categoryId === null);
   const hasInvalidAmount = lineItems.some((i) => parseAmount(i.amount) < 0);
   const canSave =
@@ -127,53 +131,81 @@ export default function ReceiptReview({
     allocation.grandTotal > 0 &&
     !isPending;
 
+  // One transaction per category's item list + proportional tax/fees note —
+  // reused both for the plain transaction's description and each split's note.
+  const buildCategoryNote = (c: (typeof allocation.categories)[number]) => {
+    const itemList = c.lineItems
+      .map((i) => i.description)
+      .filter(Boolean)
+      .join(", ");
+    const taxNote =
+      c.allocatedTax + c.allocatedExtra > 0
+        ? `incl. ${formatCurrency(
+            roundToCents(c.allocatedTax + c.allocatedExtra),
+          )} tax/fees`
+        : "";
+    return [itemList, taxNote].filter(Boolean).join(" • ");
+  };
+
   const handleSave = () => {
-    // One transaction per category, amount = its subtotal + proportional tax/fees.
-    const transactions: CreateTransactionRequest[] = allocation.categories
-      .filter((c) => c.categoryId !== null)
-      .map((c) => {
-        const itemList = c.lineItems
-          .map((i) => i.description)
-          .filter(Boolean)
-          .join(", ");
-        const taxNote =
-          c.allocatedTax + c.allocatedExtra > 0
-            ? `incl. ${formatCurrency(
-                roundToCents(c.allocatedTax + c.allocatedExtra),
-              )} tax/fees`
-            : "";
-        const description = [itemList, taxNote].filter(Boolean).join(" • ");
+    // One transaction for the whole receipt: a plain transaction when every
+    // categorized item lands in a single category, otherwise a split
+    // transaction with one split per category.
+    const categorized = allocation.categories.filter(
+      (
+        c,
+      ): c is (typeof allocation.categories)[number] & { categoryId: string } =>
+        c.categoryId !== null,
+    );
 
-        return {
-          name: merchant.trim() || undefined,
-          description: description || undefined,
-          amount: c.total,
-          budgetId,
-          categoryId: c.categoryId ?? undefined,
-          cardId: selectedCardId || undefined,
-          occurredAt: purchasedAt ? new Date(purchasedAt) : undefined,
-          transactionType: TransactionType.REGULAR,
-        };
-      });
-
-    if (transactions.length === 0) {
+    if (categorized.length === 0) {
       toast.error("Add at least one categorized item before saving.");
       return;
     }
 
-    createBatch(transactions, {
+    const itemCount = lineItems.length;
+
+    const transaction: CreateTransactionRequest =
+      categorized.length === 1
+        ? {
+            name: merchant.trim() || undefined,
+            description: buildCategoryNote(categorized[0]!) || undefined,
+            amount: allocation.grandTotal,
+            budgetId,
+            categoryId: categorized[0]!.categoryId,
+            cardId: selectedCardId || undefined,
+            occurredAt: purchasedAt ? new Date(purchasedAt) : undefined,
+            transactionType: TransactionType.REGULAR,
+          }
+        : {
+            name: merchant.trim() || undefined,
+            description: `Receipt · ${itemCount} item${itemCount === 1 ? "" : "s"}`,
+            amount: allocation.grandTotal,
+            budgetId,
+            categoryId: undefined,
+            cardId: selectedCardId || undefined,
+            occurredAt: purchasedAt ? new Date(purchasedAt) : undefined,
+            transactionType: TransactionType.REGULAR,
+            splits: categorized.map((c) => ({
+              categoryId: c.categoryId,
+              amount: c.total,
+              note: buildCategoryNote(c) || undefined,
+            })),
+          };
+
+    createTransaction(transaction, {
       onSuccess: () => {
         toast.success(
-          `Saved ${transactions.length} transaction${
-            transactions.length === 1 ? "" : "s"
-          } from receipt!`,
+          categorized.length === 1
+            ? "Receipt saved as 1 transaction!"
+            : `Receipt saved as 1 transaction split across ${categorized.length} categories!`,
         );
         onSuccess?.();
         onClose();
       },
       onError: (error: unknown) => {
-        console.error("Failed to save receipt transactions:", error);
-        toast.error("Failed to save transactions. Please try again.");
+        console.error("Failed to save receipt transaction:", error);
+        toast.error("Failed to save transaction. Please try again.");
       },
     });
   };
@@ -401,11 +433,9 @@ export default function ReceiptReview({
       {/* Per-category summary */}
       <div className="mt-6 rounded-xl bg-surface-muted p-4">
         <h4 className="text-sm font-semibold text-gray-900">
-          Will create {allocation.categories.filter((c) => c.categoryId).length}{" "}
-          transaction
-          {allocation.categories.filter((c) => c.categoryId).length === 1
-            ? ""
-            : "s"}
+          {categorizedCount > 1
+            ? `1 transaction · split across ${categorizedCount} categories`
+            : "1 transaction"}
         </h4>
         <p className="mt-0.5 text-xs text-gray-500">
           Tax, tip, and fees are split across categories in proportion to each
@@ -468,12 +498,7 @@ export default function ReceiptReview({
           isLoading={isPending}
         >
           <Check className="mr-2 h-4 w-4" />
-          Save {allocation.categories.filter((c) => c.categoryId).length ||
-            ""}{" "}
-          transaction
-          {allocation.categories.filter((c) => c.categoryId).length === 1
-            ? ""
-            : "s"}
+          Save transaction
         </Button>
       </div>
     </div>

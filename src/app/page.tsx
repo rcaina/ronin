@@ -42,6 +42,7 @@ import {
 } from "recharts";
 import { TransactionType, BudgetStatus, PeriodType } from "@prisma/client";
 import { cn, roundToCents } from "@/lib/utils";
+import { SPLIT_BADGE_CLASSES } from "@/lib/utils/transactions";
 import {
   calculateBudgetSpent,
   calculateBudgetSpentInWindow,
@@ -671,11 +672,29 @@ export default function HomePage() {
                               <p className="text-xs font-medium text-gray-900 sm:text-sm">
                                 {transaction.name ?? "Unnamed transaction"}
                               </p>
-                              <p className="text-xs text-gray-500">
-                                {transaction.category?.name ?? "No category"} •{" "}
-                                {new Date(
-                                  transaction.createdAt,
-                                ).toLocaleDateString()}
+                              <p className="flex items-center gap-1 text-xs text-gray-500">
+                                {transaction.splits &&
+                                transaction.splits.length > 0 ? (
+                                  <span
+                                    className={cn(
+                                      "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                                      SPLIT_BADGE_CLASSES,
+                                    )}
+                                  >
+                                    Split
+                                  </span>
+                                ) : (
+                                  <span>
+                                    {transaction.category?.name ??
+                                      "No category"}
+                                  </span>
+                                )}
+                                <span>
+                                  •{" "}
+                                  {new Date(
+                                    transaction.createdAt,
+                                  ).toLocaleDateString()}
+                                </span>
                               </p>
                             </div>
                           </div>

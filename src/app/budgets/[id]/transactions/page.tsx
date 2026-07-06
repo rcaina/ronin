@@ -24,6 +24,7 @@ import {
   TrendingDown,
   Plus,
   ScanLine,
+  ChevronDown,
 } from "lucide-react";
 
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
@@ -50,6 +51,10 @@ import {
   formatCurrency,
   parseLocalDate,
 } from "@/lib/utils";
+import {
+  SPLIT_BADGE_CLASSES,
+  getSplitBadgeLabel,
+} from "@/lib/utils/transactions";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 
 // URL param scheme (only non-default values are written to the URL). `category`
@@ -130,12 +135,29 @@ const BudgetTransactionsPageContent = () => {
   const [editingTransactionId, setEditingTransactionId] = useState<
     string | null
   >(null);
+  const [editingSplitTransaction, setEditingSplitTransaction] =
+    useState<TransactionWithRelations | null>(null);
   const [transactionToDelete, setTransactionToDelete] =
     useState<TransactionWithRelations | null>(null);
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(
     new Set(),
   );
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [expandedSplitIds, setExpandedSplitIds] = useState<Set<string>>(
+    new Set(),
+  );
+
+  const toggleSplitExpanded = (transactionId: string) => {
+    setExpandedSplitIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(transactionId)) {
+        next.delete(transactionId);
+      } else {
+        next.add(transactionId);
+      }
+      return next;
+    });
+  };
 
   // Register header actions
   useEffect(() => {
@@ -206,15 +228,24 @@ const BudgetTransactionsPageContent = () => {
             formattedAmountMatch;
         }
 
-        // Category filter
+        // Category filter — matches the transaction's own category, or (for
+        // split transactions) any of its splits' categories.
         const matchesCategory =
           selectedCategory === "all" ||
-          transaction.category?.id === selectedCategory;
+          transaction.category?.id === selectedCategory ||
+          (transaction.splits?.some(
+            (split) => split.category.id === selectedCategory,
+          ) ??
+            false);
 
-        // Category type filter
+        // Category type filter — same split-aware treatment.
         const matchesCategoryType =
           selectedCategoryType === "all" ||
-          transaction.category?.group === selectedCategoryType;
+          transaction.category?.group === selectedCategoryType ||
+          (transaction.splits?.some(
+            (split) => split.category.group === selectedCategoryType,
+          ) ??
+            false);
 
         // Card filter
         const matchesCard =
@@ -378,6 +409,13 @@ const BudgetTransactionsPageContent = () => {
         cardId: transaction.cardId ?? undefined,
         transactionType: transaction.transactionType,
         createdAt: new Date().toISOString(),
+        splits: transaction.splits?.length
+          ? transaction.splits.map((split) => ({
+              categoryId: split.categoryId,
+              amount: split.amount,
+              note: split.note ?? undefined,
+            }))
+          : undefined,
       };
 
       await createTransactionMutation.mutateAsync(copyData);
@@ -395,9 +433,14 @@ const BudgetTransactionsPageContent = () => {
         "Card payment transactions cannot be edited. Please delete and recreate if needed.",
       );
       return;
-    } else {
-      setEditingTransactionId(transaction.id);
     }
+    // Split transactions aren't safe to edit inline (it could corrupt the
+    // per-category breakdown) — route to the full form modal instead.
+    if (transaction.splits && transaction.splits.length > 0) {
+      setEditingSplitTransaction(transaction);
+      return;
+    }
+    setEditingTransactionId(transaction.id);
   };
 
   const handleDeleteTransaction = (transaction: TransactionWithRelations) => {
@@ -700,6 +743,16 @@ const BudgetTransactionsPageContent = () => {
             budgetId={budgetId}
           />
 
+          {/* Edit Split Transaction Modal — split transactions route here
+              instead of the inline editor (see handleEditTransaction). */}
+          <AddTransactionModal
+            isOpen={!!editingSplitTransaction}
+            transaction={editingSplitTransaction ?? undefined}
+            onClose={() => setEditingSplitTransaction(null)}
+            onSuccess={() => setEditingSplitTransaction(null)}
+            budgetId={budgetId}
+          />
+
           {/* Scan Receipt Modal */}
           <ReceiptScanModal
             isOpen={showReceiptScanModal}
@@ -783,6 +836,9 @@ const BudgetTransactionsPageContent = () => {
                     );
                   }
 
+                  const hasSplits = (transaction.splits?.length ?? 0) > 0;
+                  const isSplitExpanded = expandedSplitIds.has(transaction.id);
+
                   return (
                     <SwipeableRow
                       key={transaction.id}
@@ -812,6 +868,27 @@ const BudgetTransactionsPageContent = () => {
                             disabled={isEditing}
                             className="h-4 w-4 rounded border-gray-300 text-secondary-600 focus:ring-secondary disabled:opacity-50"
                           />
+                          {hasSplits && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleSplitExpanded(transaction.id)
+                              }
+                              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
+                              aria-label={
+                                isSplitExpanded
+                                  ? "Hide split breakdown"
+                                  : "Show split breakdown"
+                              }
+                              aria-expanded={isSplitExpanded}
+                            >
+                              <ChevronDown
+                                className={`h-4 w-4 transition-transform duration-200 ${
+                                  isSplitExpanded ? "rotate-180" : ""
+                                }`}
+                              />
+                            </button>
+                          )}
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center space-x-2">
                               <span className="text-sm font-medium text-gray-900">
@@ -822,26 +899,32 @@ const BudgetTransactionsPageContent = () => {
                                   transaction.transactionType ===
                                   TransactionType.CARD_PAYMENT
                                     ? "bg-gray-200 text-gray-500"
-                                    : transaction.transactionType ===
-                                          TransactionType.INCOME &&
-                                        !transaction.category
-                                      ? "bg-accent text-primary"
-                                      : transaction.category
-                                        ? getCategoryBadgeColor(
-                                            transaction.category.group,
-                                          )
-                                        : getCategoryBadgeColor()
+                                    : hasSplits
+                                      ? SPLIT_BADGE_CLASSES
+                                      : transaction.transactionType ===
+                                            TransactionType.INCOME &&
+                                          !transaction.category
+                                        ? "bg-accent text-primary"
+                                        : transaction.category
+                                          ? getCategoryBadgeColor(
+                                              transaction.category.group,
+                                            )
+                                          : getCategoryBadgeColor()
                                 }`}
                               >
                                 {transaction.transactionType ===
                                 TransactionType.CARD_PAYMENT
                                   ? "Card Payment"
-                                  : transaction.transactionType ===
-                                        TransactionType.INCOME &&
-                                      !transaction.category
-                                    ? "Income"
-                                    : (transaction.category?.name ??
-                                      "No Category")}
+                                  : hasSplits
+                                    ? getSplitBadgeLabel(
+                                        transaction.splits?.length ?? 0,
+                                      )
+                                    : transaction.transactionType ===
+                                          TransactionType.INCOME &&
+                                        !transaction.category
+                                      ? "Income"
+                                      : (transaction.category?.name ??
+                                        "No Category")}
                               </span>
                               {transaction.description && (
                                 <div className="group relative flex-shrink-0">
@@ -921,6 +1004,34 @@ const BudgetTransactionsPageContent = () => {
                           </div>
                         </div>
                       </div>
+                      {hasSplits && isSplitExpanded && (
+                        <div className="space-y-2 border-t border-gray-100 bg-surface px-3 py-3 sm:px-6">
+                          {transaction.splits?.map((split) => (
+                            <div
+                              key={split.id}
+                              className="flex items-center justify-between gap-3"
+                            >
+                              <div className="flex min-w-0 items-center gap-2">
+                                <span
+                                  className={`inline-flex flex-shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${getCategoryBadgeColor(
+                                    split.category.group,
+                                  )}`}
+                                >
+                                  {split.category.name}
+                                </span>
+                                {split.note && (
+                                  <span className="truncate text-xs text-gray-500">
+                                    {split.note}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="flex-shrink-0 text-sm font-medium tabular-nums text-gray-900">
+                                {formatCurrency(Math.abs(split.amount))}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </SwipeableRow>
                   );
                 })
@@ -962,7 +1073,11 @@ const BudgetTransactionsPageContent = () => {
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
         title="Delete Transaction"
-        message="Are you sure you want to delete the transaction '{itemName}'? This action cannot be undone."
+        message={
+          transactionToDelete?.splits && transactionToDelete.splits.length > 0
+            ? `This will delete the transaction '{itemName}' and its ${transactionToDelete.splits.length} category splits. This action cannot be undone.`
+            : "Are you sure you want to delete the transaction '{itemName}'? This action cannot be undone."
+        }
         itemName={transactionToDelete?.name ?? "Unnamed transaction"}
         isLoading={deleteTransactionMutation.isPending}
         loadingText="Deleting..."
