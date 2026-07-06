@@ -128,6 +128,7 @@ model Category {
     group             CategoryType
     allocatedAmount   Float?
     transactions      Transaction[]
+    transactionSplits TransactionSplit[]
     createdAt         DateTime      @default(now())
     updatedAt         DateTime      @updatedAt
     deleted           DateTime?
@@ -186,6 +187,7 @@ model Transaction {
     linkedTransactionId String?
     linkedTransaction   Transaction?    @relation("LinkedTransactions", fields: [linkedTransactionId], references: [id])
     linkedTransactions  Transaction[]   @relation("LinkedTransactions")
+    splits              TransactionSplit[]
 
     @@index([id])
     @@index([name])
@@ -193,6 +195,20 @@ model Transaction {
     @@index([deleted])
     @@index([transactionType])
     @@map("transactions")
+}
+
+model TransactionSplit {
+    id            String      @id @default(cuid())
+    transactionId String
+    transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+    categoryId    String
+    category      Category    @relation(fields: [categoryId], references: [id])
+    amount        Float
+    note          String?
+
+    @@index([transactionId])
+    @@index([categoryId])
+    @@map("transaction_splits")
 }
 
 model Savings {

@@ -1,4 +1,9 @@
-import type { Transaction, Budget, Category } from "@prisma/client";
+import type {
+  Transaction,
+  Budget,
+  Category,
+  TransactionSplit,
+} from "@prisma/client";
 import type {
   CreateTransactionSchema,
   UpdateTransactionSchema,
@@ -19,6 +24,14 @@ export interface UpdateTransactionRequest
   occurredAt?: Date;
 }
 
+// A transaction split line item with its category relation
+export type TransactionSplitWithCategory = TransactionSplit & {
+  category: Category & {
+    defaultCategoryId: string | null;
+    defaultCategory?: Category | null;
+  };
+};
+
 // Transaction with relations type
 export type TransactionWithRelations = Transaction & {
   category:
@@ -28,4 +41,5 @@ export type TransactionWithRelations = Transaction & {
       })
     | null;
   Budget?: Budget;
+  splits?: TransactionSplitWithCategory[];
 };

@@ -1,8 +1,31 @@
 import { z } from "zod";
 import { TransactionType } from "@prisma/client";
+import { roundToCents } from "@/lib/utils";
+
+// Schema for a single split leg of a transaction (one category's share of the
+// total transaction amount).
+export const transactionSplitInputSchema = z.object({
+  categoryId: z.string().min(1),
+  amount: z.number().positive(),
+  note: z.string().optional(),
+});
+
+export type TransactionSplitInput = z.infer<typeof transactionSplitInputSchema>;
+
+// Split legs must sum to the transaction's total amount, within a
+// sub-cent floating point tolerance (mirrors lib/utils/receipt.ts).
+function splitsSumMatchesAmount(
+  splits: TransactionSplitInput[],
+  amount: number,
+): boolean {
+  const sum = roundToCents(
+    splits.reduce((total, split) => total + split.amount, 0),
+  );
+  return Math.abs(sum - roundToCents(amount)) < 0.005;
+}
 
 // Zod schemas for API validation
-export const createTransactionSchema = z.object({
+const createTransactionBaseSchema = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
   amount: z.number(), // Allow any number (positive, negative, or zero)
@@ -15,7 +38,43 @@ export const createTransactionSchema = z.object({
     .nativeEnum(TransactionType)
     .optional()
     .default(TransactionType.REGULAR),
+  splits: z.array(transactionSplitInputSchema).min(2).optional(),
 });
+
+export const createTransactionSchema = createTransactionBaseSchema.superRefine(
+  (data, ctx) => {
+    if (!data.splits) {
+      return;
+    }
+
+    if (data.categoryId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["categoryId"],
+        message: "categoryId must not be set when splits are provided",
+      });
+    }
+
+    if (
+      data.transactionType !== TransactionType.REGULAR &&
+      data.transactionType !== TransactionType.RETURN
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["transactionType"],
+        message: "Splits are only supported for REGULAR or RETURN transactions",
+      });
+    }
+
+    if (!splitsSumMatchesAmount(data.splits, data.amount)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["splits"],
+        message: "Split amounts must sum to the transaction amount",
+      });
+    }
+  },
+);
 
 // Schema for card payment transactions
 export const createCardPaymentSchema = z.object({
@@ -37,7 +96,7 @@ export const createTransactionsBatchSchema = z.object({
     .min(1, "At least one transaction is required"),
 });
 
-export const updateTransactionSchema = z.object({
+const updateTransactionBaseSchema = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
   amount: z.number().optional(), // Allow any number (positive, negative, or zero)
@@ -47,7 +106,37 @@ export const updateTransactionSchema = z.object({
   createdAt: z.string().optional(),
   occurredAt: z.string().optional(),
   transactionType: z.nativeEnum(TransactionType).optional(),
+  splits: z.array(transactionSplitInputSchema).min(2).optional(),
 });
+
+export const updateTransactionSchema = updateTransactionBaseSchema.superRefine(
+  (data, ctx) => {
+    if (!data.splits) {
+      return;
+    }
+
+    if (data.categoryId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["categoryId"],
+        message: "categoryId must not be set when splits are provided",
+      });
+    }
+
+    // When amount is omitted here, the service layer validates the split sum
+    // against the stored transaction amount (see Phase 2).
+    if (
+      data.amount !== undefined &&
+      !splitsSumMatchesAmount(data.splits, data.amount)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["splits"],
+        message: "Split amounts must sum to the transaction amount",
+      });
+    }
+  },
+);
 
 // Export inferred types for convenience
 export type CreateTransactionSchema = z.infer<typeof createTransactionSchema>;
