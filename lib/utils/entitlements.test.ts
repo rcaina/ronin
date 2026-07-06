@@ -7,6 +7,7 @@ import {
   canInviteMember,
   canScanReceipt,
   canSplitTransactions,
+  canViewReportHistory,
   isBudgetLocked,
   isPocketLocked,
   isPremium,
@@ -153,6 +154,28 @@ describe("canScanReceipt", () => {
     expect(canScanReceipt(account({ complimentaryAccess: true })).allowed).toBe(
       true,
     );
+  });
+});
+
+describe("canViewReportHistory", () => {
+  it("denies a FREE account, with an upgrade reason", () => {
+    const result = canViewReportHistory(account());
+    expect(result.allowed).toBe(false);
+    expect(!result.allowed && result.reason).toMatch(/premium/i);
+  });
+
+  it("allows a premium account", () => {
+    expect(
+      canViewReportHistory(
+        account({ plan: "PREMIUM", subscriptionStatus: "ACTIVE" }),
+      ).allowed,
+    ).toBe(true);
+  });
+
+  it("allows a complimentary account even on the FREE plan", () => {
+    expect(
+      canViewReportHistory(account({ complimentaryAccess: true })).allowed,
+    ).toBe(true);
   });
 });
 

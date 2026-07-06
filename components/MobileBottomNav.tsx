@@ -13,6 +13,7 @@ import {
   FolderOpen,
   Settings,
   CreditCard,
+  BarChart3,
   LogOut,
   type LucideIcon,
 } from "lucide-react";
@@ -41,6 +42,7 @@ const tabs: TabItem[] = [
 const moreLinks: TabItem[] = [
   { href: "/categories", icon: FolderOpen, label: "Categories" },
   { href: "/cards", icon: CreditCard, label: "Cards", feature: "cards" },
+  { href: "/reports", icon: BarChart3, label: "Reports" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
