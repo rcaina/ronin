@@ -30,6 +30,11 @@ model Account {
     stripeSubscriptionId String?             @unique
     subscriptionStatus   SubscriptionStatus?
     currentPeriodEnd     DateTime?
+    // Account-wide module on/off preferences (see lib/types/feature-settings.ts).
+    // JSON so new toggleable modules don't require a migration later. Null
+    // means "never configured" — callers must merge over
+    // DEFAULT_FEATURE_SETTINGS via parseFeatureSettings, never read raw.
+    featureSettings      Json?
 
     @@index([id])
     @@index([name])

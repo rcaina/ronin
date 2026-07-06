@@ -24,12 +24,14 @@ import {
   AlertTriangle,
   Palette,
   CreditCard,
+  ToggleLeft,
 } from "lucide-react";
 import Button from "@/components/Button";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import ThemeSelector from "@/components/settings/ThemeSelector";
 import PlanComparison from "@/components/billing/PlanComparison";
 import ChangePasswordForm from "@/components/settings/ChangePasswordForm";
+import FeatureToggles from "@/components/settings/FeatureToggles";
 import { Role } from "@prisma/client";
 import { useUpdateProfile } from "@/lib/data-hooks/users/useUser";
 import {
@@ -65,9 +67,10 @@ const SettingsPageContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState(() =>
-    searchParams.get("tab") === "billing" ? "billing" : "profile",
-  );
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get("tab");
+    return tab === "billing" || tab === "features" ? tab : "profile";
+  });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
@@ -184,6 +187,7 @@ const SettingsPageContent = () => {
   const tabs = [
     { id: "profile", label: "Profile", icon: UserIcon },
     { id: "preferences", label: "Preferences", icon: Palette },
+    { id: "features", label: "Features", icon: ToggleLeft },
     { id: "billing", label: "Billing", icon: CreditCard },
     { id: "security", label: "Security", icon: Shield },
   ];
@@ -459,6 +463,13 @@ const SettingsPageContent = () => {
                 </p>
                 <ThemeSelector />
               </div>
+            </div>
+          )}
+
+          {/* Features Tab */}
+          {activeTab === "features" && (
+            <div className="space-y-4 sm:space-y-6">
+              <FeatureToggles isAdmin={isAdmin} />
             </div>
           )}
 
