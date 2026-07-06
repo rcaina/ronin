@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { env } from "@/env";
 import prisma from "@/lib/prisma";
 import { isEmailAllowed } from "@/lib/utils/auth";
 import {
@@ -39,12 +40,15 @@ export const POST = async (request: NextRequest) => {
   }
 
   const token = await createPasswordResetToken(email);
-  const resetUrl = `${request.nextUrl.origin}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
+  // APP_URL is required in production; the request-origin fallback is dev-only
+  // so reset links can't be poisoned via the Host header.
+  const origin = env.APP_URL ?? request.nextUrl.origin;
+  const resetUrl = `${origin}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
 
   // A send failure must not change the response — a non-200 here would only
   // ever happen for existing accounts, leaking whether the email is registered.
   try {
-    await sendPasswordResetEmail(email, resetUrl, request.nextUrl.origin);
+    await sendPasswordResetEmail(email, resetUrl, origin);
   } catch (error) {
     console.error("Failed to send password reset email:", error);
   }

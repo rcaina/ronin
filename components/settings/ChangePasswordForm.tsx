@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
-import { toast } from "react-hot-toast";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import Button from "@/components/Button";
 import { useChangePassword } from "@/lib/data-hooks/users/useChangePassword";
@@ -65,12 +64,9 @@ const ChangePasswordForm = () => {
         currentPassword,
         newPassword,
       });
-      toast.success("Password updated");
       setForm(initialFormState);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to update password.";
-      toast.error(message);
+    } catch {
+      // error toast handled by useChangePassword
     }
   };
 
@@ -113,11 +109,15 @@ const ChangePasswordForm = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         {fields.map(({ field, label, autoComplete, minLength }) => (
           <div key={field}>
-            <label className="block text-xs font-medium text-gray-500">
+            <label
+              htmlFor={field}
+              className="block text-xs font-medium text-gray-500"
+            >
               {label}
             </label>
             <div className="relative mt-1">
               <input
+                id={field}
                 type={visibleFields[field] ? "text" : "password"}
                 value={form[field]}
                 onChange={handleChange(field)}

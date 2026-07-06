@@ -309,6 +309,6 @@ model EmailToken {
     attempts  Int               @default(0)
     createdAt DateTime          @default(now())
 
-    @@index([email, purpose])
+    @@unique([email, purpose])
     @@map("email_tokens")
 }

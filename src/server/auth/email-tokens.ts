@@ -35,12 +35,18 @@ export async function isThrottled(
 export async function createPasswordResetToken(email: string): Promise<string> {
   const token = crypto.randomBytes(32).toString("hex");
 
-  await db.emailToken.deleteMany({
-    where: { email, purpose: EmailTokenPurpose.PASSWORD_RESET },
-  });
-
-  await db.emailToken.create({
-    data: {
+  await db.emailToken.upsert({
+    where: {
+      email_purpose: { email, purpose: EmailTokenPurpose.PASSWORD_RESET },
+    },
+    update: {
+      tokenHash: hashToken(token),
+      expires: new Date(Date.now() + PASSWORD_RESET_TTL_MS),
+      attempts: 0,
+      // isThrottled() reads createdAt to enforce the 1-minute resend throttle.
+      createdAt: new Date(),
+    },
+    create: {
       email,
       tokenHash: hashToken(token),
       purpose: EmailTokenPurpose.PASSWORD_RESET,
@@ -54,12 +60,18 @@ export async function createPasswordResetToken(email: string): Promise<string> {
 export async function createLoginCode(email: string): Promise<string> {
   const code = crypto.randomInt(100000, 1000000).toString();
 
-  await db.emailToken.deleteMany({
-    where: { email, purpose: EmailTokenPurpose.LOGIN_CODE },
-  });
-
-  await db.emailToken.create({
-    data: {
+  await db.emailToken.upsert({
+    where: {
+      email_purpose: { email, purpose: EmailTokenPurpose.LOGIN_CODE },
+    },
+    update: {
+      tokenHash: hashToken(code),
+      expires: new Date(Date.now() + LOGIN_CODE_TTL_MS),
+      attempts: 0,
+      // isThrottled() reads createdAt to enforce the 1-minute resend throttle.
+      createdAt: new Date(),
+    },
+    create: {
       email,
       tokenHash: hashToken(code),
       purpose: EmailTokenPurpose.LOGIN_CODE,
@@ -74,8 +86,10 @@ export async function verifyPasswordResetToken(
   email: string,
   token: string,
 ): Promise<boolean> {
-  const row = await db.emailToken.findFirst({
-    where: { email, purpose: EmailTokenPurpose.PASSWORD_RESET },
+  const row = await db.emailToken.findUnique({
+    where: {
+      email_purpose: { email, purpose: EmailTokenPurpose.PASSWORD_RESET },
+    },
   });
 
   if (!row || row.expires < new Date()) {
@@ -89,29 +103,34 @@ export async function consumeLoginCode(
   email: string,
   code: string,
 ): Promise<boolean> {
-  const row = await db.emailToken.findFirst({
-    where: { email, purpose: EmailTokenPurpose.LOGIN_CODE },
+  const row = await db.emailToken.findUnique({
+    where: {
+      email_purpose: { email, purpose: EmailTokenPurpose.LOGIN_CODE },
+    },
   });
 
   if (!row || row.expires < new Date()) {
     return false;
   }
 
-  const nextAttempts = row.attempts + 1;
-  if (nextAttempts > MAX_LOGIN_CODE_ATTEMPTS) {
+  // Atomic guarded increment: concurrent submits can't lose attempt counts
+  // or exceed the cap.
+  const attempted = await db.emailToken.updateMany({
+    where: { id: row.id, attempts: { lt: MAX_LOGIN_CODE_ATTEMPTS } },
+    data: { attempts: { increment: 1 } },
+  });
+
+  if (attempted.count === 0) {
     return false;
   }
-
-  await db.emailToken.update({
-    where: { id: row.id },
-    data: { attempts: nextAttempts },
-  });
 
   if (row.tokenHash !== hashToken(code)) {
     return false;
   }
 
-  await db.emailToken.delete({ where: { id: row.id } });
+  // deleteMany is idempotent — a concurrent duplicate submit that lost the
+  // race gets count 0 and fails instead of throwing P2025.
+  const deleted = await db.emailToken.deleteMany({ where: { id: row.id } });
 
-  return true;
+  return deleted.count === 1;
 }

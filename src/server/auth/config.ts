@@ -66,7 +66,12 @@ async function loadAuthorizedUser(email: string) {
     },
   });
 
-  if (!user?.password || !user.role || !user.accountUsers.length) {
+  if (
+    !user?.password ||
+    !user.role ||
+    user.deleted !== null ||
+    !user.accountUsers.length
+  ) {
     return null;
   }
 

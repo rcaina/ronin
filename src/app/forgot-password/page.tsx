@@ -1,11 +1,11 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import { toast } from "react-hot-toast";
 import Link from "next/link";
 import Image from "next/image";
 import roninLogo from "@/public/ronin_logo.jpg";
 import { useForgotPassword } from "@/lib/data-hooks/useForgotPassword";
+import { EMAIL_PATTERN } from "@/lib/utils/validation";
 
 interface ForgotPasswordForm {
   email: string;
@@ -24,12 +24,7 @@ export default function ForgotPassword() {
 
   const onSubmit = async (data: ForgotPasswordForm) => {
     resetError();
-    try {
-      await requestReset(data.email);
-    } catch (err) {
-      console.error(err);
-      toast.error("Something went wrong. Please try again.");
-    }
+    await requestReset(data.email);
   };
 
   return (
@@ -98,7 +93,7 @@ export default function ForgotPassword() {
                   {...register("email", {
                     required: "Email is required",
                     pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      value: EMAIL_PATTERN,
                       message: "Invalid email address",
                     },
                   })}

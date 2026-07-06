@@ -13,6 +13,7 @@ import type {
   LoginCodeRequestResponse,
   SignInWithCodeRequest,
 } from "@/lib/types/user";
+import { signIn as nextAuthSignIn } from "next-auth/react";
 
 export const signUp = async (data: SignUpRequest): Promise<SignUpResponse> => {
   const response = await fetch("/api/sign-up", {
@@ -31,8 +32,6 @@ export const signUp = async (data: SignUpRequest): Promise<SignUpResponse> => {
 };
 
 export const signIn = async (data: SignInRequest): Promise<void> => {
-  const { signIn: nextAuthSignIn } = await import("next-auth/react");
-
   const result = await nextAuthSignIn("credentials", {
     email: data.email,
     password: data.password,
@@ -78,8 +77,14 @@ export const confirmPasswordReset = async (
   });
 
   if (!response.ok) {
-    const errorData = (await response.json()) as { error?: string };
-    throw new Error(errorData.error ?? "Invalid or expired reset link");
+    let message = "Invalid or expired reset link";
+    try {
+      const errorData = (await response.json()) as { error?: string };
+      message = errorData.error ?? message;
+    } catch {
+      // non-JSON error body — keep the default message
+    }
+    throw new Error(message);
   }
 
   return response.json() as Promise<PasswordResetConfirmResponse>;
@@ -106,8 +111,6 @@ export const requestLoginCode = async (
 export const signInWithCode = async (
   data: SignInWithCodeRequest,
 ): Promise<void> => {
-  const { signIn: nextAuthSignIn } = await import("next-auth/react");
-
   const result = await nextAuthSignIn("email-code", {
     email: data.email,
     code: data.code,

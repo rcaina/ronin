@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 import { requestLoginCode, signInWithCode } from "./services/auth";
 
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -29,13 +30,15 @@ export function useLoginCode(): UseLoginCodeReturn {
   const [resendCooldown, setResendCooldown] = useState(0);
   const router = useRouter();
 
+  const isCoolingDown = resendCooldown > 0;
+
   useEffect(() => {
-    if (resendCooldown <= 0) return;
+    if (!isCoolingDown) return;
     const timer = setInterval(() => {
       setResendCooldown((seconds) => (seconds > 0 ? seconds - 1 : 0));
     }, 1000);
     return () => clearInterval(timer);
-  }, [resendCooldown]);
+  }, [isCoolingDown]);
 
   const requestCode = async (emailValue: string) => {
     setIsRequesting(true);
@@ -46,6 +49,11 @@ export function useLoginCode(): UseLoginCodeReturn {
       setEmail(emailValue);
       setStep("code");
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
+      toast.success("Check your email for a 6-digit code");
+    } catch {
+      const message = "Failed to send code. Please try again.";
+      setError(message);
+      toast.error(message);
     } finally {
       setIsRequesting(false);
     }
@@ -59,6 +67,11 @@ export function useLoginCode(): UseLoginCodeReturn {
     try {
       await requestLoginCode({ email });
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
+      toast.success("Check your email for a new code");
+    } catch {
+      const message = "Failed to resend code. Please try again.";
+      setError(message);
+      toast.error(message);
     } finally {
       setIsRequesting(false);
     }
@@ -70,9 +83,13 @@ export function useLoginCode(): UseLoginCodeReturn {
 
     try {
       await signInWithCode({ email, code });
+      toast.success("Signed in");
       router.push("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Invalid or expired code");
+      const message =
+        err instanceof Error ? err.message : "Invalid or expired code";
+      setError(message);
+      toast.error(message);
     } finally {
       setIsVerifying(false);
     }

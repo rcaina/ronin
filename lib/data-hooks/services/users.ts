@@ -36,8 +36,14 @@ export const changePassword = async (
   });
 
   if (!response.ok) {
-    const errorData = (await response.json()) as { error: string };
-    throw new Error(errorData.error);
+    let message = "Failed to change password";
+    try {
+      const errorData = (await response.json()) as { error?: string };
+      message = errorData.error ?? message;
+    } catch {
+      // non-JSON error body — keep the default message
+    }
+    throw new Error(message);
   }
 
   return response.json() as Promise<ChangePasswordResponse>;

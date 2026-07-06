@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "react-hot-toast";
 import { requestPasswordReset } from "./services/auth";
 
 interface UseForgotPasswordReturn {
@@ -21,13 +22,14 @@ export function useForgotPassword(): UseForgotPasswordReturn {
     try {
       await requestPasswordReset({ email });
       setIsSubmitted(true);
+      toast.success("Check your inbox for a reset link.");
     } catch (err) {
-      setError(
+      const message =
         err instanceof Error
           ? err.message
-          : "An error occurred. Please try again.",
-      );
-      throw err;
+          : "An error occurred. Please try again.";
+      setError(message);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }

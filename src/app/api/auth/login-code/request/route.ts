@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { env } from "@/env";
 import prisma from "@/lib/prisma";
 import { isEmailAllowed } from "@/lib/utils/auth";
 import { createLoginCode, isThrottled } from "@/server/auth/email-tokens";
@@ -39,11 +40,14 @@ export const POST = async (request: NextRequest) => {
   }
 
   const code = await createLoginCode(email);
+  // APP_URL is required in production; the request-origin fallback is dev-only
+  // so reset links can't be poisoned via the Host header.
+  const origin = env.APP_URL ?? request.nextUrl.origin;
 
   // A send failure must not change the response — a non-200 here would only
   // ever happen for existing accounts, leaking whether the email is registered.
   try {
-    await sendLoginCodeEmail(email, code, request.nextUrl.origin);
+    await sendLoginCodeEmail(email, code, origin);
   } catch (error) {
     console.error("Failed to send login code email:", error);
   }

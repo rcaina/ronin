@@ -11,6 +11,12 @@ export const env = createEnv({
       process.env.NODE_ENV === "production"
         ? z.string()
         : z.string().optional(),
+    // Canonical public origin used to build links in transactional emails, so
+    // reset links can't be poisoned via the Host header.
+    APP_URL:
+      process.env.NODE_ENV === "production"
+        ? z.string().url()
+        : z.string().url().optional(),
     AUTH_ALLOWED_EMAILS: z.string().optional(),
     DATABASE_URL: z.string().url(),
     // Receipt scanning is provider-agnostic. AI_PROVIDER picks the backend;
@@ -45,6 +51,7 @@ export const env = createEnv({
    */
   runtimeEnv: {
     AUTH_SECRET: process.env.AUTH_SECRET,
+    APP_URL: process.env.APP_URL,
     AUTH_ALLOWED_EMAILS: process.env.AUTH_ALLOWED_EMAILS,
     DATABASE_URL: process.env.DATABASE_URL,
     AI_PROVIDER: process.env.AI_PROVIDER,
