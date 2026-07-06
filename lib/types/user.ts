@@ -45,6 +45,37 @@ export interface DeleteAccountResponse {
   deletedEntireAccount: boolean;
 }
 
+export interface PasswordResetRequestRequest {
+  email: string;
+}
+
+export interface PasswordResetRequestResponse {
+  message: string;
+}
+
+export interface PasswordResetConfirmRequest {
+  email: string;
+  token: string;
+  password: string;
+}
+
+export interface PasswordResetConfirmResponse {
+  message: string;
+}
+
+export interface LoginCodeRequestRequest {
+  email: string;
+}
+
+export interface LoginCodeRequestResponse {
+  message: string;
+}
+
+export interface SignInWithCodeRequest {
+  email: string;
+  code: string;
+}
+
 export interface UpdateProfileRequest {
   name?: string;
   email?: string;
@@ -61,4 +92,13 @@ export interface UpdateProfileResponse {
   theme: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  message: string;
 }

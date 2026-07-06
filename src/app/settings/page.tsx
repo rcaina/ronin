@@ -20,13 +20,13 @@ import {
   Home,
   Trash2,
   LogOut,
-  Lock,
   AlertTriangle,
   Palette,
 } from "lucide-react";
 import Button from "@/components/Button";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import ThemeSelector from "@/components/settings/ThemeSelector";
+import ChangePasswordForm from "@/components/settings/ChangePasswordForm";
 import { Role } from "@prisma/client";
 import { useUpdateProfile } from "@/lib/data-hooks/users/useUser";
 
@@ -392,27 +392,8 @@ const SettingsPage = () => {
           {/* Security Tab */}
           {activeTab === "security" && (
             <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
-              {/* Change password - coming soon */}
-              <div className="card-surface p-5 sm:p-6">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <h3 className="text-base font-semibold tracking-tight text-gray-900">
-                    Change password
-                  </h3>
-                  <span className="inline-flex items-center rounded-full bg-secondary-100 px-2.5 py-0.5 text-xs font-medium text-secondary-800">
-                    Coming soon
-                  </span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-gray-500">
-                    <Lock className="h-4 w-4" />
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    We&apos;re working on bringing you secure password
-                    management. This feature will allow you to update your
-                    password with enhanced security measures.
-                  </p>
-                </div>
-              </div>
+              {/* Change password */}
+              <ChangePasswordForm />
 
               {/* Session management */}
               <div className="card-surface p-5 sm:p-6">
