@@ -11,6 +11,12 @@ export const env = createEnv({
       process.env.NODE_ENV === "production"
         ? z.string()
         : z.string().optional(),
+    // Canonical public origin used to build links in transactional emails, so
+    // reset links can't be poisoned via the Host header.
+    APP_URL:
+      process.env.NODE_ENV === "production"
+        ? z.string().url()
+        : z.string().url().optional(),
     AUTH_ALLOWED_EMAILS: z.string().optional(),
     DATABASE_URL: z.string().url(),
     // Receipt scanning is provider-agnostic. AI_PROVIDER picks the backend;
@@ -28,6 +34,10 @@ export const env = createEnv({
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
     STRIPE_PRICE_MONTHLY_ID: z.string().optional(),
     STRIPE_PRICE_ANNUAL_ID: z.string().optional(),
+    // Transactional email (password reset / login codes). Optional — see
+    // src/server/email.ts for dev-mode fallback behavior when unset.
+    RESEND_API_KEY: z.string().optional(),
+    EMAIL_FROM: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -48,6 +58,7 @@ export const env = createEnv({
    */
   runtimeEnv: {
     AUTH_SECRET: process.env.AUTH_SECRET,
+    APP_URL: process.env.APP_URL,
     AUTH_ALLOWED_EMAILS: process.env.AUTH_ALLOWED_EMAILS,
     DATABASE_URL: process.env.DATABASE_URL,
     AI_PROVIDER: process.env.AI_PROVIDER,
@@ -59,6 +70,8 @@ export const env = createEnv({
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
     STRIPE_PRICE_MONTHLY_ID: process.env.STRIPE_PRICE_MONTHLY_ID,
     STRIPE_PRICE_ANNUAL_ID: process.env.STRIPE_PRICE_ANNUAL_ID,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    EMAIL_FROM: process.env.EMAIL_FROM,
     NODE_ENV: process.env.NODE_ENV,
   },
   /**

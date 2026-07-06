@@ -4,7 +4,11 @@ import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling";
 import prisma from "@/lib/prisma";
 import type { User } from "@prisma/client";
 import { createPocketSchema } from "@/lib/api-schemas/savings";
-import { createPocket, getPockets } from "@/lib/api-services/savings";
+import {
+  createPocket,
+  getPockets,
+  getPocketLockedIds,
+} from "@/lib/api-services/savings";
 import {
   toPocketSummary,
   toPocketSummaryList,
@@ -25,10 +29,27 @@ export const GET = withUser({
       const { searchParams } = new URL(req.url);
       const savingsId = searchParams.get("savingsId");
 
-      const pockets = await prisma.$transaction((tx) =>
-        getPockets(tx, user.accountId, savingsId ?? undefined),
+      const { pockets, allPockets, account } = await prisma.$transaction(
+        async (tx) => {
+          const pockets = await getPockets(
+            tx,
+            user.accountId,
+            savingsId ?? undefined,
+          );
+          // Lock state is determined across ALL of the account's pockets,
+          // independent of the optional savingsId filter.
+          const allPockets = savingsId
+            ? await getPockets(tx, user.accountId)
+            : pockets;
+          const account = await getAccountEntitlements(tx, user.accountId);
+          return { pockets, allPockets, account };
+        },
       );
-      return NextResponse.json(toPocketSummaryList(pockets), { status: 200 });
+
+      const lockedIds = getPocketLockedIds(account, allPockets);
+      return NextResponse.json(toPocketSummaryList(pockets, lockedIds), {
+        status: 200,
+      });
     },
   ),
 });

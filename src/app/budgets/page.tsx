@@ -13,6 +13,7 @@ import {
   Plus,
   TrendingUp,
   CheckCircle,
+  Lock,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
@@ -603,11 +604,27 @@ const BudgetsPage = () => {
                             chip: budgetStatus.chip,
                           };
 
+                  // Locked active budgets (older budgets an over-limit free
+                  // account can no longer access after a downgrade) are
+                  // hard-blocked: clicking opens the upgrade paywall instead of
+                  // navigating, and the card reads as visibly blocked.
+                  const isLocked = activeTab === "active" && budget.locked;
+
                   return (
                     <div
                       key={budget.id}
-                      className="card-interactive cursor-pointer p-5 sm:p-6"
-                      onClick={() => router.push(`/budgets/${budget.id}`)}
+                      className={
+                        isLocked
+                          ? "card-surface cursor-not-allowed p-5 opacity-60 sm:p-6"
+                          : "card-interactive cursor-pointer p-5 sm:p-6"
+                      }
+                      onClick={() =>
+                        isLocked
+                          ? setUpgradeReason(
+                              "This budget is locked. Upgrade to Premium to access it.",
+                            )
+                          : router.push(`/budgets/${budget.id}`)
+                      }
                     >
                       <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-start">
                         <div className="flex-1">
@@ -620,6 +637,16 @@ const BudgetsPage = () => {
                             >
                               {statusChip.label}
                             </span>
+                            {/* Locked budgets (hard-blocked after a downgrade
+                              past the free active-budget limit) can't be
+                              opened — clicking the card opens the upgrade
+                              paywall instead. Flag them clearly here. */}
+                            {isLocked && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-secondary/15 px-2.5 py-0.5 text-xs font-medium text-secondary-700">
+                                <Lock className="h-3 w-3" />
+                                Locked
+                              </span>
+                            )}
                             {/* Action Icons */}
                             <div className="ml-auto flex items-center gap-0.5">
                               {activeTab === "active" && (

@@ -12,6 +12,8 @@ import {
 } from "@prisma/client";
 import { HttpError } from "../errors";
 import { formatBudget, formatBudgetCategories } from "../db/converter";
+import { getAccountEntitlements } from "./entitlements";
+import { isBudgetLocked } from "../utils/entitlements";
 import type { PrismaClientTx } from "../prisma";
 import type { z } from "zod";
 import type {
@@ -25,6 +27,7 @@ import type {
   BudgetCategories,
   UpdateBudgetCategoryData,
 } from "../types/budget";
+import type { TransactionSplitWithCategory } from "../types/transaction";
 
 export async function getBudgetById(
   tx: PrismaClient,
@@ -57,12 +60,26 @@ export async function getBudgetById(
               createdAt: "desc",
             },
           },
+          // Split parents carry categoryId = null, so their share of the
+          // spend lives here instead of in `transactions` above. See
+          // lib/utils/spending.ts (SpendingSplit / getSplitSpending).
+          transactionSplits: {
+            where: {
+              transaction: { deleted: null },
+            },
+            include: {
+              transaction: true,
+            },
+          },
         },
       },
       transactions: {
         where: {
           deleted: null,
-          categoryId: null, // Only transactions without categories (like card payments)
+          categoryId: null, // Only transactions without categories (card payments/income)
+          // Split parents also have categoryId = null but are category
+          // spending, not money movement — exclude them from this list.
+          splits: { none: {} },
           ...(excludeCardPayments && {
             transactionType: {
               not: TransactionType.CARD_PAYMENT,
@@ -98,7 +115,17 @@ export async function getBudgetById(
     throw new HttpError("Budget not found", 404);
   }
 
-  return formatBudget(budget);
+  // Compute the downgrade lock flag against the account's active budgets.
+  const account = await getAccountEntitlements(tx, budget.accountId);
+  const activeBudgets = await tx.budget.findMany({
+    where: { accountId: budget.accountId, deleted: null, status: "ACTIVE" },
+    select: { id: true, createdAt: true },
+  });
+
+  return {
+    ...formatBudget(budget),
+    locked: isBudgetLocked(account, budget, activeBudgets),
+  };
 }
 
 export async function createBudget(
@@ -481,7 +508,7 @@ export async function getBudgets(
   accountId: string,
   status?: BudgetStatus,
   excludeCardPayments?: boolean,
-): Promise<Budget[]> {
+): Promise<(Budget & { locked: boolean })[]> {
   const whereClause = {
     accountId,
     deleted: null,
@@ -495,7 +522,7 @@ export async function getBudgets(
       ? { createdAt: "desc" as const }
       : { createdAt: "desc" as const };
 
-  return await tx.budget.findMany({
+  const budgets = await tx.budget.findMany({
     where: whereClause,
     include: {
       categories: {
@@ -511,12 +538,24 @@ export async function getBudgets(
               }),
             },
           },
+          // See getBudgetById above — split parents' spend lives here.
+          transactionSplits: {
+            where: {
+              transaction: { deleted: null },
+            },
+            include: {
+              transaction: true,
+            },
+          },
         },
       },
       transactions: {
         where: {
           deleted: null,
           categoryId: null,
+          // Exclude split parents (categoryId: null but real category
+          // spending) — this list should stay pure money movement.
+          splits: { none: {} },
           ...(excludeCardPayments && {
             transactionType: {
               not: "CARD_PAYMENT",
@@ -548,6 +587,23 @@ export async function getBudgets(
     },
     orderBy,
   });
+
+  // Compute the downgrade lock flag once per request. The lock rule needs the
+  // full set of ACTIVE budgets (not just the filtered `status` slice), so load
+  // them separately unless the current query already returned exactly that.
+  const account = await getAccountEntitlements(tx, accountId);
+  const activeBudgets =
+    status === "ACTIVE"
+      ? budgets.map((b) => ({ id: b.id, createdAt: b.createdAt }))
+      : await tx.budget.findMany({
+          where: { accountId, deleted: null, status: "ACTIVE" },
+          select: { id: true, createdAt: true },
+        });
+
+  return budgets.map((budget) => ({
+    ...budget,
+    locked: isBudgetLocked(account, budget, activeBudgets),
+  }));
 }
 
 export async function markBudgetCompleted(
@@ -837,6 +893,21 @@ export const getBudgetCategories = async (
         },
         orderBy: {
           createdAt: "desc",
+        },
+      },
+      // Split parents' share of this category's spend (see getBudgetById).
+      transactionSplits: {
+        where: {
+          transaction: { deleted: null },
+        },
+        select: {
+          amount: true,
+          transaction: {
+            select: {
+              transactionType: true,
+              amount: true,
+            },
+          },
         },
       },
     },
@@ -1210,12 +1281,28 @@ export const deleteBudgetCategory = async (
 export const getBudgetTransactions = async (
   tx: PrismaClient,
   budgetId: string,
-): Promise<(Transaction & { category: Category | null; Budget: Budget })[]> => {
+): Promise<
+  (Transaction & {
+    category: Category | null;
+    Budget: Budget;
+    splits: TransactionSplitWithCategory[];
+  })[]
+> => {
   return await tx.transaction.findMany({
     where: { budgetId: budgetId, deleted: null },
     include: {
       category: true,
       Budget: true,
+      // So the UI can render a split breakdown per transaction row.
+      splits: {
+        include: {
+          category: {
+            include: {
+              defaultCategory: true,
+            },
+          },
+        },
+      },
     },
     orderBy: {
       createdAt: "desc",

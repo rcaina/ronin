@@ -11,7 +11,10 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isAuthPage =
-    pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up");
+    pathname.startsWith("/sign-in") ||
+    pathname.startsWith("/sign-up") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password");
   const isSetupPage = pathname.startsWith("/welcome");
 
   if (isAuthPage) {

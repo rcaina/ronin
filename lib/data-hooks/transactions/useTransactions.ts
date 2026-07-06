@@ -71,6 +71,7 @@ export const useCreateTransaction = () => {
     onSuccess: (_, variables) => {
       // Invalidate and refetch transactions
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      void queryClient.invalidateQueries({ queryKey: ["allTransactions"] });
       // Invalidate and refetch card transactions if cardId is provided
       if (variables.cardId) {
         void queryClient.invalidateQueries({

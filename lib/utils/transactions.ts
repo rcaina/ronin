@@ -34,6 +34,18 @@ export const getCardTransactionDisplay = (
     : { prefix: "-", colorClass: "text-red-600" };
 };
 
+/**
+ * Badge classes for the "Split" indicator shown where a category badge would
+ * otherwise go for a split transaction (categoryId is null, amount is spread
+ * across `splits`). Uses the accent tint (same idiom as the "Income" chip on
+ * the per-budget transactions page) since it isn't a real category.
+ */
+export const SPLIT_BADGE_CLASSES = "bg-accent text-primary";
+
+/** Label for the split badge, e.g. "Split · 3 categories". */
+export const getSplitBadgeLabel = (splitCount: number): string =>
+  `Split · ${splitCount} categor${splitCount === 1 ? "y" : "ies"}`;
+
 export interface TransactionFilters {
   /** Free-text search across name, description, category and amount. */
   searchTerm: string;
@@ -85,12 +97,18 @@ export const matchesTransactionFilters = (
       .toLowerCase()
       .includes(searchLower);
 
-  // Category filter - match by default category ID
+  // Category filter - match by default category ID, on either the
+  // transaction's own category or (for split transactions) any of its splits'
+  // categories.
   const matchesCategory =
     selectedCategory === "all" ||
-    (transaction.category &&
+    (!!transaction.category &&
       "defaultCategoryId" in transaction.category &&
-      transaction.category.defaultCategoryId === selectedCategory);
+      transaction.category.defaultCategoryId === selectedCategory) ||
+    (transaction.splits?.some(
+      (split) => split.category.defaultCategoryId === selectedCategory,
+    ) ??
+      false);
 
   // Budget filter
   const matchesBudget =

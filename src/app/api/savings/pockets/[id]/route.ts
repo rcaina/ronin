@@ -10,6 +10,11 @@ import {
   getPocketById,
 } from "@/lib/api-services/savings";
 import { toPocketSummary } from "@/lib/transformers/savings";
+import {
+  isPocketWriteLocked,
+  paymentRequired,
+  POCKET_LOCKED_REASON,
+} from "@/lib/api-services/entitlements";
 import { HttpError } from "@/lib/errors";
 import { ensurePocketOwnership, validatePocketId } from "@/lib/utils/auth";
 
@@ -58,6 +63,10 @@ export const PUT = withUser({
           },
           { status: 400 },
         );
+      }
+
+      if (await isPocketWriteLocked(prisma, user.accountId, pocketId)) {
+        return paymentRequired(POCKET_LOCKED_REASON);
       }
 
       return await prisma.$transaction(async (tx) => {

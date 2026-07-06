@@ -23,6 +23,7 @@ type PocketWithAllocationsLite = {
 
 export function toPocketSummary(
   pocket: PocketWithAllocationsLite,
+  lockedIds: ReadonlySet<string> = new Set(),
 ): PocketSummary {
   const total = (pocket.allocations ?? []).reduce((sum, a) => {
     const amount =
@@ -47,6 +48,7 @@ export function toPocketSummary(
     goalAmount: pocket.goalAmount ?? null,
     goalDate: pocket.goalDate ? pocket.goalDate.toISOString() : null,
     goalNote: pocket.goalNote ?? null,
+    locked: lockedIds.has(pocket.id),
     allocations: sortedAllocations.map((a) => {
       const amount =
         typeof a.amount === "number" && !isNaN(a.amount) ? a.amount : 0;
@@ -64,8 +66,9 @@ export function toPocketSummary(
 
 export function toPocketSummaryList(
   pockets: PocketWithAllocationsLite[],
+  lockedIds: ReadonlySet<string> = new Set(),
 ): PocketSummary[] {
-  return pockets.map(toPocketSummary);
+  return pockets.map((pocket) => toPocketSummary(pocket, lockedIds));
 }
 
 export type SavingsWithRelationsLite = {
@@ -78,8 +81,9 @@ export type SavingsWithRelationsLite = {
 
 export function toSavingsSummary(
   savings: SavingsWithRelationsLite,
+  lockedIds: ReadonlySet<string> = new Set(),
 ): SavingsSummary {
-  const pocketSummaries = toPocketSummaryList(savings.pockets);
+  const pocketSummaries = toPocketSummaryList(savings.pockets, lockedIds);
   const total = pocketSummaries.reduce((sum, p) => {
     const pocketTotal =
       typeof p.total === "number" && !isNaN(p.total) ? p.total : 0;
@@ -97,8 +101,9 @@ export function toSavingsSummary(
 
 export function toSavingsSummaryList(
   list: SavingsWithRelationsLite[],
+  lockedIds: ReadonlySet<string> = new Set(),
 ): SavingsSummary[] {
-  return list.map(toSavingsSummary);
+  return list.map((savings) => toSavingsSummary(savings, lockedIds));
 }
 
 export function toAllocationSummary(allocation: {

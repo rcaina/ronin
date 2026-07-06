@@ -134,6 +134,7 @@ model Category {
     group             CategoryType
     allocatedAmount   Float?
     transactions      Transaction[]
+    transactionSplits TransactionSplit[]
     createdAt         DateTime      @default(now())
     updatedAt         DateTime      @updatedAt
     deleted           DateTime?
@@ -192,6 +193,7 @@ model Transaction {
     linkedTransactionId String?
     linkedTransaction   Transaction?    @relation("LinkedTransactions", fields: [linkedTransactionId], references: [id])
     linkedTransactions  Transaction[]   @relation("LinkedTransactions")
+    splits              TransactionSplit[]
 
     @@index([id])
     @@index([name])
@@ -199,6 +201,20 @@ model Transaction {
     @@index([deleted])
     @@index([transactionType])
     @@map("transactions")
+}
+
+model TransactionSplit {
+    id            String      @id @default(cuid())
+    transactionId String
+    transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+    categoryId    String
+    category      Category    @relation(fields: [categoryId], references: [id])
+    amount        Float
+    note          String?
+
+    @@index([transactionId])
+    @@index([categoryId])
+    @@map("transaction_splits")
 }
 
 model Savings {
@@ -310,4 +326,22 @@ enum SubscriptionStatus {
     ACTIVE
     PAST_DUE
     CANCELED
+}
+
+enum EmailTokenPurpose {
+    PASSWORD_RESET
+    LOGIN_CODE
+}
+
+model EmailToken {
+    id        String            @id @default(cuid())
+    email     String
+    tokenHash String
+    purpose   EmailTokenPurpose
+    expires   DateTime
+    attempts  Int               @default(0)
+    createdAt DateTime          @default(now())
+
+    @@unique([email, purpose])
+    @@map("email_tokens")
 }

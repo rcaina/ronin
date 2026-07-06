@@ -30,6 +30,13 @@
     --chart-axis: #9ca3af;
     --chart-grid: #e5e7eb;
 
+    /* Danger surface — tinted panels for destructive/danger-zone UI. Mirrored in
+       the `.dark` block so red panels flip with the theme like `surface` does. */
+    --danger-surface: 254 242 242;
+    --danger-border: 254 202 202;
+    --danger-icon-bg: 254 226 226;
+    --danger-icon: 220 38 38;
+
     /* Brand tokens — mirrored in tailwind.config.ts color scales. */
     --color-primary: #0e0e10;
     --color-secondary: #b9a15e;
@@ -61,6 +68,13 @@
 
     --chart-axis: #71717a;
     --chart-grid: #2a2a2e;
+
+    /* Dark danger surface — a muted red-tinted panel that sits on the dark
+       background, with a brighter icon so it stays legible. */
+    --danger-surface: 38 22 24;
+    --danger-border: 82 38 42;
+    --danger-icon-bg: 58 28 32;
+    --danger-icon: 248 113 113;
   }
 
   html {
@@ -106,7 +120,8 @@
 }
 
 @theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
+  --font-sans:
+    var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 

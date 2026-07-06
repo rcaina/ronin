@@ -365,6 +365,11 @@ const SavingsCategoriesPage = () => {
                   key={pocket.id}
                   pocket={pocket}
                   savingsId={savingsId}
+                  onLocked={() =>
+                    setUpgradeReason(
+                      "This pocket is locked. Upgrade to Premium to access it.",
+                    )
+                  }
                 />
               ))}
             </div>

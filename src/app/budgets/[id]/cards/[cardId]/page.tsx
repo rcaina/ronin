@@ -29,6 +29,7 @@ import {
   useUpdateCard,
 } from "@/lib/data-hooks/cards/useCards";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useDeleteTransaction } from "@/lib/data-hooks/transactions/useTransactions";
 import { isDebitCard, mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import { usePageLoading } from "@/components/ConditionalLayout";
@@ -41,6 +42,8 @@ import {
 } from "../../../../../../components/budgets/BudgetHeaderContext";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import { getGroupColor } from "@/lib/utils";
+import { getSplitBadgeLabel } from "@/lib/utils/transactions";
+import LockedBudgetGate from "../../LockedBudgetGate";
 
 interface User {
   id: string;
@@ -184,8 +187,16 @@ const CardTransactionFiltersModal = ({
 const CardDetailsPage = () => {
   const params = useParams<{ id: string; cardId: string }>();
   const cardId = params.cardId;
+  const budgetId = params.id;
   const router = useRouter();
   const { data: session } = useSession();
+
+  // The budget this card is being viewed under. Locked budgets (downgraded
+  // past the free active-budget limit) are hard-blocked: once the budget query
+  // resolves as locked, this page early-returns a full-screen gate below
+  // instead of rendering any card content.
+  const { data: budget, isLoading: budgetLoading } = useBudget(budgetId);
+  const isLocked = budget?.locked ?? false;
 
   const {
     data: card,
@@ -207,6 +218,8 @@ const CardDetailsPage = () => {
   const [editingTransactionId, setEditingTransactionId] = useState<
     string | null
   >(null);
+  const [editingSplitTransaction, setEditingSplitTransaction] =
+    useState<TransactionWithRelations | null>(null);
   const [transactionToDelete, setTransactionToDelete] =
     useState<TransactionWithRelations | null>(null);
   const deleteTransactionMutation = useDeleteTransaction();
@@ -355,6 +368,12 @@ const CardDetailsPage = () => {
         "Card payment transactions cannot be edited. Please delete and recreate if needed.",
       );
       return;
+    }
+    // Split transactions aren't safe to edit inline (it could corrupt the
+    // per-category breakdown) — route to the full form modal instead.
+    if (transaction.splits && transaction.splits.length > 0) {
+      setEditingSplitTransaction(transaction);
+      return;
     } else {
       setEditingTransactionId(transaction.id);
     }
@@ -418,9 +437,10 @@ const CardDetailsPage = () => {
     }
   }, [card, setTitle, setDescription]);
 
-  // Register header actions
+  // Register header actions. Locked budgets are hard-blocked (the page renders
+  // only the gate), so we drop every header action when locked.
   useEffect(() => {
-    if (!card || !isCardOwner) {
+    if (!card || !isCardOwner || isLocked) {
       setActions([]);
       return;
     }
@@ -432,13 +452,14 @@ const CardDetailsPage = () => {
         onClick: handleOpenAddTransactionModal,
         variant: "primary",
       },
-      {
-        icon: <Trash2 className="h-4 w-4" />,
-        label: "Delete card",
-        onClick: handleDeleteCard,
-        variant: "danger",
-      },
     ];
+
+    actions.push({
+      icon: <Trash2 className="h-4 w-4" />,
+      label: "Delete card",
+      onClick: handleDeleteCard,
+      variant: "danger",
+    });
 
     // Add Pay Credit Card button if it's a credit card
     if (
@@ -455,7 +476,7 @@ const CardDetailsPage = () => {
 
     setActions(actions);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card, isCardOwner, setActions]);
+  }, [card, isCardOwner, setActions, isLocked]);
 
   // Search/filter/sort the card's transactions for the list below. Search
   // matches transaction name and description.
@@ -515,10 +536,17 @@ const CardDetailsPage = () => {
     setSortOrder(DEFAULT_CARD_TRANSACTION_FILTERS.sortOrder);
   };
 
-  const isPageLoading = cardLoading || transactionsLoading;
+  const isPageLoading = cardLoading || transactionsLoading || budgetLoading;
   usePageLoading(isPageLoading, "Loading card details...");
   if (isPageLoading) {
     return null;
+  }
+
+  // Locked budgets (downgraded past the free active-budget limit) are
+  // hard-blocked: render ONLY the upgrade gate, never the card content or any
+  // mutating controls. Reaching here via direct URL/deep link still gates.
+  if (isLocked) {
+    return <LockedBudgetGate />;
   }
 
   if (cardError || !card || !mappedCard) {
@@ -932,6 +960,13 @@ const CardDetailsPage = () => {
                                   <p className="text-sm font-medium text-green-600">
                                     Income
                                   </p>
+                                ) : transaction.splits &&
+                                  transaction.splits.length > 0 ? (
+                                  <p className="text-sm text-gray-500">
+                                    {getSplitBadgeLabel(
+                                      transaction.splits.length,
+                                    )}
+                                  </p>
                                 ) : (
                                   <p className="text-sm text-gray-500">
                                     {transaction.category?.name ??
@@ -1043,6 +1078,17 @@ const CardDetailsPage = () => {
         onSuccess={handleTransactionSuccess}
       />
 
+      {/* Edit Split Transaction Modal — split transactions route here
+          instead of the inline editor (see handleEditTransaction). */}
+      <AddTransactionModal
+        isOpen={!!editingSplitTransaction}
+        transaction={editingSplitTransaction ?? undefined}
+        budgetId={budgets[0]?.id ?? ""}
+        cardId={cardId ?? ""}
+        onClose={() => setEditingSplitTransaction(null)}
+        onSuccess={() => setEditingSplitTransaction(null)}
+      />
+
       {/* Card Payment Modal */}
       <CardPaymentModal
         isOpen={showCardPaymentModal}
@@ -1056,7 +1102,11 @@ const CardDetailsPage = () => {
         onClose={handleCancelDeleteTransaction}
         onConfirm={handleConfirmDeleteTransaction}
         title="Delete Transaction"
-        message="Are you sure you want to delete the transaction '{itemName}'? This action cannot be undone."
+        message={
+          transactionToDelete?.splits && transactionToDelete.splits.length > 0
+            ? `This will delete the transaction '{itemName}' and its ${transactionToDelete.splits.length} category splits. This action cannot be undone.`
+            : "Are you sure you want to delete the transaction '{itemName}'? This action cannot be undone."
+        }
         itemName={transactionToDelete?.name ?? "Unnamed transaction"}
         isLoading={deleteTransactionMutation.isPending}
         loadingText="Deleting..."

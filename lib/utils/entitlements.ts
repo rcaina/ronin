@@ -1,4 +1,4 @@
-import type { Account } from "@prisma/client";
+import type { Account, BudgetStatus } from "@prisma/client";
 
 /**
  * Minimal account shape needed for entitlement checks. Compatible
@@ -131,4 +131,108 @@ export const canCreatePocket = (
   }
 
   return { allowed: true };
+};
+
+/**
+ * Whether the account may split a transaction across multiple categories.
+ * Free accounts can't; premium (or comped) accounts can.
+ */
+export const canSplitTransactions = (
+  account: AccountEntitlementFields,
+): CheckResult => {
+  if (isPremium(account)) return { allowed: true };
+
+  return {
+    allowed: false,
+    reason:
+      "Splitting a transaction across categories is a Premium feature. Upgrade to Premium to split transactions.",
+  };
+};
+
+// ---------------------------------------------------------------------------
+// Downgrade locking
+//
+// When a paid account downgrades to Free it may hold more resources than the
+// free tier allows. We never delete data — instead the NEWEST `limit`
+// resources (by `createdAt`, `id` as a stable tiebreak) stay usable and the
+// OLDER ones become read-only ("locked"). Premium/comped accounts never lock
+// anything.
+// ---------------------------------------------------------------------------
+
+/** Minimal orderable shape a lockable resource must expose. */
+type LockableItem = { id: string; createdAt: Date };
+
+/**
+ * Orders two lockable items newest-first: later `createdAt` wins, with the
+ * larger `id` as a stable tiebreak. Used both to sort and to count "newer".
+ */
+const byNewestFirst = (a: LockableItem, b: LockableItem): number => {
+  const diff = b.createdAt.getTime() - a.createdAt.getTime();
+  if (diff !== 0) return diff;
+  return b.id.localeCompare(a.id);
+};
+
+/**
+ * The ids of the items that fall BEYOND the newest `limit` (i.e. the ones that
+ * lock when an account is on the free tier). Returns an empty set for premium
+ * (or comped) accounts — they never lock anything.
+ *
+ * Items are ordered newest-first by `createdAt` (with `id` as a stable
+ * tiebreak); the first `limit` are kept and the rest are returned as locked.
+ */
+export const lockedIds = <T extends LockableItem>(
+  account: AccountEntitlementFields,
+  items: readonly T[],
+  limit: number,
+  now: Date = new Date(),
+): Set<string> => {
+  if (isPremium(account, now)) return new Set();
+
+  const ordered = [...items].sort(byNewestFirst);
+  return new Set(ordered.slice(limit).map((item) => item.id));
+};
+
+/**
+ * Whether a budget is locked (read-only) for the given account.
+ *
+ * Only `ACTIVE` budgets can lock — non-active budgets don't count against the
+ * active-budget limit and are never locked. An active budget locks when there
+ * are at least `FREE_LIMITS.maxActiveBudgets` OTHER active budgets newer than
+ * it. Premium (or comped) accounts never lock.
+ */
+export const isBudgetLocked = (
+  account: AccountEntitlementFields,
+  budget: { id: string; status: BudgetStatus; createdAt: Date },
+  allActiveBudgets: readonly LockableItem[],
+  now: Date = new Date(),
+): boolean => {
+  if (isPremium(account, now)) return false;
+  if (budget.status !== "ACTIVE") return false;
+
+  const newerCount = allActiveBudgets.filter(
+    (other) => other.id !== budget.id && byNewestFirst(other, budget) < 0,
+  ).length;
+
+  return newerCount >= FREE_LIMITS.maxActiveBudgets;
+};
+
+/**
+ * Whether a savings pocket is locked (read-only) for the given account.
+ *
+ * A pocket locks when there are at least `FREE_LIMITS.maxPockets` OTHER pockets
+ * newer than it. Premium (or comped) accounts never lock.
+ */
+export const isPocketLocked = (
+  account: AccountEntitlementFields,
+  pocket: LockableItem,
+  allPockets: readonly LockableItem[],
+  now: Date = new Date(),
+): boolean => {
+  if (isPremium(account, now)) return false;
+
+  const newerCount = allPockets.filter(
+    (other) => other.id !== pocket.id && byNewestFirst(other, pocket) < 0,
+  ).length;
+
+  return newerCount >= FREE_LIMITS.maxPockets;
 };

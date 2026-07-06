@@ -8,6 +8,13 @@ import {
 } from "@/lib/api-services/transactions";
 import { createTransactionSchema } from "@/lib/api-schemas/transactions";
 import type { User } from "@prisma/client";
+import {
+  BUDGET_LOCKED_REASON,
+  getAccountEntitlements,
+  isBudgetWriteLocked,
+  paymentRequired,
+} from "@/lib/api-services/entitlements";
+import { canSplitTransactions } from "@/lib/utils/entitlements";
 
 export const GET = withUser({
   GET: withUserErrorHandling(
@@ -65,6 +72,27 @@ export const POST = withUser({
           },
           { status: 400 },
         );
+      }
+
+      if (
+        await isBudgetWriteLocked(
+          prisma,
+          user.accountId,
+          validationResult.data.budgetId,
+        )
+      ) {
+        return paymentRequired(BUDGET_LOCKED_REASON);
+      }
+
+      if (
+        validationResult.data.splits &&
+        validationResult.data.splits.length > 0
+      ) {
+        const account = await getAccountEntitlements(prisma, user.accountId);
+        const entitlementCheck = canSplitTransactions(account);
+        if (!entitlementCheck.allowed) {
+          return paymentRequired(entitlementCheck.reason);
+        }
       }
 
       return await prisma.$transaction(async (tx) => {

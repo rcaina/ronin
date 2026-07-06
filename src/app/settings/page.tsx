@@ -21,18 +21,16 @@ import {
   Home,
   Trash2,
   LogOut,
-  Lock,
   AlertTriangle,
   Palette,
   CreditCard,
-  Sparkles,
 } from "lucide-react";
 import Button from "@/components/Button";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import ThemeSelector from "@/components/settings/ThemeSelector";
-import PricingToggle from "@/components/billing/PricingToggle";
-import PremiumBenefitsList from "@/components/billing/PremiumBenefitsList";
-import { Role, SubscriptionStatus } from "@prisma/client";
+import PlanComparison from "@/components/billing/PlanComparison";
+import ChangePasswordForm from "@/components/settings/ChangePasswordForm";
+import { Role } from "@prisma/client";
 import { useUpdateProfile } from "@/lib/data-hooks/users/useUser";
 import {
   useBillingStatus,
@@ -40,7 +38,6 @@ import {
   useBillingPortal,
   billingStatusKey,
 } from "@/lib/data-hooks/billing/useBilling";
-import { FREE_LIMITS } from "@/lib/utils/entitlements";
 import type { BillingInterval } from "@/lib/data-hooks/services/billing";
 
 interface AccountUser {
@@ -469,141 +466,21 @@ const SettingsPageContent = () => {
           {activeTab === "billing" && (
             <div className="space-y-4 sm:space-y-6">
               {billingLoading ? (
-                <div className="card-surface p-5 sm:p-6">
-                  <div className="h-24 animate-pulse rounded-xl bg-surface-muted" />
+                <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
+                  <div className="card-surface h-80 animate-pulse p-5 sm:p-6" />
+                  <div className="card-surface h-80 animate-pulse p-5 sm:p-6" />
                 </div>
               ) : billingStatus ? (
-                <>
-                  {/* Plan status card */}
-                  <div className="card-surface p-5 sm:p-6">
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <h3 className="text-base font-semibold tracking-tight text-gray-900">
-                        Current plan
-                      </h3>
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          billingStatus.complimentaryAccess
-                            ? "bg-secondary/15 text-secondary-700"
-                            : billingStatus.isPremium
-                              ? "bg-green-50 text-green-700"
-                              : "bg-surface-muted text-gray-600"
-                        }`}
-                      >
-                        {billingStatus.complimentaryAccess
-                          ? "Complimentary"
-                          : billingStatus.isPremium
-                            ? "Premium"
-                            : "Free"}
-                      </span>
-                    </div>
-
-                    {billingStatus.complimentaryAccess ? (
-                      <p className="text-sm text-gray-600">
-                        Your account has complimentary Premium access — every
-                        premium feature is unlocked and no billing is required.
-                      </p>
-                    ) : billingStatus.isPremium ? (
-                      <div className="space-y-3">
-                        <p className="text-sm text-gray-600">
-                          {billingStatus.subscriptionStatus ===
-                          SubscriptionStatus.CANCELED
-                            ? "Your subscription is cancelled. Premium access continues until "
-                            : "Unlimited budgets, household members, AI receipt scanning, and savings pockets. Renews "}
-                          {billingStatus.currentPeriodEnd && (
-                            <strong className="font-semibold text-gray-900">
-                              {new Date(
-                                billingStatus.currentPeriodEnd,
-                              ).toLocaleDateString("en-US", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })}
-                            </strong>
-                          )}
-                          .
-                        </p>
-
-                        {billingStatus.subscriptionStatus ===
-                          SubscriptionStatus.PAST_DUE && (
-                          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
-                            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
-                            <p className="text-sm text-amber-800">
-                              We couldn&apos;t process your last payment. Update
-                              your payment method to keep Premium features.
-                            </p>
-                          </div>
-                        )}
-
-                        {isAdmin ? (
-                          <Button
-                            variant="outline"
-                            onClick={handleManageSubscription}
-                            isLoading={portalMutation.isPending}
-                          >
-                            Manage subscription
-                          </Button>
-                        ) : (
-                          <p className="text-sm text-gray-500">
-                            Ask your account admin to manage billing.
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <p className="text-sm text-gray-600">
-                          You&apos;re on the free plan.
-                        </p>
-                        <ul className="space-y-1.5 text-sm text-gray-600">
-                          <li>
-                            • {FREE_LIMITS.maxActiveBudgets} active budget
-                          </li>
-                          <li>• {FREE_LIMITS.maxMembers} account member</li>
-                          <li>• No AI receipt scanning</li>
-                          <li>
-                            • Up to {FREE_LIMITS.maxPockets} savings pockets
-                          </li>
-                        </ul>
-                        {!isAdmin && (
-                          <p className="text-sm text-gray-500">
-                            Ask your account admin to upgrade to Premium.
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Upgrade section — admins on the free plan only */}
-                  {isAdmin && !billingStatus.isPremium && (
-                    <div className="card-surface p-5 sm:p-6">
-                      <div className="mb-4 flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-secondary-700">
-                          <Sparkles className="h-4 w-4" />
-                        </div>
-                        <h3 className="text-base font-semibold tracking-tight text-gray-900">
-                          Upgrade to Premium
-                        </h3>
-                      </div>
-
-                      <PremiumBenefitsList className="mb-5" />
-
-                      <PricingToggle
-                        interval={billingInterval}
-                        onChange={setBillingInterval}
-                        className="mb-5 sm:max-w-sm"
-                      />
-
-                      <Button
-                        className="w-full sm:w-auto"
-                        onClick={handleUpgrade}
-                        isLoading={checkoutMutation.isPending}
-                      >
-                        {checkoutMutation.isPending
-                          ? "Redirecting…"
-                          : "Upgrade to Premium"}
-                      </Button>
-                    </div>
-                  )}
-                </>
+                <PlanComparison
+                  billingStatus={billingStatus}
+                  isAdmin={isAdmin}
+                  interval={billingInterval}
+                  onIntervalChange={setBillingInterval}
+                  onUpgrade={handleUpgrade}
+                  upgrading={checkoutMutation.isPending}
+                  onManage={handleManageSubscription}
+                  managing={portalMutation.isPending}
+                />
               ) : (
                 <div className="card-surface p-5 sm:p-6">
                   <p className="text-sm text-gray-500">
@@ -618,27 +495,8 @@ const SettingsPageContent = () => {
           {/* Security Tab */}
           {activeTab === "security" && (
             <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
-              {/* Change password - coming soon */}
-              <div className="card-surface p-5 sm:p-6">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <h3 className="text-base font-semibold tracking-tight text-gray-900">
-                    Change password
-                  </h3>
-                  <span className="inline-flex items-center rounded-full bg-secondary-100 px-2.5 py-0.5 text-xs font-medium text-secondary-800">
-                    Coming soon
-                  </span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-gray-500">
-                    <Lock className="h-4 w-4" />
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    We&apos;re working on bringing you secure password
-                    management. This feature will allow you to update your
-                    password with enhanced security measures.
-                  </p>
-                </div>
-              </div>
+              {/* Change password */}
+              <ChangePasswordForm />
 
               {/* Session management */}
               <div className="card-surface p-5 sm:p-6">
@@ -663,7 +521,7 @@ const SettingsPageContent = () => {
               </div>
 
               {/* Danger zone */}
-              <div className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-card sm:p-6 lg:col-span-2">
+              <div className="rounded-2xl border border-danger-border bg-danger-surface p-5 shadow-card sm:p-6 lg:col-span-2">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <h3 className="text-base font-semibold tracking-tight text-gray-900">
                     {isAdmin ? "Delete account" : "Deactivate account"}
@@ -686,7 +544,7 @@ const SettingsPageContent = () => {
                   </Button>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-danger-icon-bg text-danger-icon">
                     <AlertTriangle className="h-4 w-4" />
                   </div>
                   <p className="text-sm text-gray-600">
