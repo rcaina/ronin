@@ -1,4 +1,6 @@
 import type {
+  ChangePasswordRequest,
+  ChangePasswordResponse,
   UpdateProfileRequest,
   UpdateProfileResponse,
 } from "@/lib/types/user";
@@ -20,6 +22,25 @@ export const updateProfile = async (
   }
 
   return response.json() as Promise<UpdateProfileResponse>;
+};
+
+export const changePassword = async (
+  data: ChangePasswordRequest,
+): Promise<ChangePasswordResponse> => {
+  const response = await fetch("/api/users/change-password", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = (await response.json()) as { error: string };
+    throw new Error(errorData.error);
+  }
+
+  return response.json() as Promise<ChangePasswordResponse>;
 };
 
 export const updateTheme = async (

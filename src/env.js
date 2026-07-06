@@ -21,6 +21,10 @@ export const env = createEnv({
     GEMINI_MODEL: z.string().optional(),
     ANTHROPIC_API_KEY: z.string().optional(),
     ANTHROPIC_MODEL: z.string().optional(),
+    // Transactional email (password reset / login codes). Optional — see
+    // src/server/email.ts for dev-mode fallback behavior when unset.
+    RESEND_API_KEY: z.string().optional(),
+    EMAIL_FROM: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -48,6 +52,8 @@ export const env = createEnv({
     GEMINI_MODEL: process.env.GEMINI_MODEL,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    EMAIL_FROM: process.env.EMAIL_FROM,
     NODE_ENV: process.env.NODE_ENV,
   },
   /**

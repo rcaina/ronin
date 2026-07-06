@@ -5,6 +5,7 @@ import { type Role } from "@prisma/client";
 import { env } from "@/env";
 import { db } from "@/server/db";
 import { isEmailAllowed } from "@/lib/utils/auth";
+import { consumeLoginCode } from "@/server/auth/email-tokens";
 
 export const runtime = "nodejs";
 
@@ -47,6 +48,58 @@ declare module "next-auth/jwt" {
 }
 
 /**
+ * Loads a user by email and shapes them into the object NextAuth expects
+ * back from `authorize()`. Shared by both the password and email-code
+ * Credentials providers so the account/budget lookup logic isn't duplicated.
+ * Returns `null` if the user doesn't exist, has no password set (i.e. isn't
+ * a credentials-based account), or belongs to no account.
+ */
+async function loadAuthorizedUser(email: string) {
+  const user = await db.user.findUnique({
+    where: { email },
+    include: {
+      accountUsers: {
+        include: {
+          account: true,
+        },
+      },
+    },
+  });
+
+  if (!user?.password || !user.role || !user.accountUsers.length) {
+    return null;
+  }
+
+  // Use the first account the user belongs to
+  const firstAccountUser = user.accountUsers[0];
+  if (!firstAccountUser) {
+    return null;
+  }
+  const account = firstAccountUser.account;
+
+  // Check if user has any budgets
+  const budgetCount = await db.budget.count({
+    where: {
+      accountId: account.id,
+      deleted: null,
+    },
+  });
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    phone: user.phone,
+    accountId: account.id,
+    emailVerified: user.emailVerified,
+    deleted: user.deleted !== null,
+    hasBudget: budgetCount > 0,
+    theme: user.theme,
+  };
+}
+
+/**
  * Options for NextAuth.js used to configure adapters, providers, callbacks, etc.
  *
  * @see https://next-auth.js.org/configuration/options
@@ -83,16 +136,9 @@ export const authConfig = {
 
         const user = await db.user.findUnique({
           where: { email: credentials.email },
-          include: {
-            accountUsers: {
-              include: {
-                account: true,
-              },
-            },
-          },
         });
 
-        if (!user?.password || !user.role || !user.accountUsers.length) {
+        if (!user?.password) {
           return null;
         }
 
@@ -105,33 +151,49 @@ export const authConfig = {
           return null;
         }
 
-        // Use the first account the user belongs to
-        const firstAccountUser = user.accountUsers[0];
-        if (!firstAccountUser) {
+        return loadAuthorizedUser(credentials.email);
+      },
+    }),
+    Credentials({
+      id: "email-code",
+      name: "Email code",
+      credentials: {
+        email: {
+          type: "email",
+          label: "Email",
+          placeholder: "johndoe@gmail.com",
+        },
+        code: {
+          type: "text",
+          label: "Code",
+          placeholder: "123456",
+        },
+      },
+      async authorize(credentials) {
+        if (
+          !credentials?.email ||
+          !credentials?.code ||
+          typeof credentials.email !== "string" ||
+          typeof credentials.code !== "string"
+        ) {
           return null;
         }
-        const account = firstAccountUser.account;
 
-        // Check if user has any budgets
-        const budgetCount = await db.budget.count({
-          where: {
-            accountId: account.id,
-            deleted: null,
-          },
-        });
+        // Check if email is allowed
+        if (!isEmailAllowed(credentials.email)) {
+          return null;
+        }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          phone: user.phone,
-          accountId: account.id,
-          emailVerified: user.emailVerified,
-          deleted: user.deleted !== null,
-          hasBudget: budgetCount > 0,
-          theme: user.theme,
-        };
+        const isCodeValid = await consumeLoginCode(
+          credentials.email,
+          credentials.code,
+        );
+
+        if (!isCodeValid) {
+          return null;
+        }
+
+        return loadAuthorizedUser(credentials.email);
       },
     }),
   ],

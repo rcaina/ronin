@@ -294,3 +294,21 @@ enum BudgetStatus {
     COMPLETED
     ARCHIVED
 }
+
+enum EmailTokenPurpose {
+    PASSWORD_RESET
+    LOGIN_CODE
+}
+
+model EmailToken {
+    id        String            @id @default(cuid())
+    email     String
+    tokenHash String
+    purpose   EmailTokenPurpose
+    expires   DateTime
+    attempts  Int               @default(0)
+    createdAt DateTime          @default(now())
+
+    @@index([email, purpose])
+    @@map("email_tokens")
+}
