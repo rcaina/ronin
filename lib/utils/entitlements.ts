@@ -174,6 +174,24 @@ export const canCreateRecurring = (
   return { allowed: true };
 };
 
+/**
+ * Whether the account may view cross-budget report history and date-range
+ * comparisons on the `/reports` page. Free accounts see the current active
+ * budget's own numbers only (never gated); premium (or comped) accounts
+ * unlock history ranges and "this period vs last" comparisons.
+ */
+export const canViewReportHistory = (
+  account: AccountEntitlementFields,
+): CheckResult => {
+  if (isPremium(account)) return { allowed: true };
+
+  return {
+    allowed: false,
+    reason:
+      "Cross-budget report history is a Premium feature. Upgrade to Premium to view trends and comparisons beyond your current budget.",
+  };
+};
+
 // ---------------------------------------------------------------------------
 // Downgrade locking
 //

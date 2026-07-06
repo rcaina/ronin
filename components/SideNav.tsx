@@ -16,6 +16,7 @@ import {
   PiggyBank,
   Settings,
   CreditCard,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
@@ -43,6 +44,7 @@ const navItems: NavItem[] = [
   { href: "/categories", icon: FolderOpen, label: "Categories" },
   { href: "/cards", icon: CreditCard, label: "Cards", feature: "cards" },
   { href: "/savings", icon: PiggyBank, label: "Savings", feature: "savings" },
+  { href: "/reports", icon: BarChart3, label: "Reports" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
