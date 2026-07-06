@@ -15,15 +15,21 @@ datasource db {
 }
 
 model Account {
-    id           String        @id @default(cuid())
-    name         String
-    users        AccountUser[]
-    budgets      Budget[]
-    deleted      DateTime?
-    createdAt    DateTime      @default(now())
-    updatedAt    DateTime      @updatedAt
-    transactions Transaction[]
-    savings      Savings[]
+    id                   String              @id @default(cuid())
+    name                 String
+    users                AccountUser[]
+    budgets              Budget[]
+    deleted              DateTime?
+    createdAt            DateTime            @default(now())
+    updatedAt            DateTime            @updatedAt
+    transactions         Transaction[]
+    savings              Savings[]
+    plan                 Plan                @default(FREE)
+    complimentaryAccess  Boolean             @default(false)
+    stripeCustomerId     String?             @unique
+    stripeSubscriptionId String?             @unique
+    subscriptionStatus   SubscriptionStatus?
+    currentPeriodEnd     DateTime?
 
     @@index([id])
     @@index([name])
@@ -293,4 +299,15 @@ enum BudgetStatus {
     ACTIVE
     COMPLETED
     ARCHIVED
+}
+
+enum Plan {
+    FREE
+    PREMIUM
+}
+
+enum SubscriptionStatus {
+    ACTIVE
+    PAST_DUE
+    CANCELED
 }

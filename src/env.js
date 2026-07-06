@@ -21,6 +21,13 @@ export const env = createEnv({
     GEMINI_MODEL: z.string().optional(),
     ANTHROPIC_API_KEY: z.string().optional(),
     ANTHROPIC_MODEL: z.string().optional(),
+    // Stripe billing. Optional so the app still boots for devs without Stripe
+    // configured; billing routes guard at runtime and return a clear error
+    // instead of crashing app startup.
+    STRIPE_SECRET_KEY: z.string().optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().optional(),
+    STRIPE_PRICE_MONTHLY_ID: z.string().optional(),
+    STRIPE_PRICE_ANNUAL_ID: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -48,6 +55,10 @@ export const env = createEnv({
     GEMINI_MODEL: process.env.GEMINI_MODEL,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL,
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+    STRIPE_PRICE_MONTHLY_ID: process.env.STRIPE_PRICE_MONTHLY_ID,
+    STRIPE_PRICE_ANNUAL_ID: process.env.STRIPE_PRICE_ANNUAL_ID,
     NODE_ENV: process.env.NODE_ENV,
   },
   /**

@@ -29,6 +29,8 @@ import PageHeader from "@/components/PageHeader";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import CreateBudgetModal from "@/components/budgets/CreateBudgetModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import UpgradeModal from "@/components/UpgradeModal";
+import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
 import { CategoryType } from "@prisma/client";
 import Button from "@/components/Button";
 import { formatCurrency, roundToCents } from "@/lib/utils";
@@ -73,6 +75,7 @@ const BudgetsPage = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [budgetToDuplicate, setBudgetToDuplicate] =
     useState<BudgetWithRelations | null>(null);
+  const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
 
   // Data hooks for different budget statuses (excluding card payments for calculations)
   const { data: activeBudgetsData, isLoading: activeLoading } =
@@ -212,6 +215,10 @@ const BudgetsPage = () => {
       await reactivateMutation.mutateAsync(budget.id);
       toast.success("Budget reactivated!");
     } catch (err) {
+      if (err instanceof UpgradeRequiredError) {
+        setUpgradeReason(err.message);
+        return;
+      }
       toast.error("Failed to reactivate budget. Please try again.");
       console.error("Failed to reactivate budget:", err);
     }
@@ -816,6 +823,13 @@ const BudgetsPage = () => {
         title="Delete Budget"
         message={`Are you sure you want to delete "${budgetToDelete?.name}"? This action cannot be undone.`}
         itemName={budgetToDelete?.name ?? ""}
+      />
+
+      {/* Upgrade paywall (free tier is limited to one active budget) */}
+      <UpgradeModal
+        isOpen={upgradeReason !== null}
+        onClose={() => setUpgradeReason(null)}
+        reason={upgradeReason ?? undefined}
       />
     </div>
   );

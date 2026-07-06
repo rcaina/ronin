@@ -6,6 +6,7 @@ import type {
   CreateUserResponse,
   DeleteAccountResponse,
 } from "@/lib/types/user";
+import { parseErrorResponse } from "./http";
 
 export const signUp = async (data: SignUpRequest): Promise<SignUpResponse> => {
   const response = await fetch("/api/sign-up", {
@@ -52,9 +53,7 @@ export const createUser = async (
     body: JSON.stringify(data),
   });
 
-  if (!response.ok) {
-    throw new Error(`Failed to create user: ${response.statusText}`);
-  }
+  if (!response.ok) return parseErrorResponse(response);
 
   return response.json() as Promise<CreateUserResponse>;
 };

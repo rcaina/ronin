@@ -9,6 +9,11 @@ import {
   toPocketSummary,
   toPocketSummaryList,
 } from "@/lib/transformers/savings";
+import {
+  getAccountEntitlements,
+  paymentRequired,
+} from "@/lib/api-services/entitlements";
+import { canCreatePocket } from "@/lib/utils/entitlements";
 
 export const GET = withUser({
   GET: withUserErrorHandling(
@@ -42,6 +47,18 @@ export const POST = withUser({
           { message: "Validation failed", errors: parsed.error.errors },
           { status: 400 },
         );
+      }
+
+      const account = await getAccountEntitlements(prisma, user.accountId);
+      const currentPocketCount = await prisma.pocket.count({
+        where: {
+          deleted: null,
+          savings: { accountId: user.accountId, deleted: null },
+        },
+      });
+      const entitlementCheck = canCreatePocket(account, currentPocketCount);
+      if (!entitlementCheck.allowed) {
+        return paymentRequired(entitlementCheck.reason);
       }
 
       const pocket = await prisma.$transaction((tx) =>

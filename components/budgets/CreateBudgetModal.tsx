@@ -40,8 +40,10 @@ import type {
 } from "./types";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import { useLockBodyScroll } from "@/lib/utils/hooks";
+import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
 import Button from "../Button";
 import AddCardForm from "../cards/AddCardForm";
+import UpgradeModal from "../UpgradeModal";
 
 // Validation schema
 const createBudgetSchema = z
@@ -175,6 +177,7 @@ export default function CreateBudgetModal({
     }>
   >([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
   const [incomeEntries, setIncomeEntries] = useState<IncomeEntry[]>([
     {
       id: "1",
@@ -633,6 +636,10 @@ export default function CreateBudgetModal({
       onClose();
       toast.success("Budget created successfully!");
     } catch (error) {
+      if (error instanceof UpgradeRequiredError) {
+        setUpgradeReason(error.message);
+        return;
+      }
       console.error("Failed to create budget:", error);
       toast.error("Failed to create budget. Please try again.");
     }
@@ -880,6 +887,13 @@ export default function CreateBudgetModal({
           </div>
         </div>
       )}
+
+      {/* Upgrade paywall (free-tier budget limit hit on submit) */}
+      <UpgradeModal
+        isOpen={upgradeReason !== null}
+        onClose={() => setUpgradeReason(null)}
+        reason={upgradeReason ?? undefined}
+      />
     </div>
   );
 }

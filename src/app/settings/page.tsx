@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/PageHeader";
 import SettingsPageNavigation from "@/components/settings/SettingsPageNavigation";
@@ -23,12 +24,24 @@ import {
   Lock,
   AlertTriangle,
   Palette,
+  CreditCard,
+  Sparkles,
 } from "lucide-react";
 import Button from "@/components/Button";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import ThemeSelector from "@/components/settings/ThemeSelector";
-import { Role } from "@prisma/client";
+import PricingToggle from "@/components/billing/PricingToggle";
+import PremiumBenefitsList from "@/components/billing/PremiumBenefitsList";
+import { Role, SubscriptionStatus } from "@prisma/client";
 import { useUpdateProfile } from "@/lib/data-hooks/users/useUser";
+import {
+  useBillingStatus,
+  useCheckout,
+  useBillingPortal,
+  billingStatusKey,
+} from "@/lib/data-hooks/billing/useBilling";
+import { FREE_LIMITS } from "@/lib/utils/entitlements";
+import type { BillingInterval } from "@/lib/data-hooks/services/billing";
 
 interface AccountUser {
   id: string;
@@ -50,17 +63,79 @@ const getInitials = (name?: string | null) => {
   return initials || "U";
 };
 
-const SettingsPage = () => {
+const SettingsPageContent = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("profile");
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState(() =>
+    searchParams.get("tab") === "billing" ? "billing" : "profile",
+  );
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [showLeaveAccountModal, setShowLeaveAccountModal] = useState(false);
+  const [billingInterval, setBillingInterval] =
+    useState<BillingInterval>("year");
   const updateProfileMutation = useUpdateProfile();
+  const { data: billingStatus, isLoading: billingLoading } = useBillingStatus();
+  const checkoutMutation = useCheckout();
+  const portalMutation = useBillingPortal();
 
   const isAdmin = session?.user?.role === Role.ADMIN;
+
+  // Handle the redirect back from Stripe Checkout: toast on success/cancel,
+  // refresh billing status, and strip `checkout` from the URL so a refresh
+  // doesn't re-fire the toast.
+  useEffect(() => {
+    const checkout = searchParams.get("checkout");
+    if (!checkout) return;
+
+    if (checkout === "success") {
+      toast.success("Welcome to Premium!");
+      void queryClient.invalidateQueries({ queryKey: billingStatusKey });
+    } else if (checkout === "cancelled") {
+      toast("Checkout cancelled — you can upgrade anytime.");
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("checkout");
+    const query = params.toString();
+    router.replace(query ? `/settings?${query}` : "/settings", {
+      scroll: false,
+    });
+    // Only run once on mount — re-running on every searchParams change would
+    // re-toast after we strip `checkout` from the URL above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleUpgrade = async () => {
+    try {
+      const { url } = await checkoutMutation.mutateAsync(billingInterval);
+      window.location.assign(url);
+    } catch (error) {
+      console.error("Failed to start checkout:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to start checkout. Please try again.",
+      );
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      const { url } = await portalMutation.mutateAsync();
+      window.location.assign(url);
+    } catch (error) {
+      console.error("Failed to open billing portal:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to open billing portal. Please try again.",
+      );
+    }
+  };
 
   // Form states
   const [profileForm, setProfileForm] = useState({
@@ -112,6 +187,7 @@ const SettingsPage = () => {
   const tabs = [
     { id: "profile", label: "Profile", icon: UserIcon },
     { id: "preferences", label: "Preferences", icon: Palette },
+    { id: "billing", label: "Billing", icon: CreditCard },
     { id: "security", label: "Security", icon: Shield },
   ];
 
@@ -389,6 +465,156 @@ const SettingsPage = () => {
             </div>
           )}
 
+          {/* Billing Tab */}
+          {activeTab === "billing" && (
+            <div className="space-y-4 sm:space-y-6">
+              {billingLoading ? (
+                <div className="card-surface p-5 sm:p-6">
+                  <div className="h-24 animate-pulse rounded-xl bg-surface-muted" />
+                </div>
+              ) : billingStatus ? (
+                <>
+                  {/* Plan status card */}
+                  <div className="card-surface p-5 sm:p-6">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <h3 className="text-base font-semibold tracking-tight text-gray-900">
+                        Current plan
+                      </h3>
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          billingStatus.complimentaryAccess
+                            ? "bg-secondary/15 text-secondary-700"
+                            : billingStatus.isPremium
+                              ? "bg-green-50 text-green-700"
+                              : "bg-surface-muted text-gray-600"
+                        }`}
+                      >
+                        {billingStatus.complimentaryAccess
+                          ? "Complimentary"
+                          : billingStatus.isPremium
+                            ? "Premium"
+                            : "Free"}
+                      </span>
+                    </div>
+
+                    {billingStatus.complimentaryAccess ? (
+                      <p className="text-sm text-gray-600">
+                        Your account has complimentary Premium access — every
+                        premium feature is unlocked and no billing is required.
+                      </p>
+                    ) : billingStatus.isPremium ? (
+                      <div className="space-y-3">
+                        <p className="text-sm text-gray-600">
+                          {billingStatus.subscriptionStatus ===
+                          SubscriptionStatus.CANCELED
+                            ? "Your subscription is cancelled. Premium access continues until "
+                            : "Unlimited budgets, household members, AI receipt scanning, and savings pockets. Renews "}
+                          {billingStatus.currentPeriodEnd && (
+                            <strong className="font-semibold text-gray-900">
+                              {new Date(
+                                billingStatus.currentPeriodEnd,
+                              ).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })}
+                            </strong>
+                          )}
+                          .
+                        </p>
+
+                        {billingStatus.subscriptionStatus ===
+                          SubscriptionStatus.PAST_DUE && (
+                          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+                            <p className="text-sm text-amber-800">
+                              We couldn&apos;t process your last payment. Update
+                              your payment method to keep Premium features.
+                            </p>
+                          </div>
+                        )}
+
+                        {isAdmin ? (
+                          <Button
+                            variant="outline"
+                            onClick={handleManageSubscription}
+                            isLoading={portalMutation.isPending}
+                          >
+                            Manage subscription
+                          </Button>
+                        ) : (
+                          <p className="text-sm text-gray-500">
+                            Ask your account admin to manage billing.
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <p className="text-sm text-gray-600">
+                          You&apos;re on the free plan.
+                        </p>
+                        <ul className="space-y-1.5 text-sm text-gray-600">
+                          <li>
+                            • {FREE_LIMITS.maxActiveBudgets} active budget
+                          </li>
+                          <li>• {FREE_LIMITS.maxMembers} account member</li>
+                          <li>• No AI receipt scanning</li>
+                          <li>
+                            • Up to {FREE_LIMITS.maxPockets} savings pockets
+                          </li>
+                        </ul>
+                        {!isAdmin && (
+                          <p className="text-sm text-gray-500">
+                            Ask your account admin to upgrade to Premium.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Upgrade section — admins on the free plan only */}
+                  {isAdmin && !billingStatus.isPremium && (
+                    <div className="card-surface p-5 sm:p-6">
+                      <div className="mb-4 flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-secondary-700">
+                          <Sparkles className="h-4 w-4" />
+                        </div>
+                        <h3 className="text-base font-semibold tracking-tight text-gray-900">
+                          Upgrade to Premium
+                        </h3>
+                      </div>
+
+                      <PremiumBenefitsList className="mb-5" />
+
+                      <PricingToggle
+                        interval={billingInterval}
+                        onChange={setBillingInterval}
+                        className="mb-5 sm:max-w-sm"
+                      />
+
+                      <Button
+                        className="w-full sm:w-auto"
+                        onClick={handleUpgrade}
+                        isLoading={checkoutMutation.isPending}
+                      >
+                        {checkoutMutation.isPending
+                          ? "Redirecting…"
+                          : "Upgrade to Premium"}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="card-surface p-5 sm:p-6">
+                  <p className="text-sm text-gray-500">
+                    Couldn&apos;t load billing information. Please refresh the
+                    page.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Security Tab */}
           {activeTab === "security" && (
             <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
@@ -572,5 +798,11 @@ const SettingsPage = () => {
     </div>
   );
 };
+
+const SettingsPage = () => (
+  <Suspense fallback={null}>
+    <SettingsPageContent />
+  </Suspense>
+);
 
 export default SettingsPage;

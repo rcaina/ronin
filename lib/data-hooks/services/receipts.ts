@@ -1,4 +1,5 @@
 import type { ScanReceiptResult } from "@/lib/types/receipt";
+import { parseErrorResponse } from "./http";
 
 export interface ScanReceiptRequest {
   budgetId: string;
@@ -16,12 +17,7 @@ export const scanReceipt = async (
     body: JSON.stringify(data),
   });
 
-  if (!response.ok) {
-    const error = (await response.json().catch(() => null)) as {
-      message?: string;
-    } | null;
-    throw new Error(error?.message ?? "Failed to scan receipt");
-  }
+  if (!response.ok) return parseErrorResponse(response);
 
   return response.json() as Promise<ScanReceiptResult>;
 };
