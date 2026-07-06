@@ -46,6 +46,15 @@ export const SPLIT_BADGE_CLASSES = "bg-accent text-primary";
 export const getSplitBadgeLabel = (splitCount: number): string =>
   `Split · ${splitCount} categor${splitCount === 1 ? "y" : "ies"}`;
 
+/**
+ * Badge classes for the small "Recurring" indicator shown next to a
+ * transaction that was auto-posted by the recurring-transactions engine
+ * (`transaction.recurringTransactionId` set — see
+ * lib/api-services/recurring.ts). Secondary tint since it's metadata about
+ * the transaction's origin, not a category or status.
+ */
+export const RECURRING_BADGE_CLASSES = "bg-secondary-50 text-secondary-700";
+
 export interface TransactionFilters {
   /** Free-text search across name, description, category and amount. */
   searchTerm: string;

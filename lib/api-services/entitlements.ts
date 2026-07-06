@@ -53,6 +53,14 @@ export const BUDGET_LOCKED_REASON =
   "This budget is locked because your account is over the Free plan limit. Upgrade to Premium to edit it.";
 
 /**
+ * Shared paywall copy for a write blocked because recurring transactions are
+ * view-only on the Free plan (e.g. templates kept read-only after a
+ * downgrade). Pass to `paymentRequired` from the route handler.
+ */
+export const RECURRING_LOCKED_REASON =
+  "Recurring transactions are read-only on the Free plan. Upgrade to Premium to manage them.";
+
+/**
  * Shared paywall copy for a write blocked because the savings pocket is locked
  * after a downgrade. Pass to `paymentRequired` from the route handler.
  */

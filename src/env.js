@@ -38,6 +38,14 @@ export const env = createEnv({
     // src/server/email.ts for dev-mode fallback behavior when unset.
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
+    // Shared secret verified against the cron job's `Authorization: Bearer`
+    // header (see src/app/api/cron/recurring/route.ts). Vercel Cron
+    // automatically sends this header when an env var named exactly
+    // CRON_SECRET is set, so no extra config is needed there.
+    CRON_SECRET:
+      process.env.NODE_ENV === "production"
+        ? z.string()
+        : z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -72,6 +80,7 @@ export const env = createEnv({
     STRIPE_PRICE_ANNUAL_ID: process.env.STRIPE_PRICE_ANNUAL_ID,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     EMAIL_FROM: process.env.EMAIL_FROM,
+    CRON_SECRET: process.env.CRON_SECRET,
     NODE_ENV: process.env.NODE_ENV,
   },
   /**
