@@ -30,6 +30,8 @@ import {
   ScanLine,
   ChevronDown,
   Repeat,
+  Download,
+  Upload,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
@@ -38,6 +40,7 @@ import { usePageLoading } from "@/components/ConditionalLayout";
 import { useMobileHeaderAction } from "@/components/MobileHeaderActionContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import ReceiptScanModal from "@/components/transactions/ReceiptScanModal";
+import ImportTransactionsModal from "@/components/transactions/ImportTransactionsModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
 import TransactionsPageNavigation from "@/components/transactions/TransactionsPageNavigation";
 import TransactionFiltersModal, {
@@ -49,6 +52,8 @@ import TransactionFiltersModal, {
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
 import StatsCard from "@/components/StatsCard";
+import { useBillingStatus } from "@/lib/data-hooks/billing/useBilling";
+import { exportTransactionsCsv } from "@/lib/data-hooks/services/transactions";
 import {
   getGroupColor,
   getCategoryBadgeColor,
@@ -141,8 +146,28 @@ const TransactionsPageContent = () => {
   );
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
   const [showReceiptScanModal, setShowReceiptScanModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [showFiltersModal, setShowFiltersModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const { data: billingStatus } = useBillingStatus();
+  const isPremium = billingStatus?.isPremium ?? false;
   const { setMobileHeaderAction } = useMobileHeaderAction();
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      await exportTransactionsCsv();
+    } catch (err) {
+      console.error("Failed to export transactions:", err);
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Failed to export transactions. Please try again.",
+      );
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Register the mobile header's scan-receipt shortcut; clean up on unmount
   // so it doesn't leak into other pages.
@@ -630,6 +655,20 @@ const TransactionsPageContent = () => {
             icon: <ScanLine className="h-4 w-4" />,
             variant: "outline",
           },
+          {
+            label: "Import",
+            onClick: () => setShowImportModal(true),
+            icon: <Upload className="h-4 w-4" />,
+            variant: "outline",
+          },
+          {
+            label: isExporting ? "Exporting…" : "Export",
+            onClick: () => {
+              if (!isExporting) void handleExport();
+            },
+            icon: <Download className="h-4 w-4" />,
+            variant: "outline",
+          },
         ]}
       />
 
@@ -733,6 +772,13 @@ const TransactionsPageContent = () => {
             <ReceiptScanModal
               isOpen={showReceiptScanModal}
               onClose={() => setShowReceiptScanModal(false)}
+            />
+
+            {/* Import Transactions Modal (premium; free users see a paywall) */}
+            <ImportTransactionsModal
+              isOpen={showImportModal}
+              onClose={() => setShowImportModal(false)}
+              canImport={isPremium}
             />
 
             {/* Filters Modal */}
