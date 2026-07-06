@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
+import FeatureDisabledState from "@/components/FeatureDisabledState";
+import { useIsFeatureEnabled } from "@/lib/data-hooks/accounts/useFeatureSettings";
 import { useSavings } from "@/lib/data-hooks/savings/useSavings";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import StatsCard from "@/components/StatsCard";
@@ -12,6 +14,7 @@ import Button from "@/components/Button";
 import { formatCurrency, roundToCents } from "@/lib/utils";
 
 export default function SavingsPage() {
+  const savingsEnabled = useIsFeatureEnabled("savings");
   const { data: savings = [], isLoading, error } = useSavings();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
@@ -19,6 +22,7 @@ export default function SavingsPage() {
 
   usePageLoading(isLoading, "Loading savings...");
   if (isLoading) return null;
+  if (!savingsEnabled) return <FeatureDisabledState moduleLabel="Savings" />;
   if (error)
     return <div className="p-6 text-red-600">Failed to load savings</div>;
 

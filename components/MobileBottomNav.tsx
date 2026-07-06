@@ -16,11 +16,16 @@ import {
   LogOut,
   type LucideIcon,
 } from "lucide-react";
+import { useFeatureSettings } from "@/lib/data-hooks/accounts/useFeatureSettings";
+import { isFeatureEnabled } from "@/lib/utils/features";
+import { DEFAULT_FEATURE_SETTINGS } from "@/lib/types/feature-settings";
 
 interface TabItem {
   href: string;
   icon: LucideIcon;
   label: string;
+  /** Module key gating this item; omitted for core items that are never toggleable. */
+  feature?: "savings" | "cards";
 }
 
 // Primary mobile navigation. The "More" tab opens a popup with the remaining
@@ -29,23 +34,31 @@ const tabs: TabItem[] = [
   { href: "/", icon: LayoutDashboard, label: "Overview" },
   { href: "/budgets", icon: Target, label: "Budgets" },
   { href: "/transactions", icon: Receipt, label: "Activity" },
-  { href: "/savings", icon: PiggyBank, label: "Savings" },
+  { href: "/savings", icon: PiggyBank, label: "Savings", feature: "savings" },
 ];
 
 // Destinations surfaced inside the "More" popup.
 const moreLinks: TabItem[] = [
   { href: "/categories", icon: FolderOpen, label: "Categories" },
-  { href: "/cards", icon: CreditCard, label: "Cards" },
+  { href: "/cards", icon: CreditCard, label: "Cards", feature: "cards" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const { data: featureSettings } = useFeatureSettings();
+  const settings = featureSettings ?? DEFAULT_FEATURE_SETTINGS;
+  const visibleTabs = tabs.filter(
+    (tab) => !tab.feature || isFeatureEnabled(settings, tab.feature),
+  );
+  const visibleMoreLinks = moreLinks.filter(
+    (link) => !link.feature || isFeatureEnabled(settings, link.feature),
+  );
 
   const isMoreActive =
     isMoreOpen ||
-    moreLinks.some(
+    visibleMoreLinks.some(
       (link) => pathname === link.href || pathname.startsWith(link.href + "/"),
     );
 
@@ -68,7 +81,7 @@ export default function MobileBottomNav() {
               bottom: "calc(56px + env(safe-area-inset-bottom) + 0.5rem)",
             }}
           >
-            {moreLinks.map((link) => {
+            {visibleMoreLinks.map((link) => {
               const isActive =
                 pathname === link.href || pathname.startsWith(link.href + "/");
               const Icon = link.icon;
@@ -107,8 +120,10 @@ export default function MobileBottomNav() {
         className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200/70 bg-surface-card/90 backdrop-blur-md lg:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="grid grid-cols-5">
-          {tabs.map((tab) => {
+        <div
+          className={`grid ${visibleTabs.length + 1 === 5 ? "grid-cols-5" : "grid-cols-4"}`}
+        >
+          {visibleTabs.map((tab) => {
             const isActive =
               tab.href === "/"
                 ? pathname === "/"

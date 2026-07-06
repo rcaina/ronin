@@ -19,6 +19,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
+import { useFeatureSettings } from "@/lib/data-hooks/accounts/useFeatureSettings";
+import { isFeatureEnabled } from "@/lib/utils/features";
+import { DEFAULT_FEATURE_SETTINGS } from "@/lib/types/feature-settings";
 
 interface SideNavProps {
   isCollapsed: boolean;
@@ -29,6 +32,8 @@ interface NavItem {
   href: string;
   icon: LucideIcon;
   label: string;
+  /** Module key gating this item; omitted for core items that are never toggleable. */
+  feature?: "savings" | "cards";
 }
 
 const navItems: NavItem[] = [
@@ -36,8 +41,8 @@ const navItems: NavItem[] = [
   { href: "/budgets", icon: Target, label: "Budgets" },
   { href: "/transactions", icon: Receipt, label: "Transactions" },
   { href: "/categories", icon: FolderOpen, label: "Categories" },
-  { href: "/cards", icon: CreditCard, label: "Cards" },
-  { href: "/savings", icon: PiggyBank, label: "Savings" },
+  { href: "/cards", icon: CreditCard, label: "Cards", feature: "cards" },
+  { href: "/savings", icon: PiggyBank, label: "Savings", feature: "savings" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
@@ -45,6 +50,11 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const { data: session } = useSession();
   const pathname = usePathname();
+  const { data: featureSettings } = useFeatureSettings();
+  const settings = featureSettings ?? DEFAULT_FEATURE_SETTINGS;
+  const visibleNavItems = navItems.filter(
+    (item) => !item.feature || isFeatureEnabled(settings, item.feature),
+  );
 
   const handleSignOut = async () => {
     await signOut({
@@ -100,7 +110,7 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
         </div>
 
         <nav className="flex flex-col gap-1">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive =
               item.href === "/"
                 ? pathname === "/"

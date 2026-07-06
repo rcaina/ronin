@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { withUser } from "@/lib/middleware/withUser";
 import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling";
 import prisma from "@/lib/prisma";
+import { HttpError } from "@/lib/errors";
 import { ensureBudgetOwnership } from "@/lib/utils/auth";
 import { scanReceipt } from "@/lib/api-services/receipts";
 import { scanReceiptSchema } from "@/lib/api-schemas/receipt";
@@ -11,6 +12,8 @@ import {
   paymentRequired,
 } from "@/lib/api-services/entitlements";
 import { canScanReceipt } from "@/lib/utils/entitlements";
+import { getFeatureSettings } from "@/lib/api-services/feature-settings";
+import { isFeatureEnabled } from "@/lib/utils/features";
 
 export const POST = withUser({
   POST: withUserErrorHandling(
@@ -29,6 +32,17 @@ export const POST = withUser({
             errors: validationResult.error.errors,
           },
           { status: 400 },
+        );
+      }
+
+      // Unlike the other toggles (UX-only), AI receipt scanning sends data
+      // to a third party — the opt-out must be enforced server-side, not
+      // just hidden client-side.
+      const featureSettings = await getFeatureSettings(prisma, user.accountId);
+      if (!isFeatureEnabled(featureSettings, "aiReceiptScanning")) {
+        throw new HttpError(
+          "AI receipt scanning is turned off for your account. An admin can turn it back on in settings.",
+          403,
         );
       }
 

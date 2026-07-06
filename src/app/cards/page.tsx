@@ -6,6 +6,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/PageHeader";
+import FeatureDisabledState from "@/components/FeatureDisabledState";
+import { useIsFeatureEnabled } from "@/lib/data-hooks/accounts/useFeatureSettings";
 import { default as CardComponent } from "@/components/cards/Card";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import AddCardForm from "@/components/cards/AddCardForm";
@@ -46,6 +48,7 @@ const isDuplicateCardError = (err: unknown): boolean =>
 const CardsPage = () => {
   const router = useRouter();
   const { data: session } = useSession();
+  const cardsEnabled = useIsFeatureEnabled("cards");
   const { data: apiCards, isLoading, error } = useGeneralCards();
   const deleteCardMutation = useDeleteCard();
   const createCardMutation = useCreateCard();
@@ -413,6 +416,10 @@ const CardsPage = () => {
   usePageLoading(isLoading, "Loading cards...");
   if (isLoading) {
     return null;
+  }
+
+  if (!cardsEnabled) {
+    return <FeatureDisabledState moduleLabel="Cards" />;
   }
 
   if (error) {
