@@ -7,6 +7,11 @@ import type {
   CreateAllocationSchema,
   UpdateAllocationSchema,
 } from "@/lib/api-schemas/savings";
+import {
+  FREE_LIMITS,
+  lockedIds,
+  type AccountEntitlementFields,
+} from "@/lib/utils/entitlements";
 
 export const getSavings = async (tx: PrismaClientTx, accountId: string) =>
   await tx.savings.findMany({
@@ -50,6 +55,17 @@ export const getPockets = async (
     include: { allocations: true, savings: true },
     orderBy: { createdAt: "desc" },
   });
+
+/**
+ * The ids of pockets that are locked (read-only) for the given account after a
+ * downgrade past the free-tier pocket limit. Returns an empty set for premium
+ * (or comped) accounts. Pass the result to `toPocketSummaryList` /
+ * `toPocketSummary` so the DTO's `locked` flag is populated.
+ */
+export const getPocketLockedIds = (
+  account: AccountEntitlementFields,
+  pockets: readonly { id: string; createdAt: Date }[],
+): Set<string> => lockedIds(account, pockets, FREE_LIMITS.maxPockets);
 
 export const createPocket = async (
   tx: PrismaClientTx,

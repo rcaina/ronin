@@ -45,6 +45,9 @@ export type BudgetWithRelations = SerializedBudget & {
       lastName: string;
     };
   })[];
+  // True when this budget is read-only after a downgrade past the free-tier
+  // active-budget limit (see lib/utils/entitlements.ts isBudgetLocked).
+  locked: boolean;
 };
 
 export type BudgetCategoryWithRelations = Category & {

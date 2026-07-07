@@ -4,11 +4,20 @@ import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling";
 import prisma from "@/lib/prisma";
 import type { User } from "@prisma/client";
 import { createPocketSchema } from "@/lib/api-schemas/savings";
-import { createPocket, getPockets } from "@/lib/api-services/savings";
+import {
+  createPocket,
+  getPockets,
+  getPocketLockedIds,
+} from "@/lib/api-services/savings";
 import {
   toPocketSummary,
   toPocketSummaryList,
 } from "@/lib/transformers/savings";
+import {
+  getAccountEntitlements,
+  paymentRequired,
+} from "@/lib/api-services/entitlements";
+import { canCreatePocket } from "@/lib/utils/entitlements";
 
 export const GET = withUser({
   GET: withUserErrorHandling(
@@ -20,10 +29,27 @@ export const GET = withUser({
       const { searchParams } = new URL(req.url);
       const savingsId = searchParams.get("savingsId");
 
-      const pockets = await prisma.$transaction((tx) =>
-        getPockets(tx, user.accountId, savingsId ?? undefined),
+      const { pockets, allPockets, account } = await prisma.$transaction(
+        async (tx) => {
+          const pockets = await getPockets(
+            tx,
+            user.accountId,
+            savingsId ?? undefined,
+          );
+          // Lock state is determined across ALL of the account's pockets,
+          // independent of the optional savingsId filter.
+          const allPockets = savingsId
+            ? await getPockets(tx, user.accountId)
+            : pockets;
+          const account = await getAccountEntitlements(tx, user.accountId);
+          return { pockets, allPockets, account };
+        },
       );
-      return NextResponse.json(toPocketSummaryList(pockets), { status: 200 });
+
+      const lockedIds = getPocketLockedIds(account, allPockets);
+      return NextResponse.json(toPocketSummaryList(pockets, lockedIds), {
+        status: 200,
+      });
     },
   ),
 });
@@ -42,6 +68,18 @@ export const POST = withUser({
           { message: "Validation failed", errors: parsed.error.errors },
           { status: 400 },
         );
+      }
+
+      const account = await getAccountEntitlements(prisma, user.accountId);
+      const currentPocketCount = await prisma.pocket.count({
+        where: {
+          deleted: null,
+          savings: { accountId: user.accountId, deleted: null },
+        },
+      });
+      const entitlementCheck = canCreatePocket(account, currentPocketCount);
+      if (!entitlementCheck.allowed) {
+        return paymentRequired(entitlementCheck.reason);
       }
 
       const pocket = await prisma.$transaction((tx) =>

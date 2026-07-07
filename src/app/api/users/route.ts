@@ -5,6 +5,11 @@ import { createUser, getAccountUsers } from "@/lib/api-services/users";
 import { createUserSchema } from "@/lib/api-schemas/users";
 import { type User } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
+import {
+  getAccountEntitlements,
+  paymentRequired,
+} from "@/lib/api-services/entitlements";
+import { canInviteMember } from "@/lib/utils/entitlements";
 
 export const GET = withUser({
   GET: withUserErrorHandling(
@@ -40,6 +45,15 @@ export const POST = withUser({
           },
           { status: 400 },
         );
+      }
+
+      const account = await getAccountEntitlements(prisma, user.accountId);
+      const currentMemberCount = await prisma.accountUser.count({
+        where: { accountId: user.accountId },
+      });
+      const entitlementCheck = canInviteMember(account, currentMemberCount);
+      if (!entitlementCheck.allowed) {
+        return paymentRequired(entitlementCheck.reason);
       }
 
       return await prisma.$transaction(async (tx) => {

@@ -7,6 +7,11 @@ import { updateAllocation, deleteAllocation } from "@/lib/api-services/savings";
 import { validateAllocationId } from "@/lib/utils/auth";
 import { updateAllocationSchema } from "@/lib/api-schemas/savings";
 import { toAllocationSummary } from "@/lib/transformers/savings";
+import {
+  isPocketWriteLocked,
+  paymentRequired,
+  POCKET_LOCKED_REASON,
+} from "@/lib/api-services/entitlements";
 
 export const PUT = withUser({
   PUT: withUserErrorHandling(
@@ -28,6 +33,27 @@ export const PUT = withUser({
           },
           { status: 400 },
         );
+      }
+
+      const existingAllocation = await prisma.allocation.findFirst({
+        where: {
+          id: allocationId,
+          pocket: {
+            savings: { accountId: user.accountId, deleted: null },
+            deleted: null,
+          },
+        },
+        select: { pocketId: true },
+      });
+      if (
+        existingAllocation &&
+        (await isPocketWriteLocked(
+          prisma,
+          user.accountId,
+          existingAllocation.pocketId,
+        ))
+      ) {
+        return paymentRequired(POCKET_LOCKED_REASON);
       }
 
       return await prisma.$transaction(async (tx) => {
@@ -70,6 +96,27 @@ export const DELETE = withUser({
     ) => {
       const { id } = await context.params;
       const allocationId = validateAllocationId(id);
+
+      const existingAllocation = await prisma.allocation.findFirst({
+        where: {
+          id: allocationId,
+          pocket: {
+            savings: { accountId: user.accountId, deleted: null },
+            deleted: null,
+          },
+        },
+        select: { pocketId: true },
+      });
+      if (
+        existingAllocation &&
+        (await isPocketWriteLocked(
+          prisma,
+          user.accountId,
+          existingAllocation.pocketId,
+        ))
+      ) {
+        return paymentRequired(POCKET_LOCKED_REASON);
+      }
 
       return await prisma.$transaction(async (tx) => {
         const result = await deleteAllocation(tx, allocationId, user.accountId);

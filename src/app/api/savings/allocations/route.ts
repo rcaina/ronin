@@ -6,6 +6,11 @@ import type { User } from "@prisma/client";
 import { createAllocationSchema } from "@/lib/api-schemas/savings";
 import { createAllocation } from "@/lib/api-services/savings";
 import { toAllocationSummary } from "@/lib/transformers/savings";
+import {
+  isPocketWriteLocked,
+  paymentRequired,
+  POCKET_LOCKED_REASON,
+} from "@/lib/api-services/entitlements";
 
 export const POST = withUser({
   POST: withUserErrorHandling(
@@ -25,6 +30,16 @@ export const POST = withUser({
           },
           { status: 400 },
         );
+      }
+
+      if (
+        await isPocketWriteLocked(
+          prisma,
+          user.accountId,
+          validationResult.data.pocketId,
+        )
+      ) {
+        return paymentRequired(POCKET_LOCKED_REASON);
       }
 
       return await prisma.$transaction(async (tx) => {

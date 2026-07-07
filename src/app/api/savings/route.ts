@@ -4,12 +4,17 @@ import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling";
 import prisma from "@/lib/prisma";
 import type { User } from "@prisma/client";
 import { createSavingsSchema } from "@/lib/api-schemas/savings";
-import { createSavings, getSavings } from "@/lib/api-services/savings";
+import {
+  createSavings,
+  getSavings,
+  getPocketLockedIds,
+} from "@/lib/api-services/savings";
 import {
   toSavingsSummary,
   toSavingsSummaryList,
 } from "@/lib/transformers/savings";
 import type { SavingsWithRelationsLite } from "@/lib/transformers/savings";
+import { getAccountEntitlements } from "@/lib/api-services/entitlements";
 
 export const GET = withUser({
   GET: withUserErrorHandling(
@@ -18,13 +23,18 @@ export const GET = withUser({
       _context: { params: Promise<Record<string, string>> },
       user: User & { accountId: string },
     ) => {
-      const savings = await prisma.$transaction((tx) =>
-        getSavings(tx, user.accountId),
-      );
-      return NextResponse.json(
-        toSavingsSummaryList(savings as unknown as SavingsWithRelationsLite[]),
-        { status: 200 },
-      );
+      const { savings, account } = await prisma.$transaction(async (tx) => {
+        const savings = await getSavings(tx, user.accountId);
+        const account = await getAccountEntitlements(tx, user.accountId);
+        return { savings, account };
+      });
+
+      const savingsList = savings as unknown as SavingsWithRelationsLite[];
+      const allPockets = savingsList.flatMap((s) => s.pockets);
+      const lockedIds = getPocketLockedIds(account, allPockets);
+      return NextResponse.json(toSavingsSummaryList(savingsList, lockedIds), {
+        status: 200,
+      });
     },
   ),
 });

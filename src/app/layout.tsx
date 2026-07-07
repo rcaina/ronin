@@ -39,6 +39,8 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
 };
 
+//root
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {

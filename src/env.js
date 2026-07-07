@@ -27,10 +27,33 @@ export const env = createEnv({
     GEMINI_MODEL: z.string().optional(),
     ANTHROPIC_API_KEY: z.string().optional(),
     ANTHROPIC_MODEL: z.string().optional(),
+    // Stripe billing. Optional so the app still boots for devs without Stripe
+    // configured; billing routes guard at runtime and return a clear error
+    // instead of crashing app startup.
+    STRIPE_SECRET_KEY: z.string().optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().optional(),
+    STRIPE_PRICE_MONTHLY_ID: z.string().optional(),
+    STRIPE_PRICE_ANNUAL_ID: z.string().optional(),
     // Transactional email (password reset / login codes). Optional — see
     // src/server/email.ts for dev-mode fallback behavior when unset.
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
+    // Shared secret verified against the cron job's `Authorization: Bearer`
+    // header (see src/app/api/cron/recurring/route.ts). Vercel Cron
+    // automatically sends this header when an env var named exactly
+    // CRON_SECRET is set, so no extra config is needed there.
+    CRON_SECRET:
+      process.env.NODE_ENV === "production"
+        ? z.string()
+        : z.string().optional(),
+    // Web push (Feature 5 — Notifications). Both optional so the app still
+    // builds/runs without push configured: in-app notifications work either
+    // way, and the push-sending helper (lib/server/push.ts) no-ops when
+    // these are unset rather than throwing. Generate a pair with
+    // `npx web-push generate-vapid-keys`.
+    VAPID_PRIVATE_KEY: z.string().optional(),
+    // Contact URI required by the Push spec, e.g. "mailto:support@example.com".
+    VAPID_SUBJECT: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -42,7 +65,10 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    // Public half of the VAPID key pair, used by the browser to subscribe to
+    // push (see lib/utils/push-client.ts). Optional so free/no-push builds
+    // don't need it — the settings UI hides the push toggle when it's unset.
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
   },
 
   /**
@@ -59,8 +85,16 @@ export const env = createEnv({
     GEMINI_MODEL: process.env.GEMINI_MODEL,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL,
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+    STRIPE_PRICE_MONTHLY_ID: process.env.STRIPE_PRICE_MONTHLY_ID,
+    STRIPE_PRICE_ANNUAL_ID: process.env.STRIPE_PRICE_ANNUAL_ID,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     EMAIL_FROM: process.env.EMAIL_FROM,
+    CRON_SECRET: process.env.CRON_SECRET,
+    VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+    VAPID_SUBJECT: process.env.VAPID_SUBJECT,
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
     NODE_ENV: process.env.NODE_ENV,
   },
   /**

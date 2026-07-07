@@ -29,6 +29,7 @@ import {
   useUpdateCard,
 } from "@/lib/data-hooks/cards/useCards";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useDeleteTransaction } from "@/lib/data-hooks/transactions/useTransactions";
 import { isDebitCard, mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import { usePageLoading } from "@/components/ConditionalLayout";
@@ -42,6 +43,7 @@ import {
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import { getGroupColor } from "@/lib/utils";
 import { getSplitBadgeLabel } from "@/lib/utils/transactions";
+import LockedBudgetGate from "../../LockedBudgetGate";
 
 interface User {
   id: string;
@@ -185,8 +187,16 @@ const CardTransactionFiltersModal = ({
 const CardDetailsPage = () => {
   const params = useParams<{ id: string; cardId: string }>();
   const cardId = params.cardId;
+  const budgetId = params.id;
   const router = useRouter();
   const { data: session } = useSession();
+
+  // The budget this card is being viewed under. Locked budgets (downgraded
+  // past the free active-budget limit) are hard-blocked: once the budget query
+  // resolves as locked, this page early-returns a full-screen gate below
+  // instead of rendering any card content.
+  const { data: budget, isLoading: budgetLoading } = useBudget(budgetId);
+  const isLocked = budget?.locked ?? false;
 
   const {
     data: card,
@@ -427,9 +437,10 @@ const CardDetailsPage = () => {
     }
   }, [card, setTitle, setDescription]);
 
-  // Register header actions
+  // Register header actions. Locked budgets are hard-blocked (the page renders
+  // only the gate), so we drop every header action when locked.
   useEffect(() => {
-    if (!card || !isCardOwner) {
+    if (!card || !isCardOwner || isLocked) {
       setActions([]);
       return;
     }
@@ -441,13 +452,14 @@ const CardDetailsPage = () => {
         onClick: handleOpenAddTransactionModal,
         variant: "primary",
       },
-      {
-        icon: <Trash2 className="h-4 w-4" />,
-        label: "Delete card",
-        onClick: handleDeleteCard,
-        variant: "danger",
-      },
     ];
+
+    actions.push({
+      icon: <Trash2 className="h-4 w-4" />,
+      label: "Delete card",
+      onClick: handleDeleteCard,
+      variant: "danger",
+    });
 
     // Add Pay Credit Card button if it's a credit card
     if (
@@ -464,7 +476,7 @@ const CardDetailsPage = () => {
 
     setActions(actions);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card, isCardOwner, setActions]);
+  }, [card, isCardOwner, setActions, isLocked]);
 
   // Search/filter/sort the card's transactions for the list below. Search
   // matches transaction name and description.
@@ -524,10 +536,17 @@ const CardDetailsPage = () => {
     setSortOrder(DEFAULT_CARD_TRANSACTION_FILTERS.sortOrder);
   };
 
-  const isPageLoading = cardLoading || transactionsLoading;
+  const isPageLoading = cardLoading || transactionsLoading || budgetLoading;
   usePageLoading(isPageLoading, "Loading card details...");
   if (isPageLoading) {
     return null;
+  }
+
+  // Locked budgets (downgraded past the free active-budget limit) are
+  // hard-blocked: render ONLY the upgrade gate, never the card content or any
+  // mutating controls. Reaching here via direct URL/deep link still gates.
+  if (isLocked) {
+    return <LockedBudgetGate />;
   }
 
   if (cardError || !card || !mappedCard) {

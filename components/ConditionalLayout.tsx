@@ -16,6 +16,7 @@ import MobileBottomNav from "./MobileBottomNav";
 import LoadingSpinner from "./LoadingSpinner";
 import { MobileHeaderActionProvider } from "./MobileHeaderActionContext";
 import { useTrackNavigationHistory } from "@/lib/utils/navigation-history";
+import { useRecurringCatchUp } from "@/lib/data-hooks/recurring/useRecurringCatchUp";
 
 // Create context for main navigation state
 interface MainNavContextType {
@@ -105,6 +106,11 @@ export default function ConditionalLayout({
   // renders on every authenticated and public page) so it runs regardless
   // of section.
   useTrackNavigationHistory();
+
+  // Self-hosted/dev substitute for the recurring-transactions cron job — see
+  // lib/data-hooks/recurring/useRecurringCatchUp.ts. No-op when signed out or
+  // when nothing is due.
+  useRecurringCatchUp();
 
   // Auto-collapse main nav when entering budget pages
   useEffect(() => {

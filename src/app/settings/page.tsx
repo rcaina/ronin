@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/PageHeader";
 import SettingsPageNavigation from "@/components/settings/SettingsPageNavigation";
@@ -22,13 +23,29 @@ import {
   LogOut,
   AlertTriangle,
   Palette,
+  CreditCard,
+  ToggleLeft,
+  Bell,
 } from "lucide-react";
 import Button from "@/components/Button";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import ThemeSelector from "@/components/settings/ThemeSelector";
+import PlanComparison from "@/components/billing/PlanComparison";
 import ChangePasswordForm from "@/components/settings/ChangePasswordForm";
+import FeatureToggles from "@/components/settings/FeatureToggles";
+import NotificationSettingsPanel from "@/components/settings/NotificationSettingsPanel";
 import { Role } from "@prisma/client";
 import { useUpdateProfile } from "@/lib/data-hooks/users/useUser";
+import {
+  useBillingStatus,
+  useCheckout,
+  useBillingPortal,
+  billingStatusKey,
+} from "@/lib/data-hooks/billing/useBilling";
+import type { BillingInterval } from "@/lib/data-hooks/services/billing";
+import { useFeatureSettings } from "@/lib/data-hooks/accounts/useFeatureSettings";
+import { isFeatureEnabled } from "@/lib/utils/features";
+import { DEFAULT_FEATURE_SETTINGS } from "@/lib/types/feature-settings";
 
 interface AccountUser {
   id: string;
@@ -50,17 +67,96 @@ const getInitials = (name?: string | null) => {
   return initials || "U";
 };
 
-const SettingsPage = () => {
+const SettingsPageContent = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("profile");
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get("tab");
+    return tab === "billing" || tab === "features" || tab === "notifications"
+      ? tab
+      : "profile";
+  });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [showLeaveAccountModal, setShowLeaveAccountModal] = useState(false);
+  const [billingInterval, setBillingInterval] =
+    useState<BillingInterval>("year");
   const updateProfileMutation = useUpdateProfile();
+  const { data: billingStatus, isLoading: billingLoading } = useBillingStatus();
+  const checkoutMutation = useCheckout();
+  const portalMutation = useBillingPortal();
+  const { data: featureSettings } = useFeatureSettings();
+  const notificationsFeatureEnabled = isFeatureEnabled(
+    featureSettings ?? DEFAULT_FEATURE_SETTINGS,
+    "notifications",
+  );
 
   const isAdmin = session?.user?.role === Role.ADMIN;
+
+  // The account admin can turn the `notifications` feature toggle off while
+  // this tab is open (or a deep link points at it) — bounce back to Profile
+  // rather than showing a disabled section with nothing in it.
+  useEffect(() => {
+    if (activeTab === "notifications" && !notificationsFeatureEnabled) {
+      setActiveTab("profile");
+    }
+  }, [activeTab, notificationsFeatureEnabled]);
+
+  // Handle the redirect back from Stripe Checkout: toast on success/cancel,
+  // refresh billing status, and strip `checkout` from the URL so a refresh
+  // doesn't re-fire the toast.
+  useEffect(() => {
+    const checkout = searchParams.get("checkout");
+    if (!checkout) return;
+
+    if (checkout === "success") {
+      toast.success("Welcome to Premium!");
+      void queryClient.invalidateQueries({ queryKey: billingStatusKey });
+    } else if (checkout === "cancelled") {
+      toast("Checkout cancelled — you can upgrade anytime.");
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("checkout");
+    const query = params.toString();
+    router.replace(query ? `/settings?${query}` : "/settings", {
+      scroll: false,
+    });
+    // Only run once on mount — re-running on every searchParams change would
+    // re-toast after we strip `checkout` from the URL above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleUpgrade = async () => {
+    try {
+      const { url } = await checkoutMutation.mutateAsync(billingInterval);
+      window.location.assign(url);
+    } catch (error) {
+      console.error("Failed to start checkout:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to start checkout. Please try again.",
+      );
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      const { url } = await portalMutation.mutateAsync();
+      window.location.assign(url);
+    } catch (error) {
+      console.error("Failed to open billing portal:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to open billing portal. Please try again.",
+      );
+    }
+  };
 
   // Form states
   const [profileForm, setProfileForm] = useState({
@@ -112,8 +208,21 @@ const SettingsPage = () => {
   const tabs = [
     { id: "profile", label: "Profile", icon: UserIcon },
     { id: "preferences", label: "Preferences", icon: Palette },
-    { id: "security", label: "Security", icon: Shield },
+    { id: "features", label: "Features", icon: ToggleLeft },
   ];
+
+  // The notifications tab only exists while the household's `notifications`
+  // feature toggle is on — that toggle is the master switch (see
+  // lib/types/feature-settings.ts), so an off account never even sees the
+  // per-user trigger/push preferences underneath it.
+  if (notificationsFeatureEnabled) {
+    tabs.push({ id: "notifications", label: "Notifications", icon: Bell });
+  }
+
+  tabs.push(
+    { id: "billing", label: "Billing", icon: CreditCard },
+    { id: "security", label: "Security", icon: Shield },
+  );
 
   // Add Users tab for admin users
   if (isAdmin) {
@@ -389,6 +498,49 @@ const SettingsPage = () => {
             </div>
           )}
 
+          {/* Features Tab */}
+          {activeTab === "features" && (
+            <div className="space-y-4 sm:space-y-6">
+              <FeatureToggles isAdmin={isAdmin} />
+            </div>
+          )}
+
+          {/* Notifications Tab — only reachable while the account's
+              `notifications` feature toggle is on (see the tabs array above). */}
+          {activeTab === "notifications" && notificationsFeatureEnabled && (
+            <NotificationSettingsPanel />
+          )}
+
+          {/* Billing Tab */}
+          {activeTab === "billing" && (
+            <div className="space-y-4 sm:space-y-6">
+              {billingLoading ? (
+                <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
+                  <div className="card-surface h-80 animate-pulse p-5 sm:p-6" />
+                  <div className="card-surface h-80 animate-pulse p-5 sm:p-6" />
+                </div>
+              ) : billingStatus ? (
+                <PlanComparison
+                  billingStatus={billingStatus}
+                  isAdmin={isAdmin}
+                  interval={billingInterval}
+                  onIntervalChange={setBillingInterval}
+                  onUpgrade={handleUpgrade}
+                  upgrading={checkoutMutation.isPending}
+                  onManage={handleManageSubscription}
+                  managing={portalMutation.isPending}
+                />
+              ) : (
+                <div className="card-surface p-5 sm:p-6">
+                  <p className="text-sm text-gray-500">
+                    Couldn&apos;t load billing information. Please refresh the
+                    page.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Security Tab */}
           {activeTab === "security" && (
             <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
@@ -418,7 +570,7 @@ const SettingsPage = () => {
               </div>
 
               {/* Danger zone */}
-              <div className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-card sm:p-6 lg:col-span-2">
+              <div className="rounded-2xl border border-danger-border bg-danger-surface p-5 shadow-card sm:p-6 lg:col-span-2">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <h3 className="text-base font-semibold tracking-tight text-gray-900">
                     {isAdmin ? "Delete account" : "Deactivate account"}
@@ -441,7 +593,7 @@ const SettingsPage = () => {
                   </Button>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-danger-icon-bg text-danger-icon">
                     <AlertTriangle className="h-4 w-4" />
                   </div>
                   <p className="text-sm text-gray-600">
@@ -553,5 +705,11 @@ const SettingsPage = () => {
     </div>
   );
 };
+
+const SettingsPage = () => (
+  <Suspense fallback={null}>
+    <SettingsPageContent />
+  </Suspense>
+);
 
 export default SettingsPage;

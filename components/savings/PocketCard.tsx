@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Lock, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -15,9 +15,15 @@ import { roundToCents, formatCurrency } from "@/lib/utils";
 interface PocketCardProps {
   pocket: PocketSummary;
   savingsId?: string;
+  /** Called when a locked pocket card is clicked (opens the upgrade paywall). */
+  onLocked?: () => void;
 }
 
-export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
+export default function PocketCard({
+  pocket,
+  savingsId,
+  onLocked,
+}: PocketCardProps) {
   const params = useParams();
   const router = useRouter();
   const currentSavingsId = savingsId ?? (params.id as string);
@@ -118,6 +124,11 @@ export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
     ) {
       return;
     }
+    // Locked pockets are hard-blocked: no navigation, open the upgrade paywall.
+    if (pocket.locked) {
+      onLocked?.();
+      return;
+    }
     router.push(pocketDetailUrl);
   };
 
@@ -128,7 +139,9 @@ export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
         className={`group relative overflow-hidden p-5 ${
           editingPocketId === pocket.id
             ? "rounded-2xl border border-secondary-200 bg-secondary-50 shadow-card"
-            : "card-interactive cursor-pointer"
+            : pocket.locked
+              ? "card-surface cursor-not-allowed opacity-60"
+              : "card-interactive cursor-pointer"
         }`}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -143,23 +156,33 @@ export default function PocketCard({ pocket, savingsId }: PocketCardProps) {
               />
             </div>
           ) : (
-            <h3 className="truncate text-lg font-semibold tracking-tight text-gray-900">
-              {pocket.name}
-            </h3>
+            <div className="flex min-w-0 items-center gap-2">
+              <h3 className="truncate text-lg font-semibold tracking-tight text-gray-900">
+                {pocket.name}
+              </h3>
+              {pocket.locked && (
+                <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+                  <Lock className="h-3 w-3" />
+                  Locked
+                </span>
+              )}
+            </div>
           )}
           <div className="flex items-center space-x-2">
             {editingPocketId !== pocket.id ? (
               <div className="flex items-center gap-0.5 opacity-100 transition-opacity duration-200 lg:opacity-0 lg:group-hover:opacity-100">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleStartEditPocket();
-                  }}
-                  className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
-                  title="Edit pocket"
-                >
-                  <Edit className="h-4 w-4" />
-                </button>
+                {!pocket.locked && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStartEditPocket();
+                    }}
+                    className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
+                    title="Edit pocket"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
+                )}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

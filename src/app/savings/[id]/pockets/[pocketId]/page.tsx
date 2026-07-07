@@ -19,6 +19,7 @@ import {
   Edit,
   Pencil,
   Trash2,
+  Lock,
 } from "lucide-react";
 import { roundToCents, formatCurrency, formatDateUTC } from "@/lib/utils";
 import { toast } from "react-hot-toast";
@@ -32,6 +33,8 @@ import type {
 } from "@/lib/api-schemas/savings";
 import Button from "@/components/Button";
 import DateInput from "@/components/DateInput";
+import UpgradeModal from "@/components/UpgradeModal";
+import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
 import { usePocketHeader } from "@/components/savings/PocketHeaderContext";
 
 const PocketDetailPage = () => {
@@ -60,6 +63,7 @@ const PocketDetailPage = () => {
   const [editingAmount, setEditingAmount] = useState<string>("");
   const [editingNote, setEditingNote] = useState<string>("");
   const [editingOccurredAt, setEditingOccurredAt] = useState<string>("");
+  const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
 
   // Calculate statistics
   const totalAllocated =
@@ -74,8 +78,13 @@ const PocketDetailPage = () => {
   const goalProgressPercentage = roundToCents(Math.min(goalProgress, 100));
   const totalAllocations = pocket?.allocations?.length ?? 0;
 
-  // Set the header action button
+  // Set the header action button (hidden while the pocket is locked — the
+  // locked gate must expose no mutating controls).
   useEffect(() => {
+    if (pocket?.locked) {
+      setAction(null);
+      return;
+    }
     setAction({
       label: "Add allocation",
       onClick: () => setIsAddingAllocation(true),
@@ -84,7 +93,7 @@ const PocketDetailPage = () => {
 
     // Cleanup: remove action when component unmounts
     return () => setAction(null);
-  }, [setAction]);
+  }, [setAction, pocket?.locked]);
 
   const handleAddAllocation = async (data: CreateAllocationSchema) => {
     try {
@@ -92,6 +101,11 @@ const PocketDetailPage = () => {
       setIsAddingAllocation(false);
       toast.success("Allocation added successfully!");
     } catch (error) {
+      if (error instanceof UpgradeRequiredError) {
+        setIsAddingAllocation(false);
+        setUpgradeReason(error.message);
+        return;
+      }
       console.error("Failed to add allocation:", error);
       toast.error("Failed to add allocation. Please try again.");
     }
@@ -164,6 +178,10 @@ const PocketDetailPage = () => {
       setEditingOccurredAt("");
       toast.success("Allocation updated successfully!");
     } catch (error) {
+      if (error instanceof UpgradeRequiredError) {
+        setUpgradeReason(error.message);
+        return;
+      }
       console.error("Failed to update allocation:", error);
       toast.error("Failed to update allocation. Please try again.");
     }
@@ -181,6 +199,11 @@ const PocketDetailPage = () => {
       setAllocationToDelete(null);
       toast.success("Allocation removed successfully!");
     } catch (error) {
+      if (error instanceof UpgradeRequiredError) {
+        setAllocationToDelete(null);
+        setUpgradeReason(error.message);
+        return;
+      }
       console.error("Failed to delete allocation:", error);
       toast.error("Failed to delete allocation. Please try again.");
     }
@@ -229,6 +252,43 @@ const PocketDetailPage = () => {
             Pocket not found
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Hard block: locked pockets show only a full-screen gate — no content,
+  // no allocations, no mutating controls.
+  if (pocket.locked) {
+    return (
+      <div className="flex h-full items-center justify-center bg-surface p-4">
+        <div className="card-surface flex w-full max-w-sm flex-col items-center gap-4 p-8 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+            <Lock className="h-7 w-7" strokeWidth={1.5} />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              This pocket is locked
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Upgrade to Premium to access this pocket.
+            </p>
+          </div>
+          <Button
+            onClick={() =>
+              setUpgradeReason(
+                "This pocket is locked. Upgrade to Premium to access it.",
+              )
+            }
+          >
+            Upgrade to Premium
+          </Button>
+        </div>
+
+        <UpgradeModal
+          isOpen={upgradeReason !== null}
+          onClose={() => setUpgradeReason(null)}
+          reason={upgradeReason ?? undefined}
+        />
       </div>
     );
   }
@@ -401,6 +461,52 @@ const PocketDetailPage = () => {
                     );
                   }
 
+                  const allocationRow = (
+                    <div className="rounded-xl border border-gray-200/70 bg-surface p-3 transition-colors duration-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {allocation.note ?? "Allocation"}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {allocation.occurredAt
+                              ? formatDateUTC(String(allocation.occurredAt))
+                              : formatDateUTC(allocation.createdAt)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span
+                            className={`font-medium tabular-nums ${
+                              allocation.withdrawal
+                                ? "text-red-600"
+                                : "text-green-600"
+                            }`}
+                          >
+                            {formatCurrency(allocation.amount)}
+                          </span>
+                          <button
+                            onClick={() =>
+                              handleStartEditAllocation(allocation)
+                            }
+                            className="hidden rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600 lg:block"
+                            title="Edit allocation"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleDeleteAllocation(allocation.id)
+                            }
+                            className="hidden rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 lg:block"
+                            title="Remove allocation"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+
                   return (
                     <SwipeableRow
                       key={allocation.id}
@@ -420,49 +526,7 @@ const PocketDetailPage = () => {
                         },
                       ]}
                     >
-                      <div className="rounded-xl border border-gray-200/70 bg-surface p-3 transition-colors duration-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">
-                              {allocation.note ?? "Allocation"}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {allocation.occurredAt
-                                ? formatDateUTC(String(allocation.occurredAt))
-                                : formatDateUTC(allocation.createdAt)}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span
-                              className={`font-medium tabular-nums ${
-                                allocation.withdrawal
-                                  ? "text-red-600"
-                                  : "text-green-600"
-                              }`}
-                            >
-                              {formatCurrency(allocation.amount)}
-                            </span>
-                            <button
-                              onClick={() =>
-                                handleStartEditAllocation(allocation)
-                              }
-                              className="hidden rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600 lg:block"
-                              title="Edit allocation"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleDeleteAllocation(allocation.id)
-                              }
-                              className="hidden rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 lg:block"
-                              title="Remove allocation"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                      {allocationRow}
                     </SwipeableRow>
                   );
                 })
@@ -507,6 +571,13 @@ const PocketDetailPage = () => {
         itemName="Allocation"
         isLoading={deleteAllocationMutation.isPending}
         confirmText="Remove Allocation"
+      />
+
+      {/* Upgrade paywall — triggered by allocation UpgradeRequired responses */}
+      <UpgradeModal
+        isOpen={upgradeReason !== null}
+        onClose={() => setUpgradeReason(null)}
+        reason={upgradeReason ?? undefined}
       />
     </div>
   );

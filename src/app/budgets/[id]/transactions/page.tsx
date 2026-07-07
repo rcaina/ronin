@@ -56,6 +56,7 @@ import {
   getSplitBadgeLabel,
 } from "@/lib/utils/transactions";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
+import LockedBudgetGate from "../LockedBudgetGate";
 
 // URL param scheme (only non-default values are written to the URL). `category`
 // and `card` are an existing deep-link contract from category cards elsewhere
@@ -103,6 +104,12 @@ const BudgetTransactionsPageContent = () => {
   const createTransactionMutation = useCreateTransaction();
   const { setActions } = useBudgetHeader();
   const { setMobileHeaderAction } = useMobileHeaderAction();
+
+  // Locked budgets (downgraded past the free active-budget limit) are
+  // hard-blocked: the page early-returns a full-screen gate below. This flag
+  // only suppresses the shared header chrome (which renders separately) while
+  // the gate is shown.
+  const isLocked = budget?.locked ?? false;
 
   const [searchTerm, setSearchTerm] = useState(
     () => searchParams.get("q") ?? "",
@@ -159,8 +166,13 @@ const BudgetTransactionsPageContent = () => {
     });
   };
 
-  // Register header actions
+  // Register header actions. Locked budgets are hard-blocked (the page renders
+  // only the gate), so we drop every header action.
   useEffect(() => {
+    if (isLocked) {
+      setActions([]);
+      return;
+    }
     setActions([
       {
         icon: <Plus className="h-4 w-4" />,
@@ -175,18 +187,22 @@ const BudgetTransactionsPageContent = () => {
         variant: "outline" as const,
       },
     ]);
-  }, [setActions]);
+  }, [setActions, isLocked]);
 
   // Register the mobile header's scan-receipt shortcut; clean up on unmount
-  // so it doesn't leak into other pages.
+  // so it doesn't leak into other pages. Suppressed while locked.
   useEffect(() => {
+    if (isLocked) {
+      setMobileHeaderAction(null);
+      return;
+    }
     setMobileHeaderAction({
       icon: <ScanLine className="h-5 w-5" />,
       label: "Scan receipt",
       onClick: () => setShowReceiptScanModal(true),
     });
     return () => setMobileHeaderAction(null);
-  }, [setMobileHeaderAction]);
+  }, [setMobileHeaderAction, isLocked]);
 
   // Filter and sort transactions
   const filteredAndSortedTransactions = useMemo(() => {
@@ -662,6 +678,13 @@ const BudgetTransactionsPageContent = () => {
         </div>
       </div>
     );
+  }
+
+  // Locked budgets (downgraded past the free active-budget limit) are
+  // hard-blocked: render ONLY the upgrade gate, never the transactions list or
+  // any mutating controls. Reaching here via direct URL/deep link still gates.
+  if (budget.locked) {
+    return <LockedBudgetGate />;
   }
 
   return (

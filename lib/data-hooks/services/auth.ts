@@ -13,6 +13,7 @@ import type {
   LoginCodeRequestResponse,
   SignInWithCodeRequest,
 } from "@/lib/types/user";
+import { parseErrorResponse } from "./http";
 import { signIn as nextAuthSignIn } from "next-auth/react";
 
 export const signUp = async (data: SignUpRequest): Promise<SignUpResponse> => {
@@ -137,9 +138,7 @@ export const createUser = async (
     body: JSON.stringify(data),
   });
 
-  if (!response.ok) {
-    throw new Error(`Failed to create user: ${response.statusText}`);
-  }
+  if (!response.ok) return parseErrorResponse(response);
 
   return response.json() as Promise<CreateUserResponse>;
 };

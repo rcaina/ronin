@@ -3,13 +3,18 @@ import { withUser } from "@/lib/middleware/withUser";
 import { withUserErrorHandling } from "@/lib/middleware/withUserErrorHandling";
 import prisma from "@/lib/prisma";
 import type { User } from "@prisma/client";
-import { getSavingsById } from "@/lib/api-services/savings";
+import {
+  getSavingsById,
+  getPockets,
+  getPocketLockedIds,
+} from "@/lib/api-services/savings";
 import {
   ensureSavingsAccountOwnership,
   validateSavingsId,
 } from "@/lib/utils/auth";
 import { toSavingsSummary } from "@/lib/transformers/savings";
 import type { SavingsWithRelationsLite } from "@/lib/transformers/savings";
+import { getAccountEntitlements } from "@/lib/api-services/entitlements";
 
 export const GET = withUser({
   GET: withUserErrorHandling(
@@ -32,8 +37,17 @@ export const GET = withUser({
           );
         }
 
+        // Lock state is determined across ALL of the account's pockets, not
+        // just those in this savings account.
+        const allPockets = await getPockets(tx, user.accountId);
+        const account = await getAccountEntitlements(tx, user.accountId);
+        const lockedIds = getPocketLockedIds(account, allPockets);
+
         return NextResponse.json(
-          toSavingsSummary(savings as unknown as SavingsWithRelationsLite),
+          toSavingsSummary(
+            savings as unknown as SavingsWithRelationsLite,
+            lockedIds,
+          ),
           { status: 200 },
         );
       });

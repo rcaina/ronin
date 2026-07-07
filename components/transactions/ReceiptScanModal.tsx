@@ -9,7 +9,9 @@ import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useScanReceipt } from "@/lib/data-hooks/transactions/useReceiptScan";
 import { downscaleImageToBase64 } from "@/lib/utils/image";
 import { useLockBodyScroll } from "@/lib/utils/hooks";
+import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
 import type { ScanReceiptResult } from "@/lib/types/receipt";
+import UpgradeModal from "../UpgradeModal";
 
 interface ReceiptScanModalProps {
   isOpen: boolean;
@@ -33,6 +35,7 @@ export default function ReceiptScanModal({
 
   const [selectedBudgetId, setSelectedBudgetId] = useState(budgetId ?? "");
   const [result, setResult] = useState<ScanReceiptResult | null>(null);
+  const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
 
   const reset = () => {
     setResult(null);
@@ -62,6 +65,10 @@ export default function ReceiptScanModal({
         {
           onSuccess: (data) => setResult(data),
           onError: (error: unknown) => {
+            if (error instanceof UpgradeRequiredError) {
+              setUpgradeReason(error.message);
+              return;
+            }
             console.error("Receipt scan failed:", error);
             toast.error(
               error instanceof Error
@@ -184,6 +191,13 @@ export default function ReceiptScanModal({
           </div>
         )}
       </div>
+
+      {/* Upgrade paywall (free tier has no AI receipt scanning) */}
+      <UpgradeModal
+        isOpen={upgradeReason !== null}
+        onClose={() => setUpgradeReason(null)}
+        reason={upgradeReason ?? undefined}
+      />
     </div>
   );
 }

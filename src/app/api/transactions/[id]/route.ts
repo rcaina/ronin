@@ -12,6 +12,13 @@ import {
   ensureTransactionAccountOwnership,
   validateTransactionId,
 } from "@/lib/utils/auth";
+import {
+  BUDGET_LOCKED_REASON,
+  getAccountEntitlements,
+  isBudgetWriteLocked,
+  paymentRequired,
+} from "@/lib/api-services/entitlements";
+import { canSplitTransactions } from "@/lib/utils/entitlements";
 
 export const PUT = withUser({
   PUT: withUserErrorHandling(
@@ -35,6 +42,33 @@ export const PUT = withUser({
           },
           { status: 400 },
         );
+      }
+
+      if (
+        validationResult.data.splits &&
+        validationResult.data.splits.length > 0
+      ) {
+        const account = await getAccountEntitlements(prisma, user.accountId);
+        const entitlementCheck = canSplitTransactions(account);
+        if (!entitlementCheck.allowed) {
+          return paymentRequired(entitlementCheck.reason);
+        }
+      }
+
+      const existing = await prisma.transaction.findUnique({
+        where: { id: transactionId },
+        select: { budgetId: true },
+      });
+      // Block edits to a transaction in a locked budget, and block moving a
+      // transaction into a locked budget (destination check).
+      const budgetIdsToCheck = new Set<string>();
+      if (existing) budgetIdsToCheck.add(existing.budgetId);
+      if (validationResult.data.budgetId)
+        budgetIdsToCheck.add(validationResult.data.budgetId);
+      for (const budgetId of budgetIdsToCheck) {
+        if (await isBudgetWriteLocked(prisma, user.accountId, budgetId)) {
+          return paymentRequired(BUDGET_LOCKED_REASON);
+        }
       }
 
       return await prisma.$transaction(async (tx) => {
@@ -68,6 +102,17 @@ export const DELETE = withUser({
           { message: "Transaction ID is required" },
           { status: 400 },
         );
+      }
+
+      const existing = await prisma.transaction.findFirst({
+        where: { id, accountId: user.accountId, deleted: null },
+        select: { budgetId: true },
+      });
+      if (
+        existing &&
+        (await isBudgetWriteLocked(prisma, user.accountId, existing.budgetId))
+      ) {
+        return paymentRequired(BUDGET_LOCKED_REASON);
       }
 
       return await prisma.$transaction(async (tx) => {

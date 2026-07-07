@@ -13,6 +13,11 @@ import {
   deleteBudgetCategory,
   updateBudgetCategory,
 } from "@/lib/api-services/budgets";
+import {
+  BUDGET_LOCKED_REASON,
+  isBudgetWriteLocked,
+  paymentRequired,
+} from "@/lib/api-services/entitlements";
 
 export const PUT = withUser({
   PUT: withUserErrorHandling(
@@ -25,6 +30,10 @@ export const PUT = withUser({
       const budgetId = validateBudgetId(id);
       const categoryId = validateCategoryId(catId);
       await ensureBudgetOwnership(budgetId, user.accountId);
+
+      if (await isBudgetWriteLocked(prisma, user.accountId, budgetId)) {
+        return paymentRequired(BUDGET_LOCKED_REASON);
+      }
 
       const body = (await req.json()) as unknown;
       const validationResult = updateBudgetCategorySchema.safeParse(body);
@@ -65,6 +74,10 @@ export const DELETE = withUser({
       const budgetId = validateBudgetId(id);
       const categoryId = validateCategoryId(catId);
       await ensureBudgetOwnership(budgetId, user.accountId);
+
+      if (await isBudgetWriteLocked(prisma, user.accountId, budgetId)) {
+        return paymentRequired(BUDGET_LOCKED_REASON);
+      }
 
       return await prisma.$transaction(async (tx) => {
         const budgetCategory = await deleteBudgetCategory(
