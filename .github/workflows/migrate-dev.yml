@@ -1,0 +1,40 @@
+name: Migrate Dev DB
+
+# Applies pending Prisma migrations to the dev database on pushes to the
+# dev branch. Uses the repo-level DATABASE_URL secret (dev Neon URL); the
+# production workflow overrides it with the Production environment secret.
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "prisma/migrations/**"
+      - "prisma/schema.prisma"
+  workflow_dispatch:
+
+# Never let two migration runs race against the same database.
+concurrency:
+  group: migrate-dev
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply pending migrations
+        run: pnpm db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
