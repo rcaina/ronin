@@ -16,14 +16,15 @@ Brand tokens live in `tailwind.config.ts` (single source of truth; mirrored as C
 vars in `src/styles/globals.css`). The scheme is fixed — black ink, gold, cream —
 but use the scale variants freely.
 
-| Token | Base | Use |
-|---|---|---|
-| `primary` | `#0e0e10` | Nav shell, dark surfaces, headings (`primary-800/900` for softer darks) |
+| Token       | Base      | Use                                                                               |
+| ----------- | --------- | --------------------------------------------------------------------------------- |
+| `primary`   | `#0e0e10` | Nav shell, dark surfaces, headings (`primary-800/900` for softer darks)           |
 | `secondary` | `#b9a15e` | Primary actions, active states, progress, brand accents. Scale `secondary-50…950` |
-| `accent` | `#fce5a0` | Highlights, hover washes, badges. Scale `accent-50…500` |
-| `surface` | `#f7f7f5` | Page background (`surface`), wells (`surface-muted`), cards (`white`) |
+| `accent`    | `#fce5a0` | Highlights, hover washes, badges. Scale `accent-50…500`                           |
+| `surface`   | `#f7f7f5` | Page background (`surface`), wells (`surface-muted`), cards (`white`)             |
 
 Rules:
+
 - Page background is `bg-surface` (warm off-white), never `bg-gray-50`.
 - Tint washes use alpha variants: `bg-secondary/10`, `hover:bg-secondary/15`.
 - Semantic status only: green = under budget / positive, red = over budget / destructive,
@@ -77,7 +78,7 @@ All theme values come from `components/recharts/theme.tsx`:
   (Needs/Wants/Investment): `GROUP_COLORS`. Status: `STATUS_COLORS`.
 - Axes: spread `chartAxisProps`; grid: `chartGridProps` (horizontal lines only).
 - Tooltips: `contentStyle={chartTooltipStyle}` + `labelStyle={chartTooltipLabelStyle}`
-  + `itemStyle={chartTooltipItemStyle}` — dark rounded tooltip, no default white box.
+  - `itemStyle={chartTooltipItemStyle}` — dark rounded tooltip, no default white box.
 - Empty data: render `<ChartEmptyState icon={...} message="..." />`, never a bare div.
 - Prefer **AreaChart with a soft gradient fill** over LineChart for trends; donut
   (`innerRadius`) over solid pie; rounded bar corners `radius={[6, 6, 0, 0]}`.
@@ -97,7 +98,15 @@ All theme values come from `components/recharts/theme.tsx`:
 - **Progress bars**: track `bg-gray-100 rounded-full h-2`, fill colored by status
   (gold in-progress, green complete, red over).
 - **Modals**: backdrop `bg-primary-950/40 backdrop-blur-sm`, panel `rounded-2xl
-  shadow-lifted animate-scale-in`.
+shadow-lifted animate-scale-in`.
+- **Toggle rows** (on/off preferences, e.g. Settings → Features): a row with
+  label + one-line description on the left, a pill switch on the right —
+  `role="switch"` `aria-checked`, track `h-7 w-12 rounded-full`, `bg-secondary`
+  when on / `bg-gray-200` when off, white thumb `h-5 w-5 rounded-full
+shadow-soft` translating via `translate-x-6` / `translate-x-1`. Disabled
+  rows (e.g. non-admin viewers) drop to `opacity-50 cursor-not-allowed` and
+  pair with a one-line helper explaining who can change it. Stack rows in a
+  `card-surface` with `divide-y divide-gray-200/70`.
 
 ## 8. Voice & content
 
@@ -114,3 +123,26 @@ All theme values come from `components/recharts/theme.tsx`:
 5. Check at 375 px: touch targets, bottom-nav clearance (`pb-24 lg:pb-8`), no
    hover-only actions.
 6. Run `pnpm check` (lint + typecheck) before committing.
+
+## 10. Notifications (bell + panel)
+
+Introduced with in-app/push notifications (Feature 5). Reuse this pattern for
+any future alert/inbox UI rather than inventing another one.
+
+- **Bell button**: `components/notifications/NotificationBell.tsx` — a 44px
+  icon button (`Bell` from lucide-react) with an unread-count badge
+  (`bg-secondary`, `text-primary-950`, pill, top-right of the icon, "9+" once
+  it clips). Lives in the dark `SideNav` header row (`variant="dark"`) and the
+  light `MobileHeader` action row (`variant="light"`, default) — both gated on
+  the account's `notifications` feature toggle being on.
+- **Panel**: `components/notifications/NotificationPanel.tsx` — the standard
+  `Modal` in `sheet` variant (bottom sheet on mobile, centered dialog at
+  `sm:` and up), titled "Notifications", with a "Mark all as read" button in
+  the footer when there's anything unread. Rows: a `bg-secondary` unread dot,
+  title (`text-sm font-medium`), body (`text-xs text-gray-500`, 2-line clamp),
+  relative timestamp (`text-xs text-gray-400`). Clicking a row marks it read
+  and navigates to its target (see `notificationLink.ts`); empty state
+  follows the standard icon-in-a-circle + headline + helper text pattern.
+- **Settings toggles**: per-trigger and push on/off rows use the shared
+  `components/settings/ToggleRow.tsx` (extracted from the Features tab) — the
+  same switch described in §7 "Toggle rows", never a bespoke checkbox.

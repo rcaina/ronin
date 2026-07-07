@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { X, Check, Info, Plus, Trash2 } from "lucide-react";
+import { X, Check, Info, Plus, Trash2, Repeat } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   useCreateTransaction,
@@ -14,6 +14,10 @@ import { useBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategorie
 import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
+import { useBillingStatus } from "@/lib/data-hooks/billing/useBilling";
+import { useCreateRecurringTransaction } from "@/lib/data-hooks/recurring/useRecurring";
+import { runRecurringCatchUp } from "@/lib/data-hooks/services/recurring";
+import { useQueryClient } from "@tanstack/react-query";
 import type {
   CreateTransactionRequest,
   UpdateTransactionRequest,
@@ -22,12 +26,35 @@ import type {
 import type { Card } from "@/lib/types/card";
 import Button from "../Button";
 import DateInput from "../DateInput";
+import UpgradeModal from "../UpgradeModal";
 import { formatCurrency, roundToCents } from "@/lib/utils";
 import {
   isDebitCard as isDebitCardType,
   oldestDebitCard,
 } from "@/lib/utils/cards";
-import { CardType, TransactionType } from "@prisma/client";
+import { CardType, PeriodType, TransactionType } from "@prisma/client";
+import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
+
+// Mirrors the server-side reason string from `canSplitTransactions` in
+// `lib/utils/entitlements.ts`, shown when a free user tries to enable split
+// mode client-side (a real 402 with the same message is caught as a safety
+// net on submit — see `onSubmit`).
+const SPLIT_UPGRADE_REASON =
+  "Splitting a transaction across categories is a Premium feature. Upgrade to Premium to split transactions.";
+
+// Mirrors the server-side reason string from `canCreateRecurring` in
+// `lib/utils/entitlements.ts`.
+const RECURRING_UPGRADE_REASON =
+  "Recurring transactions are a Premium feature. Upgrade to Premium to automate repeating transactions.";
+
+const FREQUENCY_LABELS: Record<PeriodType, string> = {
+  DAILY: "Daily",
+  WEEKLY: "Weekly",
+  MONTHLY: "Monthly",
+  QUARTERLY: "Quarterly",
+  YEARLY: "Yearly",
+  ONE_TIME: "One time",
+};
 
 // A single row in the split editor. Kept as free-form string state (like the
 // rest of this form's amount input) rather than react-hook-form fields, since
@@ -88,8 +115,13 @@ export default function TransactionForm({
     useCreateTransaction();
   const { mutate: updateTransaction, isPending: isUpdating } =
     useUpdateTransaction();
+  const { mutate: createRecurringTransaction, isPending: isCreatingRecurring } =
+    useCreateRecurringTransaction();
+  const queryClient = useQueryClient();
   const { data: budgets = [] } = useBudgets();
   const { data: cards = [] } = useCards(undefined, budgetId);
+  const { data: billingStatus } = useBillingStatus();
+  const isPremium = billingStatus?.isPremium ?? false;
 
   // Income transactions can only be deposited to a debit-type card.
   const debitCards = useMemo(() => cards.filter(isDebitCardType), [cards]);
@@ -99,11 +131,33 @@ export default function TransactionForm({
   const [selectedBudgetId, setSelectedBudgetId] = useState<string>("");
   const { data: budgetCategories = [] } = useBudgetCategories(selectedBudgetId);
   const isEditing = !!transaction;
-  const isPending = isCreating || isUpdating;
+  const isPending = isCreating || isUpdating || isCreatingRecurring;
 
   // Split-across-categories editing state.
   const [isSplitMode, setIsSplitMode] = useState(false);
   const [splitRows, setSplitRows] = useState<SplitRowState[]>([]);
+  // Paywall shown when a free user tries to enable split mode, or (as a
+  // safety net) if a split payload somehow reaches the server anyway.
+  const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
+
+  // "Make recurring" — creates a RecurringTransaction template instead of a
+  // one-off Transaction (see lib/api-services/recurring.ts). Only offered
+  // when creating (not editing) and outside split mode, since templates
+  // don't support splits.
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringFrequency, setRecurringFrequency] = useState<PeriodType>(
+    PeriodType.MONTHLY,
+  );
+  const [recurringEndAt, setRecurringEndAt] = useState("");
+  const canMakeRecurring = !isEditing && !isSplitMode;
+
+  const handleToggleRecurring = (checked: boolean) => {
+    if (checked && !isPremium) {
+      setUpgradeReason(RECURRING_UPGRADE_REASON);
+      return;
+    }
+    setIsRecurring(checked);
+  };
 
   // Track if we've already shown the success toast for the current mutation
   const hasShownSuccessToastRef = useRef(false);
@@ -209,7 +263,19 @@ export default function TransactionForm({
     }
   }, [canSplit, isSplitMode]);
 
+  // "Make recurring" is only offered while creating (not editing) and
+  // outside split mode — turn it off if either becomes true mid-edit.
+  useEffect(() => {
+    if (!canMakeRecurring && isRecurring) {
+      setIsRecurring(false);
+    }
+  }, [canMakeRecurring, isRecurring]);
+
   const handleToggleSplitMode = (checked: boolean) => {
+    if (checked && !isPremium) {
+      setUpgradeReason(SPLIT_UPGRADE_REASON);
+      return;
+    }
     setIsSplitMode(checked);
     if (checked) {
       setSplitRows((rows) => {
@@ -290,6 +356,72 @@ export default function TransactionForm({
   ]);
 
   const onSubmit = (data: TransactionFormData) => {
+    // "Make recurring" creates a RecurringTransaction template instead of a
+    // one-off Transaction — the budget doesn't apply (occurrences resolve
+    // their own budget by date at post time), but everything else about the
+    // entered transaction carries over as the template.
+    if (canMakeRecurring && isRecurring) {
+      createRecurringTransaction(
+        {
+          name: data.name ?? undefined,
+          description: data.description ?? undefined,
+          amount: Math.abs(parseFloat(data.amount)),
+          categoryId:
+            data.categoryId && data.categoryId.trim() !== ""
+              ? data.categoryId
+              : undefined,
+          cardId: data.cardId ?? undefined,
+          transactionType: data.transactionType,
+          frequency: recurringFrequency,
+          nextRunAt: (data.occurredAt
+            ? new Date(data.occurredAt)
+            : new Date()
+          ).toISOString(),
+          endAt: recurringEndAt
+            ? new Date(recurringEndAt).toISOString()
+            : undefined,
+        },
+        {
+          onSuccess: () => {
+            toast.success("Recurring transaction created!");
+            // Post the first occurrence right away if it's already due
+            // (e.g. start date is today or in the past) — otherwise the
+            // user would have to wait for the next cron/catch-up run to see
+            // anything in their transaction list.
+            runRecurringCatchUp()
+              .then((result) => {
+                if (result.posted > 0) {
+                  void queryClient.invalidateQueries({
+                    queryKey: ["transactions"],
+                  });
+                  void queryClient.invalidateQueries({
+                    queryKey: ["allTransactions"],
+                  });
+                  void queryClient.invalidateQueries({ queryKey: ["budget"] });
+                  void queryClient.invalidateQueries({ queryKey: ["budgets"] });
+                }
+              })
+              .catch((error: unknown) => {
+                console.error("Recurring catch-up failed:", error);
+              });
+            onSuccess?.();
+            onClose();
+          },
+          onError: (error: unknown) => {
+            if (error instanceof UpgradeRequiredError) {
+              setUpgradeReason(error.message);
+              return;
+            }
+            console.error("Failed to create recurring transaction:", error);
+            toast.error(
+              "Failed to create recurring transaction. Please try again.",
+            );
+          },
+        },
+      );
+      return;
+    }
+
     // When split mode is on and valid, build the splits payload and omit
     // categoryId entirely (the server clears/ignores it when splits are
     // present — see lib/api-schemas/transactions.ts).
@@ -328,6 +460,10 @@ export default function TransactionForm({
             onClose();
           },
           onError: (error: unknown) => {
+            if (error instanceof UpgradeRequiredError) {
+              setUpgradeReason(error.message);
+              return;
+            }
             console.error("Failed to update transaction:", error);
             toast.error("Failed to update transaction. Please try again.");
           },
@@ -378,6 +514,10 @@ export default function TransactionForm({
           onSuccess?.();
         },
         onError: (error: unknown) => {
+          if (error instanceof UpgradeRequiredError) {
+            setUpgradeReason(error.message);
+            return;
+          }
           console.error("Failed to create transaction:", error);
           toast.error("Failed to create transaction. Please try again.");
         },
@@ -547,27 +687,59 @@ export default function TransactionForm({
                     </div>
                   )}
                 </label>
-                {canSplit && (
-                  <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-xs font-medium text-gray-600">
-                    <span className="hidden sm:inline">
-                      Split across categories
-                    </span>
-                    <span className="sm:hidden">Split</span>
-                    <span className="relative inline-flex h-6 w-11 flex-shrink-0 items-center">
-                      <input
-                        type="checkbox"
-                        checked={isSplitMode}
-                        onChange={(e) =>
-                          handleToggleSplitMode(e.target.checked)
-                        }
-                        disabled={isPending}
-                        className="peer sr-only"
-                      />
-                      <span className="absolute inset-0 rounded-full bg-gray-200 transition-colors duration-200 peer-checked:bg-secondary" />
-                      <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white shadow-soft transition-transform duration-200 peer-checked:translate-x-5" />
-                    </span>
-                  </label>
-                )}
+                {canSplit &&
+                  (isPremium ? (
+                    <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-xs font-medium text-gray-600">
+                      <span className="hidden sm:inline">
+                        Split across categories
+                      </span>
+                      <span className="sm:hidden">Split</span>
+                      <span className="relative inline-flex h-6 w-11 flex-shrink-0 items-center">
+                        <input
+                          type="checkbox"
+                          checked={isSplitMode}
+                          onChange={(e) =>
+                            handleToggleSplitMode(e.target.checked)
+                          }
+                          disabled={isPending}
+                          className="peer sr-only"
+                        />
+                        <span className="absolute inset-0 rounded-full bg-gray-200 transition-colors duration-200 peer-checked:bg-secondary" />
+                        <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white shadow-soft transition-transform duration-200 peer-checked:translate-x-5" />
+                      </span>
+                    </label>
+                  ) : (
+                    // Free tier: the switch is genuinely disabled (AT announces
+                    // its disabled state honestly), and the upgrade action lives
+                    // on a separate, clearly-labelled button so activating it is
+                    // never a silent no-op.
+                    <div className="flex min-h-[44px] items-center gap-2 text-xs font-medium text-gray-600">
+                      <span className="hidden sm:inline">
+                        Split across categories
+                      </span>
+                      <span className="sm:hidden">Split</span>
+                      <button
+                        type="button"
+                        onClick={() => setUpgradeReason(SPLIT_UPGRADE_REASON)}
+                        aria-label="Upgrade to Premium to split transactions"
+                        className="inline-flex items-center rounded-full bg-secondary-100 px-2.5 py-0.5 text-xs font-medium text-secondary-700 transition-colors hover:bg-secondary-200"
+                      >
+                        Premium
+                      </button>
+                      <span className="relative inline-flex h-6 w-11 flex-shrink-0 items-center opacity-50">
+                        <input
+                          type="checkbox"
+                          checked={false}
+                          disabled
+                          readOnly
+                          aria-label="Split across categories"
+                          className="peer sr-only"
+                        />
+                        <span className="absolute inset-0 rounded-full bg-gray-200" />
+                        <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white shadow-soft" />
+                      </span>
+                    </div>
+                  ))}
               </div>
 
               {isSplitMode ? (
@@ -819,6 +991,82 @@ export default function TransactionForm({
           </div>
         </div>
 
+        {/* Make recurring — creates a RecurringTransaction template instead
+            of a one-off transaction. Only offered when creating (not
+            editing) and outside split mode (see canMakeRecurring). */}
+        {canMakeRecurring && (
+          <div className="rounded-xl border border-gray-200 bg-surface p-3">
+            <div className="flex items-center justify-between gap-2">
+              <label className="flex min-h-[44px] flex-1 cursor-pointer items-center gap-2 text-sm font-medium text-gray-700">
+                <Repeat className="h-4 w-4 text-gray-500" />
+                <span>Make this a recurring transaction</span>
+              </label>
+              {isPremium ? (
+                <span className="relative inline-flex h-6 w-11 flex-shrink-0 items-center">
+                  <input
+                    type="checkbox"
+                    checked={isRecurring}
+                    onChange={(e) => handleToggleRecurring(e.target.checked)}
+                    disabled={isPending}
+                    aria-label="Make this a recurring transaction"
+                    className="peer sr-only"
+                  />
+                  <span className="absolute inset-0 rounded-full bg-gray-200 transition-colors duration-200 peer-checked:bg-secondary" />
+                  <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white shadow-soft transition-transform duration-200 peer-checked:translate-x-5" />
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setUpgradeReason(RECURRING_UPGRADE_REASON)}
+                  aria-label="Upgrade to Premium to create recurring transactions"
+                  className="inline-flex items-center rounded-full bg-secondary-100 px-2.5 py-0.5 text-xs font-medium text-secondary-700 transition-colors hover:bg-secondary-200"
+                >
+                  Premium
+                </button>
+              )}
+            </div>
+
+            {isRecurring && (
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                    Frequency
+                  </label>
+                  <select
+                    value={recurringFrequency}
+                    onChange={(e) =>
+                      setRecurringFrequency(e.target.value as PeriodType)
+                    }
+                    disabled={isPending}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                  >
+                    {Object.values(PeriodType).map((period) => (
+                      <option key={period} value={period}>
+                        {FREQUENCY_LABELS[period]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                    Ends on (optional)
+                  </label>
+                  <DateInput
+                    value={recurringEndAt}
+                    onChange={(e) => setRecurringEndAt(e.target.value)}
+                    disabled={isPending}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 sm:col-span-2">
+                  The first occurrence posts using the &quot;Occurred At&quot;
+                  date above (or today, if left blank). Future occurrences post
+                  automatically into whichever budget covers their date.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex justify-end space-x-3 border-t border-gray-200 pt-4">
           <Button onClick={onClose} disabled={isPending} variant="outline">
@@ -831,10 +1079,21 @@ export default function TransactionForm({
             isLoading={isPending}
           >
             <Check className="mr-2 h-4 w-4" />
-            {isEditing ? "Update Transaction" : "Add Transaction"}
+            {isRecurring && canMakeRecurring
+              ? "Create recurring transaction"
+              : isEditing
+                ? "Update Transaction"
+                : "Add Transaction"}
           </Button>
         </div>
       </form>
+
+      {/* Upgrade paywall (free tier can't split a transaction across categories) */}
+      <UpgradeModal
+        isOpen={upgradeReason !== null}
+        onClose={() => setUpgradeReason(null)}
+        reason={upgradeReason ?? undefined}
+      />
     </div>
   );
 }

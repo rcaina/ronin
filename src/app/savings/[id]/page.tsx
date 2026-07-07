@@ -9,6 +9,8 @@ import StatsCard from "@/components/StatsCard";
 import PocketCard from "@/components/savings/PocketCard";
 import AddPocketModal from "@/components/savings/AddPocketModal";
 import Button from "@/components/Button";
+import UpgradeModal from "@/components/UpgradeModal";
+import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
 import { toast } from "react-hot-toast";
 import type { CreatePocketSchema } from "@/lib/api-schemas/savings";
 import { AlertCircle, PiggyBank, Target, DollarSign, Plus } from "lucide-react";
@@ -34,6 +36,7 @@ const SavingsCategoriesPage = () => {
     refetch,
   } = useSavingsAccount(savingsId);
   const [isAddingPocket, setIsAddingPocket] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
   const createPocketMutation = useCreatePocket();
 
   const handleSubmitAddPocket = async (data: CreatePocketSchema) => {
@@ -43,6 +46,11 @@ const SavingsCategoriesPage = () => {
       toast.success("Pocket added successfully!");
       void refetch();
     } catch (error) {
+      if (error instanceof UpgradeRequiredError) {
+        setIsAddingPocket(false);
+        setUpgradeReason(error.message);
+        return;
+      }
       console.error("Failed to add pocket:", error);
       toast.error("Failed to add pocket. Please try again.");
     }
@@ -357,6 +365,11 @@ const SavingsCategoriesPage = () => {
                   key={pocket.id}
                   pocket={pocket}
                   savingsId={savingsId}
+                  onLocked={() =>
+                    setUpgradeReason(
+                      "This pocket is locked. Upgrade to Premium to access it.",
+                    )
+                  }
                 />
               ))}
             </div>
@@ -387,6 +400,13 @@ const SavingsCategoriesPage = () => {
         onSubmit={handleSubmitAddPocket}
         isLoading={createPocketMutation.isPending}
         savingsId={savingsId}
+      />
+
+      {/* Upgrade paywall (free tier is limited to 3 savings pockets) */}
+      <UpgradeModal
+        isOpen={upgradeReason !== null}
+        onClose={() => setUpgradeReason(null)}
+        reason={upgradeReason ?? undefined}
       />
     </div>
   );

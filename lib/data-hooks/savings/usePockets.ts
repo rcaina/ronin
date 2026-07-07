@@ -10,6 +10,7 @@ import type { PocketSummary, UpdatePocketData } from "@/lib/types/savings";
 import type { CreatePocketSchema } from "@/lib/api-schemas/savings";
 import { getPockets, addPocket } from "../services/pockets";
 import { savingsKey } from "./useSavings";
+import { parseErrorResponse } from "../services/http";
 
 export const pocketsKey = ["savings", "pockets"] as const;
 export const pocketsKeyBySavings = (savingsId?: string) =>
@@ -76,7 +77,7 @@ const updatePocket = async (pocketId: string, data: UpdatePocketData) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Failed to update pocket");
+  if (!res.ok) await parseErrorResponse(res);
   return (await res.json()) as PocketSummary;
 };
 

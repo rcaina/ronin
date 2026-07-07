@@ -6,6 +6,11 @@ import { type NextRequest, NextResponse } from "next/server";
 import { importBudgetCardsSchema } from "@/lib/api-schemas/budget-cards";
 import { ensureBudgetOwnership, validateBudgetId } from "@/lib/utils/auth";
 import { importBudgetCards } from "@/lib/api-services/budgets";
+import {
+  BUDGET_LOCKED_REASON,
+  isBudgetWriteLocked,
+  paymentRequired,
+} from "@/lib/api-services/entitlements";
 
 export const POST = withUser({
   POST: withUserErrorHandling(
@@ -17,6 +22,10 @@ export const POST = withUser({
       const { id } = await context.params;
       const budgetId = validateBudgetId(id);
       await ensureBudgetOwnership(budgetId, user.accountId);
+
+      if (await isBudgetWriteLocked(prisma, user.accountId, budgetId)) {
+        return paymentRequired(BUDGET_LOCKED_REASON);
+      }
 
       const body = (await req.json()) as unknown;
       const validationResult = importBudgetCardsSchema.safeParse(body);

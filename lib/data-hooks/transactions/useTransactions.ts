@@ -12,6 +12,8 @@ import {
   updateTransaction,
   deleteTransaction,
   createCardPayment,
+  previewImportTransactions,
+  commitImportTransactions,
 } from "../services/transactions";
 import type {
   CreateTransactionRequest,
@@ -19,6 +21,7 @@ import type {
   TransactionWithRelations,
 } from "@/lib/types/transaction";
 import type { CreateCardPaymentSchema } from "@/lib/api-schemas/transactions";
+import type { RawImportRow } from "@/lib/utils/transaction-import";
 
 export const useTransactions = (page = 1, limit = 20) => {
   const { data: session } = useSession();
@@ -134,6 +137,51 @@ export const useCreateTransactionsBatch = () => {
         });
         void queryClient.invalidateQueries({ queryKey: ["cards", cardId] });
       });
+    },
+  });
+};
+
+// Dry-run: validate/annotate mapped CSV rows without persisting. Read-only,
+// so no cache invalidation.
+export const useImportTransactionsPreview = () => {
+  return useMutation({
+    mutationFn: ({
+      budgetId,
+      rows,
+    }: {
+      budgetId: string;
+      rows: RawImportRow[];
+    }) => previewImportTransactions(budgetId, rows),
+  });
+};
+
+// Commit an import into a budget; invalidates the same keys the batch-create
+// hook does so the transactions list, budget, and card views all refresh.
+export const useImportTransactions = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      budgetId,
+      rows,
+    }: {
+      budgetId: string;
+      rows: RawImportRow[];
+    }) => commitImportTransactions(budgetId, rows),
+    onSuccess: (_, { budgetId }) => {
+      void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      void queryClient.invalidateQueries({ queryKey: ["allTransactions"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["budgetTransactions", budgetId],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
+      void queryClient.invalidateQueries({
+        queryKey: ["budgetCategories", budgetId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["budgetCards", budgetId],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["cards"] });
     },
   });
 };

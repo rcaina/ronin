@@ -5,6 +5,7 @@ import type {
   CreateBudgetWithCardsData,
 } from "@/lib/types/budget";
 import type { BudgetStatus } from "@prisma/client";
+import { parseErrorResponse } from "./http";
 
 export const getBudgets = async (
   status?: BudgetStatus,
@@ -99,9 +100,7 @@ export const reactivateBudget = async (id: string): Promise<void> => {
     method: "POST",
   });
 
-  if (!response.ok) {
-    throw new Error(`Failed to reactivate budget: ${response.statusText}`);
-  }
+  if (!response.ok) return parseErrorResponse(response);
 };
 
 export const createBudget = async (
@@ -115,9 +114,7 @@ export const createBudget = async (
     body: JSON.stringify(data),
   });
 
-  if (!response.ok) {
-    throw new Error(`Failed to create budget: ${response.statusText}`);
-  }
+  if (!response.ok) return parseErrorResponse(response);
 
   return (await response.json()) as {
     message: string;
@@ -142,9 +139,7 @@ export const createBudgetFromScratchWithCards = async (
     body: JSON.stringify(data),
   });
 
-  if (!response.ok) {
-    throw new Error(`Failed to create budget: ${response.statusText}`);
-  }
+  if (!response.ok) return parseErrorResponse(response);
 
   return (await response.json()) as {
     message: string;
@@ -172,9 +167,7 @@ export const duplicateBudgetWithCards = async (
     body: JSON.stringify(data),
   });
 
-  if (!response.ok) {
-    throw new Error(`Failed to duplicate budget: ${response.statusText}`);
-  }
+  if (!response.ok) return parseErrorResponse(response);
 
   return (await response.json()) as {
     message: string;
@@ -195,9 +188,7 @@ export const duplicateBudget = async (
     },
   });
 
-  if (!response.ok) {
-    throw new Error(`Failed to duplicate budget: ${response.statusText}`);
-  }
+  if (!response.ok) return parseErrorResponse(response);
 
   return (await response.json()) as {
     message: string;

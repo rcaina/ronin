@@ -84,6 +84,14 @@ const config: Config = {
           muted: "rgb(var(--surface-muted) / <alpha-value>)",
           card: "rgb(var(--surface-card) / <alpha-value>)",
         },
+        // Danger surface — CSS-variable backed so red/destructive panels flip
+        // with the `.dark` class instead of staying light (see globals.css).
+        danger: {
+          surface: "rgb(var(--danger-surface) / <alpha-value>)",
+          border: "rgb(var(--danger-border) / <alpha-value>)",
+          icon: "rgb(var(--danger-icon) / <alpha-value>)",
+          "icon-bg": "rgb(var(--danger-icon-bg) / <alpha-value>)",
+        },
         // Neutral ramp — CSS-variable backed and inverted in dark mode so existing
         // `text-gray-900` / `bg-gray-100` / `border-gray-300` usage adapts for free.
         gray: {

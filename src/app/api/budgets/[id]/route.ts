@@ -10,6 +10,11 @@ import { updateBudgetSchema } from "@/lib/api-schemas/budgets";
 import type { User } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 import { ensureBudgetOwnership, validateBudgetId } from "@/lib/utils/auth";
+import {
+  BUDGET_LOCKED_REASON,
+  isBudgetWriteLocked,
+  paymentRequired,
+} from "@/lib/api-services/entitlements";
 
 export const GET = withUser({
   GET: withUserErrorHandling(
@@ -41,6 +46,10 @@ export const PUT = withUser({
       const { id } = await context.params;
       const budgetId = validateBudgetId(id);
       await ensureBudgetOwnership(budgetId, user.accountId);
+
+      if (await isBudgetWriteLocked(prisma, user.accountId, budgetId)) {
+        return paymentRequired(BUDGET_LOCKED_REASON);
+      }
 
       const body = (await req.json()) as unknown;
       const validationResult = updateBudgetSchema.safeParse(body);

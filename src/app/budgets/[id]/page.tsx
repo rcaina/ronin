@@ -26,6 +26,7 @@ import SwipeableRow from "@/components/SwipeableRow";
 import { useState, useEffect } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 import BudgetStrategyIndicator from "@/components/budgets/BudgetStrategyIndicator";
+import LockedBudgetGate from "./LockedBudgetGate";
 import { TransactionType, type Transaction } from "@prisma/client";
 import { formatDateUTC, roundToCents, getGroupColor } from "@/lib/utils";
 import { isDebitCard } from "@/lib/utils/cards";
@@ -103,8 +104,13 @@ const BudgetDetailsPage = () => {
   const { setMobileHeaderAction } = useMobileHeaderAction();
   const deleteTransactionMutation = useDeleteTransaction();
 
-  // Register header actions
+  // Register header actions. Locked budgets are hard-blocked (the page renders
+  // only the LockedBudgetGate), so we drop every header action.
   useEffect(() => {
+    if (budget?.locked) {
+      setActions([]);
+      return;
+    }
     setActions([
       {
         icon: <Plus className="h-4 w-4" />,
@@ -125,18 +131,23 @@ const BudgetDetailsPage = () => {
         variant: "secondary" as const,
       },
     ]);
-  }, [setActions]);
+  }, [setActions, budget?.locked]);
 
   // Register the mobile header's scan-receipt shortcut; clean up on unmount
-  // so it doesn't leak into other pages.
+  // so it doesn't leak into other pages. Suppressed while locked (the budget
+  // is hard-blocked behind the gate).
   useEffect(() => {
+    if (budget?.locked) {
+      setMobileHeaderAction(null);
+      return;
+    }
     setMobileHeaderAction({
       icon: <ScanLine className="h-5 w-5" />,
       label: "Scan receipt",
       onClick: () => setIsReceiptScanOpen(true),
     });
     return () => setMobileHeaderAction(null);
-  }, [setMobileHeaderAction]);
+  }, [setMobileHeaderAction, budget?.locked]);
 
   // Per-budget statistics (totals + chart data), computed from shared utils
   const {
@@ -217,6 +228,13 @@ const BudgetDetailsPage = () => {
         </div>
       </div>
     );
+  }
+
+  // Locked budgets (downgraded past the free active-budget limit) are
+  // hard-blocked: render ONLY the upgrade gate, never any budget content or
+  // mutating controls. Reaching here via direct URL/deep link still gates.
+  if (budget.locked) {
+    return <LockedBudgetGate />;
   }
 
   // Get budget status display

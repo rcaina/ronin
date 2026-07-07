@@ -5,9 +5,11 @@ import { X, UserIcon, Eye, EyeOff } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useCreateUser } from "@/lib/data-hooks/useCreateUser";
 import { useLockBodyScroll } from "@/lib/utils/hooks";
+import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
 import type { CreateUserRequest } from "@/lib/types/user";
 import { Role, type User as PrismaUser } from "@prisma/client";
 import Button from "./Button";
+import UpgradeModal from "./UpgradeModal";
 
 interface CreatedUser {
   user: PrismaUser & {
@@ -23,6 +25,7 @@ interface CreateUserModalProps {
 const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
   const [createdUser, setCreatedUser] = useState<CreatedUser | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
 
   const {
     createUser,
@@ -56,6 +59,11 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
       onClose();
       toast.success("User created successfully!");
     } catch (error) {
+      if (error instanceof UpgradeRequiredError) {
+        resetError();
+        setUpgradeReason(error.message);
+        return;
+      }
       // Error is handled by the hook
       console.error("Error creating user:", error);
       toast.error("Failed to create user. Please try again.");
@@ -254,6 +262,13 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
           </div>
         </div>
       )}
+
+      {/* Upgrade paywall (free tier is limited to one account member) */}
+      <UpgradeModal
+        isOpen={upgradeReason !== null}
+        onClose={() => setUpgradeReason(null)}
+        reason={upgradeReason ?? undefined}
+      />
     </>
   );
 };

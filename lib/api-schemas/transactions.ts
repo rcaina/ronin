@@ -145,3 +145,30 @@ export type CreateCardPaymentSchema = z.infer<typeof createCardPaymentSchema>;
 export type CreateTransactionsBatchSchema = z.infer<
   typeof createTransactionsBatchSchema
 >;
+
+// A single mapped CSV row sent to the import endpoint. All values arrive as
+// raw strings; parsing/validation happens server-side via
+// `lib/utils/transaction-import.ts` (mirrored client-side for the preview).
+export const importTransactionRowSchema = z.object({
+  date: z.string().default(""),
+  name: z.string().default(""),
+  amount: z.string().default(""),
+  category: z.string().default(""),
+  card: z.string().default(""),
+  type: z.string().default(""),
+});
+
+// CSV import request: which budget the rows post into, the mapped rows, and
+// whether to actually persist (`commit`) or just return a validated preview.
+export const importTransactionsSchema = z.object({
+  budgetId: z.string().min(1, "Budget is required"),
+  rows: z
+    .array(importTransactionRowSchema)
+    .min(1, "At least one row is required"),
+  commit: z.boolean().default(false),
+});
+
+export type ImportTransactionRowSchema = z.infer<
+  typeof importTransactionRowSchema
+>;
+export type ImportTransactionsSchema = z.infer<typeof importTransactionsSchema>;

@@ -17,7 +17,13 @@
       "Bash(pnpm db:push)",
       "Bash(pnpm db:generate)"
     ],
-    "deny": ["Read(./.env)", "Read(./.env.*)"]
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./.env.development*)",
+      "Read(./.env.production*)",
+      "Read(./.env.test*)"
+    ]
   },
   "hooks": {
     "PostToolUse": [

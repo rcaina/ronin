@@ -13,6 +13,7 @@ import {
   Plus,
   TrendingUp,
   CheckCircle,
+  Lock,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
@@ -29,6 +30,8 @@ import PageHeader from "@/components/PageHeader";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import CreateBudgetModal from "@/components/budgets/CreateBudgetModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import UpgradeModal from "@/components/UpgradeModal";
+import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
 import { CategoryType } from "@prisma/client";
 import Button from "@/components/Button";
 import { formatCurrency, roundToCents } from "@/lib/utils";
@@ -73,6 +76,7 @@ const BudgetsPage = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [budgetToDuplicate, setBudgetToDuplicate] =
     useState<BudgetWithRelations | null>(null);
+  const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
 
   // Data hooks for different budget statuses (excluding card payments for calculations)
   const { data: activeBudgetsData, isLoading: activeLoading } =
@@ -212,6 +216,10 @@ const BudgetsPage = () => {
       await reactivateMutation.mutateAsync(budget.id);
       toast.success("Budget reactivated!");
     } catch (err) {
+      if (err instanceof UpgradeRequiredError) {
+        setUpgradeReason(err.message);
+        return;
+      }
       toast.error("Failed to reactivate budget. Please try again.");
       console.error("Failed to reactivate budget:", err);
     }
@@ -596,11 +604,27 @@ const BudgetsPage = () => {
                             chip: budgetStatus.chip,
                           };
 
+                  // Locked active budgets (older budgets an over-limit free
+                  // account can no longer access after a downgrade) are
+                  // hard-blocked: clicking opens the upgrade paywall instead of
+                  // navigating, and the card reads as visibly blocked.
+                  const isLocked = activeTab === "active" && budget.locked;
+
                   return (
                     <div
                       key={budget.id}
-                      className="card-interactive cursor-pointer p-5 sm:p-6"
-                      onClick={() => router.push(`/budgets/${budget.id}`)}
+                      className={
+                        isLocked
+                          ? "card-surface cursor-not-allowed p-5 opacity-60 sm:p-6"
+                          : "card-interactive cursor-pointer p-5 sm:p-6"
+                      }
+                      onClick={() =>
+                        isLocked
+                          ? setUpgradeReason(
+                              "This budget is locked. Upgrade to Premium to access it.",
+                            )
+                          : router.push(`/budgets/${budget.id}`)
+                      }
                     >
                       <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-start">
                         <div className="flex-1">
@@ -613,6 +637,16 @@ const BudgetsPage = () => {
                             >
                               {statusChip.label}
                             </span>
+                            {/* Locked budgets (hard-blocked after a downgrade
+                              past the free active-budget limit) can't be
+                              opened — clicking the card opens the upgrade
+                              paywall instead. Flag them clearly here. */}
+                            {isLocked && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-secondary/15 px-2.5 py-0.5 text-xs font-medium text-secondary-700">
+                                <Lock className="h-3 w-3" />
+                                Locked
+                              </span>
+                            )}
                             {/* Action Icons */}
                             <div className="ml-auto flex items-center gap-0.5">
                               {activeTab === "active" && (
@@ -816,6 +850,13 @@ const BudgetsPage = () => {
         title="Delete Budget"
         message={`Are you sure you want to delete "${budgetToDelete?.name}"? This action cannot be undone.`}
         itemName={budgetToDelete?.name ?? ""}
+      />
+
+      {/* Upgrade paywall (free tier is limited to one active budget) */}
+      <UpgradeModal
+        isOpen={upgradeReason !== null}
+        onClose={() => setUpgradeReason(null)}
+        reason={upgradeReason ?? undefined}
       />
     </div>
   );

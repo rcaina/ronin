@@ -17,6 +17,9 @@ export interface PocketSummary {
   goalDate?: string | null;
   goalNote?: string | null;
   allocations?: AllocationSummary[];
+  // True when this pocket is read-only after a downgrade past the free-tier
+  // pocket limit (see lib/utils/entitlements.ts isPocketLocked).
+  locked: boolean;
 }
 
 export interface SavingsSummary {

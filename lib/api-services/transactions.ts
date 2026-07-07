@@ -9,6 +9,13 @@ import type {
 import type { PrismaClientTx } from "../prisma";
 import { HttpError } from "../errors";
 import { roundToCents } from "../utils";
+import { toIsoDateString } from "../utils/csv";
+import {
+  duplicateKey,
+  normalizeName,
+  type ImportRowContext,
+  type NamedRef,
+} from "../utils/transaction-import";
 
 // Every transaction we return includes its splits + each split's category
 // (with its default category), so callers never need a second fetch to
@@ -114,6 +121,133 @@ export const getTransactions = async (
     });
     return { transactions, totalCount: transactions.length };
   }
+};
+
+// Columns emitted by the CSV export, in order. Kept here (not in the route)
+// so the shape is unit-testable and the header/row builders stay aligned.
+export const EXPORT_COLUMNS = [
+  "Date",
+  "Name",
+  "Description",
+  "Amount",
+  "Type",
+  "Category",
+  "Card",
+  "Budget",
+] as const;
+
+/**
+ * Returns every (non-deleted) transaction for the account as ordered CSV
+ * field arrays plus the header row, ready to hand to `buildCsv`. Category and
+ * card NAMES are emitted (never ids); split transactions list their split
+ * categories joined by "; ". Dates are the ISO date of `occurredAt`
+ * (falling back to `createdAt`).
+ */
+export const getTransactionsForExport = async (
+  tx: PrismaClientTx,
+  accountId: string,
+): Promise<{ headers: string[]; rows: (string | number)[][] }> => {
+  const transactions = await tx.transaction.findMany({
+    where: { accountId, deleted: null },
+    include: {
+      category: { select: { name: true } },
+      card: { select: { name: true } },
+      Budget: { select: { name: true } },
+      splits: { include: { category: { select: { name: true } } } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const rows = transactions.map((t): (string | number)[] => {
+    const categoryLabel =
+      t.splits.length > 0
+        ? t.splits.map((s) => s.category.name).join("; ")
+        : (t.category?.name ?? "");
+
+    return [
+      toIsoDateString(t.occurredAt ?? t.createdAt),
+      t.name ?? "",
+      t.description ?? "",
+      t.amount,
+      t.transactionType,
+      categoryLabel,
+      t.card?.name ?? "",
+      t.Budget?.name ?? "",
+    ];
+  });
+
+  return { headers: [...EXPORT_COLUMNS], rows };
+};
+
+/**
+ * Loads everything the import preview/commit needs for a given budget:
+ * validates the budget belongs to the account (and is ACTIVE), then builds
+ * the case-insensitive category/card lookups and the set of existing
+ * (date+amount+name) keys used for duplicate detection.
+ */
+export const getImportContext = async (
+  tx: PrismaClientTx,
+  accountId: string,
+  budgetId: string,
+): Promise<{ budgetName: string; context: ImportRowContext }> => {
+  const budget = await tx.budget.findFirst({
+    where: { id: budgetId, accountId, deleted: null },
+    select: { id: true, name: true, status: true },
+  });
+
+  if (!budget) {
+    throw new HttpError("Budget not found", 404);
+  }
+  if (budget.status !== "ACTIVE") {
+    throw new HttpError(
+      "Transactions can only be imported into an active budget",
+      400,
+    );
+  }
+
+  const [categories, cards, existing] = await Promise.all([
+    tx.category.findMany({
+      where: { budgetId, deleted: null },
+      select: { id: true, name: true },
+    }),
+    tx.card.findMany({
+      where: { budgetId, deleted: null },
+      select: { id: true, name: true },
+    }),
+    tx.transaction.findMany({
+      where: { accountId, deleted: null },
+      select: {
+        name: true,
+        amount: true,
+        occurredAt: true,
+        createdAt: true,
+      },
+    }),
+  ]);
+
+  const categoriesByName = new Map<string, NamedRef>();
+  for (const c of categories) {
+    // First match wins so a budget's own category name is stable.
+    const key = normalizeName(c.name);
+    if (!categoriesByName.has(key)) categoriesByName.set(key, c);
+  }
+
+  const cardsByName = new Map<string, NamedRef>();
+  for (const c of cards) {
+    const key = normalizeName(c.name);
+    if (!cardsByName.has(key)) cardsByName.set(key, c);
+  }
+
+  const existingKeys = new Set<string>();
+  for (const t of existing) {
+    const iso = toIsoDateString(t.occurredAt ?? t.createdAt);
+    if (iso) existingKeys.add(duplicateKey(iso, t.amount, t.name ?? ""));
+  }
+
+  return {
+    budgetName: budget.name,
+    context: { categoriesByName, cardsByName, existingKeys },
+  };
 };
 
 export const createTransaction = async (

@@ -13,6 +13,7 @@ import type {
 } from "@/lib/api-schemas/savings";
 import { pocketsKey } from "./usePockets";
 import { savingsKey } from "./useSavings";
+import { parseErrorResponse } from "../services/http";
 
 export const pocketKey = (pocketId: string) =>
   [...pocketsKey, pocketId] as const;
@@ -39,7 +40,7 @@ const createAllocation = async (data: CreateAllocationSchema) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Failed to create allocation");
+  if (!res.ok) await parseErrorResponse(res);
   return (await res.json()) as AllocationSummary;
 };
 
@@ -67,7 +68,7 @@ const updateAllocation = async (
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Failed to update allocation");
+  if (!res.ok) await parseErrorResponse(res);
   return (await res.json()) as AllocationSummary;
 };
 
