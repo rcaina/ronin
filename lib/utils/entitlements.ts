@@ -32,6 +32,7 @@ export type CheckResult =
  * be clobbered by subscription sync.
  *
  * Otherwise premium requires `plan === "PREMIUM"` AND one of:
+ * - `subscriptionStatus === "TRIALING"` (full access during the free trial)
  * - `subscriptionStatus === "ACTIVE"`
  * - `subscriptionStatus === "PAST_DUE"` (grace period while dunning)
  * - `subscriptionStatus === "CANCELED"` AND `currentPeriodEnd` is still in
@@ -46,6 +47,7 @@ export const isPremium = (
   if (account.plan !== "PREMIUM") return false;
 
   switch (account.subscriptionStatus) {
+    case "TRIALING":
     case "ACTIVE":
     case "PAST_DUE":
       return true;

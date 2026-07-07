@@ -9,6 +9,7 @@ export interface BillingStatusResponse {
   plan: Plan;
   subscriptionStatus: SubscriptionStatus | null;
   currentPeriodEnd: string | null;
+  trialEnd: string | null;
   complimentaryAccess: boolean;
   isPremium: boolean;
 }

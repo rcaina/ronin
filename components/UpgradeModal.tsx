@@ -10,6 +10,7 @@ import Button from "./Button";
 import PricingToggle from "./billing/PricingToggle";
 import PremiumBenefitsList from "./billing/PremiumBenefitsList";
 import { useCheckout } from "@/lib/data-hooks/billing/useBilling";
+import { TRIAL_PERIOD_DAYS } from "@/lib/constants/billing";
 import type { BillingInterval } from "@/lib/data-hooks/services/billing";
 
 interface UpgradeModalProps {
@@ -76,8 +77,12 @@ export default function UpgradeModal({
             >
               {checkoutMutation.isPending
                 ? "Redirecting…"
-                : "Continue to checkout"}
+                : `Start ${TRIAL_PERIOD_DAYS}-day free trial`}
             </Button>
+            <p className="text-center text-xs text-gray-500">
+              No charge today. Your card will be billed after the trial. Cancel
+              anytime.
+            </p>
           </>
         ) : (
           <div className="rounded-xl bg-surface-muted p-3">

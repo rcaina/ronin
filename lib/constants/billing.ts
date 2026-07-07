@@ -1,5 +1,10 @@
 import type { BillingInterval } from "@/lib/data-hooks/services/billing";
 
+/** Length of the free trial granted on new Premium subscriptions. Single
+ * source of truth for both the Checkout Session (`trial_period_days`) and
+ * the "14-day free trial" copy on the upgrade CTAs. */
+export const TRIAL_PERIOD_DAYS = 14;
+
 /** Premium benefit copy shared between `UpgradeModal` and the settings
  * Billing tab's inline upgrade section — keep this the single source of
  * truth so the two surfaces can't drift. */

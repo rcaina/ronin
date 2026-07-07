@@ -38,6 +38,12 @@ describe("isPremium", () => {
     ).toBe(true);
   });
 
+  it("is true for PREMIUM + TRIALING (full access during trial)", () => {
+    expect(
+      isPremium(account({ plan: "PREMIUM", subscriptionStatus: "TRIALING" })),
+    ).toBe(true);
+  });
+
   it("is true for PREMIUM + PAST_DUE (dunning grace period)", () => {
     expect(
       isPremium(account({ plan: "PREMIUM", subscriptionStatus: "PAST_DUE" })),

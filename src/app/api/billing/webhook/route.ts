@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { env } from "@/env";
 import { getStripe } from "@/lib/stripe";
 import {
+  notifyTrialWillEnd,
   syncAccountFromCheckoutSession,
   syncAccountFromInvoicePaymentFailed,
   syncAccountFromSubscriptionDeleted,
@@ -54,6 +55,9 @@ export async function POST(req: Request): Promise<Response> {
         break;
       case "customer.subscription.deleted":
         await syncAccountFromSubscriptionDeleted(prisma, event.data.object);
+        break;
+      case "customer.subscription.trial_will_end":
+        notifyTrialWillEnd(event.data.object);
         break;
       case "invoice.payment_failed":
         await syncAccountFromInvoicePaymentFailed(prisma, event.data.object);

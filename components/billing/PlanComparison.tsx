@@ -4,7 +4,11 @@ import { Check, X, Sparkles, AlertTriangle } from "lucide-react";
 import { SubscriptionStatus } from "@prisma/client";
 import Button from "@/components/Button";
 import PricingToggle from "@/components/billing/PricingToggle";
-import { BILLING_PRICING, PREMIUM_BENEFITS } from "@/lib/constants/billing";
+import {
+  BILLING_PRICING,
+  PREMIUM_BENEFITS,
+  TRIAL_PERIOD_DAYS,
+} from "@/lib/constants/billing";
 import { FREE_LIMITS } from "@/lib/utils/entitlements";
 import type {
   BillingInterval,
@@ -107,6 +111,21 @@ export default function PlanComparison({
       })
     : null;
 
+  // Trial state — `trialEnd` stays set after the trial converts, so only
+  // treat it as an active trial alongside a TRIALING status.
+  const isTrialing =
+    billingStatus.subscriptionStatus === SubscriptionStatus.TRIALING &&
+    billingStatus.trialEnd != null;
+  const trialEnd = isTrialing ? new Date(billingStatus.trialEnd!) : null;
+  const trialDaysRemaining = trialEnd
+    ? Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / 86_400_000))
+    : 0;
+  const firstChargeDate = trialEnd?.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
   return (
     <div className="grid grid-cols-1 items-start gap-4 sm:gap-6 lg:grid-cols-2">
       {/* Free plan */}
@@ -164,6 +183,8 @@ export default function PlanComparison({
           </div>
           {complimentaryAccess ? (
             <PlanBadge tone="current">Complimentary</PlanBadge>
+          ) : isTrialing ? (
+            <PlanBadge tone="current">Trial</PlanBadge>
           ) : isPremium ? (
             <PlanBadge tone="current">Current plan</PlanBadge>
           ) : (
@@ -179,17 +200,33 @@ export default function PlanComparison({
           </p>
         ) : isPremium ? (
           <div className="mt-4 space-y-3">
-            <p className="text-sm text-gray-600">
-              {billingStatus.subscriptionStatus === SubscriptionStatus.CANCELED
-                ? "Your subscription is cancelled. Premium access continues until "
-                : "Your subscription renews "}
-              {renewalDate && (
+            {isTrialing ? (
+              <p className="text-sm text-gray-600">
+                Trial:{" "}
                 <strong className="font-semibold text-gray-900">
-                  {renewalDate}
+                  {trialDaysRemaining}{" "}
+                  {trialDaysRemaining === 1 ? "day" : "days"} remaining
                 </strong>
-              )}
-              .
-            </p>
+                , first charge on{" "}
+                <strong className="font-semibold text-gray-900">
+                  {firstChargeDate}
+                </strong>
+                . Cancel anytime before then and you won&apos;t be billed.
+              </p>
+            ) : (
+              <p className="text-sm text-gray-600">
+                {billingStatus.subscriptionStatus ===
+                SubscriptionStatus.CANCELED
+                  ? "Your subscription is cancelled. Premium access continues until "
+                  : "Your subscription renews "}
+                {renewalDate && (
+                  <strong className="font-semibold text-gray-900">
+                    {renewalDate}
+                  </strong>
+                )}
+                .
+              </p>
+            )}
             {billingStatus.subscriptionStatus ===
               SubscriptionStatus.PAST_DUE && (
               <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3">
@@ -251,9 +288,21 @@ export default function PlanComparison({
             </p>
           )
         ) : isAdmin ? (
-          <Button className="w-full" onClick={onUpgrade} isLoading={upgrading}>
-            {upgrading ? "Redirecting…" : "Upgrade to Premium"}
-          </Button>
+          <div className="space-y-2">
+            <Button
+              className="w-full"
+              onClick={onUpgrade}
+              isLoading={upgrading}
+            >
+              {upgrading
+                ? "Redirecting…"
+                : `Start ${TRIAL_PERIOD_DAYS}-day free trial`}
+            </Button>
+            <p className="text-center text-xs text-gray-500">
+              No charge today. Your card will be billed after the trial. Cancel
+              anytime.
+            </p>
+          </div>
         ) : (
           <p className="text-center text-sm text-gray-500">
             Ask your account admin to upgrade to Premium.

@@ -31,6 +31,7 @@ model Account {
   stripeSubscriptionId  String?                @unique
   subscriptionStatus    SubscriptionStatus?
   currentPeriodEnd      DateTime?
+  trialEnd              DateTime?
   // Account-wide module on/off preferences (see lib/types/feature-settings.ts).
   // JSON so new toggleable modules don't require a migration later. Null
   // means "never configured" — callers must merge over
@@ -453,6 +454,7 @@ enum Plan {
 }
 
 enum SubscriptionStatus {
+  TRIALING
   ACTIVE
   PAST_DUE
   CANCELED

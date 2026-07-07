@@ -3,6 +3,7 @@ import type { PrismaClient } from "@prisma/client";
 import type Stripe from "stripe";
 import { HttpError } from "../errors";
 import { getStripe, getStripePriceId, type BillingInterval } from "../stripe";
+import { TRIAL_PERIOD_DAYS } from "../constants/billing";
 import { isPremium } from "../utils/entitlements";
 
 type AccountPrisma = Pick<PrismaClient, "account">;
@@ -28,7 +29,8 @@ export const createCheckoutSession = async (
 
   if (
     account.stripeSubscriptionId &&
-    account.subscriptionStatus === SubscriptionStatus.ACTIVE
+    (account.subscriptionStatus === SubscriptionStatus.ACTIVE ||
+      account.subscriptionStatus === SubscriptionStatus.TRIALING)
   ) {
     throw new HttpError("Already subscribed — manage your plan instead", 400);
   }
@@ -54,7 +56,15 @@ export const createCheckoutSession = async (
     customer: customerId,
     client_reference_id: account.id,
     metadata: { accountId: account.id },
-    subscription_data: { metadata: { accountId: account.id } },
+    // Card is still collected up front (Checkout's default) — the trial
+    // settings below are only a safety net in case that ever changes.
+    subscription_data: {
+      metadata: { accountId: account.id },
+      trial_period_days: TRIAL_PERIOD_DAYS,
+      trial_settings: {
+        end_behavior: { missing_payment_method: "cancel" },
+      },
+    },
     line_items: [{ price: getStripePriceId(interval), quantity: 1 }],
     success_url: `${origin}/settings?tab=billing&checkout=success`,
     cancel_url: `${origin}/settings?tab=billing&checkout=cancelled`,
@@ -98,6 +108,7 @@ export type BillingStatus = {
   plan: Plan;
   subscriptionStatus: SubscriptionStatus | null;
   currentPeriodEnd: Date | null;
+  trialEnd: Date | null;
   complimentaryAccess: boolean;
   isPremium: boolean;
 };
@@ -119,6 +130,7 @@ export const getBillingStatus = async (
     plan: account.plan,
     subscriptionStatus: account.subscriptionStatus,
     currentPeriodEnd: account.currentPeriodEnd,
+    trialEnd: account.trialEnd,
     complimentaryAccess: account.complimentaryAccess,
     isPremium: isPremium(account),
   };
@@ -134,8 +146,9 @@ export const mapStripeSubscriptionStatus = (
   status: Stripe.Subscription.Status,
 ): SubscriptionStatus | null => {
   switch (status) {
-    case "active":
     case "trialing":
+      return SubscriptionStatus.TRIALING;
+    case "active":
       return SubscriptionStatus.ACTIVE;
     case "past_due":
     case "unpaid":
@@ -163,6 +176,16 @@ export const getSubscriptionPeriodEnd = (
   if (!item) return null;
   return new Date(item.current_period_end * 1000);
 };
+
+/**
+ * Reads the trial end off a Stripe subscription. `trial_end` stays set (as a
+ * historical timestamp) after the trial converts, so callers should only
+ * treat it as "in trial" alongside a `TRIALING` status.
+ */
+export const getSubscriptionTrialEnd = (
+  subscription: Stripe.Subscription,
+): Date | null =>
+  subscription.trial_end ? new Date(subscription.trial_end * 1000) : null;
 
 /**
  * Handles `checkout.session.completed`: links the Stripe customer and
@@ -207,8 +230,13 @@ export const syncAccountFromCheckoutSession = async (
       stripeCustomerId: customerId,
       stripeSubscriptionId: subscription.id,
       plan: Plan.PREMIUM,
-      subscriptionStatus: SubscriptionStatus.ACTIVE,
+      // New subscriptions start `trialing` (14-day trial) — map the real
+      // status rather than assuming `active`.
+      subscriptionStatus:
+        mapStripeSubscriptionStatus(subscription.status) ??
+        SubscriptionStatus.ACTIVE,
       currentPeriodEnd: getSubscriptionPeriodEnd(subscription),
+      trialEnd: getSubscriptionTrialEnd(subscription),
     },
   });
 };
@@ -241,6 +269,7 @@ export const syncAccountFromSubscriptionUpdated = async (
   const data = {
     subscriptionStatus: mappedStatus,
     currentPeriodEnd: getSubscriptionPeriodEnd(subscription),
+    trialEnd: getSubscriptionTrialEnd(subscription),
     ...(mappedStatus === SubscriptionStatus.CANCELED && { plan: Plan.FREE }),
   };
 
@@ -333,4 +362,44 @@ export const syncAccountFromInvoicePaymentFailed = async (
       subscriptionId,
     );
   }
+};
+
+/**
+ * Sends the "your trial ends soon" reminder email.
+ *
+ * TODO: integrate an email provider — for now this only logs so the
+ * `trial_will_end` webhook wiring can be tested end to end.
+ */
+const sendTrialEndingEmail = (
+  customerId: string,
+  trialEndDate: Date | null,
+): void => {
+  console.log(
+    "sendTrialEndingEmail (stub): customer",
+    customerId,
+    "trial ends",
+    trialEndDate?.toISOString() ?? "unknown",
+  );
+};
+
+/**
+ * Handles `customer.subscription.trial_will_end` (fires ~3 days before the
+ * trial ends): notifies the customer their card is about to be charged.
+ * Logging + a stubbed email for now — re-delivery just logs again, so the
+ * handler is safely idempotent.
+ */
+export const notifyTrialWillEnd = (subscription: Stripe.Subscription): void => {
+  const customerId =
+    typeof subscription.customer === "string"
+      ? subscription.customer
+      : subscription.customer.id;
+
+  console.log(
+    "customer.subscription.trial_will_end: subscription",
+    subscription.id,
+    "customer",
+    customerId,
+  );
+
+  sendTrialEndingEmail(customerId, getSubscriptionTrialEnd(subscription));
 };
