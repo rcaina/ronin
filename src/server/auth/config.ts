@@ -3,7 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { type Role } from "@prisma/client";
 import { env } from "@/env";
-import { db } from "@/server/db";
+import db from "@/lib/prisma";
 import { isEmailAllowed } from "@/lib/utils/auth";
 import { consumeLoginCode } from "@/server/auth/email-tokens";
 
