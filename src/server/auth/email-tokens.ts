@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { EmailTokenPurpose } from "@prisma/client";
-import { db } from "@/server/db";
+import db from "@/lib/prisma";
 
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
 const LOGIN_CODE_TTL_MS = 10 * 60 * 1000; // 10 minutes
