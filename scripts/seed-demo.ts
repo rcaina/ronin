@@ -36,6 +36,7 @@ import {
   NotificationType,
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { roundToCents } from "@/lib/utils";
 
 const prisma = new PrismaClient();
 
@@ -58,7 +59,6 @@ function rand(): number {
 const randInt = (min: number, max: number) =>
   Math.floor(rand() * (max - min + 1)) + min;
 const pick = <T>(arr: T[]): T => arr[Math.floor(rand() * arr.length)]!;
-const money = (n: number) => Math.round(n * 100) / 100;
 
 // --- date helpers, anchored to real "now" ------------------------------------
 const now = new Date();
@@ -312,7 +312,7 @@ const CATEGORIES: CatConfig[] = [
 interface CardConfig {
   key: CardKey;
   name: string;
-  lastFourDigits: string;
+  lastFourDigits: string | null;
   cardType: CardType;
   spendingLimit: number | null;
 }
@@ -341,7 +341,7 @@ const CARDS: CardConfig[] = [
   {
     key: "cash",
     name: "Cash",
-    lastFourDigits: null as unknown as string,
+    lastFourDigits: null,
     cardType: CardType.CASH,
     spendingLimit: null,
   },
@@ -498,7 +498,7 @@ async function main(): Promise<void> {
     const created = await prisma.card.create({
       data: {
         name: c.name,
-        lastFourDigits: c.lastFourDigits ?? null,
+        lastFourDigits: c.lastFourDigits,
         cardType: c.cardType,
         spendingLimit: c.spendingLimit,
         userId: alex.id,
@@ -578,7 +578,7 @@ async function main(): Promise<void> {
       const created = await prisma.card.create({
         data: {
           name: c.name,
-          lastFourDigits: c.lastFourDigits ?? null,
+          lastFourDigits: c.lastFourDigits,
           cardType: c.cardType,
           spendingLimit: c.spendingLimit,
           userId: alex.id,
@@ -612,7 +612,7 @@ async function main(): Promise<void> {
         data: {
           name: "Acme Corp Payroll",
           description: "Direct deposit",
-          amount: money(2600 + randInt(-40, 60)),
+          amount: roundToCents(2600 + randInt(-40, 60)),
           transactionType: TransactionType.INCOME,
           occurredAt: dayInMonth(anchor, day),
           budgetId: budget.id,
@@ -627,7 +627,7 @@ async function main(): Promise<void> {
         data: {
           name: "Northwind Studio",
           description: "Direct deposit",
-          amount: money(1550 + randInt(-30, 45)),
+          amount: roundToCents(1550 + randInt(-30, 45)),
           transactionType: TransactionType.INCOME,
           occurredAt: dayInMonth(anchor, day),
           budgetId: budget.id,
@@ -650,14 +650,14 @@ async function main(): Promise<void> {
       if (cat.fixed) {
         // One (or few) fixed charges early in the month.
         const nTx = randInt(cat.txPerMonth[0], cat.txPerMonth[1]);
-        const each = money(cat.allocated / nTx);
+        const each = roundToCents(cat.allocated / nTx);
         for (let k = 0; k < nTx; k++) {
           const day = 1 + k * 2 + randInt(0, 2);
           if (day > lastDay) continue;
           const amt =
             cat.min === cat.max
               ? each
-              : money(cat.min + rand() * (cat.max - cat.min));
+              : roundToCents(cat.min + rand() * (cat.max - cat.min));
           await prisma.transaction.create({
             data: {
               name: cat.merchants[k % cat.merchants.length]!,
@@ -680,9 +680,9 @@ async function main(): Promise<void> {
       const maxTx = randInt(cat.txPerMonth[0], cat.txPerMonth[1]);
       let spent = 0;
       for (let k = 0; k < maxTx && spent < target; k++) {
-        let amt = money(cat.min + rand() * (cat.max - cat.min));
+        let amt = roundToCents(cat.min + rand() * (cat.max - cat.min));
         if (spent + amt > target * 1.12)
-          amt = money(Math.max(cat.min, target - spent));
+          amt = roundToCents(Math.max(cat.min, target - spent));
         if (amt <= 0) break;
         const day = randInt(1, lastDay);
         await prisma.transaction.create({
@@ -705,7 +705,7 @@ async function main(): Promise<void> {
 
     // --- one refund (RETURN) per completed month ----------------------------
     if (!isCurrent && rand() < 0.7) {
-      const refund = money(18 + rand() * 60);
+      const refund = roundToCents(18 + rand() * 60);
       await prisma.transaction.create({
         data: {
           name: "Amazon",
@@ -725,13 +725,13 @@ async function main(): Promise<void> {
 
     // --- one split transaction per month (Costco run: Groceries + Shopping) --
     if (lastDay >= 12) {
-      const groceriesPart = money(70 + rand() * 60);
-      const shoppingPart = money(30 + rand() * 50);
+      const groceriesPart = roundToCents(70 + rand() * 60);
+      const shoppingPart = roundToCents(30 + rand() * 50);
       const split = await prisma.transaction.create({
         data: {
           name: "Costco Wholesale",
           description: "Split: groceries + household",
-          amount: money(groceriesPart + shoppingPart),
+          amount: roundToCents(groceriesPart + shoppingPart),
           transactionType: TransactionType.REGULAR,
           occurredAt: dayInMonth(anchor, randInt(8, Math.min(lastDay, 20))),
           budgetId: budget.id,
@@ -765,7 +765,7 @@ async function main(): Promise<void> {
 
     // --- credit-card payment (CARD_PAYMENT, not spending) --------------------
     if (!isCurrent) {
-      const payAmt = money(cardSpend.get("sapphire") ?? 0);
+      const payAmt = roundToCents(cardSpend.get("sapphire") ?? 0);
       if (payAmt > 0) {
         await prisma.transaction.create({
           data: {
@@ -788,7 +788,7 @@ async function main(): Promise<void> {
     for (const c of CARDS) {
       await prisma.card.update({
         where: { id: budgetCardByKey.get(c.key)! },
-        data: { amountSpent: money(Math.max(0, cardSpend.get(c.key) ?? 0)) },
+        data: { amountSpent: roundToCents(Math.max(0, cardSpend.get(c.key) ?? 0)) },
       });
     }
 
