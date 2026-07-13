@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
+import MissingDateWarning from "@/components/transactions/MissingDateWarning";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import StatsCard from "@/components/StatsCard";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
@@ -50,6 +51,7 @@ import {
   calculateSpendingPercentage,
   calculateTotalIncome,
   calculateTotalIncomeInWindow,
+  getTransactionDate,
   getTransactionSpending,
   type DateWindow,
   type SpendingBudget,
@@ -76,7 +78,7 @@ const sumSpendingInPeriod = (budget: SpendingBudget, start: Date, end: Date) =>
     (sum, category) =>
       sum +
       (category.transactions ?? []).reduce((transactionSum, transaction) => {
-        const date = new Date(transaction.createdAt ?? 0);
+        const date = getTransactionDate(transaction);
         return date >= start && date <= end
           ? transactionSum + getTransactionSpending(transaction)
           : transactionSum;
@@ -283,7 +285,7 @@ export default function HomePage() {
     )
     .sort(
       (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        getTransactionDate(b).getTime() - getTransactionDate(a).getTime(),
     )
     .slice(0, 5);
 
@@ -689,11 +691,14 @@ export default function HomePage() {
                                       "No category"}
                                   </span>
                                 )}
-                                <span>
+                                <span className="inline-flex items-center gap-1">
                                   •{" "}
-                                  {new Date(
-                                    transaction.createdAt,
+                                  {getTransactionDate(
+                                    transaction,
                                   ).toLocaleDateString()}
+                                  {!transaction.occurredAt && (
+                                    <MissingDateWarning />
+                                  )}
                                 </span>
                               </p>
                             </div>
