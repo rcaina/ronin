@@ -2,15 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ChevronDown,
-  ChevronRight,
-  Info,
-  Plus,
-  ArrowRight,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, ArrowRight } from "lucide-react";
 import { toast } from "react-hot-toast";
 import AddBudgetCategoryForm from "./AddBudgetCategoryForm";
+import DescriptionTooltip from "@/components/DescriptionTooltip";
+import MissingDateWarning from "@/components/transactions/MissingDateWarning";
 import {
   useBudgetCategories,
   useCreateBudgetCategory,
@@ -23,6 +19,7 @@ import type {
 } from "@/lib/types/budget";
 import { TransactionType, CategoryType } from "@prisma/client";
 import { roundToCents } from "@/lib/utils";
+import { getTransactionDate } from "@/lib/utils/spending";
 
 interface BudgetCategoriesListViewProps {
   budgetId: string;
@@ -354,19 +351,20 @@ export default function BudgetCategoriesListView({
                                                 "Unnamed transaction"}
                                             </p>
                                             {transaction.description && (
-                                              <div className="group relative flex-shrink-0">
-                                                <Info className="h-4 w-4 cursor-help text-gray-400" />
-                                                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-primary-950 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                                                  {transaction.description}
-                                                  <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                                                </div>
-                                              </div>
+                                              <DescriptionTooltip
+                                                description={
+                                                  transaction.description
+                                                }
+                                              />
                                             )}
                                           </div>
-                                          <p className="truncate text-sm text-gray-500">
-                                            {new Date(
-                                              transaction.createdAt,
+                                          <p className="inline-flex items-center gap-1 text-sm text-gray-500">
+                                            {getTransactionDate(
+                                              transaction,
                                             ).toLocaleDateString()}
+                                            {!transaction.occurredAt && (
+                                              <MissingDateWarning />
+                                            )}
                                           </p>
                                         </div>
                                         <div className="ml-2 flex-shrink-0 text-right">

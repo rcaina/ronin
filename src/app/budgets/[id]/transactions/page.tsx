@@ -8,6 +8,7 @@ import {
   useDeleteTransaction,
   useCreateTransaction,
 } from "@/lib/data-hooks/transactions/useTransactions";
+import { getTransactionDate } from "@/lib/utils/spending";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import {
   DollarSign,
@@ -17,7 +18,6 @@ import {
   Edit,
   Pencil,
   Trash2,
-  Info,
   SlidersHorizontal,
   Target,
   Receipt,
@@ -29,6 +29,8 @@ import {
 
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import SwipeableRow from "@/components/SwipeableRow";
+import DescriptionTooltip from "@/components/DescriptionTooltip";
+import MissingDateWarning from "@/components/transactions/MissingDateWarning";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import { useMobileHeaderAction } from "@/components/MobileHeaderActionContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
@@ -142,7 +144,7 @@ const BudgetTransactionsPageContent = () => {
   const [editingTransactionId, setEditingTransactionId] = useState<
     string | null
   >(null);
-  const [editingSplitTransaction, setEditingSplitTransaction] =
+  const [editingModalTransaction, setEditingModalTransaction] =
     useState<TransactionWithRelations | null>(null);
   const [transactionToDelete, setTransactionToDelete] =
     useState<TransactionWithRelations | null>(null);
@@ -309,7 +311,7 @@ const BudgetTransactionsPageContent = () => {
       switch (sortBy) {
         case "date":
           comparison =
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            getTransactionDate(a).getTime() - getTransactionDate(b).getTime();
           break;
         case "amount":
           comparison = a.amount - b.amount;
@@ -451,9 +453,14 @@ const BudgetTransactionsPageContent = () => {
       return;
     }
     // Split transactions aren't safe to edit inline (it could corrupt the
-    // per-category breakdown) — route to the full form modal instead.
-    if (transaction.splits && transaction.splits.length > 0) {
-      setEditingSplitTransaction(transaction);
+    // per-category breakdown), and income transactions have no category, so
+    // the inline editor (which requires one) can't save them. Route both to
+    // the full form modal instead.
+    if (
+      (transaction.splits && transaction.splits.length > 0) ||
+      transaction.transactionType === TransactionType.INCOME
+    ) {
+      setEditingModalTransaction(transaction);
       return;
     }
     setEditingTransactionId(transaction.id);
@@ -766,13 +773,17 @@ const BudgetTransactionsPageContent = () => {
             budgetId={budgetId}
           />
 
-          {/* Edit Split Transaction Modal — split transactions route here
-              instead of the inline editor (see handleEditTransaction). */}
+          {/* Edit Modal for splits and income transactions, which route
+              here instead of the inline editor (see handleEditTransaction). */}
           <AddTransactionModal
-            isOpen={!!editingSplitTransaction}
-            transaction={editingSplitTransaction ?? undefined}
-            onClose={() => setEditingSplitTransaction(null)}
-            onSuccess={() => setEditingSplitTransaction(null)}
+            isOpen={!!editingModalTransaction}
+            transaction={editingModalTransaction ?? undefined}
+            isIncome={
+              editingModalTransaction?.transactionType ===
+              TransactionType.INCOME
+            }
+            onClose={() => setEditingModalTransaction(null)}
+            onSuccess={() => setEditingModalTransaction(null)}
             budgetId={budgetId}
           />
 
@@ -950,19 +961,18 @@ const BudgetTransactionsPageContent = () => {
                                         "No Category")}
                               </span>
                               {transaction.description && (
-                                <div className="group relative flex-shrink-0">
-                                  <Info className="h-4 w-4 cursor-help text-gray-400" />
-                                  <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
-                                    {transaction.description}
-                                    <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-primary-950/90"></div>
-                                  </div>
-                                </div>
+                                <DescriptionTooltip
+                                  description={transaction.description}
+                                />
                               )}
                             </div>
-                            <p className="mt-1 text-xs text-gray-400">
+                            <p className="mt-1 inline-flex items-center gap-1 text-xs text-gray-400">
                               {parseLocalDate(
-                                transaction.createdAt,
+                                transaction.occurredAt ?? transaction.createdAt,
                               )?.toLocaleDateString() ?? ""}
+                              {!transaction.occurredAt && (
+                                <MissingDateWarning />
+                              )}
                             </p>
                           </div>
                         </div>

@@ -9,7 +9,6 @@ import {
   Target,
   EditIcon,
   Pencil,
-  Info,
   Plus,
   Trash2,
   ScanLine,
@@ -23,6 +22,8 @@ import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import SwipeableRow from "@/components/SwipeableRow";
+import DescriptionTooltip from "@/components/DescriptionTooltip";
+import MissingDateWarning from "@/components/transactions/MissingDateWarning";
 import { useState, useEffect } from "react";
 import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 import BudgetStrategyIndicator from "@/components/budgets/BudgetStrategyIndicator";
@@ -30,7 +31,10 @@ import LockedBudgetGate from "./LockedBudgetGate";
 import { TransactionType, type Transaction } from "@prisma/client";
 import { formatDateUTC, roundToCents, getGroupColor } from "@/lib/utils";
 import { isDebitCard } from "@/lib/utils/cards";
-import { calculateCategorySpent } from "@/lib/utils/spending";
+import {
+  calculateCategorySpent,
+  getTransactionDate,
+} from "@/lib/utils/spending";
 import { useDeleteTransaction } from "@/lib/data-hooks/transactions/useTransactions";
 import type {
   TransactionSplitWithCategory,
@@ -1026,15 +1030,11 @@ const BudgetDetailsPage = () => {
 
                 // Sort by date and take the 5 most recent
                 const recentTransactions = [...allTransactions]
-                  .sort((a, b) => {
-                    const dateA = a.occurredAt
-                      ? new Date(a.occurredAt)
-                      : new Date(a.createdAt);
-                    const dateB = b.occurredAt
-                      ? new Date(b.occurredAt)
-                      : new Date(b.createdAt);
-                    return dateB.getTime() - dateA.getTime();
-                  })
+                  .sort(
+                    (a, b) =>
+                      getTransactionDate(b).getTime() -
+                      getTransactionDate(a).getTime(),
+                  )
                   .slice(0, 5);
 
                 return recentTransactions.map((transaction) => {
@@ -1107,16 +1107,12 @@ const BudgetDetailsPage = () => {
                                   : (transaction.categoryName ?? "No category")}
                             </span>
                             {transaction.description && (
-                              <div className="group relative flex-shrink-0">
-                                <Info className="h-4 w-4 cursor-help text-gray-400" />
-                                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
-                                  {transaction.description}
-                                  <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-primary-950/90"></div>
-                                </div>
-                              </div>
+                              <DescriptionTooltip
+                                description={transaction.description}
+                              />
                             )}
                           </div>
-                          <p className="mt-1 text-xs text-gray-400">
+                          <p className="mt-1 inline-flex items-center gap-1 text-xs text-gray-400">
                             {transaction.occurredAt
                               ? formatDateUTC(
                                   new Date(
@@ -1126,6 +1122,7 @@ const BudgetDetailsPage = () => {
                               : formatDateUTC(
                                   new Date(transaction.createdAt).toISOString(),
                                 )}
+                            {!transaction.occurredAt && <MissingDateWarning />}
                           </p>
                         </div>
                         <div className="flex items-center space-x-2 sm:space-x-3">

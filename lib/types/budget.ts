@@ -145,6 +145,7 @@ export type BudgetCategories = (Category & {
     amount: number;
     transactionType: TransactionType;
     createdAt: string;
+    occurredAt: string | null;
   }>;
 })[];
 
@@ -165,6 +166,7 @@ export type BudgetCategoryWithCategory = {
     amount: number;
     transactionType: string;
     createdAt: Date;
+    occurredAt: Date | null;
   }>;
 };
 

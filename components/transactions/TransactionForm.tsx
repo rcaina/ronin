@@ -162,6 +162,10 @@ export default function TransactionForm({
   // Track if we've already shown the success toast for the current mutation
   const hasShownSuccessToastRef = useRef(false);
 
+  // Tracks whether the edited transaction's card has been applied to the
+  // select once its <option> exists (see the re-apply effect below).
+  const hasAppliedEditCardRef = useRef(false);
+
   const {
     register,
     handleSubmit,
@@ -354,6 +358,19 @@ export default function TransactionForm({
     setValue,
     getValues,
   ]);
+
+  // Editing has the same cold-cache problem as above: the edit effect sets
+  // cardId before the cards query resolves, so the select has no matching
+  // <option> and renders empty. Re-apply the transaction's card once its
+  // option exists — exactly once, so a card the user picks mid-edit is never
+  // clobbered by a background cards refetch.
+  useEffect(() => {
+    if (!transaction?.cardId || hasAppliedEditCardRef.current) return;
+    if (cardOptions.some((card) => card.id === transaction.cardId)) {
+      setValue("cardId", transaction.cardId);
+      hasAppliedEditCardRef.current = true;
+    }
+  }, [cardOptions, transaction, setValue]);
 
   const onSubmit = (data: TransactionFormData) => {
     // "Make recurring" creates a RecurringTransaction template instead of a
@@ -615,13 +632,22 @@ export default function TransactionForm({
               }`}
               disabled={isPending}
             >
-              <option value={TransactionType.REGULAR}>Regular</option>
-              {((isDebitCard ?? false) || (isIncome ?? false)) && (
+              {/* Editing income keeps the type locked: the category field is
+                  hidden in income mode, so switching to Regular/Return here
+                  would save an uncategorized spending transaction. */}
+              {isIncome && isEditing ? (
                 <option value={TransactionType.INCOME}>Income</option>
+              ) : (
+                <>
+                  <option value={TransactionType.REGULAR}>Regular</option>
+                  {((isDebitCard ?? false) || (isIncome ?? false)) && (
+                    <option value={TransactionType.INCOME}>Income</option>
+                  )}
+                  <option value={TransactionType.RETURN}>
+                    {isCreditCard ? "Refund" : "Return"}
+                  </option>
+                </>
               )}
-              <option value={TransactionType.RETURN}>
-                {isCreditCard ? "Refund" : "Return"}
-              </option>
             </select>
             {errors.transactionType && (
               <p className="mt-1 text-sm text-red-600">

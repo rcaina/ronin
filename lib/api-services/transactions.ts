@@ -95,9 +95,10 @@ export const getTransactions = async (
 
   const include = transactionInclude;
 
-  const orderBy = {
-    createdAt: "desc" as const,
-  };
+  const orderBy = [
+    { occurredAt: { sort: "desc" as const, nulls: "last" as const } },
+    { createdAt: "desc" as const },
+  ];
 
   if (pagination) {
     const [transactions, totalCount] = await Promise.all([
@@ -155,7 +156,10 @@ export const getTransactionsForExport = async (
       Budget: { select: { name: true } },
       splits: { include: { category: { select: { name: true } } } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: [
+      { occurredAt: { sort: "desc" as const, nulls: "last" as const } },
+      { createdAt: "desc" as const },
+    ],
   });
 
   const rows = transactions.map((t): (string | number)[] => {

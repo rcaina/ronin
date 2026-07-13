@@ -35,6 +35,7 @@ export const formatBudgetCategories = (
       amount: number;
       transactionType: TransactionType;
       createdAt: Date;
+      occurredAt: Date | null;
     }[];
     // Split parents' share of this category's spend — the parent transaction
     // (categoryId = null) carries the sign-determining type, so it isn't
@@ -78,6 +79,7 @@ export const formatBudgetCategories = (
         amount: transaction.amount,
         transactionType: transaction.transactionType,
         createdAt: transaction.createdAt.toISOString(),
+        occurredAt: transaction.occurredAt?.toISOString() ?? null,
       })),
     };
   });

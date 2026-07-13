@@ -105,8 +105,9 @@ export const sumTransactionSpending = (
  * Effective date of a transaction for time-window filtering: the date it
  * occurred if recorded, otherwise the date it was created.
  */
-export const getTransactionDate = (transaction: SpendingTransaction): Date =>
-  new Date(transaction.occurredAt ?? transaction.createdAt ?? 0);
+export const getTransactionDate = (
+  transaction: Pick<SpendingTransaction, "occurredAt" | "createdAt">,
+): Date => new Date(transaction.occurredAt ?? transaction.createdAt ?? 0);
 
 /**
  * Whether a transaction falls within a date window. A `null` window means
@@ -259,7 +260,7 @@ export const calculateRecentSpending = (
   since.setDate(since.getDate() - days);
 
   return transactions.reduce((sum, transaction) => {
-    const date = new Date(transaction.createdAt ?? 0);
+    const date = getTransactionDate(transaction);
     return date >= since ? sum + getTransactionSpending(transaction) : sum;
   }, 0);
 };
@@ -306,7 +307,7 @@ export const calculateAverageSpendingByWeekday = (
   let maxDate: Date | null = null;
 
   for (const transaction of transactions) {
-    const transactionDate = startOfDay(new Date(transaction.createdAt ?? 0));
+    const transactionDate = startOfDay(getTransactionDate(transaction));
     const dayIndex = transactionDate.getDay();
     totals[dayIndex] =
       (totals[dayIndex] ?? 0) + getTransactionSpending(transaction);
