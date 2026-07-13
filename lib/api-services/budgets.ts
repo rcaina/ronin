@@ -56,9 +56,10 @@ export async function getBudgetById(
                 },
               }),
             },
-            orderBy: {
-              createdAt: "desc",
-            },
+            orderBy: [
+              { occurredAt: { sort: "desc" as const, nulls: "last" as const } },
+              { createdAt: "desc" as const },
+            ],
           },
           // Split parents carry categoryId = null, so their share of the
           // spend lives here instead of in `transactions` above. See
@@ -89,9 +90,10 @@ export async function getBudgetById(
         include: {
           card: true,
         },
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: [
+          { occurredAt: { sort: "desc" as const, nulls: "last" as const } },
+          { createdAt: "desc" as const },
+        ],
       },
       cards: {
         where: {
@@ -565,9 +567,10 @@ export async function getBudgets(
         include: {
           card: true,
         },
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: [
+          { occurredAt: { sort: "desc" as const, nulls: "last" as const } },
+          { createdAt: "desc" as const },
+        ],
       },
       cards: {
         where: {
@@ -890,10 +893,12 @@ export const getBudgetCategories = async (
           amount: true,
           transactionType: true,
           createdAt: true,
+          occurredAt: true,
         },
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: [
+          { occurredAt: { sort: "desc" as const, nulls: "last" as const } },
+          { createdAt: "desc" as const },
+        ],
       },
       // Split parents' share of this category's spend (see getBudgetById).
       transactionSplits: {
@@ -1304,9 +1309,10 @@ export const getBudgetTransactions = async (
         },
       },
     },
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: [
+      { occurredAt: { sort: "desc" as const, nulls: "last" as const } },
+      { createdAt: "desc" as const },
+    ],
   });
 };
 
@@ -1378,9 +1384,10 @@ export const getBudgetIncomeTransactions = async (
         },
       },
     },
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: [
+      { occurredAt: { sort: "desc" as const, nulls: "last" as const } },
+      { createdAt: "desc" as const },
+    ],
   });
 };
 

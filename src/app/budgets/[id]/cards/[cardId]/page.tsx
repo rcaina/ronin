@@ -21,6 +21,7 @@ import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import InlineTransactionEdit from "@/components/transactions/InlineTransactionEdit";
 import SwipeableRow from "@/components/SwipeableRow";
+import MissingDateWarning from "@/components/transactions/MissingDateWarning";
 import Modal from "@/components/Modal";
 import {
   useCard,
@@ -31,6 +32,7 @@ import {
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useDeleteTransaction } from "@/lib/data-hooks/transactions/useTransactions";
+import { getTransactionDate } from "@/lib/utils/spending";
 import { isDebitCard, mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import Button from "@/components/Button";
@@ -498,7 +500,7 @@ const CardDetailsPage = () => {
       switch (sortBy) {
         case "date":
           comparison =
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            getTransactionDate(a).getTime() - getTransactionDate(b).getTime();
           break;
         case "amount":
           comparison = a.amount - b.amount;
@@ -1037,10 +1039,13 @@ const CardDetailsPage = () => {
                                             : "$"}
                                     {Math.abs(transaction.amount).toFixed(2)}
                                   </p>
-                                  <p className="text-xs text-gray-500">
-                                    {new Date(
-                                      transaction.createdAt,
+                                  <p className="inline-flex items-center gap-1 text-xs text-gray-500">
+                                    {getTransactionDate(
+                                      transaction,
                                     ).toLocaleDateString()}
+                                    {!transaction.occurredAt && (
+                                      <MissingDateWarning />
+                                    )}
                                   </p>
                                 </div>
                               </div>
