@@ -7,6 +7,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useLockBodyScroll } from "@/lib/utils/hooks";
 
@@ -90,7 +91,7 @@ export default function Modal({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === "undefined") return null;
 
   // Trap Tab/Shift+Tab within the panel.
   const handleTabKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -155,7 +156,10 @@ export default function Modal({
 
   const hasChrome = Boolean(title) || Boolean(footer);
 
-  return (
+  // Portal to <body>: ancestors with `transform`/`backdrop-filter` (e.g. the
+  // blurred MobileHeader) otherwise become the containing block for this
+  // `fixed` backdrop, pinning the sheet to the header instead of the viewport.
+  return createPortal(
     <div className={backdropClasses} onClick={handleBackdropClick}>
       <div
         ref={panelRef}
@@ -215,6 +219,7 @@ export default function Modal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
