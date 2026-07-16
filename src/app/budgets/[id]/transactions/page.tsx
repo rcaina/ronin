@@ -51,7 +51,7 @@ import {
   getGroupColor,
   getCategoryBadgeColor,
   formatCurrency,
-  parseLocalDate,
+  formatDateUTC,
 } from "@/lib/utils";
 import {
   SPLIT_BADGE_CLASSES,
@@ -967,9 +967,12 @@ const BudgetTransactionsPageContent = () => {
                               )}
                             </div>
                             <p className="mt-1 inline-flex items-center gap-1 text-xs text-gray-400">
-                              {parseLocalDate(
-                                transaction.occurredAt ?? transaction.createdAt,
-                              )?.toLocaleDateString() ?? ""}
+                              {formatDateUTC(
+                                String(
+                                  transaction.occurredAt ??
+                                    transaction.createdAt,
+                                ),
+                              )}
                               {!transaction.occurredAt && (
                                 <MissingDateWarning />
                               )}

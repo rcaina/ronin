@@ -292,9 +292,11 @@ export default function IncomePage() {
                         <div className="flex items-center space-x-2 sm:space-x-4">
                           <div className="flex items-center opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
                             <button
+                              type="button"
                               onClick={() => handleEditIncome(transaction)}
                               className="hidden rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 lg:block"
                               title="Edit income transaction"
+                              aria-label="Edit income transaction"
                             >
                               <Edit className="h-4 w-4" />
                             </button>
