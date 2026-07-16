@@ -691,7 +691,10 @@ export default function HomePage() {
                                       "No category"}
                                   </span>
                                 )}
-                                <span className="inline-flex items-center gap-1">
+                                <span
+                                  className="inline-flex items-center gap-1"
+                                  suppressHydrationWarning
+                                >
                                   •{" "}
                                   {getTransactionDate(
                                     transaction,

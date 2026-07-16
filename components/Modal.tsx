@@ -4,9 +4,11 @@ import {
   useEffect,
   useId,
   useRef,
+  useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useLockBodyScroll } from "@/lib/utils/hooks";
 
@@ -58,6 +60,12 @@ export default function Modal({
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
+  const [mounted, setMounted] = useState(false);
+
+  // The portal needs a DOM target, so defer rendering until after mount.
+  // Starting `false` on both the server and the first client render keeps
+  // hydration in sync without a `typeof document` gate.
+  useEffect(() => setMounted(true), []);
 
   // Focus management: move focus into the panel on open, restore whatever
   // had focus before the modal opened once it closes.
@@ -90,7 +98,7 @@ export default function Modal({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   // Trap Tab/Shift+Tab within the panel.
   const handleTabKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -155,7 +163,10 @@ export default function Modal({
 
   const hasChrome = Boolean(title) || Boolean(footer);
 
-  return (
+  // Portal to <body>: ancestors with `transform`/`backdrop-filter` (e.g. the
+  // blurred MobileHeader) otherwise become the containing block for this
+  // `fixed` backdrop, pinning the sheet to the header instead of the viewport.
+  return createPortal(
     <div className={backdropClasses} onClick={handleBackdropClick}>
       <div
         ref={panelRef}
@@ -215,6 +226,7 @@ export default function Modal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

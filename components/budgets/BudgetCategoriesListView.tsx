@@ -358,7 +358,10 @@ export default function BudgetCategoriesListView({
                                               />
                                             )}
                                           </div>
-                                          <p className="inline-flex items-center gap-1 text-sm text-gray-500">
+                                          <p
+                                            className="inline-flex items-center gap-1 text-sm text-gray-500"
+                                            suppressHydrationWarning
+                                          >
                                             {getTransactionDate(
                                               transaction,
                                             ).toLocaleDateString()}
