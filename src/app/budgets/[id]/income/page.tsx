@@ -2,7 +2,15 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { Search, Plus, Trash2, DollarSign, Info, Target } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Edit,
+  Pencil,
+  Trash2,
+  DollarSign,
+  Target,
+} from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { formatCurrency } from "@/lib/utils";
@@ -11,8 +19,11 @@ import { usePageLoading } from "@/components/ConditionalLayout";
 import Button from "@/components/Button";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import SwipeableRow from "@/components/SwipeableRow";
+import DescriptionTooltip from "@/components/DescriptionTooltip";
+import MissingDateWarning from "@/components/transactions/MissingDateWarning";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
+import type { TransactionWithRelations } from "@/lib/types/transaction";
 
 interface IncomeTransaction {
   id: string;
@@ -29,39 +40,6 @@ interface IncomeTransaction {
   } | null;
 }
 
-/**
- * Info-icon tooltip for a transaction's description. Shows on hover for
- * pointer devices and toggles on tap for touch devices (Safari doesn't focus
- * buttons on tap, so hover/focus alone isn't enough). The bubble wraps and is
- * capped to the viewport width so long descriptions stay readable on mobile.
- */
-function DescriptionTooltip({ description }: { description: string }) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="group/tip relative flex-shrink-0">
-      <button
-        type="button"
-        aria-label="Show description"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen((open) => !open)}
-        onBlur={() => setIsOpen(false)}
-        className="flex items-center rounded-full text-gray-400"
-      >
-        <Info className="h-4 w-4" />
-      </button>
-      <div
-        className={`pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max max-w-[calc(100vw-4rem)] -translate-x-1/2 break-words rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white shadow-lifted transition-opacity duration-200 sm:max-w-xs ${
-          isOpen ? "opacity-100" : "opacity-0 group-hover/tip:opacity-100"
-        }`}
-      >
-        {description}
-        <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-transparent border-t-primary-950/90"></div>
-      </div>
-    </div>
-  );
-}
-
 export default function IncomePage() {
   const params = useParams();
   const budgetId = params.id as string;
@@ -70,6 +48,8 @@ export default function IncomePage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] =
     useState<IncomeTransaction | null>(null);
+  const [transactionToEdit, setTransactionToEdit] =
+    useState<TransactionWithRelations | null>(null);
 
   const { data: budget, isLoading, refetch } = useBudget(budgetId);
   const { setActions } = useBudgetHeader();
@@ -153,6 +133,16 @@ export default function IncomePage() {
       setIsDeleteModalOpen(false);
       setTransactionToDelete(null);
     }
+  };
+
+  const handleEditIncome = (transaction: IncomeTransaction) => {
+    // The row's IncomeTransaction is a narrow display type; look up the
+    // full raw transaction so the edit modal gets a real TransactionWithRelations.
+    const rawTransaction = budget?.transactions?.find(
+      (t) => t.id === transaction.id,
+    );
+    if (!rawTransaction) return;
+    setTransactionToEdit({ ...rawTransaction, category: null });
   };
 
   usePageLoading(isLoading, "Loading income data...");
@@ -266,6 +256,11 @@ export default function IncomePage() {
                       key={transaction.id}
                       actions={[
                         {
+                          icon: <Pencil className="h-4 w-4" />,
+                          label: "Edit",
+                          onClick: () => handleEditIncome(transaction),
+                        },
+                        {
                           icon: <Trash2 className="h-4 w-4" />,
                           label: "Delete",
                           onClick: () => void handleDeleteIncome(transaction),
@@ -288,13 +283,21 @@ export default function IncomePage() {
                               />
                             )}
                           </div>
-                          <p className="mt-1 text-xs text-gray-400">
+                          <p className="mt-1 inline-flex items-center gap-1 text-xs text-gray-400">
                             {dateLabel}
+                            {!transaction.occurredAt && <MissingDateWarning />}
                           </p>
                         </div>
 
                         <div className="flex items-center space-x-2 sm:space-x-4">
                           <div className="flex items-center opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
+                            <button
+                              onClick={() => handleEditIncome(transaction)}
+                              className="hidden rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 lg:block"
+                              title="Edit income transaction"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
                             <button
                               onClick={() => handleDeleteIncome(transaction)}
                               className="hidden rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 lg:block"
@@ -357,6 +360,19 @@ export default function IncomePage() {
           setIsAddModalOpen(false);
         }}
         isIncome={true}
+      />
+
+      {/* Edit Income Modal */}
+      <AddTransactionModal
+        isOpen={!!transactionToEdit}
+        budgetId={budgetId}
+        isIncome={true}
+        transaction={transactionToEdit ?? undefined}
+        onClose={() => setTransactionToEdit(null)}
+        onSuccess={() => {
+          void refetch();
+          setTransactionToEdit(null);
+        }}
       />
 
       {/* Delete Confirmation Modal */}

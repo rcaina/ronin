@@ -541,7 +541,8 @@ export const getCardTransactions = async (tx: PrismaClientTx, cardId: string) =>
       // of silently losing their category breakdown on the card page.
       ...splitsInclude,
     },
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: [
+      { occurredAt: { sort: "desc" as const, nulls: "last" as const } },
+      { createdAt: "desc" as const },
+    ],
   });
