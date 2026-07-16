@@ -1039,7 +1039,10 @@ const CardDetailsPage = () => {
                                             : "$"}
                                     {Math.abs(transaction.amount).toFixed(2)}
                                   </p>
-                                  <p className="inline-flex items-center gap-1 text-xs text-gray-500">
+                                  <p
+                                    className="inline-flex items-center gap-1 text-xs text-gray-500"
+                                    suppressHydrationWarning
+                                  >
                                     {getTransactionDate(
                                       transaction,
                                     ).toLocaleDateString()}

@@ -4,6 +4,7 @@ import {
   useEffect,
   useId,
   useRef,
+  useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
@@ -59,6 +60,12 @@ export default function Modal({
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
+  const [mounted, setMounted] = useState(false);
+
+  // The portal needs a DOM target, so defer rendering until after mount.
+  // Starting `false` on both the server and the first client render keeps
+  // hydration in sync without a `typeof document` gate.
+  useEffect(() => setMounted(true), []);
 
   // Focus management: move focus into the panel on open, restore whatever
   // had focus before the modal opened once it closes.
@@ -91,7 +98,7 @@ export default function Modal({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen || typeof document === "undefined") return null;
+  if (!isOpen || !mounted) return null;
 
   // Trap Tab/Shift+Tab within the panel.
   const handleTabKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {

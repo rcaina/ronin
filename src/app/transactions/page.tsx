@@ -60,6 +60,7 @@ import {
   getGroupColor,
   getCategoryBadgeColor,
   formatCurrency,
+  formatDateUTC,
 } from "@/lib/utils";
 import {
   matchesTransactionFilters,
@@ -984,9 +985,12 @@ const TransactionsPageContent = () => {
                               )}
                               <div className="mt-1 flex items-center space-x-2 text-xs text-gray-400">
                                 <span className="inline-flex items-center gap-1">
-                                  {getTransactionDate(
-                                    transaction,
-                                  ).toLocaleDateString()}
+                                  {formatDateUTC(
+                                    String(
+                                      transaction.occurredAt ??
+                                        transaction.createdAt,
+                                    ),
+                                  )}
                                   {!transaction.occurredAt && (
                                     <MissingDateWarning />
                                   )}
