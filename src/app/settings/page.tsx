@@ -100,8 +100,12 @@ const SettingsPageContent = () => {
   // While the paywall is paused (PREMIUM_GATING_ENABLED) there's no plan to
   // choose, so the Billing tab only exists for accounts that still have a live
   // Stripe subscription to view or cancel.
-  const showBillingTab =
+  const hasBillingAccess =
     PREMIUM_GATING_ENABLED || billingStatus?.subscriptionStatus != null;
+
+  // Keep the tab mounted while the status request is in flight so a
+  // `?tab=billing` deep link renders the skeleton instead of a blank pane.
+  const showBillingTab = billingLoading || hasBillingAccess;
 
   // The account admin can turn the `notifications` feature toggle off while
   // this tab is open (or a deep link points at it) — bounce back to Profile
@@ -111,12 +115,19 @@ const SettingsPageContent = () => {
     if (activeTab === "notifications" && !notificationsFeatureEnabled) {
       setActiveTab("profile");
     }
-    // Only once the real status is in — bouncing while it loads would kick a
-    // subscriber off the `?tab=billing` return URL Stripe's portal sends them to.
-    if (activeTab === "billing" && billingStatus && !showBillingTab) {
+    // Only once the request settles — bouncing while it loads would kick a
+    // subscriber off the `?tab=billing` return URL Stripe's portal sends them
+    // to. A failed request lands here too, so the tab never stays active with
+    // nothing behind it.
+    if (activeTab === "billing" && !billingLoading && !hasBillingAccess) {
       setActiveTab("profile");
     }
-  }, [activeTab, notificationsFeatureEnabled, billingStatus, showBillingTab]);
+  }, [
+    activeTab,
+    notificationsFeatureEnabled,
+    billingLoading,
+    hasBillingAccess,
+  ]);
 
   // Handle the redirect back from Stripe Checkout: toast on success/cancel,
   // refresh billing status, and strip `checkout` from the URL so a refresh

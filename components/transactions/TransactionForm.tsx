@@ -409,6 +409,15 @@ export default function TransactionForm({
   const handleCategoryCreated = (created: BudgetCategoryWithCategory) => {
     setCreatedCategories((previous) => [...previous, created]);
 
+    // The budget select can change while the create request is in flight, and
+    // this callback closes over the budget that was active when it started.
+    // `getValues` reads the live selection, so a category that landed in the
+    // previous budget is kept out of the form instead of being applied to it.
+    if (created.budgetId !== getValues("budgetId")) {
+      setNewCategoryTarget(null);
+      return;
+    }
+
     if (newCategoryTarget?.type === "split") {
       updateSplitRow(newCategoryTarget.key, { categoryId: created.id });
     } else {

@@ -662,7 +662,13 @@ export default function CreateBudgetModal({
     }
   };
 
-  const onSubmit = (data: CreateBudgetFormData) => submitBudget(data);
+  // The step content lives inside the <form>, and a step with a single text
+  // input (basics, categories) implicitly submits on Enter — without this
+  // guard that would create the budget from a half-filled wizard.
+  const onSubmit = (data: CreateBudgetFormData) => {
+    if (!isLastStep) return;
+    return submitBudget(data);
+  };
 
   const onQuickCreate = (data: CreateBudgetFormData) =>
     submitBudget(data, { quickCreate: true });

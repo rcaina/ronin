@@ -79,7 +79,9 @@ const Pagination = ({
         <span className="font-medium text-gray-900">{totalCount}</span> results
       </div>
 
-      <div className="flex items-center gap-1">
+      {/* Wraps at 375 px: seven page tokens plus both arrows overflow the
+          card, and they fit again on one row from ~sm up. */}
+      <div className="flex flex-wrap items-center justify-center gap-1">
         {/* Previous button */}
         <button
           onClick={() => onPageChange(currentPage - 1)}
@@ -91,7 +93,7 @@ const Pagination = ({
         </button>
 
         {/* Page numbers */}
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center justify-center gap-1">
           {getPageNumbers().map((page, index) => {
             if (page === "...") {
               return (

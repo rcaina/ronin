@@ -7,6 +7,7 @@ import { CategoryType } from "@prisma/client";
 import Button from "../Button";
 import { useCreateBudgetCategory } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
+import { roundToCents } from "@/lib/utils";
 import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
 
 const GROUP_LABELS: Record<CategoryType, string> = {
@@ -67,7 +68,8 @@ export default function NewCategoryInline({
     }
 
     // An empty amount means no allocation yet, which the API now accepts.
-    const allocatedAmount = parseFloat(amount) || 0;
+    // `allocatedAmount` is a Float column, so round before it leaves the form.
+    const allocatedAmount = roundToCents(parseFloat(amount) || 0);
     if (allocatedAmount < 0) {
       setError("Allocated amount must be 0 or greater");
       return;

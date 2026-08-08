@@ -517,6 +517,13 @@ const BudgetCategoriesPage = () => {
     (filters.sort !== DEFAULT_BUDGET_CATEGORY_FILTERS.sort ? 1 : 0) +
     (filters.unusedOnly !== DEFAULT_BUDGET_CATEGORY_FILTERS.unusedOnly ? 1 : 0);
 
+  // Sorting reorders but never hides a category, so it must not count towards
+  // "a filter emptied the list" — otherwise a sort-only change on a budget with
+  // no categories replaces the views (and their per-group "+" buttons).
+  const restrictiveFilterCount =
+    activeFilterCount -
+    (filters.sort !== DEFAULT_BUDGET_CATEGORY_FILTERS.sort ? 1 : 0);
+
   // Show loading state while either budget or categories are loading
   const isPageLoading = budgetLoading || categoriesLoading;
   usePageLoading(isPageLoading, "Loading budget categories...");
@@ -1012,7 +1019,7 @@ const BudgetCategoriesPage = () => {
                 A budget with no categories at all still renders the views so
                 their per-group "+" buttons are reachable. */}
             {filteredBudgetCategories.length === 0 &&
-            (activeFilterCount > 0 || searchQuery.trim() !== "") ? (
+            (restrictiveFilterCount > 0 || searchQuery.trim() !== "") ? (
               <div className="card-surface flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
                   <SlidersHorizontal className="h-7 w-7" strokeWidth={1.5} />
@@ -1022,7 +1029,9 @@ const BudgetCategoriesPage = () => {
                     No categories match
                   </p>
                   <p className="mt-1 text-sm text-gray-500">
-                    Try adjusting or clearing your filters.
+                    {restrictiveFilterCount > 0
+                      ? "Try adjusting or clearing your filters."
+                      : "Try a different search, or clear it to see all categories."}
                   </p>
                 </div>
                 {activeFilterCount > 0 && (

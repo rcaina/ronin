@@ -878,7 +878,6 @@ const BudgetsPage = () => {
         onSuccess={(result) => {
           setIsCreateModalOpen(false);
           setBudgetToCustomize(null);
-          toast.success("Budget created successfully!");
           // Quick-created budgets skip the later steps, so open the new budget
           // for the user to fill in income, cards and categories.
           if (result.quickCreate) {
