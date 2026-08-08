@@ -253,7 +253,7 @@ export const calculateEndDate = (startDate: Date, period: PeriodType): Date => {
       const quarterlyEndDate = new Date(startDate);
       quarterlyEndDate.setMonth(quarterlyEndDate.getMonth() + 3);
       // Subtract 1 day to get the day before the 3-month mark
-      quarterlyEndDate.setDate(quarterlyEndDate.getDate());
+      quarterlyEndDate.setDate(quarterlyEndDate.getDate() - 1);
       return quarterlyEndDate;
 
     case PeriodType.YEARLY:

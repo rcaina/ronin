@@ -45,6 +45,7 @@ import {
 import type { BillingInterval } from "@/lib/data-hooks/services/billing";
 import { useFeatureSettings } from "@/lib/data-hooks/accounts/useFeatureSettings";
 import { isFeatureEnabled } from "@/lib/utils/features";
+import { PREMIUM_GATING_ENABLED } from "@/lib/utils/entitlements";
 import { DEFAULT_FEATURE_SETTINGS } from "@/lib/types/feature-settings";
 
 interface AccountUser {
@@ -96,14 +97,37 @@ const SettingsPageContent = () => {
 
   const isAdmin = session?.user?.role === Role.ADMIN;
 
+  // While the paywall is paused (PREMIUM_GATING_ENABLED) there's no plan to
+  // choose, so the Billing tab only exists for accounts that still have a live
+  // Stripe subscription to view or cancel.
+  const hasBillingAccess =
+    PREMIUM_GATING_ENABLED || billingStatus?.subscriptionStatus != null;
+
+  // Keep the tab mounted while the status request is in flight so a
+  // `?tab=billing` deep link renders the skeleton instead of a blank pane.
+  const showBillingTab = billingLoading || hasBillingAccess;
+
   // The account admin can turn the `notifications` feature toggle off while
   // this tab is open (or a deep link points at it) — bounce back to Profile
-  // rather than showing a disabled section with nothing in it.
+  // rather than showing a disabled section with nothing in it. Same for a
+  // `?tab=billing` deep link once billing is hidden.
   useEffect(() => {
     if (activeTab === "notifications" && !notificationsFeatureEnabled) {
       setActiveTab("profile");
     }
-  }, [activeTab, notificationsFeatureEnabled]);
+    // Only once the request settles — bouncing while it loads would kick a
+    // subscriber off the `?tab=billing` return URL Stripe's portal sends them
+    // to. A failed request lands here too, so the tab never stays active with
+    // nothing behind it.
+    if (activeTab === "billing" && !billingLoading && !hasBillingAccess) {
+      setActiveTab("profile");
+    }
+  }, [
+    activeTab,
+    notificationsFeatureEnabled,
+    billingLoading,
+    hasBillingAccess,
+  ]);
 
   // Handle the redirect back from Stripe Checkout: toast on success/cancel,
   // refresh billing status, and strip `checkout` from the URL so a refresh
@@ -219,10 +243,11 @@ const SettingsPageContent = () => {
     tabs.push({ id: "notifications", label: "Notifications", icon: Bell });
   }
 
-  tabs.push(
-    { id: "billing", label: "Billing", icon: CreditCard },
-    { id: "security", label: "Security", icon: Shield },
-  );
+  if (showBillingTab) {
+    tabs.push({ id: "billing", label: "Billing", icon: CreditCard });
+  }
+
+  tabs.push({ id: "security", label: "Security", icon: Shield });
 
   // Add Users tab for admin users
   if (isAdmin) {
@@ -511,8 +536,9 @@ const SettingsPageContent = () => {
             <NotificationSettingsPanel />
           )}
 
-          {/* Billing Tab */}
-          {activeTab === "billing" && (
+          {/* Billing Tab — hidden while the paywall is paused unless the
+              account still has a subscription to manage (see showBillingTab). */}
+          {activeTab === "billing" && showBillingTab && (
             <div className="space-y-4 sm:space-y-6">
               {billingLoading ? (
                 <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">

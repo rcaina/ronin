@@ -23,12 +23,14 @@ import {
   useMarkBudgetCompleted,
   useMarkBudgetArchived,
   useReactivateBudget,
+  useDuplicateBudget,
 } from "@/lib/data-hooks/budgets/useBudgets";
 import { useDeleteBudget } from "@/lib/data-hooks/budgets/useBudgets";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import PageHeader from "@/components/PageHeader";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import CreateBudgetModal from "@/components/budgets/CreateBudgetModal";
+import DuplicateBudgetModal from "@/components/budgets/DuplicateBudgetModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import UpgradeModal from "@/components/UpgradeModal";
 import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
@@ -74,7 +76,12 @@ const BudgetsPage = () => {
   const [budgetToDelete, setBudgetToDelete] =
     useState<BudgetWithRelations | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  // The budget whose Copy icon was clicked (drives the quick/customize chooser)
   const [budgetToDuplicate, setBudgetToDuplicate] =
+    useState<BudgetWithRelations | null>(null);
+  // The budget being duplicated through the full wizard, once "Customize
+  // first" is chosen
+  const [budgetToCustomize, setBudgetToCustomize] =
     useState<BudgetWithRelations | null>(null);
   const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
 
@@ -105,6 +112,7 @@ const BudgetsPage = () => {
   const markCompletedMutation = useMarkBudgetCompleted();
   const markArchivedMutation = useMarkBudgetArchived();
   const reactivateMutation = useReactivateBudget();
+  const duplicateBudgetMutation = useDuplicateBudget();
 
   // Get current budgets based on active tab, sorted by which budget ends soonest
   const currentBudgets = useMemo(() => {
@@ -184,6 +192,32 @@ const BudgetsPage = () => {
 
   const handleDuplicateBudget = (budget: BudgetWithRelations) => {
     setBudgetToDuplicate(budget);
+  };
+
+  // One-call server-side copy: carries over cards, income and categories as-is,
+  // resets the dates to the current period, then opens the copy for edits.
+  const handleQuickDuplicate = async (budget: BudgetWithRelations) => {
+    try {
+      const { budget: duplicated } = await duplicateBudgetMutation.mutateAsync(
+        budget.id,
+      );
+      setBudgetToDuplicate(null);
+      toast.success("Budget duplicated!");
+      router.push(`/budgets/${duplicated.id}`);
+    } catch (err) {
+      if (err instanceof UpgradeRequiredError) {
+        setBudgetToDuplicate(null);
+        setUpgradeReason(err.message);
+        return;
+      }
+      toast.error("Failed to duplicate budget. Please try again.");
+      console.error("Failed to duplicate budget:", err);
+    }
+  };
+
+  const handleCustomizeDuplicate = (budget: BudgetWithRelations) => {
+    setBudgetToDuplicate(null);
+    setBudgetToCustomize(budget);
     setIsCreateModalOpen(true);
   };
 
@@ -818,18 +852,39 @@ const BudgetsPage = () => {
         </div>
       </div>
       {/* Modals */}
+      <DuplicateBudgetModal
+        isOpen={!!budgetToDuplicate}
+        budgetName={budgetToDuplicate?.name ?? ""}
+        isDuplicating={duplicateBudgetMutation.isPending}
+        onClose={() => setBudgetToDuplicate(null)}
+        onQuickDuplicate={async () => {
+          if (budgetToDuplicate) {
+            await handleQuickDuplicate(budgetToDuplicate);
+          }
+        }}
+        onCustomize={() => {
+          if (budgetToDuplicate) {
+            handleCustomizeDuplicate(budgetToDuplicate);
+          }
+        }}
+      />
+
       <CreateBudgetModal
         isOpen={isCreateModalOpen}
         onClose={() => {
           setIsCreateModalOpen(false);
-          setBudgetToDuplicate(null);
+          setBudgetToCustomize(null);
         }}
-        onSuccess={() => {
+        onSuccess={(result) => {
           setIsCreateModalOpen(false);
-          setBudgetToDuplicate(null);
-          toast.success("Budget created successfully!");
+          setBudgetToCustomize(null);
+          // Quick-created budgets skip the later steps, so open the new budget
+          // for the user to fill in income, cards and categories.
+          if (result.quickCreate) {
+            router.push(`/budgets/${result.budgetId}`);
+          }
         }}
-        initialBudget={budgetToDuplicate}
+        initialBudget={budgetToCustomize}
       />
 
       <DeleteConfirmationModal

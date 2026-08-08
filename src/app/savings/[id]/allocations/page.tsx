@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSavingsAccount } from "@/lib/data-hooks/savings/useSavings";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import StatsCard from "@/components/StatsCard";
+import Pagination from "@/components/Pagination";
 import {
   AlertCircle,
   PiggyBank,
@@ -13,12 +15,15 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { formatCurrency, formatDateUTC } from "@/lib/utils";
-import type { AllocationSummary } from "@/lib/types/savings";
+import { flattenAllocations } from "@/lib/utils/savings";
+
+const PAGE_SIZE = 20;
 
 const AllocationsPage = () => {
   const { id } = useParams();
   const router = useRouter();
   const savingsId = id as string;
+  const [currentPage, setCurrentPage] = useState(1);
 
   const {
     data: savings,
@@ -26,20 +31,25 @@ const AllocationsPage = () => {
     error: savingsError,
   } = useSavingsAccount(savingsId);
 
-  // Collect all allocations from all pockets
-  const allAllocations: Array<
-    AllocationSummary & { pocketName: string; pocketId: string }
-  > =
-    savings?.pockets?.flatMap((pocket) =>
-      (pocket.allocations ?? []).map((allocation) => ({
-        ...allocation,
-        pocketName: pocket.name,
-        pocketId: pocket.id,
-      })),
-    ) ?? [];
+  // This route keeps the same component instance when the account changes, so
+  // reset the page rather than landing on page 3 of a different account.
+  useEffect(() => setCurrentPage(1), [savingsId]);
 
-  // Allocations are already sorted by the backend (most recent first)
-  const sortedAllocations = allAllocations;
+  // Every pocket's allocations as one list, most recent first
+  const sortedAllocations = flattenAllocations(savings?.pockets);
+
+  // Paginate the list. The stats below stay across every allocation, not just
+  // the visible page. `safePage` keeps the view valid when the list shrinks
+  // under the current page (e.g. an allocation is deleted elsewhere).
+  const totalPages = Math.max(
+    1,
+    Math.ceil(sortedAllocations.length / PAGE_SIZE),
+  );
+  const safePage = Math.min(currentPage, totalPages);
+  const visibleAllocations = sortedAllocations.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  );
 
   // Calculate statistics
   const totalAllocations = sortedAllocations.length;
@@ -149,8 +159,8 @@ const AllocationsPage = () => {
             </div>
 
             <div className="space-y-2 pb-2">
-              {sortedAllocations.length > 0 ? (
-                sortedAllocations.map((allocation) => (
+              {visibleAllocations.length > 0 ? (
+                visibleAllocations.map((allocation) => (
                   <div
                     key={allocation.id}
                     className="group flex items-center justify-between rounded-xl border border-gray-200/70 bg-surface p-3 transition-colors duration-200 hover:bg-surface-muted"
@@ -212,6 +222,20 @@ const AllocationsPage = () => {
                 </div>
               )}
             </div>
+
+            {totalPages > 1 && (
+              <div className="mt-4 border-t border-gray-200/70 pt-4">
+                <Pagination
+                  currentPage={safePage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  hasNextPage={safePage < totalPages}
+                  hasPreviousPage={safePage > 1}
+                  totalCount={totalAllocations}
+                  limit={PAGE_SIZE}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

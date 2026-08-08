@@ -4,7 +4,7 @@ import { z } from "zod";
 export const createBudgetCategorySchema = z.object({
   categoryName: z.string().min(1, "Category name is required"),
   group: z.nativeEnum(CategoryType),
-  allocatedAmount: z.number().positive("Allocated amount must be positive"),
+  allocatedAmount: z.number().min(0, "Allocated amount must be 0 or greater"),
 });
 
 export const importBudgetCategoriesSchema = z.object({
@@ -17,7 +17,7 @@ export const importBudgetCategoriesSchema = z.object({
 export const updateBudgetCategorySchema = z.object({
   allocatedAmount: z
     .number()
-    .positive("Allocated amount must be positive")
+    .min(0, "Allocated amount must be 0 or greater")
     .optional(),
   name: z
     .string()

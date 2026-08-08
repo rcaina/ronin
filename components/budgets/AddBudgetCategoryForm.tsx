@@ -7,12 +7,13 @@ import { X, Check, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Button from "@/components/Button";
 import { useCategories } from "@/lib/data-hooks/categories/useCategories";
+import { roundToCents } from "@/lib/utils";
 import type { CategoryType } from "@prisma/client";
 
 // Validation schema
 const budgetCategorySchema = z.object({
   categoryName: z.string().min(1, "Category name is required"),
-  allocatedAmount: z.number().positive("Allocated amount must be positive"),
+  allocatedAmount: z.number().min(0, "Allocated amount must be 0 or greater"),
 });
 
 type BudgetCategoryFormData = z.infer<typeof budgetCategorySchema>;
@@ -150,8 +151,12 @@ export default function AddBudgetCategoryForm({
   };
 
   const categoryNameField = register("categoryName");
+  // An empty amount field means "no allocation yet" (0), which is now a valid
+  // allocation — `valueAsNumber` would hand zod a NaN instead. `roundToCents`
+  // keeps a typed-in fraction of a cent out of the Float column.
   const allocatedAmountField = register("allocatedAmount", {
-    valueAsNumber: true,
+    setValueAs: (value: string) =>
+      value === "" ? 0 : roundToCents(Number(value)),
   });
 
   return (
