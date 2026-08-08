@@ -11,6 +11,7 @@ import type {
   UpdateBudgetCategoryData,
   ImportBudgetCategoriesData,
 } from "@/lib/types/budget";
+import { parseErrorResponse } from "@/lib/data-hooks/services/http";
 
 const getBudgetCategories = async (
   budgetId: string,
@@ -60,7 +61,9 @@ const createBudgetCategory = async (
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to create budget category: ${response.statusText}`);
+    // Goes through `parseErrorResponse` so a locked-budget 402 becomes an
+    // `UpgradeRequiredError` callers can turn into the upgrade modal.
+    return parseErrorResponse(response);
   }
 
   const budgetCategory = (await response.json()) as BudgetCategoryWithCategory;

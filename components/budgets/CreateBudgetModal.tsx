@@ -145,7 +145,7 @@ const formatDateForInput = (date: Date): string => {
 interface CreateBudgetModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (result: { budgetId: string; quickCreate: boolean }) => void;
   initialBudget?: BudgetWithRelations | null;
 }
 
@@ -549,7 +549,14 @@ export default function CreateBudgetModal({
     setShowAddCardModal(false);
   };
 
-  const onSubmit = async (data: CreateBudgetFormData) => {
+  // `quickCreate` is the "Create now" path off the first step: the budget is
+  // created from the basics alone (plus anything already staged, e.g. a
+  // duplicate's prefilled cards/categories) and the remaining steps are
+  // skipped. Everything else is filled in on the budget itself afterwards.
+  const submitBudget = async (
+    data: CreateBudgetFormData,
+    { quickCreate = false }: { quickCreate?: boolean } = {},
+  ) => {
     try {
       // For 50/30/20 express budgets, auto-generate one category per group
       // allocated 50/30/20 of adjusted income. The remainder goes to
@@ -559,7 +566,7 @@ export default function CreateBudgetModal({
         group: CategoryType;
         allocatedAmount: number;
       }>;
-      if (isExpress) {
+      if (isExpress && !quickCreate) {
         const adjustedIncome = incomeEntries.reduce(
           (sum, entry) =>
             sum +
@@ -587,7 +594,16 @@ export default function CreateBudgetModal({
         }));
       }
 
-      const incomes = incomeEntries.map((entry) => ({
+      // The income step is skipped on a quick create, so the entries there are
+      // whatever was prefilled (a duplicate's income, or the blank starter row).
+      // Only send the ones the server would accept.
+      const incomeSource = quickCreate
+        ? incomeEntries.filter(
+            (entry) => entry.amount > 0 && entry.source.trim() !== "",
+          )
+        : incomeEntries;
+
+      const incomes = incomeSource.map((entry) => ({
         amount: entry.amount,
         source: entry.source,
         description: entry.description ?? "",
@@ -609,7 +625,8 @@ export default function CreateBudgetModal({
       const created = await mutation.mutateAsync({
         ...data,
         categoryAllocations,
-        incomes,
+        // `incomes` is optional server-side but must be non-empty when present
+        incomes: incomes.length > 0 ? incomes : undefined,
         cardsToInclude: cardsPayload,
       });
 
@@ -632,7 +649,7 @@ export default function CreateBudgetModal({
       }
 
       resetModal();
-      onSuccess?.();
+      onSuccess?.({ budgetId: created.budget.id, quickCreate });
       onClose();
       toast.success("Budget created successfully!");
     } catch (error) {
@@ -644,6 +661,11 @@ export default function CreateBudgetModal({
       toast.error("Failed to create budget. Please try again.");
     }
   };
+
+  const onSubmit = (data: CreateBudgetFormData) => submitBudget(data);
+
+  const onQuickCreate = (data: CreateBudgetFormData) =>
+    submitBudget(data, { quickCreate: true });
 
   const isBasicStepValid = () => {
     return (
@@ -707,7 +729,8 @@ export default function CreateBudgetModal({
               {initialBudget ? "Duplicate Budget" : "Create New Budget"}
             </h2>
             <p className="text-sm text-gray-500">
-              {currentStep === "basic" && "Set up your budget basics"}
+              {currentStep === "basic" &&
+                "Set up your budget basics, or create it now and add income, cards and categories later"}
               {currentStep === "income" &&
                 (isExpress
                   ? "Set up your income — we'll auto-create Needs, Wants, and Investments at 50/30/20"
@@ -833,6 +856,19 @@ export default function CreateBudgetModal({
               >
                 Cancel
               </Button>
+
+              {/* Skip straight to a created budget from the basics alone.
+                  Income, cards and categories get added on the budget. */}
+              {currentStep === "basic" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isCreating || !isBasicStepValid()}
+                  onClick={handleSubmit(onQuickCreate)}
+                >
+                  {isCreating ? "Creating..." : "Create now"}
+                </Button>
+              )}
 
               {isLastStep ? (
                 <Button

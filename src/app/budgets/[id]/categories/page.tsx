@@ -1008,7 +1008,11 @@ const BudgetCategoriesPage = () => {
           </div>
 
           <div className="lg:min-h-0 lg:flex-1">
-            {filteredBudgetCategories.length === 0 ? (
+            {/* Only stand in for the views when a search/filter hid everything.
+                A budget with no categories at all still renders the views so
+                their per-group "+" buttons are reachable. */}
+            {filteredBudgetCategories.length === 0 &&
+            (activeFilterCount > 0 || searchQuery.trim() !== "") ? (
               <div className="card-surface flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
                   <SlidersHorizontal className="h-7 w-7" strokeWidth={1.5} />
@@ -1018,9 +1022,7 @@ const BudgetCategoriesPage = () => {
                     No categories match
                   </p>
                   <p className="mt-1 text-sm text-gray-500">
-                    {activeFilterCount > 0
-                      ? "Try adjusting or clearing your filters."
-                      : "No categories yet — add your first one."}
+                    Try adjusting or clearing your filters.
                   </p>
                 </div>
                 {activeFilterCount > 0 && (

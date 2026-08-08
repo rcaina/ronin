@@ -9,8 +9,10 @@ import {
   type Transaction,
   type Card,
   CardType,
+  PeriodType,
 } from "@prisma/client";
 import { HttpError } from "../errors";
+import { calculateEndDate } from "../utils";
 import { formatBudget, formatBudgetCategories } from "../db/converter";
 import { getAccountEntitlements } from "./entitlements";
 import { isBudgetLocked } from "../utils/entitlements";
@@ -713,14 +715,26 @@ export async function duplicateBudget(
     throw new Error("Budget not found");
   }
 
+  // The copy starts today and ends where its own period lands, so a monthly
+  // budget copied mid-August runs to the end of August rather than a year out.
+  // ONE_TIME budgets have no derivable cycle, so they keep the original's span.
+  const startAt = new Date();
+  const endAt =
+    originalBudget.period === PeriodType.ONE_TIME
+      ? new Date(
+          startAt.getTime() +
+            (originalBudget.endAt.getTime() - originalBudget.startAt.getTime()),
+        )
+      : calculateEndDate(startAt, originalBudget.period);
+
   // Create new budget with copied data
   const newBudget = await tx.budget.create({
     data: {
       name: `${originalBudget.name} (Copy)`,
       strategy: originalBudget.strategy,
       period: originalBudget.period,
-      startAt: new Date(),
-      endAt: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+      startAt,
+      endAt,
       accountId: user.accountId,
     },
   });

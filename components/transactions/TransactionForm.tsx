@@ -26,6 +26,7 @@ import type {
 import type { Card } from "@/lib/types/card";
 import Button from "../Button";
 import DateInput from "../DateInput";
+import NewCategoryInline from "./NewCategoryInline";
 import UpgradeModal from "../UpgradeModal";
 import { formatCurrency, roundToCents } from "@/lib/utils";
 import {
@@ -46,6 +47,10 @@ const SPLIT_UPGRADE_REASON =
 // `lib/utils/entitlements.ts`.
 const RECURRING_UPGRADE_REASON =
   "Recurring transactions are a Premium feature. Upgrade to Premium to automate repeating transactions.";
+
+// Sentinel <option> value that opens the inline "new category" panel instead
+// of selecting a category. Never reaches the form state or the API.
+const NEW_CATEGORY_VALUE = "__new_category__";
 
 const FREQUENCY_LABELS: Record<PeriodType, string> = {
   DAILY: "Daily",
@@ -131,6 +136,30 @@ export default function TransactionForm({
   const [selectedBudgetId, setSelectedBudgetId] = useState<string>("");
   const { data: budgetCategories = [] } = useBudgetCategories(selectedBudgetId);
   const isEditing = !!transaction;
+
+  // Inline category creation. `newCategoryTarget` records which select opened
+  // the panel so the created category lands back in the right place.
+  const [newCategoryTarget, setNewCategoryTarget] = useState<
+    { type: "single" } | { type: "split"; key: string } | null
+  >(null);
+  // Categories created from the panel, held until the invalidated
+  // `budgetCategories` query refetches and includes them.
+  const [createdCategories, setCreatedCategories] = useState<
+    BudgetCategoryWithCategory[]
+  >([]);
+  const [categoryIdToSelect, setCategoryIdToSelect] = useState<string | null>(
+    null,
+  );
+
+  const categoryOptions = useMemo(() => {
+    const loadedIds = new Set(budgetCategories.map((category) => category.id));
+    const pending = createdCategories.filter(
+      (category) =>
+        category.budgetId === selectedBudgetId && !loadedIds.has(category.id),
+    );
+    return [...budgetCategories, ...pending];
+  }, [budgetCategories, createdCategories, selectedBudgetId]);
+
   const isPending = isCreating || isUpdating || isCreatingRecurring;
 
   // Split-across-categories editing state.
@@ -190,6 +219,10 @@ export default function TransactionForm({
     },
   });
 
+  // Registered separately so the category select's onChange can intercept the
+  // "+ New category" sentinel before handing off to react-hook-form.
+  const categoryIdField = register("categoryId");
+
   const watchedBudgetId = watch("budgetId");
   const watchedCardId = watch("cardId");
   const watchedTransactionType = watch("transactionType");
@@ -197,6 +230,7 @@ export default function TransactionForm({
   // Update selected budget when form budget changes
   useEffect(() => {
     setSelectedBudgetId(watchedBudgetId);
+    setNewCategoryTarget(null);
   }, [watchedBudgetId]);
 
   // Determine if the selected card is a credit card
@@ -371,6 +405,29 @@ export default function TransactionForm({
       hasAppliedEditCardRef.current = true;
     }
   }, [cardOptions, transaction, setValue]);
+
+  const handleCategoryCreated = (created: BudgetCategoryWithCategory) => {
+    setCreatedCategories((previous) => [...previous, created]);
+
+    if (newCategoryTarget?.type === "split") {
+      updateSplitRow(newCategoryTarget.key, { categoryId: created.id });
+    } else {
+      // The single-category select is a registered (uncontrolled) field, so
+      // `setValue` writes straight to the DOM node — do it from the effect
+      // below instead, once the new <option> has actually rendered.
+      setCategoryIdToSelect(created.id);
+    }
+
+    setNewCategoryTarget(null);
+  };
+
+  useEffect(() => {
+    if (!categoryIdToSelect) return;
+    if (!categoryOptions.some((c) => c.id === categoryIdToSelect)) return;
+
+    setValue("categoryId", categoryIdToSelect, { shouldValidate: true });
+    setCategoryIdToSelect(null);
+  }, [categoryOptions, categoryIdToSelect, setValue]);
 
   const onSubmit = (data: TransactionFormData) => {
     // "Make recurring" creates a RecurringTransaction template instead of a
@@ -777,16 +834,25 @@ export default function TransactionForm({
                     >
                       <select
                         value={row.categoryId}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          if (e.target.value === NEW_CATEGORY_VALUE) {
+                            // Leave `row.categoryId` alone — this select is
+                            // controlled, so React reverts the sentinel.
+                            setNewCategoryTarget({
+                              type: "split",
+                              key: row.key,
+                            });
+                            return;
+                          }
                           updateSplitRow(row.key, {
                             categoryId: e.target.value,
-                          })
-                        }
+                          });
+                        }}
                         disabled={isPending || !selectedBudgetId}
                         className="w-full flex-1 rounded-md border border-gray-300 px-2 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary sm:w-auto"
                       >
                         <option value="">Select category</option>
-                        {budgetCategories.map(
+                        {categoryOptions.map(
                           (budgetCategory: BudgetCategoryWithCategory) => (
                             <option
                               key={budgetCategory.id}
@@ -795,6 +861,11 @@ export default function TransactionForm({
                               {budgetCategory.name}
                             </option>
                           ),
+                        )}
+                        {selectedBudgetId && (
+                          <option value={NEW_CATEGORY_VALUE}>
+                            + New category
+                          </option>
                         )}
                       </select>
                       <input
@@ -839,6 +910,18 @@ export default function TransactionForm({
                     </div>
                   ))}
 
+                  {newCategoryTarget?.type === "split" && selectedBudgetId && (
+                    <NewCategoryInline
+                      budgetId={selectedBudgetId}
+                      existingNames={categoryOptions.map(
+                        (category) => category.name,
+                      )}
+                      onCreated={handleCategoryCreated}
+                      onCancel={() => setNewCategoryTarget(null)}
+                      onUpgradeRequired={setUpgradeReason}
+                    />
+                  )}
+
                   <Button
                     type="button"
                     variant="ghost"
@@ -871,7 +954,18 @@ export default function TransactionForm({
                 <div className="relative">
                   <select
                     id="categoryId"
-                    {...register("categoryId")}
+                    {...categoryIdField}
+                    onChange={(e) => {
+                      if (e.target.value === NEW_CATEGORY_VALUE) {
+                        // Restore the previous selection so the sentinel never
+                        // becomes the form value (this field is uncontrolled,
+                        // so the DOM node needs resetting explicitly).
+                        setValue("categoryId", getValues("categoryId") ?? "");
+                        setNewCategoryTarget({ type: "single" });
+                        return;
+                      }
+                      void categoryIdField.onChange(e);
+                    }}
                     className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
                       errors.categoryId
                         ? "border-red-300 focus:border-red-500 focus:ring-red-500"
@@ -886,13 +980,13 @@ export default function TransactionForm({
                     <option value="">
                       {!selectedBudgetId
                         ? "Please select a budget first"
-                        : budgetCategories.length === 0
+                        : categoryOptions.length === 0
                           ? "No categories found for this budget"
                           : isEditing && transaction?.category
                             ? `${transaction.category.name}`
                             : "Select a category"}
                     </option>
-                    {budgetCategories.map(
+                    {categoryOptions.map(
                       (budgetCategory: BudgetCategoryWithCategory) => {
                         const allocatedAmount =
                           budgetCategory.allocatedAmount ?? 0;
@@ -909,6 +1003,9 @@ export default function TransactionForm({
                         );
                       },
                     )}
+                    {selectedBudgetId && (
+                      <option value={NEW_CATEGORY_VALUE}>+ New category</option>
+                    )}
                     {/* Show current category if editing and it's not in the current budget categories */}
                     {isEditing &&
                       transaction &&
@@ -921,19 +1018,31 @@ export default function TransactionForm({
                         </option>
                       )}
                   </select>
-                  {selectedBudgetId && budgetCategories.length === 0 && (
+                  {selectedBudgetId && categoryOptions.length === 0 && (
                     <div className="absolute right-2 top-1/2 -translate-y-1/2">
                       <div className="group relative">
                         <Info className="h-4 w-4 text-gray-400" />
                         <div className="absolute bottom-full right-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-xs text-white group-hover:block">
-                          No categories found for this budget. Please add
-                          categories to your budget first.
+                          No categories found for this budget. Pick &ldquo;+ New
+                          category&rdquo; to add one here.
                           <div className="absolute right-2 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
+              )}
+
+              {newCategoryTarget?.type === "single" && selectedBudgetId && (
+                <NewCategoryInline
+                  budgetId={selectedBudgetId}
+                  existingNames={categoryOptions.map(
+                    (category) => category.name,
+                  )}
+                  onCreated={handleCategoryCreated}
+                  onCancel={() => setNewCategoryTarget(null)}
+                  onUpgradeRequired={setUpgradeReason}
+                />
               )}
               {errors.categoryId && !isSplitMode && (
                 <p className="mt-1 text-sm text-red-600">
