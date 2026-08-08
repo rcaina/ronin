@@ -4,7 +4,7 @@ import type Stripe from "stripe";
 import { HttpError } from "../errors";
 import { getStripe, getStripePriceId, type BillingInterval } from "../stripe";
 import { TRIAL_PERIOD_DAYS } from "../constants/billing";
-import { isPremium } from "../utils/entitlements";
+import { isPremium, resolveEntitlements } from "../utils/entitlements";
 
 type AccountPrisma = Pick<PrismaClient, "account">;
 
@@ -132,7 +132,11 @@ export const getBillingStatus = async (
     currentPeriodEnd: account.currentPeriodEnd,
     trialEnd: account.trialEnd,
     complimentaryAccess: account.complimentaryAccess,
-    isPremium: isPremium(account),
+    // Only `isPremium` follows the gating switch — `plan`, `subscriptionStatus`
+    // and `complimentaryAccess` stay the account's real state so the Billing
+    // tab can still render (and cancel) a live subscription while the paywall
+    // is paused.
+    isPremium: isPremium(resolveEntitlements(account)),
   };
 };
 

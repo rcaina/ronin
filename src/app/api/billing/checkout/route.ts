@@ -6,6 +6,7 @@ import { HttpError } from "@/lib/errors";
 import type { User } from "@prisma/client";
 import { checkoutSchema } from "@/lib/api-schemas/billing";
 import { createCheckoutSession } from "@/lib/api-services/billing";
+import { PREMIUM_GATING_ENABLED } from "@/lib/utils/entitlements";
 
 // POST /api/billing/checkout — ADMIN-only. Creates (or reuses) the Stripe
 // customer for the account and starts a Checkout Session for a new Premium
@@ -17,6 +18,14 @@ export const POST = withUser({
       _context: { params: Promise<Record<string, string>> },
       user: User & { accountId: string },
     ) => {
+      // While the paywall is paused every feature is free, so there is nothing
+      // to sell — refuse new subscriptions even if a stale client (or a direct
+      // request) still hits this route. The portal route stays open so existing
+      // subscribers can still manage or cancel.
+      if (!PREMIUM_GATING_ENABLED) {
+        throw new HttpError("Premium isn't available right now", 403);
+      }
+
       if (user.role !== "ADMIN") {
         throw new HttpError("Only account admins can manage billing", 403);
       }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   FREE_LIMITS,
+  PREMIUM_GATING_ENABLED,
+  resolveEntitlements,
   canCreateBudget,
   canCreatePocket,
   canCreateRecurring,
@@ -95,6 +97,35 @@ describe("isPremium", () => {
         }),
       ),
     ).toBe(true);
+  });
+});
+
+describe("resolveEntitlements", () => {
+  // Branches on the flag so these stay valid when the paywall is turned back
+  // on — the free-tier rules below are always tested against a raw account.
+  it("comps every account while the paywall is paused, and is a no-op when it's on", () => {
+    const free = account();
+    const resolved = resolveEntitlements(free);
+
+    if (PREMIUM_GATING_ENABLED) {
+      expect(resolved).toEqual(free);
+      expect(isPremium(resolved)).toBe(false);
+    } else {
+      expect(isPremium(resolved)).toBe(true);
+      expect(
+        canCreateBudget(resolved, FREE_LIMITS.maxActiveBudgets + 5).allowed,
+      ).toBe(true);
+      expect(canScanReceipt(resolved).allowed).toBe(true);
+      expect(canCreateRecurring(resolved, 10).allowed).toBe(true);
+    }
+  });
+
+  it("keeps the account's real plan fields intact", () => {
+    const free = account();
+    const resolved = resolveEntitlements(free);
+
+    expect(resolved.plan).toBe("FREE");
+    expect(resolved.subscriptionStatus).toBeNull();
   });
 });
 

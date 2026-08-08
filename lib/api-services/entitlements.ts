@@ -5,6 +5,7 @@ import {
   isBudgetLocked,
   isPocketLocked,
   isPremium,
+  resolveEntitlements,
   type AccountEntitlementFields,
 } from "../utils/entitlements";
 
@@ -13,6 +14,10 @@ import {
  * (`isPremium`/`canCreate*`/`canInviteMember`/`canScanReceipt`). Throws a 404
  * `HttpError` if the account doesn't exist, mirroring the ownership-check
  * helpers in `lib/utils/auth.ts`.
+ *
+ * The loaded account passes through `resolveEntitlements`, so while the
+ * paywall is paused (`PREMIUM_GATING_ENABLED === false`) every caller below
+ * sees a fully-entitled account.
  */
 export const getAccountEntitlements = async (
   prisma: Pick<PrismaClient, "account">,
@@ -32,7 +37,7 @@ export const getAccountEntitlements = async (
     throw new HttpError("Account not found", 404);
   }
 
-  return account;
+  return resolveEntitlements(account);
 };
 
 /**

@@ -10,6 +10,33 @@ export type AccountEntitlementFields = Pick<
   "plan" | "complimentaryAccess" | "subscriptionStatus" | "currentPeriodEnd"
 >;
 
+/**
+ * Master switch for the paid plan. While `false` the paywall is **paused**:
+ * every account gets full access, the Premium upsell is hidden in `/settings`,
+ * and `POST /api/billing/checkout` is closed so nobody can start a new
+ * subscription. Existing subscribers keep their Stripe subscription and can
+ * still cancel it from the Billing tab.
+ *
+ * Flip to `true` to sell Premium again — the free-tier rules below are
+ * unchanged (and still tested), so nothing else has to be restored.
+ */
+export const PREMIUM_GATING_ENABLED = false;
+
+/**
+ * The account fields entitlement checks should actually run against. While
+ * `PREMIUM_GATING_ENABLED` is `false`, every account reads as comped so every
+ * `can*` / lock check below allows.
+ *
+ * Applied at the two points an account enters an entitlement check —
+ * `getAccountEntitlements` (server enforcement) and `getBillingStatus`
+ * (client affordances) — which keeps the pure rules here plan-accurate for
+ * when the paywall comes back.
+ */
+export const resolveEntitlements = <T extends AccountEntitlementFields>(
+  account: T,
+): T =>
+  PREMIUM_GATING_ENABLED ? account : { ...account, complimentaryAccess: true };
+
 /** Free-tier limits, enforced server-side (see `lib/utils/entitlements.ts` callers). */
 export const FREE_LIMITS = {
   maxActiveBudgets: 1,
