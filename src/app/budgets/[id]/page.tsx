@@ -178,26 +178,28 @@ const BudgetDetailsPage = () => {
             ))}
           </div>
 
-          {/* Category group cards skeleton */}
-          <div className="mb-4 grid grid-cols-1 gap-3 sm:mb-6 sm:grid-cols-3 sm:gap-4">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="h-32 animate-pulse rounded-xl bg-surface-muted"
-              />
-            ))}
-          </div>
-
-          {/* Recent transactions skeleton */}
-          <div className="card-surface flex-1 p-3 sm:p-4">
-            <div className="mb-4 h-5 w-48 animate-pulse rounded-full bg-surface-muted" />
-            <div className="space-y-2">
+          <div className="flex flex-col gap-3 sm:gap-4 lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)] xl:grid-cols-3">
+            {/* Detail cards skeleton */}
+            <div className="grid grid-cols-1 content-start gap-3 sm:grid-cols-2 sm:gap-4 lg:min-h-0 lg:grid-cols-1 lg:overflow-hidden xl:col-span-2 xl:grid-cols-2">
               {[0, 1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="h-14 animate-pulse rounded-xl bg-surface-muted"
+                  className="h-32 animate-pulse rounded-xl bg-surface-muted"
                 />
               ))}
+            </div>
+
+            {/* Recent transactions skeleton */}
+            <div className="card-surface p-3 sm:p-4">
+              <div className="mb-4 h-5 w-48 animate-pulse rounded-full bg-surface-muted" />
+              <div className="space-y-2">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-14 animate-pulse rounded-xl bg-surface-muted"
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -665,286 +667,292 @@ const BudgetDetailsPage = () => {
             </div>
           </div>
 
-          {/* Budget Details, Categories Summary, and Budget Summary - Three Columns */}
-          <div className="mb-4 grid flex-shrink-0 grid-cols-1 gap-3 sm:mb-4 sm:grid-cols-2 sm:gap-4 lg:mb-4 lg:grid-cols-3">
-            {/* Budget Details */}
-            <div className="card-surface p-3 sm:p-4">
-              <div className="mb-1.5 flex items-center justify-between sm:mb-2">
-                <h3 className="text-xs font-semibold tracking-tight text-gray-900 sm:text-sm lg:text-base">
-                  Budget details
+          {/* Details + strategy beside recent transactions on desktop, so the
+            fixed-height viewport never squeezes the transactions list out */}
+          <div className="flex flex-col gap-3 sm:gap-4 lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)] xl:grid-cols-3">
+            <div className="grid grid-cols-1 content-start gap-3 sm:grid-cols-2 sm:gap-4 lg:-m-1 lg:min-h-0 lg:grid-cols-1 lg:overflow-y-auto lg:p-1 xl:col-span-2 xl:grid-cols-2">
+              {/* Budget Details */}
+              <div className="card-surface p-3 sm:p-4">
+                <div className="mb-1.5 flex items-center justify-between sm:mb-2">
+                  <h3 className="text-xs font-semibold tracking-tight text-gray-900 sm:text-sm lg:text-base">
+                    Budget details
+                  </h3>
+                  <button
+                    onClick={() => setIsEditBudgetOpen(true)}
+                    className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
+                    title="Edit budget details"
+                  >
+                    <EditIcon className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+                  <div>
+                    <span className="text-xs font-medium text-gray-500">
+                      Strategy
+                    </span>
+                    <p className="text-xs font-medium capitalize sm:text-sm">
+                      {budget.strategy.replace("_", " ").toLowerCase()}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs font-medium text-gray-500">
+                      Period
+                    </span>
+                    <p className="text-xs font-medium capitalize sm:text-sm">
+                      {budget.period.replace("_", " ").toLowerCase()}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs font-medium text-gray-500">
+                      Start date
+                    </span>
+                    <p className="text-xs font-medium tabular-nums sm:text-sm">
+                      {formatDateUTC(new Date(budget.startAt).toISOString())}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs font-medium text-gray-500">
+                      End date
+                    </span>
+                    <p className="text-xs font-medium tabular-nums sm:text-sm">
+                      {formatDateUTC(new Date(budget.endAt).toISOString())}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Categories Summary */}
+              <div className="card-surface p-3 sm:p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-xs font-semibold tracking-tight text-gray-900 sm:text-sm lg:text-base">
+                    Categories summary
+                  </h3>
+                  <button
+                    onClick={() =>
+                      router.push(`/budgets/${String(id)}/categories`)
+                    }
+                    className="text-[10px] font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800 sm:text-xs"
+                  >
+                    View details
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {Object.entries(categoriesByGroup)
+                    .filter(([group]) => group !== "card_payment")
+                    .map(([group, categories]) => {
+                      if (!categories || categories.length === 0) return null;
+
+                      // Calculate totals for this group
+                      const totalAllocated = roundToCents(
+                        categories.reduce(
+                          (sum, cat) => sum + (cat.allocatedAmount ?? 0),
+                          0,
+                        ),
+                      );
+
+                      const totalSpent = roundToCents(
+                        categories.reduce(
+                          (sum, cat) =>
+                            sum + roundToCents(calculateCategorySpent(cat)),
+                          0,
+                        ),
+                      );
+
+                      const usagePercentage = roundToCents(
+                        totalAllocated > 0
+                          ? (totalSpent / totalAllocated) * 100
+                          : 0,
+                      );
+
+                      // Count categories that are 100% used
+                      const fullyUsedCount = categories.filter((cat) => {
+                        const categorySpent = roundToCents(
+                          calculateCategorySpent(cat),
+                        );
+                        const categoryPercentage = roundToCents(
+                          cat.allocatedAmount && cat.allocatedAmount > 0
+                            ? (categorySpent / cat.allocatedAmount) * 100
+                            : 0,
+                        );
+                        return categoryPercentage >= 100;
+                      }).length;
+
+                      return (
+                        <div key={group} className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-1.5">
+                              <div
+                                className="h-2 w-2 rounded-full"
+                                style={{
+                                  backgroundColor: getGroupDotColor(group),
+                                }}
+                              ></div>
+                              <span className="text-xs font-medium text-gray-900">
+                                {getGroupLabel(group)}
+                              </span>
+                              <span className="text-[10px] tabular-nums text-gray-500">
+                                ({fullyUsedCount}/{categories.length})
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-xs font-medium tabular-nums text-gray-900">
+                                ${totalSpent.toLocaleString()} / $
+                                {totalAllocated.toLocaleString()}
+                              </div>
+                              <div className="text-[10px] tabular-nums text-gray-500">
+                                {usagePercentage.toFixed(1)}% used
+                              </div>
+                            </div>
+                          </div>
+                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                            <div
+                              className={`h-1.5 rounded-full transition-all duration-500 ease-out ${
+                                usagePercentage === 100
+                                  ? "bg-green-500"
+                                  : usagePercentage > 100
+                                    ? "bg-red-500"
+                                    : "bg-secondary"
+                              }`}
+                              style={{
+                                width: `${usagePercentage > 100 ? 100 : usagePercentage}%`,
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* Budget Summary */}
+              <div className="card-surface p-3 sm:p-4">
+                <h3 className="mb-2 text-xs font-semibold tracking-tight text-gray-900 sm:text-sm lg:text-base">
+                  Budget summary
                 </h3>
-                <button
-                  onClick={() => setIsEditBudgetOpen(true)}
-                  className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
-                  title="Edit budget details"
-                >
-                  <EditIcon className="h-4 w-4" />
-                </button>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  <div>
+                    <div className="mb-0.5 flex items-center gap-1.5">
+                      <DollarSign className="h-3 w-3 text-green-600 sm:h-4 sm:w-4" />
+                      <span className="text-xs font-medium text-gray-500">
+                        Total income
+                      </span>
+                    </div>
+                    <div className="text-sm font-bold tabular-nums tracking-tight text-gray-900 sm:text-base">
+                      ${totalIncome.toLocaleString()}
+                    </div>
+                    <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
+                      {(() => {
+                        const debitCards = (budget.cards ?? []).filter(
+                          isDebitCard,
+                        );
+                        const debitCardIds = debitCards.map(
+                          (card: { id: string }) => card.id,
+                        );
+                        const incomeTransactions = (
+                          budget.transactions ?? []
+                        ).filter(
+                          (transaction) =>
+                            transaction.transactionType ===
+                              TransactionType.INCOME &&
+                            transaction.cardId &&
+                            debitCardIds.includes(transaction.cardId),
+                        );
+                        return incomeTransactions.length === 1
+                          ? (incomeTransactions[0]?.name ?? "Income")
+                          : `${incomeTransactions.length} income transactions`;
+                      })()}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-0.5 flex items-center gap-1.5">
+                      <TrendingDown className="h-3 w-3 text-red-500 sm:h-4 sm:w-4" />
+                      <span className="text-xs font-medium text-gray-500">
+                        Total spent
+                      </span>
+                    </div>
+                    <div className="text-sm font-bold tabular-nums tracking-tight text-gray-900 sm:text-base">
+                      ${totalSpent.toLocaleString()}
+                    </div>
+                    <div className="mt-0.5 text-[9px] tabular-nums text-gray-400 sm:text-[10px]">
+                      {spendingPercentage.toFixed(1)}% of budget
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-0.5 flex items-center gap-1.5">
+                      <TrendingUp className="h-3 w-3 text-secondary-600 sm:h-4 sm:w-4" />
+                      <span className="text-xs font-medium text-gray-500">
+                        Remaining
+                      </span>
+                    </div>
+                    <div
+                      className={`text-sm font-bold tabular-nums tracking-tight sm:text-base ${
+                        totalRemaining >= 0 ? "text-gray-900" : "text-red-600"
+                      }`}
+                    >
+                      ${totalRemaining.toLocaleString()}
+                    </div>
+                    <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
+                      {totalRemaining >= 0 ? "Available" : "Over budget"}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-0.5 flex items-center gap-1.5">
+                      <div
+                        className={`h-3 w-3 rounded-full ${budgetStatusDisplay.bg} sm:h-4 sm:w-4`}
+                      >
+                        <div
+                          className={`h-1.5 w-1.5 rounded-full ${budgetStatusDisplay.color.replace("text-", "bg-")} m-0.5 sm:m-0.5 sm:h-2 sm:w-2`}
+                        ></div>
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">
+                        Status
+                      </span>
+                    </div>
+                    <div
+                      className={`text-sm font-bold tracking-tight sm:text-base ${budgetStatusDisplay.color}`}
+                    >
+                      {budgetStatusDisplay.status}
+                    </div>
+                    <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
+                      {budgetStatusDisplay.subtitle}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
-                <div>
-                  <span className="text-xs font-medium text-gray-500">
-                    Strategy
-                  </span>
-                  <p className="text-xs font-medium capitalize sm:text-sm">
-                    {budget.strategy.replace("_", " ").toLowerCase()}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-xs font-medium text-gray-500">
-                    Period
-                  </span>
-                  <p className="text-xs font-medium capitalize sm:text-sm">
-                    {budget.period.replace("_", " ").toLowerCase()}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-xs font-medium text-gray-500">
-                    Start date
-                  </span>
-                  <p className="text-xs font-medium tabular-nums sm:text-sm">
-                    {formatDateUTC(new Date(budget.startAt).toISOString())}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-xs font-medium text-gray-500">
-                    End date
-                  </span>
-                  <p className="text-xs font-medium tabular-nums sm:text-sm">
-                    {formatDateUTC(new Date(budget.endAt).toISOString())}
-                  </p>
-                </div>
-              </div>
+
+              {/* Strategy adherence — live indicator for the budget's strategy */}
+              <BudgetStrategyIndicator
+                budget={budget}
+                totalIncome={totalIncome}
+              />
             </div>
 
-            {/* Categories Summary */}
-            <div className="card-surface p-3 sm:p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-xs font-semibold tracking-tight text-gray-900 sm:text-sm lg:text-base">
-                  Categories summary
+            {/* Recent Transactions Summary */}
+            <div className="card-surface mb-4 flex min-h-0 flex-col p-3 sm:p-4 lg:mb-0">
+              <div className="mb-3 flex flex-shrink-0 items-center justify-between">
+                <h3 className="text-sm font-semibold tracking-tight text-gray-900 sm:text-base lg:text-lg">
+                  Recent transactions
                 </h3>
                 <button
                   onClick={() =>
-                    router.push(`/budgets/${String(id)}/categories`)
+                    router.push(`/budgets/${String(id)}/transactions`)
                   }
-                  className="text-[10px] font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800 sm:text-xs"
+                  className="text-xs font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800 sm:text-sm"
                 >
-                  View details
+                  View all
                 </button>
               </div>
 
-              <div className="space-y-2">
-                {Object.entries(categoriesByGroup)
-                  .filter(([group]) => group !== "card_payment")
-                  .map(([group, categories]) => {
-                    if (!categories || categories.length === 0) return null;
-
-                    // Calculate totals for this group
-                    const totalAllocated = roundToCents(
-                      categories.reduce(
-                        (sum, cat) => sum + (cat.allocatedAmount ?? 0),
-                        0,
-                      ),
-                    );
-
-                    const totalSpent = roundToCents(
-                      categories.reduce(
-                        (sum, cat) =>
-                          sum + roundToCents(calculateCategorySpent(cat)),
-                        0,
-                      ),
-                    );
-
-                    const usagePercentage = roundToCents(
-                      totalAllocated > 0
-                        ? (totalSpent / totalAllocated) * 100
-                        : 0,
-                    );
-
-                    // Count categories that are 100% used
-                    const fullyUsedCount = categories.filter((cat) => {
-                      const categorySpent = roundToCents(
-                        calculateCategorySpent(cat),
-                      );
-                      const categoryPercentage = roundToCents(
-                        cat.allocatedAmount && cat.allocatedAmount > 0
-                          ? (categorySpent / cat.allocatedAmount) * 100
-                          : 0,
-                      );
-                      return categoryPercentage >= 100;
-                    }).length;
-
-                    return (
-                      <div key={group} className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-1.5">
-                            <div
-                              className="h-2 w-2 rounded-full"
-                              style={{
-                                backgroundColor: getGroupDotColor(group),
-                              }}
-                            ></div>
-                            <span className="text-xs font-medium text-gray-900">
-                              {getGroupLabel(group)}
-                            </span>
-                            <span className="text-[10px] tabular-nums text-gray-500">
-                              ({fullyUsedCount}/{categories.length})
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xs font-medium tabular-nums text-gray-900">
-                              ${totalSpent.toLocaleString()} / $
-                              {totalAllocated.toLocaleString()}
-                            </div>
-                            <div className="text-[10px] tabular-nums text-gray-500">
-                              {usagePercentage.toFixed(1)}% used
-                            </div>
-                          </div>
-                        </div>
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-                          <div
-                            className={`h-1.5 rounded-full transition-all duration-500 ease-out ${
-                              usagePercentage === 100
-                                ? "bg-green-500"
-                                : usagePercentage > 100
-                                  ? "bg-red-500"
-                                  : "bg-secondary"
-                            }`}
-                            style={{
-                              width: `${usagePercentage > 100 ? 100 : usagePercentage}%`,
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-
-            {/* Budget Summary */}
-            <div className="card-surface p-3 sm:p-4">
-              <h3 className="mb-2 text-xs font-semibold tracking-tight text-gray-900 sm:text-sm lg:text-base">
-                Budget summary
-              </h3>
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                <div>
-                  <div className="mb-0.5 flex items-center gap-1.5">
-                    <DollarSign className="h-3 w-3 text-green-600 sm:h-4 sm:w-4" />
-                    <span className="text-xs font-medium text-gray-500">
-                      Total income
-                    </span>
-                  </div>
-                  <div className="text-sm font-bold tabular-nums tracking-tight text-gray-900 sm:text-base">
-                    ${totalIncome.toLocaleString()}
-                  </div>
-                  <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
-                    {(() => {
-                      const debitCards = (budget.cards ?? []).filter(
-                        isDebitCard,
-                      );
-                      const debitCardIds = debitCards.map(
-                        (card: { id: string }) => card.id,
-                      );
-                      const incomeTransactions = (
-                        budget.transactions ?? []
-                      ).filter(
-                        (transaction) =>
-                          transaction.transactionType ===
-                            TransactionType.INCOME &&
-                          transaction.cardId &&
-                          debitCardIds.includes(transaction.cardId),
-                      );
-                      return incomeTransactions.length === 1
-                        ? (incomeTransactions[0]?.name ?? "Income")
-                        : `${incomeTransactions.length} income transactions`;
-                    })()}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="mb-0.5 flex items-center gap-1.5">
-                    <TrendingDown className="h-3 w-3 text-red-500 sm:h-4 sm:w-4" />
-                    <span className="text-xs font-medium text-gray-500">
-                      Total spent
-                    </span>
-                  </div>
-                  <div className="text-sm font-bold tabular-nums tracking-tight text-gray-900 sm:text-base">
-                    ${totalSpent.toLocaleString()}
-                  </div>
-                  <div className="mt-0.5 text-[9px] tabular-nums text-gray-400 sm:text-[10px]">
-                    {spendingPercentage.toFixed(1)}% of budget
-                  </div>
-                </div>
-
-                <div>
-                  <div className="mb-0.5 flex items-center gap-1.5">
-                    <TrendingUp className="h-3 w-3 text-secondary-600 sm:h-4 sm:w-4" />
-                    <span className="text-xs font-medium text-gray-500">
-                      Remaining
-                    </span>
-                  </div>
-                  <div
-                    className={`text-sm font-bold tabular-nums tracking-tight sm:text-base ${
-                      totalRemaining >= 0 ? "text-gray-900" : "text-red-600"
-                    }`}
-                  >
-                    ${totalRemaining.toLocaleString()}
-                  </div>
-                  <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
-                    {totalRemaining >= 0 ? "Available" : "Over budget"}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="mb-0.5 flex items-center gap-1.5">
-                    <div
-                      className={`h-3 w-3 rounded-full ${budgetStatusDisplay.bg} sm:h-4 sm:w-4`}
-                    >
-                      <div
-                        className={`h-1.5 w-1.5 rounded-full ${budgetStatusDisplay.color.replace("text-", "bg-")} m-0.5 sm:m-0.5 sm:h-2 sm:w-2`}
-                      ></div>
-                    </div>
-                    <span className="text-xs font-medium text-gray-500">
-                      Status
-                    </span>
-                  </div>
-                  <div
-                    className={`text-sm font-bold tracking-tight sm:text-base ${budgetStatusDisplay.color}`}
-                  >
-                    {budgetStatusDisplay.status}
-                  </div>
-                  <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
-                    {budgetStatusDisplay.subtitle}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Strategy adherence — live indicator for the budget's strategy */}
-          <BudgetStrategyIndicator budget={budget} totalIncome={totalIncome} />
-
-          {/* Recent Transactions Summary */}
-          <div className="card-surface mb-4 flex min-h-0 flex-1 flex-col p-3 sm:mb-4 sm:p-4">
-            <div className="mb-3 flex flex-shrink-0 items-center justify-between">
-              <h3 className="text-sm font-semibold tracking-tight text-gray-900 sm:text-base lg:text-lg">
-                Recent transactions
-              </h3>
-              <button
-                onClick={() =>
-                  router.push(`/budgets/${String(id)}/transactions`)
-                }
-                className="text-xs font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800 sm:text-sm"
-              >
-                View all
-              </button>
-            </div>
-
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
-              {(() => {
-                // Collect all transactions from all categories
-                const categoryTransactions = (budget.categories ?? []).flatMap(
-                  (cat) =>
+              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
+                {(() => {
+                  // Collect all transactions from all categories
+                  const categoryTransactions = (
+                    budget.categories ?? []
+                  ).flatMap((cat) =>
                     (cat.transactions ?? []).map((transaction) => ({
                       ...transaction,
                       // Attach the parent category so the row can be reused as a
@@ -956,223 +964,231 @@ const BudgetDetailsPage = () => {
                         | TransactionSplitWithCategory[]
                         | undefined,
                     })),
-                );
-
-                // Split parents have categoryId=null, so they never show up in
-                // any category's `transactions` list above — they only appear
-                // in `transactionSplits` (once per category they're split
-                // across). Surface each split parent exactly once, with its
-                // full split breakdown reconstructed from every category that
-                // references it.
-                const splitEntriesByTransactionId = new Map<
-                  string,
-                  TransactionSplitWithCategory[]
-                >();
-                const splitParentsById = new Map<string, Transaction>();
-                (budget.categories ?? []).forEach((cat) => {
-                  (cat.transactionSplits ?? []).forEach((split) => {
-                    const entries =
-                      splitEntriesByTransactionId.get(split.transactionId) ??
-                      [];
-                    entries.push({
-                      id: split.id,
-                      transactionId: split.transactionId,
-                      categoryId: split.categoryId,
-                      amount: split.amount,
-                      note: split.note,
-                      category: cat,
-                    });
-                    splitEntriesByTransactionId.set(
-                      split.transactionId,
-                      entries,
-                    );
-                    splitParentsById.set(
-                      split.transactionId,
-                      split.transaction,
-                    );
-                  });
-                });
-
-                const splitParentTransactions = Array.from(
-                  splitEntriesByTransactionId.entries(),
-                ).map(([transactionId, splits]) => {
-                  const parent = splitParentsById.get(transactionId)!;
-                  return {
-                    ...parent,
-                    category: null,
-                    categoryName: undefined as string | undefined,
-                    categoryGroup: undefined as string | undefined,
-                    splits,
-                    id: transactionId,
-                  };
-                });
-
-                const allTransactions = [
-                  ...categoryTransactions,
-                  ...splitParentTransactions,
-                ];
-
-                if (allTransactions.length === 0) {
-                  return (
-                    <div className="py-6 text-center">
-                      <p className="text-sm text-gray-500">
-                        No transactions yet — add your first one.
-                      </p>
-                      <button
-                        onClick={() => setIsAddTransactionOpen(true)}
-                        className="mt-2 text-xs font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800"
-                      >
-                        Add your first transaction
-                      </button>
-                    </div>
                   );
-                }
 
-                // Sort by date and take the 5 most recent
-                const recentTransactions = [...allTransactions]
-                  .sort(
-                    (a, b) =>
-                      getTransactionDate(b).getTime() -
-                      getTransactionDate(a).getTime(),
-                  )
-                  .slice(0, 5);
+                  // Split parents have categoryId=null, so they never show up in
+                  // any category's `transactions` list above — they only appear
+                  // in `transactionSplits` (once per category they're split
+                  // across). Surface each split parent exactly once, with its
+                  // full split breakdown reconstructed from every category that
+                  // references it.
+                  const splitEntriesByTransactionId = new Map<
+                    string,
+                    TransactionSplitWithCategory[]
+                  >();
+                  const splitParentsById = new Map<string, Transaction>();
+                  (budget.categories ?? []).forEach((cat) => {
+                    (cat.transactionSplits ?? []).forEach((split) => {
+                      const entries =
+                        splitEntriesByTransactionId.get(split.transactionId) ??
+                        [];
+                      entries.push({
+                        id: split.id,
+                        transactionId: split.transactionId,
+                        categoryId: split.categoryId,
+                        amount: split.amount,
+                        note: split.note,
+                        category: cat,
+                      });
+                      splitEntriesByTransactionId.set(
+                        split.transactionId,
+                        entries,
+                      );
+                      splitParentsById.set(
+                        split.transactionId,
+                        split.transaction,
+                      );
+                    });
+                  });
 
-                return recentTransactions.map((transaction) => {
-                  const isEditing = editingTransactionId === transaction.id;
+                  const splitParentTransactions = Array.from(
+                    splitEntriesByTransactionId.entries(),
+                  ).map(([transactionId, splits]) => {
+                    const parent = splitParentsById.get(transactionId)!;
+                    return {
+                      ...parent,
+                      category: null,
+                      categoryName: undefined as string | undefined,
+                      categoryGroup: undefined as string | undefined,
+                      splits,
+                      id: transactionId,
+                    };
+                  });
 
-                  if (isEditing) {
+                  const allTransactions = [
+                    ...categoryTransactions,
+                    ...splitParentTransactions,
+                  ];
+
+                  if (allTransactions.length === 0) {
                     return (
-                      <div
-                        key={transaction.id}
-                        className="overflow-hidden rounded-xl border border-secondary-200"
-                      >
-                        <InlineTransactionEdit
-                          transaction={transaction}
-                          onCancel={() => setEditingTransactionId(null)}
-                          onSuccess={() => setEditingTransactionId(null)}
-                          getGroupColor={getGroupColor}
-                        />
+                      <div className="py-6 text-center">
+                        <p className="text-sm text-gray-500">
+                          No transactions yet — add your first one.
+                        </p>
+                        <button
+                          onClick={() => setIsAddTransactionOpen(true)}
+                          className="mt-2 text-xs font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800"
+                        >
+                          Add your first transaction
+                        </button>
                       </div>
                     );
                   }
 
-                  return (
-                    <SwipeableRow
-                      key={transaction.id}
-                      disabled={isEditing}
-                      className="rounded-xl"
-                      actions={[
-                        {
-                          icon: <Pencil className="h-4 w-4" />,
-                          label: "Edit",
-                          onClick: () => handleEditTransaction(transaction),
-                        },
-                        {
-                          icon: <Trash2 className="h-4 w-4" />,
-                          label: "Delete",
-                          onClick: () => setTransactionToDelete(transaction),
-                          tone: "danger",
-                        },
-                      ]}
-                    >
-                      <div className="group/row flex items-center justify-between rounded-xl border border-gray-100 bg-surface p-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium text-gray-900">
-                              {transaction.name ?? "Unnamed transaction"}
-                            </span>
-                            <span
-                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                transaction.transactionType ===
+                  // Sort by date and take the 5 most recent
+                  const recentTransactions = [...allTransactions]
+                    .sort(
+                      (a, b) =>
+                        getTransactionDate(b).getTime() -
+                        getTransactionDate(a).getTime(),
+                    )
+                    .slice(0, 5);
+
+                  return recentTransactions.map((transaction) => {
+                    const isEditing = editingTransactionId === transaction.id;
+
+                    if (isEditing) {
+                      return (
+                        <div
+                          key={transaction.id}
+                          className="overflow-hidden rounded-xl border border-secondary-200"
+                        >
+                          <InlineTransactionEdit
+                            transaction={transaction}
+                            onCancel={() => setEditingTransactionId(null)}
+                            onSuccess={() => setEditingTransactionId(null)}
+                            getGroupColor={getGroupColor}
+                          />
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <SwipeableRow
+                        key={transaction.id}
+                        disabled={isEditing}
+                        className="rounded-xl"
+                        actions={[
+                          {
+                            icon: <Pencil className="h-4 w-4" />,
+                            label: "Edit",
+                            onClick: () => handleEditTransaction(transaction),
+                          },
+                          {
+                            icon: <Trash2 className="h-4 w-4" />,
+                            label: "Delete",
+                            onClick: () => setTransactionToDelete(transaction),
+                            tone: "danger",
+                          },
+                        ]}
+                      >
+                        <div className="group/row relative flex items-center justify-between rounded-xl border border-gray-100 bg-surface p-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                              <span className="min-w-0 break-words text-sm font-medium text-gray-900">
+                                {transaction.name ?? "Unnamed transaction"}
+                              </span>
+                              <span
+                                className={`inline-block max-w-full truncate rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                  transaction.transactionType ===
+                                  TransactionType.CARD_PAYMENT
+                                    ? "bg-gray-100 text-gray-500"
+                                    : transaction.splits &&
+                                        transaction.splits.length > 0
+                                      ? SPLIT_BADGE_CLASSES
+                                      : getGroupChipClasses(
+                                          transaction.categoryName
+                                            ? transaction.categoryGroup
+                                            : undefined,
+                                        )
+                                }`}
+                              >
+                                {transaction.transactionType ===
                                 TransactionType.CARD_PAYMENT
-                                  ? "bg-gray-100 text-gray-500"
+                                  ? "Card payment"
                                   : transaction.splits &&
                                       transaction.splits.length > 0
-                                    ? SPLIT_BADGE_CLASSES
-                                    : getGroupChipClasses(
-                                        transaction.categoryName
-                                          ? transaction.categoryGroup
-                                          : undefined,
+                                    ? getSplitBadgeLabel(
+                                        transaction.splits.length,
                                       )
-                              }`}
-                            >
-                              {transaction.transactionType ===
-                              TransactionType.CARD_PAYMENT
-                                ? "Card payment"
-                                : transaction.splits &&
-                                    transaction.splits.length > 0
-                                  ? getSplitBadgeLabel(
-                                      transaction.splits.length,
-                                    )
-                                  : (transaction.categoryName ?? "No category")}
-                            </span>
-                            {transaction.description && (
-                              <DescriptionTooltip
-                                description={transaction.description}
-                              />
-                            )}
+                                    : (transaction.categoryName ??
+                                      "No category")}
+                              </span>
+                              {transaction.description && (
+                                <DescriptionTooltip
+                                  description={transaction.description}
+                                />
+                              )}
+                            </div>
+                            <p className="mt-1 inline-flex items-center gap-1 text-xs text-gray-400">
+                              {transaction.occurredAt
+                                ? formatDateUTC(
+                                    new Date(
+                                      transaction.occurredAt,
+                                    ).toISOString(),
+                                  )
+                                : formatDateUTC(
+                                    new Date(
+                                      transaction.createdAt,
+                                    ).toISOString(),
+                                  )}
+                              {!transaction.occurredAt && (
+                                <MissingDateWarning />
+                              )}
+                            </p>
                           </div>
-                          <p className="mt-1 inline-flex items-center gap-1 text-xs text-gray-400">
-                            {transaction.occurredAt
-                              ? formatDateUTC(
-                                  new Date(
-                                    transaction.occurredAt,
-                                  ).toISOString(),
-                                )
-                              : formatDateUTC(
-                                  new Date(transaction.createdAt).toISOString(),
-                                )}
-                            {!transaction.occurredAt && <MissingDateWarning />}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2 sm:space-x-3">
-                          {/* Action icons — desktop hover only; mobile exposes
-                            these via swipe (SwipeableRow). */}
-                          <div className="hidden items-center space-x-1 opacity-0 transition-opacity lg:flex lg:group-hover/row:opacity-100">
-                            <button
-                              onClick={() => handleEditTransaction(transaction)}
-                              className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
-                              title="Edit transaction"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                setTransactionToDelete(transaction)
-                              }
-                              className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
-                              title="Delete transaction"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                          <div className="text-right">
-                            <div
-                              className={`text-sm font-semibold tabular-nums ${
-                                transaction.transactionType ===
+                          <div className="flex items-center space-x-2 sm:space-x-3">
+                            {/* Action icons overlay the amount on desktop hover so they take
+                            no row width; mobile exposes these via swipe (SwipeableRow). */}
+                            <div className="pointer-events-none absolute inset-y-0 right-3 hidden items-center space-x-1 bg-surface opacity-0 transition-opacity lg:flex lg:focus-within:pointer-events-auto lg:focus-within:opacity-100 lg:group-hover/row:pointer-events-auto lg:group-hover/row:opacity-100">
+                              <button
+                                onClick={() =>
+                                  handleEditTransaction(transaction)
+                                }
+                                className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
+                                title="Edit transaction"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setTransactionToDelete(transaction)
+                                }
+                                className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
+                                title="Delete transaction"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                            <div className="text-right">
+                              <div
+                                className={`text-sm font-semibold tabular-nums ${
+                                  transaction.transactionType ===
+                                  TransactionType.RETURN
+                                    ? "text-green-600"
+                                    : ""
+                                }`}
+                              >
+                                {transaction.transactionType ===
                                 TransactionType.RETURN
-                                  ? "text-green-600"
-                                  : ""
-                              }`}
-                            >
-                              {transaction.transactionType ===
-                              TransactionType.RETURN
-                                ? "+"
-                                : ""}
-                              ${Math.abs(transaction.amount).toFixed(2)}
-                            </div>
-                            <div className="text-xs capitalize text-gray-500">
-                              {transaction.transactionType
-                                .toLowerCase()
-                                .replace("_", " ")}
+                                  ? "+"
+                                  : ""}
+                                ${Math.abs(transaction.amount).toFixed(2)}
+                              </div>
+                              <div className="text-xs capitalize text-gray-500">
+                                {transaction.transactionType
+                                  .toLowerCase()
+                                  .replace("_", " ")}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </SwipeableRow>
-                  );
-                });
-              })()}
+                      </SwipeableRow>
+                    );
+                  });
+                })()}
+              </div>
             </div>
           </div>
         </div>

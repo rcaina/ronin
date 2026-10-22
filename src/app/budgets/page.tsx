@@ -114,7 +114,7 @@ const BudgetsPage = () => {
   const reactivateMutation = useReactivateBudget();
   const duplicateBudgetMutation = useDuplicateBudget();
 
-  // Get current budgets based on active tab, sorted by which budget ends soonest
+  // Get current budgets based on active tab, sorted by which budget ends soonest (completed: newest period first)
   const currentBudgets = useMemo(() => {
     const budgets = (() => {
       switch (activeTab) {
@@ -128,6 +128,15 @@ const BudgetsPage = () => {
           return activeBudgets;
       }
     })();
+
+    // Completed budgets are history: newest period first
+    if (activeTab === "completed") {
+      return [...budgets].sort(
+        (a, b) =>
+          new Date(b.startAt).getTime() - new Date(a.startAt).getTime() ||
+          new Date(b.endAt).getTime() - new Date(a.endAt).getTime(),
+      );
+    }
 
     return [...budgets].sort(
       (a, b) => new Date(a.endAt).getTime() - new Date(b.endAt).getTime(),
