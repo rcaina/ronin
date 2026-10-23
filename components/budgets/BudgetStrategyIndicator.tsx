@@ -113,7 +113,7 @@ export default function BudgetStrategyIndicator({
             };
 
     return (
-      <div className="card-surface mb-4 p-3 sm:p-4">
+      <div className="card-surface p-3 sm:p-4">
         <div className="mb-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Target className="h-4 w-4 text-secondary-700" />
@@ -167,7 +167,7 @@ export default function BudgetStrategyIndicator({
 
   // 50/30/20 adherence
   return (
-    <div className="card-surface mb-4 p-3 sm:p-4">
+    <div className="card-surface p-3 sm:p-4">
       <div className="mb-3 flex items-center gap-2">
         <PieChart className="h-4 w-4 text-secondary-700" />
         <h3 className="text-sm font-semibold tracking-tight text-gray-900">
