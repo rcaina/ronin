@@ -28,7 +28,8 @@ import { usePageLoading } from "@/components/ConditionalLayout";
 import { type CardType } from "@prisma/client";
 import Button from "@/components/Button";
 import { type Card, mapCardType, getCardColor } from "@/lib/utils/cards";
-import { useLockBodyScroll } from "@/lib/utils/hooks";
+import { useBudgetMonth, useLockBodyScroll } from "@/lib/utils/hooks";
+import { formatMonthLabel } from "@/lib/utils/budget-month";
 import StatsCard from "@/components/StatsCard";
 import type { Card as PrismaCard } from "@prisma/client";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
@@ -66,11 +67,13 @@ const BudgetCardsPage = () => {
     isLoading: budgetLoading,
     error: budgetError,
   } = useBudget(budgetId);
+  const [month] = useBudgetMonth();
+  const isContinuous = budget?.kind === "CONTINUOUS";
   const {
     data: apiCards,
     isLoading: cardsLoading,
     error: cardsError,
-  } = useBudgetCards(budgetId);
+  } = useBudgetCards(budgetId, undefined, month);
   const { data: generalCards } = useGeneralCards();
   const deleteCardMutation = useDeleteCard();
   const createCardMutation = useCreateCard();
@@ -288,7 +291,9 @@ const BudgetCardsPage = () => {
   };
 
   const handleCardClick = (card: Card) => {
-    router.push(`/budgets/${budgetId}/cards/${card.id}`);
+    router.push(
+      `/budgets/${budgetId}/cards/${card.id}${isContinuous ? `?month=${month}` : ""}`,
+    );
   };
 
   const { totalSpent, totalLimit, activeCards, creditCards } = useMemo(() => {
@@ -416,7 +421,9 @@ const BudgetCardsPage = () => {
             <StatsCard
               title="Total spent"
               value={`$${totalSpent.toLocaleString()}`}
-              subtitle="Across budget cards"
+              subtitle={
+                isContinuous ? formatMonthLabel(month) : "Across budget cards"
+              }
               icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
               iconColor="text-green-600"
             />

@@ -124,12 +124,16 @@ export const useMergeCards = () => {
   });
 };
 
-export const useCard = (id: string, excludeCardPayments?: boolean) => {
+export const useCard = (
+  id: string,
+  excludeCardPayments?: boolean,
+  month?: string,
+) => {
   const { data: session } = useSession();
 
   const query = useQuery<ApiCard>({
-    queryKey: ["cards", id, excludeCardPayments],
-    queryFn: () => getCard(id, excludeCardPayments),
+    queryKey: ["cards", id, excludeCardPayments, month],
+    queryFn: () => getCard(id, excludeCardPayments, month),
     placeholderData: keepPreviousData,
     enabled: !!session && !!id,
     staleTime: 2 * 60 * 1000, // 2 minutes
@@ -138,12 +142,12 @@ export const useCard = (id: string, excludeCardPayments?: boolean) => {
   return query;
 };
 
-export const useCardTransactions = (id: string) => {
+export const useCardTransactions = (id: string, month?: string) => {
   const { data: session } = useSession();
 
   const query = useQuery<TransactionWithRelations[]>({
-    queryKey: ["cards", id, "transactions"],
-    queryFn: () => getCardTransactions(id),
+    queryKey: ["cards", id, "transactions", month],
+    queryFn: () => getCardTransactions(id, month),
     placeholderData: keepPreviousData,
     enabled: !!session && !!id,
     staleTime: 2 * 60 * 1000, // 2 minutes

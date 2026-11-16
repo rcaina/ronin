@@ -1,3 +1,5 @@
+import { BudgetKind } from "@prisma/client";
+import { HttpError } from "@/lib/errors";
 import { roundToCents } from "@/lib/utils";
 import {
   calculateCategorySpentInWindow,
@@ -38,6 +40,17 @@ export const shiftMonth = (month: MonthKey, delta: number): MonthKey => {
   return toMonthKey(
     new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + delta, 1)),
   );
+};
+
+/** Month window for a `?month=` read: null when absent or the budget isn't continuous. */
+export const resolveMonthWindow = (
+  kind: BudgetKind,
+  monthParam: string | null | undefined,
+): DateWindow | null => {
+  if (!monthParam) return null;
+  const month = parseMonthKey(monthParam);
+  if (!month) throw new HttpError("Invalid month, expected YYYY-MM", 400);
+  return kind === BudgetKind.CONTINUOUS ? getMonthWindow(month) : null;
 };
 
 export const formatMonthLabel = (month: MonthKey): string =>

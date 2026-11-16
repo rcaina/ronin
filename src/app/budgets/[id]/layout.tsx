@@ -22,9 +22,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   const { data: budget } = useBudget(id);
   const [month, setMonth] = useBudgetMonth();
-  // Cards stay all-time until they get monthly limits.
-  const showMonthSwitcher =
-    budget?.kind === "CONTINUOUS" && !pathname?.includes("/cards");
+  const showMonthSwitcher = budget?.kind === "CONTINUOUS";
   const {
     actions: dynamicActions,
     title: dynamicTitle,
@@ -94,12 +92,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         title: "Card details",
         description: "View and manage card transactions",
         showBackButton: true,
-        backTo: `/budgets/${id}/cards`,
+        backTo: `/budgets/${id}/cards${showMonthSwitcher ? `?month=${month}` : ""}`,
       };
     }
 
     return null;
-  }, [pathname, id, budget]);
+  }, [pathname, id, budget, showMonthSwitcher, month]);
 
   // Scoped history: back returns to the previous page within this budget
   // (e.g. Categories -> Cards -> back = Categories), falling back to this

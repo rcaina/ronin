@@ -33,6 +33,8 @@ import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useDeleteTransaction } from "@/lib/data-hooks/transactions/useTransactions";
 import { getTransactionDate } from "@/lib/utils/spending";
+import { useBudgetMonth } from "@/lib/utils/hooks";
+import { formatMonthLabel } from "@/lib/utils/budget-month";
 import { isDebitCard, mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import Button from "@/components/Button";
@@ -199,14 +201,17 @@ const CardDetailsPage = () => {
   // instead of rendering any card content.
   const { data: budget, isLoading: budgetLoading } = useBudget(budgetId);
   const isLocked = budget?.locked ?? false;
+  const [month] = useBudgetMonth();
+  const periodLabel =
+    budget?.kind === "CONTINUOUS" ? formatMonthLabel(month) : null;
 
   const {
     data: card,
     isLoading: cardLoading,
     error: cardError,
-  } = useCard(cardId);
+  } = useCard(cardId, undefined, month);
   const { data: transactions = [], isLoading: transactionsLoading } =
-    useCardTransactions(cardId);
+    useCardTransactions(cardId, month);
   const { data: budgets = [] } = useBudgets();
   const deleteCardMutation = useDeleteCard();
   const updateCardMutation = useUpdateCard();
@@ -590,7 +595,7 @@ const CardDetailsPage = () => {
               <StatsCard
                 title="Total Spent"
                 value={`$${totalSpent.toLocaleString()}`}
-                subtitle="All time"
+                subtitle={periodLabel ?? "All time"}
                 icon={
                   <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
                 }
@@ -612,7 +617,7 @@ const CardDetailsPage = () => {
                   <StatsCard
                     title="Credit Limit"
                     value={`$${mappedCard.spendingLimit.toLocaleString()}`}
-                    subtitle="Total limit"
+                    subtitle={periodLabel ? "Monthly limit" : "Total limit"}
                     icon={
                       <CreditCard className="h-4 w-4 text-indigo-500 sm:h-5 sm:w-5" />
                     }
@@ -624,7 +629,7 @@ const CardDetailsPage = () => {
               <StatsCard
                 title="Transactions"
                 value={transactions.length}
-                subtitle="Total transactions"
+                subtitle={periodLabel ?? "Total transactions"}
                 icon={
                   <Calendar className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
                 }

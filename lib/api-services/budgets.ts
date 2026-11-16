@@ -39,23 +39,13 @@ import {
   getMonthWindow,
   parseMonthKey,
   projectCategoryToMonth,
+  resolveMonthWindow,
   shiftMonth,
   toMonthKey,
   type QuickFillCategory,
   type QuickFillSource,
 } from "../utils/budget-month";
 import { isWithinWindow, type DateWindow } from "../utils/spending";
-
-/** Month window for a `?month=` read: null when absent or the budget isn't continuous. */
-const resolveMonthWindow = (
-  kind: BudgetKind,
-  monthParam: string | null | undefined,
-): DateWindow | null => {
-  if (!monthParam) return null;
-  const month = parseMonthKey(monthParam);
-  if (!month) throw new HttpError("Invalid month, expected YYYY-MM", 400);
-  return kind === BudgetKind.CONTINUOUS ? getMonthWindow(month) : null;
-};
 
 const resolveBudgetMonthWindow = async (
   tx: PrismaClientTx,
@@ -1600,7 +1590,9 @@ export const getBudgetCards = async (
   tx: PrismaClient,
   budgetId: string,
   excludeCardPayments = false,
+  month?: string | null,
 ): Promise<Card[]> => {
+  const monthWindow = await resolveBudgetMonthWindow(tx, budgetId, month);
   const cards = await tx.card.findMany({
     where: {
       budgetId: budgetId,
@@ -1627,6 +1619,8 @@ export const getBudgetCards = async (
         select: {
           amount: true,
           transactionType: true,
+          occurredAt: true,
+          createdAt: true,
         },
       },
     },
@@ -1634,7 +1628,14 @@ export const getBudgetCards = async (
   });
 
   // Calculate amountSpent for each card by summing related transactions
-  return cards.map(calculateCardFinancials);
+  return cards.map((card) =>
+    calculateCardFinancials({
+      ...card,
+      transactions: card.transactions.filter((transaction) =>
+        isWithinWindow(transaction, monthWindow),
+      ),
+    }),
+  );
 };
 
 export const getBudgetIncomeTransactions = async (

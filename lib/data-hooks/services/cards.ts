@@ -29,11 +29,12 @@ export const getCards = async (
 export const getCard = async (
   id: string,
   excludeCardPayments?: boolean,
+  month?: string,
 ): Promise<Card> => {
-  const url = excludeCardPayments
-    ? `/api/cards/${id}?excludeCardPayments=true`
-    : `/api/cards/${id}`;
-  const response = await fetch(url);
+  const params = new URLSearchParams();
+  if (excludeCardPayments) params.append("excludeCardPayments", "true");
+  if (month) params.append("month", month);
+  const response = await fetch(`/api/cards/${id}?${params.toString()}`);
   if (!response.ok) {
     throw new Error(`Failed to fetch card: ${response.statusText}`);
   }
@@ -114,8 +115,11 @@ export const deleteCard = async (id: string): Promise<void> => {
 
 export const getCardTransactions = async (
   id: string,
+  month?: string,
 ): Promise<TransactionWithRelations[]> => {
-  const response = await fetch(`/api/cards/${id}/transactions`);
+  const response = await fetch(
+    `/api/cards/${id}/transactions${month ? `?month=${month}` : ""}`,
+  );
   if (!response.ok) {
     throw new Error(
       `Failed to fetch card transactions: ${response.statusText}`,

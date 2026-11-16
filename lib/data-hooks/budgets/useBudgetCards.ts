@@ -22,11 +22,14 @@ interface BudgetCard extends Card {
 const getBudgetCards = async (
   budgetId: string,
   excludeCardPayments?: boolean,
+  month?: string,
 ): Promise<BudgetCard[]> => {
-  const url = excludeCardPayments
-    ? `/api/budgets/${budgetId}/cards?excludeCardPayments=true`
-    : `/api/budgets/${budgetId}/cards`;
-  const response = await fetch(url);
+  const params = new URLSearchParams();
+  if (excludeCardPayments) params.append("excludeCardPayments", "true");
+  if (month) params.append("month", month);
+  const response = await fetch(
+    `/api/budgets/${budgetId}/cards?${params.toString()}`,
+  );
   if (!response.ok) {
     throw new Error(`Failed to fetch budget cards: ${response.statusText}`);
   }
@@ -36,12 +39,13 @@ const getBudgetCards = async (
 export const useBudgetCards = (
   budgetId: string,
   excludeCardPayments?: boolean,
+  month?: string,
 ) => {
   const { data: session } = useSession();
 
   const query = useQuery<BudgetCard[]>({
-    queryKey: ["budgetCards", budgetId, excludeCardPayments],
-    queryFn: () => getBudgetCards(budgetId, excludeCardPayments),
+    queryKey: ["budgetCards", budgetId, excludeCardPayments, month],
+    queryFn: () => getBudgetCards(budgetId, excludeCardPayments, month),
     placeholderData: keepPreviousData,
     enabled: !!session && !!budgetId,
     staleTime: 2 * 60 * 1000,
