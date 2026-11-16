@@ -12,9 +12,15 @@ import {
 interface MonthSwitcherProps {
   month: MonthKey;
   onChange: (month: MonthKey) => void;
+  /** Earliest month to step back to: the budget's start month. */
+  minMonth: MonthKey;
 }
 
-export default function MonthSwitcher({ month, onChange }: MonthSwitcherProps) {
+export default function MonthSwitcher({
+  month,
+  onChange,
+  minMonth,
+}: MonthSwitcherProps) {
   const currentMonth = toMonthKey(new Date());
 
   return (
@@ -32,8 +38,9 @@ export default function MonthSwitcher({ month, onChange }: MonthSwitcherProps) {
         <button
           type="button"
           onClick={() => onChange(shiftMonth(month, -1))}
+          disabled={month <= minMonth}
           aria-label="Previous month"
-          className="flex h-11 w-11 items-center justify-center rounded-xl text-gray-600 transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98]"
+          className="flex h-11 w-11 items-center justify-center rounded-xl text-gray-600 transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:active:scale-100"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>

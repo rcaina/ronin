@@ -215,18 +215,7 @@ export default function BudgetCategoriesListView({
                       );
                       const transactions = budgetCategory.transactions ?? [];
                       const spent = roundToCents(
-                        transactions.reduce((sum: number, transaction) => {
-                          if (
-                            transaction.transactionType ===
-                            TransactionType.RETURN
-                          ) {
-                            // Returns reduce spending (positive amount = refund received)
-                            return sum - transaction.amount;
-                          } else {
-                            // Regular transactions: positive = purchases (increase spending)
-                            return sum + transaction.amount;
-                          }
-                        }, 0),
+                        budgetCategory.spentAmount ?? 0,
                       );
                       const carry = budgetCategory.carry ?? 0;
                       const available =

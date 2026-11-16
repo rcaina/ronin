@@ -37,6 +37,7 @@ import {
   computeCarry,
   computeQuickFill,
   getMonthWindow,
+  isCategoryInMonth,
   parseMonthKey,
   projectCategoryToMonth,
   resolveMonthWindow,
@@ -273,13 +274,21 @@ export async function getBudgetById(
   const scoped = monthWindow
     ? {
         ...budget,
-        categories: budget.categories.map((category) =>
-          projectCategoryToMonth(
-            category,
-            monthWindow,
-            assignments?.get(category.id),
+        categories: budget.categories
+          .filter((category) =>
+            isCategoryInMonth(
+              category,
+              monthWindow,
+              !!assignments?.has(category.id),
+            ),
+          )
+          .map((category) =>
+            projectCategoryToMonth(
+              category,
+              monthWindow,
+              assignments?.get(category.id),
+            ),
           ),
-        ),
         transactions: budget.transactions.filter((transaction) =>
           isWithinWindow(transaction, monthWindow),
         ),
@@ -932,14 +941,22 @@ export const getBudgetCategories = async (
     : null;
   const formattedCategories = formatBudgetCategories(
     monthWindow
-      ? categories.map((category) => ({
-          ...projectCategoryToMonth(
-            category,
-            monthWindow,
-            assignments?.get(category.id),
-          ),
-          carry: carries?.get(category.id) ?? 0,
-        }))
+      ? categories
+          .filter((category) =>
+            isCategoryInMonth(
+              category,
+              monthWindow,
+              !!assignments?.has(category.id),
+            ),
+          )
+          .map((category) => ({
+            ...projectCategoryToMonth(
+              category,
+              monthWindow,
+              assignments?.get(category.id),
+            ),
+            carry: carries?.get(category.id) ?? 0,
+          }))
       : categories,
   );
 
@@ -1363,16 +1380,17 @@ export const deleteBudgetCategory = async (
     throw new HttpError("Budget not found", 404);
   }
 
-  // Check if there are any transactions in this category
-  const transactions = await tx.transaction.findMany({
-    where: {
-      budgetId: budgetId,
-      categoryId: categoryId,
-      deleted: null,
-    },
-  });
+  // Split legs count too: their parent transaction has no categoryId.
+  const [transactionCount, splitCount] = await Promise.all([
+    tx.transaction.count({
+      where: { budgetId, categoryId, deleted: null },
+    }),
+    tx.transactionSplit.count({
+      where: { categoryId, transaction: { deleted: null } },
+    }),
+  ]);
 
-  if (transactions.length > 0) {
+  if (transactionCount + splitCount > 0) {
     throw new HttpError(
       "Cannot delete category with existing transactions",
       400,

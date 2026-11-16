@@ -73,6 +73,12 @@ export const findContinuousBudgetId = (
 ): string | undefined =>
   budgets.find((budget) => budget.kind === BudgetKind.CONTINUOUS)?.id;
 
+/** Month of a date input value ("YYYY-MM-DD"), or of `fallback` while it is empty or partial. */
+export const monthOfDateInput = (
+  value: string | undefined,
+  fallback: Date,
+): MonthKey => parseMonthKey(value?.slice(0, 7)) ?? toMonthKey(fallback);
+
 export const formatMonthLabel = (month: MonthKey): string =>
   monthStart(month).toLocaleDateString("en-US", {
     month: "long",
@@ -115,19 +121,31 @@ export interface QuickFillCategory extends SpendingCategory {
   months: Array<{ month: Date; assigned: number }>;
 }
 
-const hasHistoryIn = (
-  category: QuickFillCategory,
+/** A month view shows a category created by the month's end, or planned or spent in that month. */
+export const isCategoryInMonth = (
+  category: SpendingCategory & { createdAt: Date },
   window: DateWindow,
+  plannedInMonth: boolean,
 ): boolean =>
   category.createdAt <= window.end ||
-  category.months.some(
-    (row) => row.month.getTime() === window.start.getTime(),
-  ) ||
+  plannedInMonth ||
   !!category.transactions?.some((transaction) =>
     isWithinWindow(transaction, window),
   ) ||
   !!category.transactionSplits?.some((split) =>
     isWithinWindow(split.transaction, window),
+  );
+
+const hasHistoryIn = (
+  category: QuickFillCategory,
+  window: DateWindow,
+): boolean =>
+  isCategoryInMonth(
+    category,
+    window,
+    category.months.some(
+      (row) => row.month.getTime() === window.start.getTime(),
+    ),
   );
 
 /**
@@ -222,3 +240,33 @@ export const calculateReadyToAssign = (
         0,
       ),
   );
+
+interface MonthPlan {
+  month: Date;
+  assigned: number;
+}
+
+/**
+ * Month rows for categories merged into one: every month any copy planned gets the sum
+ * of each copy's plan for it, falling back to that copy's default.
+ */
+export const mergeMonthPlans = (
+  copies: Array<{ allocatedAmount: number | null; months: MonthPlan[] }>,
+): MonthPlan[] => {
+  const months = new Set(
+    copies.flatMap((copy) => copy.months.map((row) => row.month.getTime())),
+  );
+  return [...months].map((time) => ({
+    month: new Date(time),
+    assigned: roundToCents(
+      copies.reduce(
+        (sum, copy) =>
+          sum +
+          (copy.months.find((row) => row.month.getTime() === time)?.assigned ??
+            copy.allocatedAmount ??
+            0),
+        0,
+      ),
+    ),
+  }));
+};

@@ -3,6 +3,7 @@
 import BudgetPageNavigation from "@/components/budgets/BudgetPageNavigation";
 import MonthSwitcher from "@/components/budgets/MonthSwitcher";
 import { useBudgetMonth } from "@/lib/utils/hooks";
+import { toMonthKey } from "@/lib/utils/budget-month";
 import PageHeader from "@/components/PageHeader";
 import { useParams, usePathname } from "next/navigation";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
@@ -25,7 +26,11 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const showMonthSwitcher = budget?.kind === "CONTINUOUS";
   const monthQuery = showMonthSwitcher ? `?month=${month}` : "";
   const monthSwitcher = showMonthSwitcher && (
-    <MonthSwitcher month={month} onChange={setMonth} />
+    <MonthSwitcher
+      month={month}
+      onChange={setMonth}
+      minMonth={toMonthKey(new Date(budget.startAt))}
+    />
   );
   const {
     actions: dynamicActions,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -76,6 +76,7 @@ export default function RecurringTransactionForm({
   const { data: activeBudgets = [] } = useActiveBudgets();
   const { data: cards = [] } = useCards();
   const [referenceBudgetId, setReferenceBudgetId] = useState("");
+  const referencePicked = useRef(false);
   const { data: budgetCategories = [] } =
     useBudgetCategories(referenceBudgetId);
   const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
@@ -103,6 +104,8 @@ export default function RecurringTransactionForm({
 
   useEffect(() => {
     if (!isOpen) return;
+    referencePicked.current = false;
+    setReferenceBudgetId("");
 
     if (template) {
       setValue("name", template.name ?? "");
@@ -126,20 +129,35 @@ export default function RecurringTransactionForm({
         categoryId: "",
         cardId: "",
       });
-      setReferenceBudgetId(
-        findContinuousBudgetId(activeBudgets) ?? activeBudgets[0]?.id ?? "",
-      );
     }
-    // Only reset when the modal opens or the template being edited changes —
-    // not on every activeBudgets refetch.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, template, setValue, reset]);
+
+  // Once budgets load: the edited template's budget, else the monthly budget.
+  useEffect(() => {
+    if (!isOpen || referencePicked.current || activeBudgets.length === 0) {
+      return;
+    }
+    referencePicked.current = true;
+    const templateBudgetId = template?.category?.budgetId;
+    setReferenceBudgetId(
+      activeBudgets.find((budget) => budget.id === templateBudgetId)?.id ??
+        findContinuousBudgetId(activeBudgets) ??
+        activeBudgets[0]!.id,
+    );
+  }, [isOpen, template, activeBudgets]);
 
   // A reference budget is only used to filter the category dropdown — the
   // template itself doesn't store a budgetId (see lib/api-schemas/recurring.ts).
   const currentCategoryStillListed = budgetCategories.some(
     (bc) => bc.id === template?.categoryId,
   );
+
+  // The select swaps the "(current category)" fallback for the loaded option; re-select it.
+  useEffect(() => {
+    if (currentCategoryStillListed && template?.categoryId) {
+      setValue("categoryId", template.categoryId);
+    }
+  }, [currentCategoryStillListed, template, setValue]);
 
   const onSubmit = (data: RecurringFormData) => {
     const payload = {
@@ -307,7 +325,10 @@ export default function RecurringTransactionForm({
               </label>
               <select
                 value={referenceBudgetId}
-                onChange={(e) => setReferenceBudgetId(e.target.value)}
+                onChange={(e) => {
+                  setReferenceBudgetId(e.target.value);
+                  setValue("categoryId", "");
+                }}
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                 disabled={isPending}
               >

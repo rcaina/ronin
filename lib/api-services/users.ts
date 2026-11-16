@@ -65,6 +65,7 @@ export async function getAccountUsers(
     where: {
       accountId,
     },
+    orderBy: { user: { createdAt: "asc" } },
     include: {
       user: {
         select: {

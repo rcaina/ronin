@@ -32,11 +32,7 @@ import {
 } from "lucide-react";
 import { roundToCents } from "@/lib/utils";
 import { isDebitCard } from "@/lib/utils/cards";
-import {
-  calculateCategorySpent,
-  type SpendingCategory,
-  type SpendingTransaction,
-} from "@/lib/utils/spending";
+import { calculateCategorySpent } from "@/lib/utils/spending";
 import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
 import { useBudgetMonth, useLocalStorageState } from "@/lib/utils/hooks";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
@@ -230,34 +226,14 @@ const BudgetCategoriesPage = () => {
   const totalCategories = budget?.categories?.length ?? 0;
   const completedCategories =
     budget?.categories?.filter((cat) => {
-      const totalSpent = roundToCents(
-        cat.transactions?.reduce((sum, transaction) => {
-          if (transaction.transactionType === TransactionType.RETURN) {
-            // Returns reduce spending (positive amount = refund received)
-            return sum - transaction.amount;
-          } else {
-            // Regular transactions: positive = purchases (increase spending)
-            return sum + transaction.amount;
-          }
-        }, 0) ?? 0,
-      );
+      const totalSpent = roundToCents(calculateCategorySpent(cat));
       return totalSpent >= (cat.allocatedAmount ?? 0);
     }).length ?? 0;
 
   // Calculate categories over budget and total amount over
   const overBudgetCategories =
     budget?.categories?.filter((cat) => {
-      const totalSpent = roundToCents(
-        cat.transactions?.reduce((sum, transaction) => {
-          if (transaction.transactionType === TransactionType.RETURN) {
-            // Returns reduce spending (positive amount = refund received)
-            return sum - transaction.amount;
-          } else {
-            // Regular transactions: positive = purchases (increase spending)
-            return sum + transaction.amount;
-          }
-        }, 0) ?? 0,
-      );
+      const totalSpent = roundToCents(calculateCategorySpent(cat));
       return totalSpent > (cat.allocatedAmount ?? 0);
     }) ?? [];
 
@@ -265,15 +241,7 @@ const BudgetCategoriesPage = () => {
 
   const totalOverBudget = roundToCents(
     budget?.categories?.reduce((sum, cat) => {
-      const totalSpent = roundToCents(
-        cat.transactions?.reduce((sum, transaction) => {
-          if (transaction.transactionType === TransactionType.RETURN) {
-            return sum - transaction.amount;
-          } else {
-            return sum + transaction.amount;
-          }
-        }, 0) ?? 0,
-      );
+      const totalSpent = roundToCents(calculateCategorySpent(cat));
       const overAmount = Math.max(0, totalSpent - (cat.allocatedAmount ?? 0));
       return sum + overAmount;
     }, 0) ?? 0,
@@ -297,15 +265,7 @@ const BudgetCategoriesPage = () => {
       text: `$${totalOverBudget.toFixed(2)} over ${othersCount} categories`,
       tooltip: overBudgetCategories.map((cat) => ({
         name: cat.name,
-        amount: roundToCents(
-          cat.transactions?.reduce((sum, transaction) => {
-            if (transaction.transactionType === TransactionType.RETURN) {
-              return sum - transaction.amount;
-            } else {
-              return sum + transaction.amount;
-            }
-          }, 0) ?? 0,
-        ),
+        amount: roundToCents(calculateCategorySpent(cat)),
         allocated: cat.allocatedAmount,
       })),
     };
@@ -415,15 +375,7 @@ const BudgetCategoriesPage = () => {
 
     budget.categories.forEach((cat) => {
       const allocated = cat.allocatedAmount ?? 0;
-      const totalSpent = roundToCents(
-        cat.transactions?.reduce((sum, transaction) => {
-          if (transaction.transactionType === TransactionType.RETURN) {
-            return sum - transaction.amount;
-          } else {
-            return sum + transaction.amount;
-          }
-        }, 0) ?? 0,
-      );
+      const totalSpent = roundToCents(calculateCategorySpent(cat));
 
       const group = cat.group;
       const current = groupSpendingMap.get(group) ?? { allocated: 0, spent: 0 };
@@ -459,20 +411,8 @@ const BudgetCategoriesPage = () => {
     };
   }, [budget]);
 
-  // Convert a budget category's transactions into the shape the shared
-  // spending utils expect, then run the canonical spend calculation so we
-  // never re-derive spent/remaining math inline.
-  const getCategorySpent = (category: BudgetCategoryWithCategory): number => {
-    const spendingCategory: SpendingCategory = {
-      transactions: category.transactions.map(
-        (transaction): SpendingTransaction => ({
-          ...transaction,
-          transactionType: transaction.transactionType as TransactionType,
-        }),
-      ),
-    };
-    return roundToCents(calculateCategorySpent(spendingCategory));
-  };
+  const getCategorySpent = (category: BudgetCategoryWithCategory): number =>
+    roundToCents(category.spentAmount ?? 0);
 
   // Apply client-side filtering + sorting on top of the (already
   // server-searched) category list. Both the grid and list views render

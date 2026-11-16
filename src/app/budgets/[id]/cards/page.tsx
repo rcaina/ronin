@@ -126,6 +126,7 @@ const BudgetCardsPage = () => {
   const cards: Card[] = useMemo(() => {
     if (!apiCards) return [];
 
+    const ownerIds = users.map((u) => u.id);
     return apiCards.map((prismaCard: BudgetCard) => ({
       id: prismaCard.id,
       name: prismaCard.name,
@@ -136,9 +137,9 @@ const BudgetCardsPage = () => {
       userId: prismaCard.userId,
       user: prismaCard.user?.name ?? "Unknown User",
       isActive: !prismaCard.deleted,
-      color: getCardColor(prismaCard.userId),
+      color: getCardColor(prismaCard.userId, ownerIds),
     }));
-  }, [apiCards]);
+  }, [apiCards, users]);
 
   const existingCardNames = useMemo(
     () => cards.map((card) => card.name),

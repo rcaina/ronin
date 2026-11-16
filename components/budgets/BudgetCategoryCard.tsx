@@ -13,11 +13,6 @@ import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import type { GroupColorFunction } from "@/lib/types/budget";
 import { TransactionType } from "@prisma/client";
 import { formatCurrency, roundToCents } from "@/lib/utils";
-import {
-  calculateCategorySpent,
-  type SpendingCategory,
-  type SpendingTransaction,
-} from "@/lib/utils/spending";
 import Button from "@/components/Button";
 import ToggleRow from "@/components/settings/ToggleRow";
 import { formatMonthLabel, type MonthKey } from "@/lib/utils/budget-month";
@@ -51,15 +46,8 @@ export default function BudgetCategoryCard({
   const updateBudgetCategoryMutation = useUpdateBudgetCategory();
   const deleteBudgetCategoryMutation = useDeleteBudgetCategory();
 
-  const spendingCategory: SpendingCategory = {
-    transactions: (budgetCategory.transactions ?? []).map(
-      (transaction): SpendingTransaction => ({
-        ...transaction,
-        transactionType: transaction.transactionType as TransactionType,
-      }),
-    ),
-  };
-  const categorySpent = roundToCents(calculateCategorySpent(spendingCategory));
+  // Server-computed, so split legs count (their parent has no categoryId).
+  const categorySpent = roundToCents(budgetCategory.spentAmount ?? 0);
   const carry = budgetCategory.carry ?? 0;
   const available = (budgetCategory.allocatedAmount ?? 0) + carry;
   const categoryRemaining = roundToCents(available - categorySpent);

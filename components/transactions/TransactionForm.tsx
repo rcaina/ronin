@@ -13,7 +13,10 @@ import {
 import { useBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
-import { findContinuousBudgetId } from "@/lib/utils/budget-month";
+import {
+  findContinuousBudgetId,
+  monthOfDateInput,
+} from "@/lib/utils/budget-month";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import { useBillingStatus } from "@/lib/data-hooks/billing/useBilling";
 import { useCreateRecurringTransaction } from "@/lib/data-hooks/recurring/useRecurring";
@@ -135,7 +138,6 @@ export default function TransactionForm({
   const cardOptions = isIncome ? debitCards : cards;
 
   const [selectedBudgetId, setSelectedBudgetId] = useState<string>("");
-  const { data: budgetCategories = [] } = useBudgetCategories(selectedBudgetId);
   const isEditing = !!transaction;
 
   // Inline category creation. `newCategoryTarget` records which select opened
@@ -151,15 +153,6 @@ export default function TransactionForm({
   const [categoryIdToSelect, setCategoryIdToSelect] = useState<string | null>(
     null,
   );
-
-  const categoryOptions = useMemo(() => {
-    const loadedIds = new Set(budgetCategories.map((category) => category.id));
-    const pending = createdCategories.filter(
-      (category) =>
-        category.budgetId === selectedBudgetId && !loadedIds.has(category.id),
-    );
-    return [...budgetCategories, ...pending];
-  }, [budgetCategories, createdCategories, selectedBudgetId]);
 
   const isPending = isCreating || isUpdating || isCreatingRecurring;
 
@@ -223,6 +216,32 @@ export default function TransactionForm({
   // Registered separately so the category select's onChange can intercept the
   // "+ New category" sentinel before handing off to react-hook-form.
   const categoryIdField = register("categoryId");
+  const budgetIdField = register("budgetId", {
+    onChange: () => {
+      setValue("categoryId", "");
+      setSplitRows((rows) => rows.map((row) => ({ ...row, categoryId: "" })));
+    },
+  });
+
+  // Categories and what's left in them for the transaction's month.
+  const formMonth = monthOfDateInput(
+    watch("occurredAt"),
+    transaction ? new Date(transaction.createdAt) : new Date(),
+  );
+  const { data: budgetCategories = [] } = useBudgetCategories(
+    selectedBudgetId,
+    undefined,
+    formMonth,
+  );
+
+  const categoryOptions = useMemo(() => {
+    const loadedIds = new Set(budgetCategories.map((category) => category.id));
+    const pending = createdCategories.filter(
+      (category) =>
+        category.budgetId === selectedBudgetId && !loadedIds.has(category.id),
+    );
+    return [...budgetCategories, ...pending];
+  }, [budgetCategories, createdCategories, selectedBudgetId]);
 
   const watchedBudgetId = watch("budgetId");
   const watchedCardId = watch("cardId");
@@ -737,7 +756,7 @@ export default function TransactionForm({
               </label>
               <select
                 id="budgetId"
-                {...register("budgetId")}
+                {...budgetIdField}
                 className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
                   errors.budgetId
                     ? "border-red-300 focus:border-red-500 focus:ring-red-500"
@@ -1008,7 +1027,8 @@ export default function TransactionForm({
                     {categoryOptions.map(
                       (budgetCategory: BudgetCategoryWithCategory) => {
                         const allocatedAmount =
-                          budgetCategory.allocatedAmount ?? 0;
+                          (budgetCategory.allocatedAmount ?? 0) +
+                          (budgetCategory.carry ?? 0);
                         const spentAmount = budgetCategory.spentAmount ?? 0;
                         const availableAmount = allocatedAmount - spentAmount;
                         return (
@@ -1029,6 +1049,7 @@ export default function TransactionForm({
                     {isEditing &&
                       transaction &&
                       transaction.category &&
+                      selectedBudgetId === transaction.budgetId &&
                       !budgetCategories.some(
                         (bc) => bc.id === transaction.categoryId,
                       ) && (

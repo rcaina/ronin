@@ -6,6 +6,8 @@ import {
   computeCarry,
   computeQuickFill,
   getMonthWindow,
+  isCategoryInMonth,
+  mergeMonthPlans,
   type QuickFillCategory,
   parseMonthKey,
   projectCategoryToMonth,
@@ -301,5 +303,77 @@ describe("calculateReadyToAssign", () => {
 
     expect(calculateReadyToAssign(2000.5, planned)).toBe(800.5);
     expect(calculateReadyToAssign(1000, planned)).toBe(-200);
+  });
+});
+
+describe("isCategoryInMonth", () => {
+  const october = getMonthWindow("2026-10");
+  const createdNovember = { createdAt: new Date("2026-11-01T00:00:00Z") };
+
+  it("shows a category created by the month's last millisecond", () => {
+    expect(
+      isCategoryInMonth(
+        { createdAt: new Date("2026-10-31T23:59:59.999Z") },
+        october,
+        false,
+      ),
+    ).toBe(true);
+  });
+
+  it("hides a month before the category existed", () => {
+    expect(isCategoryInMonth(createdNovember, october, false)).toBe(false);
+  });
+
+  it("shows an earlier month the category was planned or spent in", () => {
+    expect(isCategoryInMonth(createdNovember, october, true)).toBe(true);
+    expect(
+      isCategoryInMonth(
+        {
+          ...createdNovember,
+          transactionSplits: [
+            {
+              amount: 15,
+              transaction: {
+                amount: 40,
+                transactionType: TransactionType.REGULAR,
+                occurredAt: "2026-10-20T12:00:00Z",
+              },
+            },
+          ],
+        },
+        october,
+        false,
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("mergeMonthPlans", () => {
+  const october = new Date("2026-10-01T00:00:00Z");
+  const november = new Date("2026-11-01T00:00:00Z");
+
+  it("sums each copy's plan per month, falling back to its default", () => {
+    const merged = mergeMonthPlans([
+      { allocatedAmount: 100, months: [{ month: november, assigned: 50 }] },
+      { allocatedAmount: null, months: [{ month: october, assigned: 10.1 }] },
+      { allocatedAmount: 30.2, months: [] },
+    ]);
+    expect(
+      merged
+        .map((row) => [row.month.toISOString(), row.assigned])
+        .sort(([a], [b]) => String(a).localeCompare(String(b))),
+    ).toEqual([
+      [october.toISOString(), 140.3],
+      [november.toISOString(), 80.2],
+    ]);
+  });
+
+  it("adds no rows when no copy planned a month", () => {
+    expect(
+      mergeMonthPlans([
+        { allocatedAmount: 100, months: [] },
+        { allocatedAmount: 20, months: [] },
+      ]),
+    ).toEqual([]);
   });
 });

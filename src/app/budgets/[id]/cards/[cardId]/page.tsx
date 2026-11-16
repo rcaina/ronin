@@ -254,7 +254,12 @@ const CardDetailsPage = () => {
   });
 
   // Map API card to component card
-  const mappedCard: Card | null = card ? mapApiCardToCard(card) : null;
+  const mappedCard: Card | null = card
+    ? mapApiCardToCard(
+        card,
+        users.map((u) => u.id),
+      )
+    : null;
 
   // Check if current user owns this card
   const isCardOwner = card?.userId === session?.user?.id;

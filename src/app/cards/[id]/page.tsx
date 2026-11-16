@@ -67,7 +67,12 @@ const CardDetailsPage = () => {
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
 
   // Map API card to component card
-  const mappedCard: Card | null = card ? mapApiCardToCard(card) : null;
+  const mappedCard: Card | null = card
+    ? mapApiCardToCard(
+        card,
+        users.map((u) => u.id),
+      )
+    : null;
 
   // Fetch users for the account
   const fetchUsers = async () => {

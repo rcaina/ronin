@@ -72,8 +72,11 @@ const CardsPage = () => {
 
   // Map API cards to component cards
   const cards: Card[] = useMemo(() => {
-    return apiCards ? apiCards.map((apiCard) => mapApiCardToCard(apiCard)) : [];
-  }, [apiCards]);
+    const ownerIds = users.map((u) => u.id);
+    return apiCards
+      ? apiCards.map((apiCard) => mapApiCardToCard(apiCard, ownerIds))
+      : [];
+  }, [apiCards, users]);
 
   // Fetch users for the account
   const fetchUsers = async () => {
