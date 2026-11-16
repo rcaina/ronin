@@ -200,7 +200,7 @@ const AllocationsPage = () => {
                             `/savings/${savingsId}/pockets/${allocation.pocketId}`,
                           )
                         }
-                        className="rounded-lg p-2 text-gray-400 opacity-100 transition-all duration-200 hover:bg-gray-100 hover:text-gray-600 lg:opacity-0 lg:group-hover:opacity-100"
+                        className="tap-target rounded-lg p-2 text-gray-400 opacity-100 transition-all duration-200 hover:bg-gray-100 hover:text-gray-600 lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100"
                         title="View pocket"
                       >
                         <ArrowRight className="h-4 w-4" />

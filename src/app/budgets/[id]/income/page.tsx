@@ -300,7 +300,7 @@ export default function IncomePage() {
                         </div>
 
                         <div className="flex items-center space-x-2 sm:space-x-4">
-                          <div className="flex items-center opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
+                          <div className="flex items-center opacity-100 transition-opacity lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100">
                             <button
                               type="button"
                               onClick={() => handleEditIncome(transaction)}

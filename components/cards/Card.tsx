@@ -121,9 +121,9 @@ const CardComponent = ({
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                className={`rounded-lg p-1.5 transition-all duration-200 ${
+                className={`tap-target rounded-lg p-1.5 transition-all duration-200 ${
                   canEdit
-                    ? "opacity-100 hover:bg-white/20 lg:opacity-0 lg:group-hover:opacity-100"
+                    ? "opacity-100 hover:bg-white/20 lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100"
                     : "cursor-not-allowed opacity-50"
                 }`}
                 onClick={(e) => {
@@ -141,7 +141,7 @@ const CardComponent = ({
               {canEdit && (
                 <button
                   type="button"
-                  className="rounded-lg p-1.5 opacity-100 transition-all duration-200 hover:bg-white/20 lg:opacity-0 lg:group-hover:opacity-100"
+                  className="tap-target rounded-lg p-1.5 opacity-100 transition-all duration-200 hover:bg-white/20 lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100"
                   onClick={(e) => {
                     e.stopPropagation();
                     onEdit?.(card);
@@ -153,9 +153,9 @@ const CardComponent = ({
               )}
               <button
                 type="button"
-                className={`rounded-lg p-1.5 transition-all duration-200 ${
+                className={`tap-target rounded-lg p-1.5 transition-all duration-200 ${
                   canEdit
-                    ? "opacity-100 hover:bg-white/20 hover:text-red-200 lg:opacity-0 lg:group-hover:opacity-100"
+                    ? "opacity-100 hover:bg-white/20 hover:text-red-200 lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100"
                     : "cursor-not-allowed opacity-50"
                 }`}
                 onClick={(e) => {

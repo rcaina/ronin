@@ -675,7 +675,7 @@ const CardDetailsPage = () => {
                       handleEditCard();
                     }}
                     title="Edit"
-                    className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-primary"
+                    className="tap-target rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-primary"
                   >
                     <Edit className="h-4 w-4" />
                   </button>
@@ -1016,7 +1016,7 @@ const CardDetailsPage = () => {
                               <div className="flex items-center gap-2">
                                 {/* Action Icons — desktop hover only; mobile
                                   exposes them via swipe (SwipeableRow). */}
-                                <div className="hidden items-center space-x-1 opacity-0 transition-opacity lg:flex lg:group-hover:opacity-100">
+                                <div className="hidden items-center space-x-1 opacity-0 transition-opacity lg:flex lg:group-focus-within:opacity-100 lg:group-hover:opacity-100">
                                   <button
                                     onClick={() =>
                                       handleEditTransaction(transaction)

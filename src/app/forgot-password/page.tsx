@@ -90,6 +90,7 @@ export default function ForgotPassword() {
                 <input
                   id="email"
                   type="email"
+                  autoComplete="email"
                   {...register("email", {
                     required: "Email is required",
                     pattern: {

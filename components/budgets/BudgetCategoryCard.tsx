@@ -174,17 +174,17 @@ export default function BudgetCategoryCard({
           <div className="flex items-center space-x-2">
             {/* Action Icons - Only visible on hover when not editing */}
             {editingCategoryId !== budgetCategory.id && (
-              <div className="flex items-center space-x-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
+              <div className="flex items-center space-x-1 opacity-100 transition-opacity lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100">
                 <button
                   onClick={handleStartEditCategory}
-                  className="rounded-lg p-1.5 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
+                  className="tap-target rounded-lg p-1.5 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
                   title="Edit category"
                 >
                   <Edit className="h-4 w-4" />
                 </button>
                 <button
                   onClick={handleDeleteCategory}
-                  className="rounded-lg p-1.5 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
+                  className="tap-target rounded-lg p-1.5 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                   title="Delete category"
                 >
                   <Trash2 className="h-4 w-4" />

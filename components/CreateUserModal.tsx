@@ -90,8 +90,9 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
               Create New User
             </h3>
             <button
+              aria-label="Close"
               onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600"
+              className="tap-target text-gray-400 hover:text-gray-600"
             >
               <X className="h-5 w-5" />
             </button>
@@ -171,9 +172,10 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
                     className="block w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                   />
                   <button
+                    aria-label="Toggle password visibility"
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3"
+                    className="tap-target absolute inset-y-0 right-0 flex items-center"
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4 text-gray-400" />

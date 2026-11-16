@@ -51,7 +51,7 @@ export default function AddCategoryForm({
         </span>
         <button
           onClick={onCancel}
-          className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+          className="tap-target rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
           title="Cancel"
         >
           <X className="h-4 w-4" />

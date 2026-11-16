@@ -335,7 +335,7 @@ export default function HomePage() {
                       aria-selected={isActive}
                       onClick={() => setTimeframe(tf.value)}
                       className={cn(
-                        "rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ease-out active:scale-[0.97]",
+                        "tap-target rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ease-out active:scale-[0.97]",
                         isActive
                           ? "bg-surface-card text-gray-900 shadow-soft"
                           : "text-gray-500 hover:text-gray-700",

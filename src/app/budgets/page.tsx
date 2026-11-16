@@ -34,7 +34,7 @@ import UpgradeModal from "@/components/UpgradeModal";
 import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
 import { CategoryType } from "@prisma/client";
 import Button from "@/components/Button";
-import { formatCurrency, roundToCents } from "@/lib/utils";
+import { formatCurrency, pressable, roundToCents } from "@/lib/utils";
 import {
   calculateBudgetSpent,
   calculateSpendingPercentage,
@@ -357,7 +357,7 @@ const BudgetsPage = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
+                  className={`tap-target flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
                     activeTab === tab.id
                       ? "bg-surface-card text-gray-900 shadow-soft"
                       : "text-gray-500 hover:text-gray-700"
@@ -452,13 +452,13 @@ const BudgetsPage = () => {
                           ? "card-surface cursor-not-allowed p-5 opacity-60 sm:p-6"
                           : "card-interactive cursor-pointer p-5 sm:p-6"
                       }
-                      onClick={() =>
+                      {...pressable(() =>
                         isLocked
                           ? setUpgradeReason(
                               "This budget is locked. Upgrade to Premium to access it.",
                             )
-                          : router.push(`/budgets/${budget.id}`)
-                      }
+                          : router.push(`/budgets/${budget.id}`),
+                      )}
                     >
                       <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-start">
                         <div className="flex-1">
@@ -490,7 +490,7 @@ const BudgetsPage = () => {
                                       e.stopPropagation();
                                       await handleMarkCompleted(budget);
                                     }}
-                                    className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-green-50 hover:text-green-600"
+                                    className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-green-50 hover:text-green-600"
                                     title="Mark as completed"
                                   >
                                     <CheckCircle className="h-4 w-4" />
@@ -500,7 +500,7 @@ const BudgetsPage = () => {
                                       e.stopPropagation();
                                       await handleMarkArchived(budget);
                                     }}
-                                    className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-secondary-50 hover:text-secondary-700"
+                                    className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-secondary-50 hover:text-secondary-700"
                                     title="Archive"
                                   >
                                     <Archive className="h-4 w-4" />
@@ -514,7 +514,7 @@ const BudgetsPage = () => {
                                     e.stopPropagation();
                                     await handleReactivate(budget);
                                   }}
-                                  className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-secondary-50 hover:text-secondary-700"
+                                  className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-secondary-50 hover:text-secondary-700"
                                   title="Reactivate"
                                 >
                                   <RotateCcw className="h-4 w-4" />
@@ -525,7 +525,7 @@ const BudgetsPage = () => {
                                   e.stopPropagation();
                                   handleDeleteBudget(budget);
                                 }}
-                                className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
+                                className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                                 title="Delete"
                               >
                                 <Trash2 className="h-4 w-4" />

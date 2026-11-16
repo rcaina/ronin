@@ -323,14 +323,18 @@ export default function RecurringTransactionForm({
             <div>
               <label className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700">
                 <span>Reference budget</span>
-                <div className="group relative">
+                <button
+                  type="button"
+                  aria-label="Used only to choose a category below. Each occurrence posts into your monthly budget, or the active budget covering its date if you have none."
+                  className="group relative"
+                >
                   <Info className="h-4 w-4 text-secondary-600" />
-                  <div className="absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-xs text-white group-hover:block">
+                  <span className="absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-left text-xs font-normal text-white group-hover:block group-focus:block">
                     Used only to choose a category below. Each occurrence posts
                     into your monthly budget, or the active budget covering its
                     date if you have none.
-                  </div>
-                </div>
+                  </span>
+                </button>
               </label>
               <select
                 value={referenceBudgetId}

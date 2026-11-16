@@ -3,6 +3,7 @@
 import { Fragment } from "react";
 import { Check } from "lucide-react";
 import type { StepType } from "./types";
+import { pressable } from "@/lib/utils";
 
 interface BudgetStepsSidebarProps {
   currentStep: StepType;
@@ -136,7 +137,8 @@ export default function BudgetStepsSidebar({
               className={`flex items-center ${
                 isClickable ? "cursor-pointer" : "cursor-default"
               }`}
-              onClick={() => isClickable && onStepClick?.(step.step)}
+              {...(isClickable && pressable(() => onStepClick?.(step.step)))}
+              aria-current={isCurrent ? "step" : undefined}
             >
               {/* Step Circle */}
               <div

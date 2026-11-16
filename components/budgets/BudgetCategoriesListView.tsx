@@ -18,7 +18,12 @@ import type {
   GroupLabelFunction,
 } from "@/lib/types/budget";
 import { TransactionType, CategoryType } from "@prisma/client";
-import { formatCurrency, formatDateUTC, roundToCents } from "@/lib/utils";
+import {
+  formatCurrency,
+  formatDateUTC,
+  pressable,
+  roundToCents,
+} from "@/lib/utils";
 import { getCategoryStatus, getTransactionDate } from "@/lib/utils/spending";
 
 interface BudgetCategoriesListViewProps {
@@ -154,12 +159,10 @@ export default function BudgetCategoriesListView({
                 >
                   <div
                     className="flex flex-1 cursor-pointer items-center space-x-2 sm:cursor-default sm:space-x-3"
-                    onClick={() => {
-                      // Only toggle on mobile
-                      if (isMobile) {
-                        toggleGroupExpanded(groupType);
-                      }
-                    }}
+                    {...(isMobile && {
+                      ...pressable(() => toggleGroupExpanded(groupType)),
+                      "aria-expanded": isGroupExpanded,
+                    })}
                   >
                     {/* Mobile collapse/expand chevron */}
                     <ChevronDown
@@ -181,7 +184,7 @@ export default function BudgetCategoriesListView({
                         e.stopPropagation();
                         handleStartAddCategory(groupType);
                       }}
-                      className="rounded p-1 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+                      className="tap-target rounded p-1 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
                       title="Add category to this group"
                     >
                       <Plus className="h-4 w-4" />
@@ -231,7 +234,10 @@ export default function BudgetCategoriesListView({
                           {/* Category Row */}
                           <div
                             className="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-3 transition-colors hover:bg-gray-100 sm:p-4"
-                            onClick={() => toggleExpanded(budgetCategory.id)}
+                            {...pressable(() =>
+                              toggleExpanded(budgetCategory.id),
+                            )}
+                            aria-expanded={isExpanded}
                           >
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center space-x-2 sm:space-x-3">

@@ -41,7 +41,7 @@ export default function SettingsPageNavigation({
                 <button
                   key={tab.id}
                   onClick={() => onTabChange(tab.id)}
-                  className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
+                  className={`tap-target flex shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
                     isActive
                       ? "bg-surface-card text-gray-900 shadow-soft"
                       : "text-gray-500 hover:text-gray-700"
@@ -71,7 +71,7 @@ export default function SettingsPageNavigation({
                 key={tab.id}
                 ref={isActive ? activeRef : undefined}
                 onClick={() => onTabChange(tab.id)}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-all duration-200 ease-out ${
+                className={`tap-target flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-all duration-200 ease-out ${
                   isActive
                     ? "bg-secondary/15 text-gray-900"
                     : "text-gray-500 hover:text-gray-700"

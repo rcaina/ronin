@@ -52,7 +52,7 @@ const PageHeader = ({
           {backButton && (
             <button
               onClick={backButton.onClick}
-              className="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-gray-500 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 sm:mr-4"
+              className="tap-target mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-gray-500 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 sm:mr-4"
               aria-label="Go back"
             >
               <ArrowLeft className="h-4 w-4" />

@@ -19,6 +19,7 @@ import type {
 } from "@/lib/types/budget";
 import { CategoryType } from "@prisma/client";
 import type { MonthKey } from "@/lib/utils/budget-month";
+import { pressable } from "@/lib/utils";
 
 interface BudgetCategoriesGridViewProps {
   budgetId: string;
@@ -234,17 +235,13 @@ export default function BudgetCategoriesGridView({
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, groupType)}
             >
-              <div
-                className="mb-3 flex items-center justify-between sm:mb-4"
-                onClick={() => {
-                  // Only toggle on mobile
-                  if (isMobile) {
-                    toggleGroupExpanded(groupType);
-                  }
-                }}
-              >
+              <div className="mb-3 flex items-center justify-between sm:mb-4">
                 <div
                   className={`flex flex-1 cursor-pointer items-center sm:cursor-default`}
+                  {...(isMobile && {
+                    ...pressable(() => toggleGroupExpanded(groupType)),
+                    "aria-expanded": isGroupExpanded,
+                  })}
                 >
                   {/* Mobile collapse/expand chevron */}
                   <ChevronDown
@@ -268,7 +265,7 @@ export default function BudgetCategoriesGridView({
                       e.stopPropagation();
                       handleStartAddCategory(groupType);
                     }}
-                    className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    className="tap-target rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
                     title="Add category"
                   >
                     <Plus className="h-4 w-4" />

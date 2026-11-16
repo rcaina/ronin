@@ -161,8 +161,9 @@ export function CardPaymentModal({
             {editingTransaction ? "Edit Card Payment" : "Pay Credit Card"}
           </h3>
           <button
+            aria-label="Close"
             onClick={onClose}
-            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="tap-target rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
           </button>

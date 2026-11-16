@@ -115,7 +115,7 @@ export default function ReceiptScanModal({
               </h3>
               <button
                 onClick={handleClose}
-                className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                className="tap-target rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" />

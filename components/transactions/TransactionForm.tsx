@@ -649,8 +649,9 @@ export default function TransactionForm({
               : "Add Transaction"}
         </h3>
         <button
+          aria-label="Close"
           onClick={onClose}
-          className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          className="tap-target rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
         >
           <X className="h-5 w-5" />
         </button>
@@ -807,12 +808,16 @@ export default function TransactionForm({
                     )}
                   </span>
                   {!selectedBudgetId && !isSplitMode && (
-                    <div className="group relative">
+                    <button
+                      type="button"
+                      aria-label="Select a budget to see available categories."
+                      className="group relative"
+                    >
                       <Info className="h-4 w-4 text-secondary-600" />
-                      <div className="absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-xs text-white group-hover:block">
+                      <span className="absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-left text-xs text-white group-hover:block group-focus:block">
                         Select a budget to see available categories.
-                      </div>
-                    </div>
+                      </span>
+                    </button>
                   )}
                 </label>
                 {canSplit &&
@@ -947,7 +952,7 @@ export default function TransactionForm({
                           onClick={() => removeSplitRow(row.key)}
                           disabled={isPending}
                           aria-label="Remove split"
-                          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                          className="tap-target flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -1067,14 +1072,18 @@ export default function TransactionForm({
                   </select>
                   {selectedBudgetId && categoryOptions.length === 0 && (
                     <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                      <div className="group relative">
+                      <button
+                        type="button"
+                        aria-label="No categories found for this budget. Pick + New category to add one here."
+                        className="group relative"
+                      >
                         <Info className="h-4 w-4 text-gray-400" />
-                        <div className="absolute bottom-full right-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-xs text-white group-hover:block">
+                        <span className="absolute bottom-full right-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-left text-xs text-white group-hover:block group-focus:block">
                           No categories found for this budget. Pick &ldquo;+ New
                           category&rdquo; to add one here.
-                          <div className="absolute right-2 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                        </div>
-                      </div>
+                          <span className="absolute right-2 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></span>
+                        </span>
+                      </button>
                     </div>
                   )}
                 </div>

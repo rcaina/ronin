@@ -201,7 +201,7 @@ export default function Modal({
               type="button"
               onClick={onClose}
               aria-label={`Close ${title}`}
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
+              className="tap-target flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
             >
               <X className="h-5 w-5" />
             </button>

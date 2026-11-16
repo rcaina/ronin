@@ -88,6 +88,7 @@ export default function SignUp() {
                 <input
                   id="firstName"
                   type="text"
+                  autoComplete="given-name"
                   {...register("firstName", {
                     required: "First name is required",
                     minLength: {
@@ -111,6 +112,7 @@ export default function SignUp() {
                 <input
                   id="lastName"
                   type="text"
+                  autoComplete="family-name"
                   {...register("lastName", {
                     required: "Last name is required",
                     minLength: {
@@ -136,6 +138,7 @@ export default function SignUp() {
               <input
                 id="email"
                 type="email"
+                autoComplete="email"
                 {...register("email", {
                   required: "Email is required",
                   pattern: {
@@ -161,6 +164,7 @@ export default function SignUp() {
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   {...register("password", {
                     required: "Password is required",
                     minLength: {
@@ -229,6 +233,7 @@ export default function SignUp() {
                 <input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   {...register("confirmPassword", {
                     required: "Please confirm your password",
                     validate: (value) =>

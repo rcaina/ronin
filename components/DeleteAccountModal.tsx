@@ -52,9 +52,10 @@ const DeleteAccountModal = ({ isOpen, onClose }: DeleteAccountModalProps) => {
             </h3>
           </div>
           <button
+            aria-label="Close"
             onClick={onClose}
             disabled={isLoading}
-            className="text-gray-400 hover:text-gray-600"
+            className="tap-target text-gray-400 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
           </button>

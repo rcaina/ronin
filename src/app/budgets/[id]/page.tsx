@@ -700,7 +700,7 @@ const BudgetDetailsPage = () => {
                   </h3>
                   <button
                     onClick={() => setIsEditBudgetOpen(true)}
-                    className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
+                    className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
                     title="Edit budget details"
                   >
                     <EditIcon className="h-4 w-4" />
@@ -1176,7 +1176,7 @@ const BudgetDetailsPage = () => {
                                 onClick={() =>
                                   handleEditTransaction(transaction)
                                 }
-                                className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
+                                className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
                                 title="Edit transaction"
                               >
                                 <Pencil className="h-4 w-4" />
@@ -1185,7 +1185,7 @@ const BudgetDetailsPage = () => {
                                 onClick={() =>
                                   setTransactionToDelete(transaction)
                                 }
-                                className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
+                                className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                                 title="Delete transaction"
                               >
                                 <Trash2 className="h-4 w-4" />

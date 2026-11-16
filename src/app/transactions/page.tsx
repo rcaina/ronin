@@ -930,7 +930,7 @@ const TransactionsPageContent = () => {
                                 onClick={() =>
                                   toggleSplitExpanded(transaction.id)
                                 }
-                                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
+                                className="tap-target flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
                                 aria-label={
                                   isSplitExpanded
                                     ? "Hide split breakdown"
@@ -1022,12 +1022,12 @@ const TransactionsPageContent = () => {
                             {/* Action Icons - Copy stays visible on mobile;
                               Edit/Delete are desktop-hover only there since
                               mobile exposes them via swipe (SwipeableRow). */}
-                            <div className="flex items-center gap-0.5 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
+                            <div className="flex items-center gap-0.5 opacity-100 transition-opacity lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100">
                               <button
                                 onClick={() =>
                                   handleCopyTransaction(transaction)
                                 }
-                                className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
+                                className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
                                 title="Copy transaction"
                               >
                                 <Copy className="h-4 w-4" />

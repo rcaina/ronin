@@ -662,7 +662,7 @@ export default function CreateBudgetModal({
           <button
             onClick={handleClose}
             aria-label="Close"
-            className="-mr-1 flex-shrink-0 rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            className="tap-target -mr-1 flex-shrink-0 rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
           </button>

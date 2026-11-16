@@ -143,6 +143,7 @@ export default function SignIn() {
                   <input
                     id="email"
                     type="email"
+                    autoComplete="email"
                     {...register("email", {
                       required: "Email is required",
                       pattern: {
@@ -168,6 +169,7 @@ export default function SignIn() {
                     <input
                       id="password"
                       type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
                       {...register("password", {
                         required: "Password is required",
                         minLength: {
@@ -181,7 +183,7 @@ export default function SignIn() {
                     <button
                       type="button"
                       onClick={togglePasswordVisibility}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 transition-colors duration-200 hover:text-gray-600 focus:outline-none"
+                      className="tap-target absolute inset-y-0 right-0 flex items-center text-gray-400 transition-colors duration-200 hover:text-gray-600 focus:outline-none"
                       aria-label={
                         showPassword ? "Hide password" : "Show password"
                       }
@@ -262,6 +264,7 @@ export default function SignIn() {
                 <input
                   id="code-email"
                   type="email"
+                  autoComplete="email"
                   {...registerCodeEmail("email", {
                     required: "Email is required",
                     pattern: {

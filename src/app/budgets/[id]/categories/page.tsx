@@ -615,7 +615,10 @@ const BudgetCategoriesPage = () => {
                 </div>
 
                 {/* Categories Over Budget */}
-                <div className="group relative flex items-center justify-between border-b border-gray-100 pb-2">
+                <div
+                  tabIndex={getOverBudgetSubtitle().tooltip ? 0 : undefined}
+                  className="group relative flex items-center justify-between border-b border-gray-100 pb-2"
+                >
                   <div className="flex items-center gap-1.5">
                     {categoriesOverBudget > 0 ? (
                       <AlertCircle className="h-3 w-3 text-red-500 sm:h-4 sm:w-4" />
@@ -643,7 +646,7 @@ const BudgetCategoriesPage = () => {
 
                   {/* Tooltip for over budget categories */}
                   {getOverBudgetSubtitle().tooltip && (
-                    <div className="absolute left-1/2 top-full z-10 mt-2 min-w-[200px] -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
+                    <div className="absolute left-1/2 top-full z-10 mt-2 min-w-[200px] -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100 group-focus:opacity-100">
                       <div className="mb-2 flex items-center gap-2">
                         <Info className="h-4 w-4 text-secondary-300" />
                         <span className="font-medium">

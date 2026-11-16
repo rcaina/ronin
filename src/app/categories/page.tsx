@@ -280,8 +280,9 @@ const CategoriesPage = () => {
                       />
                       {localSearchQuery && (
                         <button
+                          aria-label="Clear search"
                           onClick={clearSearch}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-gray-400 transition-colors duration-200 hover:text-gray-600"
+                          className="tap-target absolute right-0 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-gray-400 transition-colors duration-200 hover:text-gray-600 lg:right-2"
                         >
                           <X className="h-4 w-4" />
                         </button>

@@ -185,20 +185,20 @@ export default function CategoryCard({
               <div
                 className={
                   swipeable
-                    ? "hidden items-center gap-0.5 transition-opacity lg:flex lg:opacity-0 lg:group-hover:opacity-100"
-                    : "flex items-center gap-0.5 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100"
+                    ? "hidden items-center gap-0.5 transition-opacity lg:flex lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100"
+                    : "flex items-center gap-0.5 opacity-100 transition-opacity lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100"
                 }
               >
                 <button
                   onClick={handleStartEditCategory}
-                  className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
+                  className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
                   title="Edit category"
                 >
                   <Edit className="h-4 w-4" />
                 </button>
                 <button
                   onClick={handleDeleteCategory}
-                  className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
+                  className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                   title="Delete category"
                 >
                   <Trash2 className="h-4 w-4" />

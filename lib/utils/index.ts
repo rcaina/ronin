@@ -1,9 +1,26 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { CategoryType, PeriodType } from "@prisma/client";
+import type { KeyboardEvent, SyntheticEvent } from "react";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+/** Props that make a clickable non-button element focusable and operable with Enter/Space. */
+export function pressable(onPress: (e: SyntheticEvent<HTMLElement>) => void) {
+  return {
+    role: "button" as const,
+    tabIndex: 0,
+    onClick: onPress,
+    onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
+      // Keys typed in a nested button or input belong to that control.
+      if (e.target !== e.currentTarget) return;
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      onPress(e);
+    },
+  };
 }
 
 /**

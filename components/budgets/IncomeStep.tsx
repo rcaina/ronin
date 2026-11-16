@@ -94,9 +94,10 @@ export default function IncomeStep({
               </h3>
               {incomeEntries.length > 1 && (
                 <button
+                  aria-label="Remove income"
                   type="button"
                   onClick={() => onRemoveIncomeEntry(entry.id)}
-                  className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
+                  className="tap-target rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
                 >
                   <X className="h-4 w-4" />
                 </button>

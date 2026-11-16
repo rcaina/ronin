@@ -88,7 +88,7 @@ export default function CardsStep({
                 <button
                   type="button"
                   onClick={() => onRemoveCard(card.id)}
-                  className="mt-0.5 flex-shrink-0 rounded p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                  className="tap-target mt-0.5 flex-shrink-0 rounded p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
                   title="Remove card"
                   aria-label={`Remove ${card.name}`}
                 >

@@ -543,7 +543,7 @@ const CardsPage = () => {
                       <button
                         key={tab.id}
                         onClick={() => setActiveOwner(tab.id)}
-                        className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
+                        className={`tap-target flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
                           effectiveOwner === tab.id
                             ? "bg-surface-card text-gray-900 shadow-soft"
                             : "text-gray-500 hover:text-gray-700"
