@@ -110,7 +110,7 @@ export default function AllocationStep({
       <div className="rounded-lg bg-gray-50 p-4">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium text-gray-700">Total income:</span>
-          <span className="font-semibold text-gray-900">
+          <span className="font-semibold tabular-nums text-gray-900">
             {formatCurrency(totalIncome)}
           </span>
         </div>

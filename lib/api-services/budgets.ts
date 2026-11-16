@@ -591,6 +591,10 @@ export async function updateBudget(
       endAt: data.endAt ? new Date(data.endAt) : undefined,
     },
   });
+  // Checked after the write so a one-sided date change is compared with the stored other side; the caller's transaction rolls it back.
+  if (budget.startAt && budget.endAt && budget.endAt < budget.startAt) {
+    throw new HttpError("End date must be on or after the start date", 400);
+  }
 
   // Update budget category allocations if provided
   if (data.categoryAllocations) {

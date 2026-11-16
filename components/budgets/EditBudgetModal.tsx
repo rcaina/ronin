@@ -67,6 +67,10 @@ export default function EditBudgetModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!budget) return;
+    if (!isContinuous && formData.endAt < formData.startAt) {
+      toast.error("End date must be on or after the start date");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -185,7 +189,7 @@ export default function EditBudgetModal({
           </div>
 
           {!isContinuous && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label
                   htmlFor="startAt"
@@ -222,7 +226,7 @@ export default function EditBudgetModal({
                     onChange={(e) => handleInputChange("endAt", e.target.value)}
                     className="cursor-pointer"
                     required
-                    min="1900-01-01"
+                    min={formData.startAt || "1900-01-01"}
                     max="2100-12-31"
                   />
                 </div>

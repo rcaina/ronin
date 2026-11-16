@@ -37,13 +37,24 @@ export default function QuickFillModal({
 
   const renderTotal = (total: number | null | undefined) => {
     if (preview.isPending) {
-      return <span className="h-4 w-16 animate-pulse rounded bg-gray-200" />;
+      return (
+        <span className="h-4 w-16 shrink-0 animate-pulse rounded-full bg-surface-muted" />
+      );
+    }
+    if (preview.isError) {
+      return (
+        <span className="shrink-0 whitespace-nowrap text-xs text-gray-500">
+          Total unavailable
+        </span>
+      );
     }
     if (total === undefined) return null;
     return total === null ? (
-      <span className="text-xs text-gray-500">Nothing to fill</span>
+      <span className="shrink-0 whitespace-nowrap text-xs text-gray-500">
+        Nothing to fill
+      </span>
     ) : (
-      <span className="text-sm font-semibold tabular-nums text-gray-900">
+      <span className="shrink-0 whitespace-nowrap text-sm font-semibold tabular-nums text-gray-900">
         {formatCurrency(total)}
       </span>
     );
@@ -120,7 +131,7 @@ export default function QuickFillModal({
         Replaces {monthLabel}&apos;s planned amount on every category that
         existed in the months you copy from.
       </p>
-      <div className="mb-3 flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
+      <div className="mb-3 flex items-center justify-between rounded-xl bg-surface-muted px-4 py-3">
         <span className="text-sm text-gray-600">Planned now</span>
         {renderTotal(preview.data?.planned)}
       </div>
@@ -137,7 +148,7 @@ export default function QuickFillModal({
                 : "border-gray-200 bg-surface-card hover:border-gray-300"
             }`}
           >
-            <span className="flex flex-col">
+            <span className="flex min-w-0 flex-col">
               <span className="text-sm font-medium text-gray-900">
                 {option.label}
               </span>

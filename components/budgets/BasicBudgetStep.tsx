@@ -35,19 +35,17 @@ export default function BasicBudgetStep({
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Budget strategy
-          </label>
-          <select
-            {...register("strategy")}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
-          >
-            <option value={StrategyType.ZERO_SUM}>Zero-sum budget</option>
-            <option value={StrategyType.FIFTY_THIRTY_TWENTY}>50/30/20</option>
-          </select>
-        </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Budget strategy
+        </label>
+        <select
+          {...register("strategy")}
+          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
+        >
+          <option value={StrategyType.ZERO_SUM}>Zero-sum budget</option>
+          <option value={StrategyType.FIFTY_THIRTY_TWENTY}>50/30/20</option>
+        </select>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
