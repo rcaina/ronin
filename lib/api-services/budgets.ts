@@ -34,10 +34,13 @@ import type {
 } from "../types/budget";
 import type { TransactionSplitWithCategory } from "../types/transaction";
 import {
+  computeQuickFill,
   getMonthWindow,
   parseMonthKey,
   projectCategoryToMonth,
+  shiftMonth,
   toMonthKey,
+  type QuickFillSource,
 } from "../utils/budget-month";
 import { isWithinWindow, type DateWindow } from "../utils/spending";
 
@@ -1384,6 +1387,82 @@ export const updateBudgetCategory = async (
   });
 
   return updatedCategory;
+};
+
+/** Sets the month's planned amount on every category with history, from `source`; 400 if none has any. */
+export const fillBudgetMonth = async (
+  tx: PrismaClientTx,
+  budgetId: string,
+  monthParam: string,
+  source: QuickFillSource,
+): Promise<{ filled: number }> => {
+  const month = parseMonthKey(monthParam);
+  if (!month) throw new HttpError("Invalid month, expected YYYY-MM", 400);
+
+  const budget = await tx.budget.findFirstOrThrow({
+    where: { id: budgetId },
+    select: { kind: true },
+  });
+  if (budget.kind !== BudgetKind.CONTINUOUS) {
+    throw new HttpError("Only the monthly budget can be filled by month", 400);
+  }
+
+  const window = getMonthWindow(month);
+  const categories = await tx.category.findMany({
+    where: { budgetId, deleted: null },
+    select: {
+      id: true,
+      createdAt: true,
+      allocatedAmount: true,
+      months: {
+        where: {
+          month: {
+            gte: getMonthWindow(shiftMonth(month, -3)).start,
+            lt: window.start,
+          },
+        },
+        select: { month: true, assigned: true },
+      },
+      transactions: {
+        where: { deleted: null },
+        select: {
+          transactionType: true,
+          amount: true,
+          createdAt: true,
+          occurredAt: true,
+        },
+      },
+      transactionSplits: {
+        where: { transaction: { deleted: null } },
+        select: {
+          amount: true,
+          transaction: {
+            select: {
+              transactionType: true,
+              amount: true,
+              createdAt: true,
+              occurredAt: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const fill = computeQuickFill(source, categories, month);
+  if (fill.size === 0) {
+    throw new HttpError("No earlier months to fill from", 400);
+  }
+
+  for (const [categoryId, assigned] of fill) {
+    await tx.categoryMonth.upsert({
+      where: { categoryId_month: { categoryId, month: window.start } },
+      create: { categoryId, month: window.start, assigned },
+      update: { assigned },
+    });
+  }
+
+  return { filled: fill.size };
 };
 
 export const deleteBudgetCategory = async (

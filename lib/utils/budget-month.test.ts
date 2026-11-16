@@ -1,7 +1,9 @@
 import { TransactionType } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import {
+  computeQuickFill,
   getMonthWindow,
+  type QuickFillCategory,
   parseMonthKey,
   projectCategoryToMonth,
   shiftMonth,
@@ -91,5 +93,106 @@ describe("projectCategoryToMonth planned amount", () => {
     expect(
       projectCategoryToMonth({ allocatedAmount: 300 }, window).allocatedAmount,
     ).toBe(300);
+  });
+});
+
+describe("computeQuickFill", () => {
+  const spend = (
+    date: string,
+    amount: number,
+    type: TransactionType = TransactionType.REGULAR,
+  ) => ({
+    transactionType: type,
+    amount,
+    occurredAt: date,
+    createdAt: date,
+  });
+  const category = (
+    overrides: Partial<QuickFillCategory> = {},
+  ): QuickFillCategory => ({
+    id: "groceries",
+    createdAt: new Date("2026-08-01T00:00:00.000Z"),
+    allocatedAmount: 300,
+    months: [],
+    transactions: [],
+    ...overrides,
+  });
+
+  it("copies last month's plan, falling back to the default", () => {
+    const withRow = category({
+      months: [{ month: new Date("2026-10-01T00:00:00.000Z"), assigned: 450 }],
+    });
+    const withoutRow = category({ id: "fuel" });
+
+    const fill = computeQuickFill(
+      "last-month",
+      [withRow, withoutRow],
+      "2026-11",
+    );
+
+    expect(fill.get("groceries")).toBe(450);
+    expect(fill.get("fuel")).toBe(300);
+  });
+
+  it("uses last month's net spending, never below zero", () => {
+    const spent = category({
+      transactions: [
+        spend("2026-10-31T23:59:59.999Z", 120.5),
+        spend("2026-10-10T00:00:00.000Z", 20.25, TransactionType.RETURN),
+        spend("2026-11-01T00:00:00.000Z", 999),
+      ],
+    });
+    const refunded = category({
+      id: "fuel",
+      transactions: [
+        spend("2026-10-05T00:00:00.000Z", 40, TransactionType.RETURN),
+      ],
+    });
+
+    const fill = computeQuickFill("last-actual", [spent, refunded], "2026-11");
+
+    expect(fill.get("groceries")).toBe(100.25);
+    expect(fill.get("fuel")).toBe(0);
+  });
+
+  it("averages spending over the last 3 months the category existed", () => {
+    const old = category({
+      transactions: [
+        spend("2026-08-15T00:00:00.000Z", 100),
+        spend("2026-09-15T00:00:00.000Z", 200),
+        spend("2026-10-15T00:00:00.000Z", 301),
+      ],
+    });
+    const newer = category({
+      id: "fuel",
+      createdAt: new Date("2026-09-20T00:00:00.000Z"),
+      transactions: [spend("2026-10-15T00:00:00.000Z", 50)],
+    });
+
+    const fill = computeQuickFill("average-3", [old, newer], "2026-11");
+
+    expect(fill.get("groceries")).toBe(200.33);
+    expect(fill.get("fuel")).toBe(25);
+  });
+
+  it("leaves out categories with no history before the month", () => {
+    const createdThisMonth = category({
+      createdAt: new Date("2026-11-01T00:00:00.000Z"),
+    });
+    const spentBeforeCreated = category({
+      id: "fuel",
+      createdAt: new Date("2026-11-02T00:00:00.000Z"),
+      transactions: [spend("2026-10-20T00:00:00.000Z", 60)],
+    });
+
+    for (const source of ["last-month", "average-3", "last-actual"] as const) {
+      const fill = computeQuickFill(
+        source,
+        [createdThisMonth, spentBeforeCreated],
+        "2026-11",
+      );
+      expect(fill.has("groceries")).toBe(false);
+      expect(fill.has("fuel")).toBe(true);
+    }
   });
 });

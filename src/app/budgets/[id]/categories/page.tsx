@@ -28,6 +28,7 @@ import {
   ScanLine,
   FolderInput,
   SlidersHorizontal,
+  CalendarRange,
 } from "lucide-react";
 import { roundToCents } from "@/lib/utils";
 import { isDebitCard } from "@/lib/utils/cards";
@@ -42,6 +43,7 @@ import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderC
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import ReceiptScanModal from "@/components/transactions/ReceiptScanModal";
 import ImportCategoriesModal from "@/components/budgets/ImportCategoriesModal";
+import QuickFillModal from "@/components/budgets/QuickFillModal";
 import Button from "@/components/Button";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
 import {
@@ -128,6 +130,8 @@ const BudgetCategoriesPage = () => {
   const [isReceiptScanOpen, setIsReceiptScanOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isQuickFillOpen, setIsQuickFillOpen] = useState(false);
+  const isContinuous = budget?.kind === "CONTINUOUS";
   const [filters, setFilters] = useState<BudgetCategoryFilters>(
     DEFAULT_BUDGET_CATEGORY_FILTERS,
   );
@@ -137,6 +141,16 @@ const BudgetCategoriesPage = () => {
   // Register header actions
   useEffect(() => {
     setActions([
+      ...(isContinuous
+        ? [
+            {
+              icon: <CalendarRange className="h-4 w-4" />,
+              label: "Fill month",
+              onClick: () => setIsQuickFillOpen(true),
+              variant: "outline" as const,
+            },
+          ]
+        : []),
       {
         icon: <FolderInput className="h-4 w-4" />,
         label: "Import categories",
@@ -156,7 +170,7 @@ const BudgetCategoriesPage = () => {
         variant: "outline" as const,
       },
     ]);
-  }, [setActions]);
+  }, [setActions, isContinuous]);
 
   // Register the mobile header's scan-receipt shortcut; clean up on unmount
   // so it doesn't leak into other pages.
@@ -1044,7 +1058,7 @@ const BudgetCategoriesPage = () => {
             ) : view === "grid" ? (
               <BudgetCategoriesGridView
                 budgetId={budgetId}
-                month={budget?.kind === "CONTINUOUS" ? month : undefined}
+                month={isContinuous ? month : undefined}
                 getGroupColor={getGroupColor}
                 getGroupLabel={getGroupLabel}
                 budgetCategories={filteredBudgetCategories}
@@ -1082,6 +1096,15 @@ const BudgetCategoriesPage = () => {
         budgetId={budgetId}
         onClose={() => setIsImportOpen(false)}
       />
+
+      {isQuickFillOpen && (
+        <QuickFillModal
+          isOpen={isQuickFillOpen}
+          onClose={() => setIsQuickFillOpen(false)}
+          budgetId={budgetId}
+          month={month}
+        />
+      )}
 
       <BudgetCategoryFiltersModal
         isOpen={isFiltersOpen}

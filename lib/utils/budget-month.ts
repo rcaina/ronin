@@ -1,4 +1,6 @@
+import { roundToCents } from "@/lib/utils";
 import {
+  calculateCategorySpentInWindow,
   isWithinWindow,
   type DateWindow,
   type SpendingCategory,
@@ -64,3 +66,72 @@ export const projectCategoryToMonth = <
     isWithinWindow(split.transaction, window),
   ),
 });
+
+export const QUICK_FILL_SOURCES = [
+  "last-month",
+  "average-3",
+  "last-actual",
+] as const;
+export type QuickFillSource = (typeof QUICK_FILL_SOURCES)[number];
+
+export interface QuickFillCategory extends SpendingCategory {
+  id: string;
+  createdAt: Date;
+  allocatedAmount: number | null;
+  months: Array<{ month: Date; assigned: number }>;
+}
+
+const hasHistoryIn = (
+  category: QuickFillCategory,
+  window: DateWindow,
+): boolean =>
+  category.createdAt <= window.end ||
+  category.months.some(
+    (row) => row.month.getTime() === window.start.getTime(),
+  ) ||
+  !!category.transactions?.some((transaction) =>
+    isWithinWindow(transaction, window),
+  ) ||
+  !!category.transactionSplits?.some((split) =>
+    isWithinWindow(split.transaction, window),
+  );
+
+/**
+ * Planned amount per category id for `month`, from the months before it: last month's
+ * plan, the average spent over the last 3 months, or last month's spent. Categories
+ * with no history in those months are left out.
+ */
+export const computeQuickFill = (
+  source: QuickFillSource,
+  categories: QuickFillCategory[],
+  month: MonthKey,
+): Map<string, number> => {
+  const sourceWindows = Array.from(
+    { length: source === "average-3" ? 3 : 1 },
+    (_, index) => getMonthWindow(shiftMonth(month, -(index + 1))),
+  );
+  const fill = new Map<string, number>();
+
+  for (const category of categories) {
+    const history = sourceWindows.filter((window) =>
+      hasHistoryIn(category, window),
+    );
+    if (history.length === 0) continue;
+
+    if (source === "last-month") {
+      const row = category.months.find(
+        (row) => row.month.getTime() === history[0]!.start.getTime(),
+      );
+      fill.set(category.id, row?.assigned ?? category.allocatedAmount ?? 0);
+      continue;
+    }
+
+    const spent = history.reduce(
+      (sum, window) => sum + calculateCategorySpentInWindow(category, window),
+      0,
+    );
+    fill.set(category.id, roundToCents(Math.max(0, spent / history.length)));
+  }
+
+  return fill;
+};
