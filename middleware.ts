@@ -15,7 +15,6 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/sign-up") ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password");
-  const isSetupPage = pathname.startsWith("/welcome");
 
   if (isAuthPage) {
     if (token) {
@@ -28,16 +27,6 @@ export async function middleware(request: NextRequest) {
     const signInUrl = new URL("/sign-in", request.url);
     signInUrl.searchParams.set("callbackUrl", request.url);
     return NextResponse.redirect(signInUrl);
-  }
-
-  // If user is authenticated and on setup/welcome pages, allow access
-  if (isSetupPage) {
-    return NextResponse.next();
-  }
-
-  // If authenticated and not on setup/welcome/auth pages, check if user has budget
-  if (!token.hasBudget) {
-    return NextResponse.redirect(new URL("/welcome", request.url));
   }
 
   return NextResponse.next();
