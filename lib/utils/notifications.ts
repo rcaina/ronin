@@ -1,5 +1,6 @@
 import type { NotificationType } from "@prisma/client";
 import { formatCurrency } from "@/lib/utils";
+import type { MonthKey } from "@/lib/utils/budget-month";
 
 // ---------------------------------------------------------------------------
 // Pure, framework-agnostic trigger-evaluation + dedupe logic for in-app/push
@@ -47,6 +48,8 @@ export interface CategoryThresholdInput {
   allocatedAmount: number | null | undefined;
   /** Spend for this category, as computed by `calculateCategorySpent`. */
   spent: number;
+  /** Continuous budgets: the month evaluated, so each month alerts once. */
+  month?: MonthKey;
 }
 
 /**
@@ -55,9 +58,8 @@ export interface CategoryThresholdInput {
  * non-positive) allocation, or spend hasn't reached the threshold yet.
  *
  * The dedupe key is scoped to the category alone (not the budget too)
- * because a `Category` row already belongs to a single budget period — once
- * that budget ends the category is never re-evaluated, so no separate period
- * identifier is needed to keep the key unique across periods.
+ * because an event budget's `Category` row belongs to a single period. A
+ * continuous budget's category lives across months, so its key adds `month`.
  */
 export const evaluateCategoryThreshold = (
   input: CategoryThresholdInput,
@@ -72,8 +74,16 @@ export const evaluateCategoryThreshold = (
     type: "CATEGORY_OVER_THRESHOLD",
     title: `${input.categoryName} is nearing its budget`,
     body: `You've used ${percent}% of the ${formatCurrency(allocated)} allocated to ${input.categoryName}.`,
-    data: { categoryId: input.categoryId, budgetId: input.budgetId },
-    dedupeKey: buildDedupeKey("CATEGORY_OVER_THRESHOLD", input.categoryId),
+    data: {
+      categoryId: input.categoryId,
+      budgetId: input.budgetId,
+      ...(input.month && { month: input.month }),
+    },
+    dedupeKey: buildDedupeKey(
+      "CATEGORY_OVER_THRESHOLD",
+      input.categoryId,
+      ...(input.month ? [input.month] : []),
+    ),
   };
 };
 
@@ -109,13 +119,10 @@ export const evaluateBudgetPeriodEnding = (
   return {
     type: "BUDGET_PERIOD_ENDING",
     title: `${input.budgetName} ends soon`,
-    body: `Your budget period ends on ${input.endAt.toLocaleDateString(
-      "en-US",
-      {
-        month: "short",
-        day: "numeric",
-      },
-    )}.`,
+    body: `This event ends on ${input.endAt.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    })}.`,
     data: { budgetId: input.budgetId },
     dedupeKey: buildDedupeKey("BUDGET_PERIOD_ENDING", input.budgetId),
   };

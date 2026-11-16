@@ -8,6 +8,11 @@ export interface TransactionAmountDisplay {
   colorClass: string;
 }
 
+/** INCOME and RETURN bring money in; rows show them as "+" in green. */
+export const isMoneyIn = (transactionType: TransactionType): boolean =>
+  transactionType === TransactionType.INCOME ||
+  transactionType === TransactionType.RETURN;
+
 /**
  * Sign and color for a transaction amount shown from a specific card's
  * perspective. Amounts are stored positive; direction comes from the
@@ -24,12 +29,11 @@ export const getCardTransactionDisplay = (
   const isCredit =
     cardType === CardType.CREDIT || cardType === CardType.BUSINESS_CREDIT;
 
-  const isMoneyIn =
-    transactionType === TransactionType.INCOME ||
-    transactionType === TransactionType.RETURN ||
+  const moneyIn =
+    isMoneyIn(transactionType) ||
     (transactionType === TransactionType.CARD_PAYMENT && isCredit);
 
-  return isMoneyIn
+  return moneyIn
     ? { prefix: "+", colorClass: "text-green-600" }
     : { prefix: "-", colorClass: "text-red-600" };
 };

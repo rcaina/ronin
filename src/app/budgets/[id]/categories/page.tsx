@@ -28,20 +28,21 @@ import {
   ScanLine,
   FolderInput,
   SlidersHorizontal,
+  CalendarRange,
 } from "lucide-react";
-import { roundToCents } from "@/lib/utils";
+import { formatCurrency, roundToCents } from "@/lib/utils";
 import { isDebitCard } from "@/lib/utils/cards";
 import {
   calculateCategorySpent,
-  type SpendingCategory,
-  type SpendingTransaction,
+  getCategoryStatus,
 } from "@/lib/utils/spending";
 import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
-import { useLocalStorageState } from "@/lib/utils/hooks";
+import { useBudgetMonth, useLocalStorageState } from "@/lib/utils/hooks";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import ReceiptScanModal from "@/components/transactions/ReceiptScanModal";
 import ImportCategoriesModal from "@/components/budgets/ImportCategoriesModal";
+import QuickFillModal from "@/components/budgets/QuickFillModal";
 import Button from "@/components/Button";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
 import {
@@ -52,6 +53,7 @@ import {
   chartTooltipItemStyle,
   chartTooltipLabelStyle,
   chartTooltipStyle,
+  formatChartCurrency,
   formatCompactCurrency,
 } from "@/components/recharts/theme";
 import {
@@ -112,11 +114,12 @@ const isBudgetCategoriesViewType = (
 const BudgetCategoriesPage = () => {
   const { id } = useParams();
   const budgetId = id as string;
+  const [month] = useBudgetMonth();
   const {
     data: budget,
     isLoading: budgetLoading,
     error: budgetError,
-  } = useBudget(budgetId);
+  } = useBudget(budgetId, false, month);
   const [view, setView] = useLocalStorageState<BudgetCategoriesViewType>(
     BUDGET_CATEGORIES_VIEW_STORAGE_KEY,
     "grid",
@@ -127,6 +130,8 @@ const BudgetCategoriesPage = () => {
   const [isReceiptScanOpen, setIsReceiptScanOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isQuickFillOpen, setIsQuickFillOpen] = useState(false);
+  const isContinuous = budget?.kind === "CONTINUOUS";
   const [filters, setFilters] = useState<BudgetCategoryFilters>(
     DEFAULT_BUDGET_CATEGORY_FILTERS,
   );
@@ -136,6 +141,16 @@ const BudgetCategoriesPage = () => {
   // Register header actions
   useEffect(() => {
     setActions([
+      ...(isContinuous
+        ? [
+            {
+              icon: <CalendarRange className="h-4 w-4" />,
+              label: "Fill month",
+              onClick: () => setIsQuickFillOpen(true),
+              variant: "outline" as const,
+            },
+          ]
+        : []),
       {
         icon: <FolderInput className="h-4 w-4" />,
         label: "Import categories",
@@ -145,35 +160,41 @@ const BudgetCategoriesPage = () => {
       {
         icon: <Plus className="h-4 w-4" />,
         label: "Add transaction",
+        addsTransaction: true,
         onClick: () => setIsAddTransactionOpen(true),
         variant: "primary" as const,
       },
       {
         icon: <ScanLine className="h-4 w-4" />,
         label: "Scan receipt",
+        addsTransaction: true,
         onClick: () => setIsReceiptScanOpen(true),
         variant: "outline" as const,
       },
     ]);
-  }, [setActions]);
+  }, [setActions, isContinuous]);
 
   // Register the mobile header's scan-receipt shortcut; clean up on unmount
-  // so it doesn't leak into other pages.
+  // so it doesn't leak into other pages. Suppressed unless the budget is ACTIVE.
   useEffect(() => {
+    if (budget?.status !== "ACTIVE") {
+      setMobileHeaderAction(null);
+      return;
+    }
     setMobileHeaderAction({
       icon: <ScanLine className="h-5 w-5" />,
       label: "Scan receipt",
       onClick: () => setIsReceiptScanOpen(true),
     });
     return () => setMobileHeaderAction(null);
-  }, [setMobileHeaderAction]);
+  }, [setMobileHeaderAction, budget?.status]);
 
   // Use the search query in the hook
   const {
     data: budgetCategories,
     isLoading: categoriesLoading,
     error: categoriesError,
-  } = useBudgetCategories(budgetId, searchQuery);
+  } = useBudgetCategories(budgetId, searchQuery, month);
 
   // Calculate allocation statistics
   // Calculate total income from INCOME transactions on debit cards
@@ -203,59 +224,28 @@ const BudgetCategoriesPage = () => {
       (sum, cat) => sum + (cat.allocatedAmount ?? 0),
       0,
     ) ?? 0;
-  const allocationDifference = (totalIncome - totalAllocated).toFixed(2);
+  const allocationDifference = roundToCents(totalIncome - totalAllocated);
 
   // Calculate category statistics
-  const totalCategories = budget?.categories?.length ?? 0;
-  const completedCategories =
-    budget?.categories?.filter((cat) => {
-      const totalSpent = roundToCents(
-        cat.transactions?.reduce((sum, transaction) => {
-          if (transaction.transactionType === TransactionType.RETURN) {
-            // Returns reduce spending (positive amount = refund received)
-            return sum - transaction.amount;
-          } else {
-            // Regular transactions: positive = purchases (increase spending)
-            return sum + transaction.amount;
-          }
-        }, 0) ?? 0,
-      );
-      return totalSpent >= (cat.allocatedAmount ?? 0);
-    }).length ?? 0;
-
-  // Calculate categories over budget and total amount over
-  const overBudgetCategories =
-    budget?.categories?.filter((cat) => {
-      const totalSpent = roundToCents(
-        cat.transactions?.reduce((sum, transaction) => {
-          if (transaction.transactionType === TransactionType.RETURN) {
-            // Returns reduce spending (positive amount = refund received)
-            return sum - transaction.amount;
-          } else {
-            // Regular transactions: positive = purchases (increase spending)
-            return sum + transaction.amount;
-          }
-        }, 0) ?? 0,
-      );
-      return totalSpent > (cat.allocatedAmount ?? 0);
-    }) ?? [];
-
+  const categoryProgress = (budget?.categories ?? []).map((cat) => {
+    const spent = roundToCents(calculateCategorySpent(cat));
+    const available = (cat.allocatedAmount ?? 0) + (cat.carry ?? 0);
+    return {
+      name: cat.name,
+      over: roundToCents(spent - available),
+      status: getCategoryStatus(spent, available),
+    };
+  });
+  const totalCategories = categoryProgress.length;
+  const completedCategories = categoryProgress.filter(
+    (cat) => cat.status !== "open",
+  ).length;
+  const overBudgetCategories = categoryProgress.filter(
+    (cat) => cat.status === "over",
+  );
   const categoriesOverBudget = overBudgetCategories.length;
-
   const totalOverBudget = roundToCents(
-    budget?.categories?.reduce((sum, cat) => {
-      const totalSpent = roundToCents(
-        cat.transactions?.reduce((sum, transaction) => {
-          if (transaction.transactionType === TransactionType.RETURN) {
-            return sum - transaction.amount;
-          } else {
-            return sum + transaction.amount;
-          }
-        }, 0) ?? 0,
-      );
-      const overAmount = Math.max(0, totalSpent - (cat.allocatedAmount ?? 0));
-      return sum + overAmount;
-    }, 0) ?? 0,
+    overBudgetCategories.reduce((sum, cat) => sum + cat.over, 0),
   );
 
   // Format category names for over budget display
@@ -266,33 +256,20 @@ const BudgetCategoriesPage = () => {
 
     if (categoriesOverBudget === 1) {
       return {
-        text: `$${totalOverBudget.toFixed(2)} over - ${overBudgetCategories[0]?.name}`,
+        text: `${formatCurrency(totalOverBudget)} over - ${overBudgetCategories[0]?.name}`,
         tooltip: null,
       };
     }
 
-    const othersCount = categoriesOverBudget - 1;
     return {
-      text: `$${totalOverBudget.toFixed(2)} over ${othersCount} categories`,
-      tooltip: overBudgetCategories.map((cat) => ({
-        name: cat.name,
-        amount: roundToCents(
-          cat.transactions?.reduce((sum, transaction) => {
-            if (transaction.transactionType === TransactionType.RETURN) {
-              return sum - transaction.amount;
-            } else {
-              return sum + transaction.amount;
-            }
-          }, 0) ?? 0,
-        ),
-        allocated: cat.allocatedAmount,
-      })),
+      text: `${formatCurrency(totalOverBudget)} over in ${categoriesOverBudget} categories`,
+      tooltip: overBudgetCategories,
     };
   };
 
   // Determine allocation status
   const getAllocationStatus = () => {
-    if (totalAllocated.toFixed(2) === totalIncome.toFixed(2)) {
+    if (allocationDifference === 0) {
       return {
         value: "100%",
         subtitle: "allocated",
@@ -300,19 +277,17 @@ const BudgetCategoriesPage = () => {
         iconColor: "text-green-500",
         valueColor: "text-green-600",
       };
-    } else if (parseFloat(allocationDifference) > 0) {
+    } else if (allocationDifference > 0) {
       return {
-        value: `$${allocationDifference}`,
+        value: formatCurrency(allocationDifference),
         subtitle: "left to allocate",
         icon: <HandCoins className="h-4 w-4" />,
         iconColor: "text-secondary-600",
         valueColor: "text-secondary-700",
       };
     } else {
-      // When over allocated, show the amount over allocated
-      const overAllocationAmount = (totalAllocated - totalIncome).toFixed(2);
       return {
-        value: `$${overAllocationAmount}`,
+        value: formatCurrency(-allocationDifference),
         subtitle: "over allocated",
         icon: <AlertCircle className="h-4 w-4" />,
         iconColor: "text-red-500",
@@ -394,15 +369,7 @@ const BudgetCategoriesPage = () => {
 
     budget.categories.forEach((cat) => {
       const allocated = cat.allocatedAmount ?? 0;
-      const totalSpent = roundToCents(
-        cat.transactions?.reduce((sum, transaction) => {
-          if (transaction.transactionType === TransactionType.RETURN) {
-            return sum - transaction.amount;
-          } else {
-            return sum + transaction.amount;
-          }
-        }, 0) ?? 0,
-      );
+      const totalSpent = roundToCents(calculateCategorySpent(cat));
 
       const group = cat.group;
       const current = groupSpendingMap.get(group) ?? { allocated: 0, spent: 0 };
@@ -438,20 +405,8 @@ const BudgetCategoriesPage = () => {
     };
   }, [budget]);
 
-  // Convert a budget category's transactions into the shape the shared
-  // spending utils expect, then run the canonical spend calculation so we
-  // never re-derive spent/remaining math inline.
-  const getCategorySpent = (category: BudgetCategoryWithCategory): number => {
-    const spendingCategory: SpendingCategory = {
-      transactions: category.transactions.map(
-        (transaction): SpendingTransaction => ({
-          ...transaction,
-          transactionType: transaction.transactionType as TransactionType,
-        }),
-      ),
-    };
-    return roundToCents(calculateCategorySpent(spendingCategory));
-  };
+  const getCategorySpent = (category: BudgetCategoryWithCategory): number =>
+    roundToCents(category.spentAmount ?? 0);
 
   // Apply client-side filtering + sorting on top of the (already
   // server-searched) category list. Both the grid and list views render
@@ -469,18 +424,16 @@ const BudgetCategoriesPage = () => {
       }
 
       if (filters.status !== "all") {
-        const spent = getCategorySpent(category);
-        const allocated = roundToCents(category.allocatedAmount ?? 0);
-
-        if (filters.status === "inProgress" && !(spent < allocated)) {
-          return false;
-        }
-        if (filters.status === "completed" && spent !== allocated) {
-          return false;
-        }
-        if (filters.status === "overBudget" && !(spent > allocated)) {
-          return false;
-        }
+        const status = getCategoryStatus(
+          getCategorySpent(category),
+          (category.allocatedAmount ?? 0) + (category.carry ?? 0),
+        );
+        const wanted = {
+          inProgress: "open",
+          completed: "full",
+          overBudget: "over",
+        }[filters.status];
+        if (status !== wanted) return false;
       }
 
       return true;
@@ -489,8 +442,8 @@ const BudgetCategoriesPage = () => {
     return [...filtered].sort((a, b) => {
       switch (filters.sort) {
         case "percentSpent": {
-          const aAllocated = a.allocatedAmount ?? 0;
-          const bAllocated = b.allocatedAmount ?? 0;
+          const aAllocated = (a.allocatedAmount ?? 0) + (a.carry ?? 0);
+          const bAllocated = (b.allocatedAmount ?? 0) + (b.carry ?? 0);
           const aPercent =
             aAllocated > 0 ? getCategorySpent(a) / aAllocated : 0;
           const bPercent =
@@ -498,8 +451,10 @@ const BudgetCategoriesPage = () => {
           return bPercent - aPercent;
         }
         case "remaining": {
-          const aRemaining = (a.allocatedAmount ?? 0) - getCategorySpent(a);
-          const bRemaining = (b.allocatedAmount ?? 0) - getCategorySpent(b);
+          const aRemaining =
+            (a.allocatedAmount ?? 0) + (a.carry ?? 0) - getCategorySpent(a);
+          const bRemaining =
+            (b.allocatedAmount ?? 0) + (b.carry ?? 0) - getCategorySpent(b);
           return aRemaining - bRemaining;
         }
         case "allocated":
@@ -660,7 +615,10 @@ const BudgetCategoriesPage = () => {
                 </div>
 
                 {/* Categories Over Budget */}
-                <div className="group relative flex items-center justify-between border-b border-gray-100 pb-2">
+                <div
+                  tabIndex={getOverBudgetSubtitle().tooltip ? 0 : undefined}
+                  className="group relative flex items-center justify-between border-b border-gray-100 pb-2"
+                >
                   <div className="flex items-center gap-1.5">
                     {categoriesOverBudget > 0 ? (
                       <AlertCircle className="h-3 w-3 text-red-500 sm:h-4 sm:w-4" />
@@ -688,7 +646,7 @@ const BudgetCategoriesPage = () => {
 
                   {/* Tooltip for over budget categories */}
                   {getOverBudgetSubtitle().tooltip && (
-                    <div className="absolute left-1/2 top-full z-10 mt-2 min-w-[200px] -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100">
+                    <div className="absolute right-0 top-full z-10 mt-2 min-w-[200px] max-w-[calc(100vw-2rem)] rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100 group-focus:opacity-100 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:whitespace-nowrap">
                       <div className="mb-2 flex items-center gap-2">
                         <Info className="h-4 w-4 text-secondary-300" />
                         <span className="font-medium">
@@ -703,8 +661,7 @@ const BudgetCategoriesPage = () => {
                           >
                             <span className="text-gray-200">{cat.name}</span>
                             <span className="tabular-nums text-red-300">
-                              ${(cat.amount - (cat.allocated ?? 0)).toFixed(2)}{" "}
-                              over
+                              {formatCurrency(cat.over)} over
                             </span>
                           </div>
                         ))}
@@ -724,7 +681,7 @@ const BudgetCategoriesPage = () => {
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-semibold tabular-nums text-green-600">
-                      ${totalIncome.toLocaleString()}
+                      {formatCurrency(totalIncome)}
                     </div>
                     <div className="text-[10px] text-gray-500">Available</div>
                   </div>
@@ -780,7 +737,7 @@ const BudgetCategoriesPage = () => {
                           const percentage =
                             total > 0 ? (value / total) * 100 : 0;
                           return [
-                            `$${value.toLocaleString()} (${percentage.toFixed(1)}%)`,
+                            `${formatChartCurrency(value)} (${percentage.toFixed(1)}%)`,
                             fullName || "Category",
                           ];
                         }}
@@ -865,10 +822,10 @@ const BudgetCategoriesPage = () => {
                               {groupName}
                             </div>
                             <div style={chartTooltipItemStyle}>
-                              Allocated: ${allocated.toLocaleString()}
+                              Allocated: {formatChartCurrency(allocated)}
                             </div>
                             <div style={chartTooltipItemStyle}>
-                              Spent: ${spent.toLocaleString()}
+                              Spent: {formatChartCurrency(spent)}
                             </div>
                           </div>
                         );
@@ -958,7 +915,7 @@ const BudgetCategoriesPage = () => {
                           const percentage =
                             total > 0 ? (value / total) * 100 : 0;
                           return [
-                            `$${value.toLocaleString()} (${percentage.toFixed(1)}%)`,
+                            `${formatChartCurrency(value)} (${percentage.toFixed(1)}%)`,
                             name ?? "",
                           ];
                         }}
@@ -1043,6 +1000,7 @@ const BudgetCategoriesPage = () => {
             ) : view === "grid" ? (
               <BudgetCategoriesGridView
                 budgetId={budgetId}
+                month={isContinuous ? month : undefined}
                 getGroupColor={getGroupColor}
                 getGroupLabel={getGroupLabel}
                 budgetCategories={filteredBudgetCategories}
@@ -1080,6 +1038,15 @@ const BudgetCategoriesPage = () => {
         budgetId={budgetId}
         onClose={() => setIsImportOpen(false)}
       />
+
+      {isQuickFillOpen && (
+        <QuickFillModal
+          isOpen={isQuickFillOpen}
+          onClose={() => setIsQuickFillOpen(false)}
+          budgetId={budgetId}
+          month={month}
+        />
+      )}
 
       <BudgetCategoryFiltersModal
         isOpen={isFiltersOpen}

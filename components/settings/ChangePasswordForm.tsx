@@ -129,7 +129,7 @@ const ChangePasswordForm = () => {
               <button
                 type="button"
                 onClick={() => toggleVisibility(field)}
-                className="absolute inset-y-0 right-0 flex items-center pr-3"
+                className="tap-target absolute inset-y-0 right-0 flex items-center"
                 aria-label={
                   visibleFields[field] ? "Hide password" : "Show password"
                 }

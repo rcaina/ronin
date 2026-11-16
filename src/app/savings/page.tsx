@@ -12,6 +12,7 @@ import { DollarSign, PiggyBank, Plus, Target, Wallet } from "lucide-react";
 import CreateSavingsModal from "@/components/savings/CreateSavingsModal";
 import Button from "@/components/Button";
 import { formatCurrency, roundToCents } from "@/lib/utils";
+import { getGoalProgress } from "@/lib/utils/savings";
 
 export default function SavingsPage() {
   const savingsEnabled = useIsFeatureEnabled("savings");
@@ -34,24 +35,7 @@ export default function SavingsPage() {
     (sum, acc) => sum + acc.pockets.length,
     0,
   );
-  const allPockets = savings.flatMap((acc) => acc.pockets);
-  const pocketsWithGoals = allPockets.filter(
-    (p) => typeof p.goalAmount === "number" && p.goalAmount > 0,
-  );
-  const goalsReached = pocketsWithGoals.filter(
-    (p) => p.total >= (p.goalAmount ?? 0),
-  ).length;
-
-  // Per-account goal progress (only counts pockets with a goal set)
-  const getAccountGoalProgress = (account: (typeof savings)[number]) => {
-    const goalPockets = account.pockets.filter(
-      (p) => typeof p.goalAmount === "number" && p.goalAmount > 0,
-    );
-    const goal = goalPockets.reduce((sum, p) => sum + (p.goalAmount ?? 0), 0);
-    if (goal <= 0) return null;
-    const saved = goalPockets.reduce((sum, p) => sum + p.total, 0);
-    return { percentage: roundToCents((saved / goal) * 100) };
-  };
+  const allGoals = getGoalProgress(savings.flatMap((acc) => acc.pockets));
 
   return (
     <div className="flex flex-col bg-surface pt-4 lg:h-screen lg:pt-0">
@@ -94,15 +78,15 @@ export default function SavingsPage() {
                 icon={<Wallet className="h-4 w-4 sm:h-5 sm:w-5" />}
                 iconColor="text-secondary-600"
               />
-              {pocketsWithGoals.length > 0 && (
+              {allGoals && (
                 <StatsCard
                   title="Goals reached"
-                  value={`${goalsReached}/${pocketsWithGoals.length}`}
+                  value={`${allGoals.reached}/${allGoals.goals}`}
                   subtitle="Pockets at their goal"
                   icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
                   iconColor="text-secondary-600"
                   valueColor={
-                    goalsReached === pocketsWithGoals.length
+                    allGoals.reached === allGoals.goals
                       ? "text-green-600"
                       : "text-gray-900"
                   }
@@ -113,7 +97,7 @@ export default function SavingsPage() {
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-6">
             {savings.map((acc) => {
-              const goalProgress = getAccountGoalProgress(acc);
+              const goalProgress = getGoalProgress(acc.pockets);
 
               return (
                 <Link
@@ -145,7 +129,7 @@ export default function SavingsPage() {
                           Goal progress
                         </span>
                         <span className="text-xs font-medium tabular-nums text-gray-500">
-                          {goalProgress.percentage.toFixed(0)}%
+                          {Math.floor(goalProgress.percentage)}%
                         </span>
                       </div>
                       <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
@@ -155,9 +139,7 @@ export default function SavingsPage() {
                               ? "bg-green-500"
                               : "bg-secondary"
                           }`}
-                          style={{
-                            width: `${Math.min(goalProgress.percentage, 100)}%`,
-                          }}
+                          style={{ width: `${goalProgress.percentage}%` }}
                         ></div>
                       </div>
                     </div>

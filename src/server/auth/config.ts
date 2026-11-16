@@ -6,6 +6,7 @@ import { env } from "@/env";
 import db from "@/lib/prisma";
 import { isEmailAllowed } from "@/lib/utils/auth";
 import { consumeLoginCode } from "@/server/auth/email-tokens";
+import { SESSION_COOKIE_NAME } from "@/lib/constants/auth";
 
 export const runtime = "nodejs";
 
@@ -26,7 +27,6 @@ declare module "next-auth" {
       accountId: string;
       emailVerified: Date | null;
       deleted: boolean;
-      hasBudget: boolean;
       theme: string;
     } & DefaultSession["user"];
   }
@@ -42,7 +42,6 @@ declare module "next-auth/jwt" {
     accountId: string;
     emailVerified: Date | null;
     deleted: boolean;
-    hasBudget: boolean;
     theme: string;
   }
 }
@@ -82,14 +81,6 @@ async function loadAuthorizedUser(email: string) {
   }
   const account = firstAccountUser.account;
 
-  // Check if user has any budgets
-  const budgetCount = await db.budget.count({
-    where: {
-      accountId: account.id,
-      deleted: null,
-    },
-  });
-
   return {
     id: user.id,
     email: user.email,
@@ -99,7 +90,6 @@ async function loadAuthorizedUser(email: string) {
     accountId: account.id,
     emailVerified: user.emailVerified,
     deleted: user.deleted !== null,
-    hasBudget: budgetCount > 0,
     theme: user.theme,
   };
 }
@@ -209,7 +199,7 @@ export const authConfig = {
   },
   cookies: {
     sessionToken: {
-      name: `next-auth.session-token`,
+      name: SESSION_COOKIE_NAME,
       options: {
         httpOnly: true,
         sameSite: "lax",
@@ -233,7 +223,6 @@ export const authConfig = {
         token.emailVerified = user.emailVerified;
         token.phone = user.phone;
         token.deleted = user.deleted;
-        token.hasBudget = user.hasBudget;
         token.theme = user.theme;
       }
 
@@ -244,21 +233,15 @@ export const authConfig = {
         if (updatedTheme) {
           token.theme = updatedTheme;
         }
-      }
-
-      // Always check the current budget count for the user
-      if (token?.accountId) {
-        try {
-          const budgetCount = await db.budget.count({
-            where: {
-              accountId: token.accountId,
-              deleted: null,
-            },
-          });
-          token.hasBudget = budgetCount > 0;
-        } catch (error) {
-          console.error("Error checking budget count in JWT callback:", error);
-          // Fallback to existing hasBudget value if database query fails
+        // Profile fields come from the database, never from the client's update payload.
+        const profile = await db.user.findUnique({
+          where: { id: token.id },
+          select: { name: true, email: true, phone: true },
+        });
+        if (profile) {
+          token.name = profile.name;
+          token.email = profile.email;
+          token.phone = profile.phone;
         }
       }
 
@@ -274,7 +257,6 @@ export const authConfig = {
         session.user.emailVerified = token.emailVerified;
         session.user.phone = token.phone;
         session.user.deleted = token.deleted;
-        session.user.hasBudget = token.hasBudget;
         session.user.theme = token.theme ?? "system";
       }
 

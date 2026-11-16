@@ -34,6 +34,7 @@ export const GET = withUser({
         prisma,
         budgetId,
         searchQuery,
+        searchParams.get("month"),
       );
       return NextResponse.json(budgetCategories, { status: 200 });
     },

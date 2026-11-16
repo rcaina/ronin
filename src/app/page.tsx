@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  daysLeftInWindow,
+  getMonthWindow,
+  toMonthKey,
+} from "@/lib/utils/budget-month";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -29,6 +34,7 @@ import {
   chartTooltipItemStyle,
   chartTooltipLabelStyle,
   chartTooltipStyle,
+  formatChartCurrency,
   formatCompactCurrency,
 } from "@/components/recharts/theme";
 import {
@@ -40,10 +46,11 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  LabelList,
 } from "recharts";
 import { TransactionType, BudgetStatus, PeriodType } from "@prisma/client";
-import { cn, roundToCents } from "@/lib/utils";
-import { SPLIT_BADGE_CLASSES } from "@/lib/utils/transactions";
+import { cn, formatCurrency, formatDateUTC, roundToCents } from "@/lib/utils";
+import { SPLIT_BADGE_CLASSES, isMoneyIn } from "@/lib/utils/transactions";
 import {
   calculateBudgetSpent,
   calculateBudgetSpentInWindow,
@@ -52,9 +59,7 @@ import {
   calculateTotalIncome,
   calculateTotalIncomeInWindow,
   getTransactionDate,
-  getTransactionSpending,
   type DateWindow,
-  type SpendingBudget,
 } from "@/lib/utils/spending";
 
 type Timeframe = "1m" | "3m" | "6m" | "1y" | "all";
@@ -71,20 +76,6 @@ const TIMEFRAMES: {
   { value: "1y", shortLabel: "1Y", label: "past year", months: 12 },
   { value: "all", shortLabel: "All", label: "all time", months: null },
 ];
-
-// Spending within a budget limited to transactions inside a date window.
-const sumSpendingInPeriod = (budget: SpendingBudget, start: Date, end: Date) =>
-  (budget.categories ?? []).reduce(
-    (sum, category) =>
-      sum +
-      (category.transactions ?? []).reduce((transactionSum, transaction) => {
-        const date = getTransactionDate(transaction);
-        return date >= start && date <= end
-          ? transactionSum + getTransactionSpending(transaction)
-          : transactionSum;
-      }, 0),
-    0,
-  );
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -125,6 +116,9 @@ export default function HomePage() {
   // Filter out deleted and archived budgets
   const activeBudgets = budgets.filter(
     (budget) => !budget.deleted && budget.status !== BudgetStatus.ARCHIVED,
+  );
+  const inProgressBudgets = activeBudgets.filter(
+    (budget) => budget.status === BudgetStatus.ACTIVE,
   );
 
   // Calculate financial metrics within the selected time window
@@ -184,14 +178,24 @@ export default function HomePage() {
     .sort((a, b) => b.value - a.value)
     .slice(0, 8); // Top 8 categories
 
-  // Prepare data for spending by budget period
-  const periodSpendingData = activeBudgets
-    .map((budget) => {
-      const periodStart = new Date(budget.startAt);
-      const periodEnd = new Date(budget.endAt);
+  // The continuous budget's period is the current month.
+  const thisMonth = getMonthWindow(toMonthKey(new Date()));
 
-      const budgetIncome = calculateTotalIncome(budget);
-      const periodSpent = sumSpendingInPeriod(budget, periodStart, periodEnd);
+  // Prepare data for spending by budget period
+  const periodSpendingData = inProgressBudgets
+    .map((budget) => {
+      const periodStart = budget.endAt
+        ? new Date(budget.startAt)
+        : thisMonth.start;
+      const periodEnd = budget.endAt ? new Date(budget.endAt) : thisMonth.end;
+
+      const budgetIncome = budget.endAt
+        ? calculateTotalIncome(budget)
+        : calculateTotalIncomeInWindow(budget, thisMonth);
+      const periodSpent = calculateBudgetSpentInWindow(budget, {
+        start: periodStart,
+        end: periodEnd,
+      });
 
       // Format period label
       const periodLabel =
@@ -223,28 +227,24 @@ export default function HomePage() {
     .slice(0, 8); // Top 8 budgets by spending
 
   // Prepare data for budget utilization & time remaining
-  const budgetUtilizationData = activeBudgets
+  const budgetUtilizationData = inProgressBudgets
     .map((budget) => {
-      const periodStart = new Date(budget.startAt);
-      const periodEnd = new Date(budget.endAt);
-      const now = new Date();
+      const periodStart = budget.endAt
+        ? new Date(budget.startAt)
+        : thisMonth.start;
+      const periodEnd = budget.endAt ? new Date(budget.endAt) : thisMonth.end;
 
-      const budgetIncome = calculateTotalIncome(budget);
-      const budgetSpent = calculateBudgetSpent(budget);
+      const budgetIncome = budget.endAt
+        ? calculateTotalIncome(budget)
+        : calculateTotalIncomeInWindow(budget, thisMonth);
+      const budgetSpent = budget.endAt
+        ? calculateBudgetSpent(budget)
+        : calculateBudgetSpentInWindow(budget, thisMonth);
 
-      // Calculate time remaining
-      const daysTotal = Math.ceil(
-        (periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24),
+      const daysRemaining = daysLeftInWindow(
+        { start: periodStart, end: periodEnd },
+        new Date(),
       );
-      const daysElapsed = Math.max(
-        0,
-        Math.ceil(
-          (now.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24),
-        ),
-      );
-      const daysRemaining = Math.max(0, daysTotal - daysElapsed);
-
-      const remaining = roundToCents(Math.max(0, budgetIncome - budgetSpent));
       const utilization = roundToCents(
         calculateSpendingPercentage(budgetSpent, budgetIncome),
       );
@@ -262,7 +262,6 @@ export default function HomePage() {
           budget.name.length > 10
             ? budget.name.substring(0, 10) + "..."
             : budget.name,
-        remaining: remaining,
         utilization: utilization,
         daysRemaining: daysRemaining,
         spent: roundToCents(budgetSpent),
@@ -289,10 +288,12 @@ export default function HomePage() {
     )
     .slice(0, 5);
 
-  // Get the most recent budget for the quick action
-  const mostRecentBudget = activeBudgets.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  )[0];
+  const currentBudget =
+    inProgressBudgets.find((budget) => budget.kind === "CONTINUOUS") ??
+    [...inProgressBudgets].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )[0];
 
   return (
     <div className="flex flex-col bg-surface lg:h-screen">
@@ -328,7 +329,7 @@ export default function HomePage() {
                       aria-selected={isActive}
                       onClick={() => setTimeframe(tf.value)}
                       className={cn(
-                        "rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ease-out active:scale-[0.97]",
+                        "tap-target rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ease-out active:scale-[0.97]",
                         isActive
                           ? "bg-surface-card text-gray-900 shadow-soft"
                           : "text-gray-500 hover:text-gray-700",
@@ -345,22 +346,22 @@ export default function HomePage() {
             <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               <StatsCard
                 title="Total income"
-                value={`$${totalIncome.toLocaleString()}`}
-                subtitle={`Across ${activeBudgets.length} active budget${activeBudgets.length !== 1 ? "s" : ""}`}
+                value={formatCurrency(totalIncome)}
+                subtitle={`Across ${activeBudgets.length} budget${activeBudgets.length !== 1 ? "s" : ""}`}
                 icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
                 iconColor="text-green-600"
                 valueColor="text-green-600"
               />
               <StatsCard
                 title="Total spent"
-                value={`$${totalSpent.toLocaleString()}`}
+                value={formatCurrency(totalSpent)}
                 subtitle={`${spendingPercentage.toFixed(1)}% of income`}
                 icon={<TrendingDown className="h-4 w-4 sm:h-5 sm:w-5" />}
                 iconColor="text-secondary-600"
               />
               <StatsCard
                 title="Remaining"
-                value={`$${Math.abs(totalRemaining).toLocaleString()}`}
+                value={formatCurrency(Math.abs(totalRemaining))}
                 subtitle={
                   totalRemaining >= 0 ? "Available to spend" : "Over budget"
                 }
@@ -374,7 +375,7 @@ export default function HomePage() {
               />
               <StatsCard
                 title="Active budgets"
-                value={activeBudgets.length}
+                value={inProgressBudgets.length}
                 subtitle="In progress"
                 icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
                 iconColor="text-secondary-600"
@@ -420,7 +421,7 @@ export default function HomePage() {
                           itemStyle={chartTooltipItemStyle}
                           formatter={(value: number | undefined) =>
                             value !== undefined
-                              ? `$${value.toLocaleString()}`
+                              ? formatChartCurrency(value)
                               : ""
                           }
                         />
@@ -484,7 +485,7 @@ export default function HomePage() {
                         itemStyle={chartTooltipItemStyle}
                         formatter={(value: unknown) =>
                           typeof value === "number"
-                            ? `$${value.toLocaleString()}`
+                            ? formatChartCurrency(value)
                             : String(value)
                         }
                       />
@@ -539,7 +540,7 @@ export default function HomePage() {
                         formatter={(value: unknown, name?: string) => {
                           if (name === "spent") {
                             return typeof value === "number"
-                              ? [`$${value.toLocaleString()}`, "Spent"]
+                              ? [formatChartCurrency(value), "Spent"]
                               : [String(value), "Spent"];
                           }
                           if (name === "utilization") {
@@ -570,7 +571,7 @@ export default function HomePage() {
                     Budget utilization & time
                   </h3>
                   <p className="text-xs font-medium text-gray-400">
-                    Across all budgets
+                    Share of income spent, days left
                   </p>
                 </div>
                 {budgetUtilizationData.length > 0 ? (
@@ -578,14 +579,13 @@ export default function HomePage() {
                     <BarChart
                       data={budgetUtilizationData}
                       layout="vertical"
-                      margin={{ top: 5, right: 10, left: 60, bottom: 5 }}
+                      margin={{ top: 5, right: 44, left: 0, bottom: 5 }}
                     >
                       <XAxis
                         type="number"
+                        domain={[0, (max: number) => Math.max(100, max)]}
                         tickFormatter={(value: unknown) =>
-                          typeof value === "number"
-                            ? formatCompactCurrency(value)
-                            : ""
+                          typeof value === "number" ? `${value}%` : ""
                         }
                         {...chartAxisProps}
                         fontSize={9}
@@ -602,36 +602,30 @@ export default function HomePage() {
                         contentStyle={chartTooltipStyle}
                         labelStyle={chartTooltipLabelStyle}
                         itemStyle={chartTooltipItemStyle}
-                        formatter={(value: unknown, name?: string) => {
-                          if (name === "remaining") {
-                            return typeof value === "number"
-                              ? [`$${value.toLocaleString()}`, "Remaining"]
-                              : [String(value), "Remaining"];
-                          }
-                          if (name === "utilization") {
-                            return typeof value === "number"
-                              ? [`${value.toFixed(1)}%`, "Utilization"]
-                              : [String(value), "Utilization"];
-                          }
-                          if (name === "daysRemaining") {
-                            const numValue =
-                              typeof value === "number" ? value : 0;
-                            return [
-                              `${numValue} day${numValue !== 1 ? "s" : ""}`,
-                              "Days remaining",
-                            ];
-                          }
-                          return [String(value), name ?? ""];
-                        }}
+                        formatter={(value: unknown) => [
+                          typeof value === "number"
+                            ? `${value.toFixed(1)}%`
+                            : String(value),
+                          "Of income spent",
+                        ]}
                         labelFormatter={(label) => `Budget: ${label}`}
                       />
-                      <Bar dataKey="remaining" radius={[0, 6, 6, 0]}>
+                      <Bar dataKey="utilization" radius={[0, 6, 6, 0]}>
                         {budgetUtilizationData.map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
                             fill={entry.statusColor}
                           />
                         ))}
+                        <LabelList
+                          dataKey="daysRemaining"
+                          position="right"
+                          fontSize={9}
+                          fill="var(--chart-axis)"
+                          formatter={(value: unknown) =>
+                            value === 1 ? "1 day" : `${String(value)} days`
+                          }
+                        />
                       </Bar>
                     </BarChart>
                   </ChartContainer>
@@ -696,9 +690,9 @@ export default function HomePage() {
                                   suppressHydrationWarning
                                 >
                                   •{" "}
-                                  {getTransactionDate(
-                                    transaction,
-                                  ).toLocaleDateString()}
+                                  {formatDateUTC(
+                                    getTransactionDate(transaction),
+                                  )}
                                   {!transaction.occurredAt && (
                                     <MissingDateWarning />
                                   )}
@@ -707,8 +701,18 @@ export default function HomePage() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs font-medium tabular-nums text-gray-900 sm:text-sm">
-                              ${Number(transaction.amount).toFixed(2)}
+                            <p
+                              className={cn(
+                                "text-xs font-medium tabular-nums sm:text-sm",
+                                isMoneyIn(transaction.transactionType)
+                                  ? "text-green-600"
+                                  : "text-gray-900",
+                              )}
+                            >
+                              {isMoneyIn(transaction.transactionType)
+                                ? "+"
+                                : ""}
+                              {formatCurrency(Math.abs(transaction.amount))}
                             </p>
                           </div>
                         </div>
@@ -738,10 +742,10 @@ export default function HomePage() {
                     Quick actions
                   </h2>
                   <div className="space-y-2">
-                    {mostRecentBudget && (
+                    {currentBudget && (
                       <button
                         onClick={() =>
-                          router.push(`/budgets/${mostRecentBudget.id}`)
+                          router.push(`/budgets/${currentBudget.id}`)
                         }
                         className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10 active:scale-[0.98]"
                       >
@@ -753,14 +757,14 @@ export default function HomePage() {
                             Current budget
                           </p>
                           <p className="text-xs text-gray-500">
-                            {mostRecentBudget.name}
+                            {currentBudget.name}
                           </p>
                         </div>
                       </button>
                     )}
 
                     <button
-                      onClick={() => router.push("/budgets")}
+                      onClick={() => router.push("/budgets?new=event")}
                       className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10 active:scale-[0.98]"
                     >
                       <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10">
@@ -768,16 +772,18 @@ export default function HomePage() {
                       </div>
                       <div>
                         <p className="text-xs font-medium text-gray-900 sm:text-sm">
-                          Create budget
+                          New event
                         </p>
                         <p className="text-xs text-gray-500">
-                          Set up a new budget plan
+                          Budget a trip or one-off expense
                         </p>
                       </div>
                     </button>
 
                     <button
-                      onClick={() => router.push("/transactions")}
+                      onClick={() =>
+                        router.push("/transactions?new=transaction")
+                      }
                       className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10 active:scale-[0.98]"
                     >
                       <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10">
@@ -804,11 +810,15 @@ export default function HomePage() {
                     </h3>
                   </div>
                   <p className="text-xs text-gray-600">
-                    {spendingPercentage > 90
-                      ? "You're over budget! Consider reviewing your spending habits and cutting back on non-essential expenses."
-                      : spendingPercentage > 75
-                        ? "You're approaching your budget limit. Keep an eye on your spending to stay on track."
-                        : "Great job staying within your budget! You're on track to meet your financial goals."}
+                    {totalIncome <= 0
+                      ? totalSpent > 0
+                        ? "You have spending but no income recorded for this period. Add your income to see what's left."
+                        : "Add your income and spending to see how this period is going."
+                      : spendingPercentage > 100
+                        ? "You've spent more than you earned this period. Look for non-essential spending to cut back."
+                        : spendingPercentage > 75
+                          ? "You've spent most of this period's income. Keep an eye on spending to stay on track."
+                          : "Your spending is within your income. Keep it up."}
                   </p>
                 </div>
               </div>

@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { CategoryType, type PeriodType } from "@prisma/client";
 import type { CategoryAllocation } from "./types";
-import { calculateAdjustedIncome, sumMonetaryValues } from "@/lib/utils";
+import { formatCurrency, sumMonetaryValues } from "@/lib/utils";
 
 interface IncomeEntry {
   id: string;
@@ -22,7 +22,6 @@ interface IncomeEntry {
 interface PercentageAllocationStepProps {
   selectedCategories: CategoryAllocation[];
   incomeEntries: IncomeEntry[];
-  budgetPeriod: PeriodType;
   onAllocationChange: (categoryId: string, amount: number) => void;
 }
 
@@ -36,18 +35,11 @@ const PERCENTAGE_RULE = {
 export default function PercentageAllocationStep({
   selectedCategories,
   incomeEntries,
-  budgetPeriod,
   onAllocationChange,
 }: PercentageAllocationStepProps) {
-  // Calculate total adjusted income based on frequency and budget period
-  const totalIncome = incomeEntries.reduce((sum, entry) => {
-    const adjustedAmount = calculateAdjustedIncome(
-      entry.amount,
-      entry.frequency,
-      budgetPeriod,
-    );
-    return sum + adjustedAmount;
-  }, 0);
+  const totalIncome = sumMonetaryValues(
+    incomeEntries.map((entry) => entry.amount),
+  );
 
   // Group categories by type
   const categoriesByGroup = selectedCategories.reduce(
@@ -155,9 +147,8 @@ export default function PercentageAllocationStep({
                     </div>
                   </div>
                   <div className="text-sm">
-                    Amount to allocate: $
-                    {recommendedGroupTotal.toLocaleString()} (
-                    {(percentage * 100).toFixed(0)}%)
+                    Amount to allocate: {formatCurrency(recommendedGroupTotal)}{" "}
+                    ({(percentage * 100).toFixed(0)}%)
                   </div>
                 </div>
 
@@ -208,7 +199,7 @@ export default function PercentageAllocationStep({
                       isOverBudget ? "text-red-900" : "text-gray-900"
                     }`}
                   >
-                    Amount allocated: ${groupAllocated.toLocaleString()}
+                    Amount allocated: {formatCurrency(groupAllocated)}
                   </div>
                   <div
                     className={`text-sm ${
@@ -239,11 +230,9 @@ export default function PercentageAllocationStep({
       {/* Summary */}
       <div className="rounded-lg bg-gray-50 p-4">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-medium text-gray-700">
-            Total Income ({budgetPeriod.toLowerCase()}):
-          </span>
-          <span className="font-semibold text-gray-900">
-            ${totalIncome.toLocaleString()}
+          <span className="font-medium text-gray-700">Total income:</span>
+          <span className="font-semibold tabular-nums text-gray-900">
+            {formatCurrency(totalIncome)}
           </span>
         </div>
         <div className="mt-2 flex items-center justify-between text-sm">
@@ -253,7 +242,7 @@ export default function PercentageAllocationStep({
               totalAllocated > totalIncome ? "text-red-600" : "text-gray-900"
             }`}
           >
-            ${totalAllocated.toLocaleString()}
+            {formatCurrency(totalAllocated)}
           </span>
         </div>
         <div className="mt-2 flex items-center justify-between text-sm">
@@ -263,7 +252,7 @@ export default function PercentageAllocationStep({
               allocationRemaining >= 0 ? "text-green-600" : "text-red-600"
             }`}
           >
-            ${allocationRemaining.toLocaleString()}
+            {formatCurrency(allocationRemaining)}
           </span>
         </div>
       </div>

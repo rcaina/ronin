@@ -76,10 +76,10 @@ export default function WelcomePage() {
               <Plus className="h-8 w-8 text-green-600" />
             </div>
             <h3 className="mb-2 text-lg font-semibold text-gray-900">
-              Create Budget
+              Plan your month
             </h3>
             <p className="text-sm text-gray-600">
-              Set up your first budget to start tracking your finances
+              Set this month&apos;s planned amounts and start tracking spending
             </p>
           </button>
 
@@ -92,7 +92,7 @@ export default function WelcomePage() {
               <Users className="h-8 w-8 text-purple-600" />
             </div>
             <h3 className="mb-2 text-lg font-semibold text-gray-900">
-              Invite Others
+              Invite others
             </h3>
             <p className="text-sm text-gray-600">
               Share your account with family members or partners

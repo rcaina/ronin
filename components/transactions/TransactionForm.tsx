@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { X, Check, Info, Plus, Trash2, Repeat } from "lucide-react";
+import { Check, Info, Plus, Trash2, Repeat } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   useCreateTransaction,
@@ -13,6 +13,12 @@ import {
 import { useBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import {
+  defaultDateInMonth,
+  findContinuousBudgetId,
+  monthOfDateInput,
+} from "@/lib/utils/budget-month";
+import { useBudgetMonth } from "@/lib/utils/hooks";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import { useBillingStatus } from "@/lib/data-hooks/billing/useBilling";
 import { useCreateRecurringTransaction } from "@/lib/data-hooks/recurring/useRecurring";
@@ -127,14 +133,17 @@ export default function TransactionForm({
   const { data: cards = [] } = useCards(undefined, budgetId);
   const { data: billingStatus } = useBillingStatus();
   const isPremium = billingStatus?.isPremium ?? false;
+  const [viewedMonth] = useBudgetMonth();
+  const defaultOccurredAt = transaction
+    ? undefined
+    : defaultDateInMonth(viewedMonth, new Date());
 
   // Income transactions can only be deposited to a debit-type card.
   const debitCards = useMemo(() => cards.filter(isDebitCardType), [cards]);
-  // The list of cards to show in the "Payment Method" select.
+  // The list of cards to show in the "Payment method" select.
   const cardOptions = isIncome ? debitCards : cards;
 
   const [selectedBudgetId, setSelectedBudgetId] = useState<string>("");
-  const { data: budgetCategories = [] } = useBudgetCategories(selectedBudgetId);
   const isEditing = !!transaction;
 
   // Inline category creation. `newCategoryTarget` records which select opened
@@ -150,15 +159,6 @@ export default function TransactionForm({
   const [categoryIdToSelect, setCategoryIdToSelect] = useState<string | null>(
     null,
   );
-
-  const categoryOptions = useMemo(() => {
-    const loadedIds = new Set(budgetCategories.map((category) => category.id));
-    const pending = createdCategories.filter(
-      (category) =>
-        category.budgetId === selectedBudgetId && !loadedIds.has(category.id),
-    );
-    return [...budgetCategories, ...pending];
-  }, [budgetCategories, createdCategories, selectedBudgetId]);
 
   const isPending = isCreating || isUpdating || isCreatingRecurring;
 
@@ -201,6 +201,7 @@ export default function TransactionForm({
     reset,
     formState: { errors },
     setValue,
+    setError,
     watch,
     getValues,
   } = useForm<TransactionFormData>({
@@ -212,7 +213,7 @@ export default function TransactionForm({
       budgetId: budgetId ?? "",
       categoryId: "",
       cardId: "",
-      occurredAt: undefined,
+      occurredAt: defaultOccurredAt,
       transactionType: isIncome
         ? TransactionType.INCOME
         : TransactionType.REGULAR,
@@ -222,6 +223,32 @@ export default function TransactionForm({
   // Registered separately so the category select's onChange can intercept the
   // "+ New category" sentinel before handing off to react-hook-form.
   const categoryIdField = register("categoryId");
+  const budgetIdField = register("budgetId", {
+    onChange: () => {
+      setValue("categoryId", "");
+      setSplitRows((rows) => rows.map((row) => ({ ...row, categoryId: "" })));
+    },
+  });
+
+  // Categories and what's left in them for the transaction's month.
+  const formMonth = monthOfDateInput(
+    watch("occurredAt"),
+    transaction ? new Date(transaction.createdAt) : new Date(),
+  );
+  const { data: budgetCategories = [] } = useBudgetCategories(
+    selectedBudgetId,
+    undefined,
+    formMonth,
+  );
+
+  const categoryOptions = useMemo(() => {
+    const loadedIds = new Set(budgetCategories.map((category) => category.id));
+    const pending = createdCategories.filter(
+      (category) =>
+        category.budgetId === selectedBudgetId && !loadedIds.has(category.id),
+    );
+    return [...budgetCategories, ...pending];
+  }, [budgetCategories, createdCategories, selectedBudgetId]);
 
   const watchedBudgetId = watch("budgetId");
   const watchedCardId = watch("cardId");
@@ -232,6 +259,13 @@ export default function TransactionForm({
     setSelectedBudgetId(watchedBudgetId);
     setNewCategoryTarget(null);
   }, [watchedBudgetId]);
+
+  const continuousBudgetId = findContinuousBudgetId(budgets);
+  useEffect(() => {
+    if (!transaction && !budgetId && !watchedBudgetId && continuousBudgetId) {
+      setValue("budgetId", continuousBudgetId);
+    }
+  }, [transaction, budgetId, watchedBudgetId, continuousBudgetId, setValue]);
 
   // Determine if the selected card is a credit card
   const selectedCard = cards.find((card) => card.id === watchedCardId);
@@ -439,6 +473,12 @@ export default function TransactionForm({
   }, [categoryOptions, categoryIdToSelect, setValue]);
 
   const onSubmit = (data: TransactionFormData) => {
+    // Spending is summed per category, so a purchase without one never counts.
+    if (!isIncomeTransaction && !isSplitMode && !data.categoryId?.trim()) {
+      setError("categoryId", { message: "Category is required" });
+      return;
+    }
+
     // "Make recurring" creates a RecurringTransaction template instead of a
     // one-off Transaction — the budget doesn't apply (occurrences resolve
     // their own budget by date at post time), but everything else about the
@@ -523,12 +563,8 @@ export default function TransactionForm({
         description: data.description ?? undefined,
         amount: Math.abs(parseFloat(data.amount)),
         budgetId: data.budgetId,
-        categoryId: splitsPayload
-          ? undefined
-          : data.categoryId && data.categoryId.trim() !== ""
-            ? data.categoryId
-            : undefined,
-        cardId: data.cardId ?? undefined,
+        categoryId: splitsPayload ? undefined : (data.categoryId ?? ""),
+        cardId: data.cardId ?? "",
         occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
         transactionType: data.transactionType,
         splits: splitsPayload,
@@ -587,7 +623,7 @@ export default function TransactionForm({
             budgetId: budgetId ?? "",
             categoryId: "",
             cardId: cardId ?? "",
-            occurredAt: undefined,
+            occurredAt: defaultOccurredAt,
             transactionType: isIncome
               ? TransactionType.INCOME
               : TransactionType.REGULAR,
@@ -609,23 +645,7 @@ export default function TransactionForm({
   };
 
   return (
-    <div className="rounded-xl border bg-surface-card p-6 shadow-sm">
-      <div className="mb-6 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">
-          {isEditing
-            ? "Edit Transaction"
-            : isIncome
-              ? "Add New Income"
-              : "Add Transaction"}
-        </h3>
-        <button
-          onClick={onClose}
-          className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-
+    <>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Grid Layout */}
         <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
@@ -733,7 +753,7 @@ export default function TransactionForm({
               </label>
               <select
                 id="budgetId"
-                {...register("budgetId")}
+                {...budgetIdField}
                 className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
                   errors.budgetId
                     ? "border-red-300 focus:border-red-500 focus:ring-red-500"
@@ -742,11 +762,17 @@ export default function TransactionForm({
                 disabled={isPending}
               >
                 <option value="">Select a budget</option>
-                {budgets.map((budget) => (
-                  <option key={budget.id} value={budget.id}>
-                    {budget.name}
-                  </option>
-                ))}
+                {budgets
+                  .filter(
+                    (budget) =>
+                      budget.status === "ACTIVE" ||
+                      budget.id === transaction?.budgetId,
+                  )
+                  .map((budget) => (
+                    <option key={budget.id} value={budget.id}>
+                      {budget.name}
+                    </option>
+                  ))}
               </select>
               {errors.budgetId && (
                 <p className="mt-1 text-sm text-red-600">
@@ -771,12 +797,16 @@ export default function TransactionForm({
                     )}
                   </span>
                   {!selectedBudgetId && !isSplitMode && (
-                    <div className="group relative">
+                    <button
+                      type="button"
+                      aria-label="Select a budget to see available categories."
+                      className="group relative"
+                    >
                       <Info className="h-4 w-4 text-secondary-600" />
-                      <div className="absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-xs text-white group-hover:block">
+                      <span className="absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-left text-xs text-white group-hover:block group-focus:block">
                         Select a budget to see available categories.
-                      </div>
-                    </div>
+                      </span>
+                    </button>
                   )}
                 </label>
                 {canSplit &&
@@ -911,7 +941,7 @@ export default function TransactionForm({
                           onClick={() => removeSplitRow(row.key)}
                           disabled={isPending}
                           aria-label="Remove split"
-                          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                          className="tap-target flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -998,7 +1028,8 @@ export default function TransactionForm({
                     {categoryOptions.map(
                       (budgetCategory: BudgetCategoryWithCategory) => {
                         const allocatedAmount =
-                          budgetCategory.allocatedAmount ?? 0;
+                          (budgetCategory.allocatedAmount ?? 0) +
+                          (budgetCategory.carry ?? 0);
                         const spentAmount = budgetCategory.spentAmount ?? 0;
                         const availableAmount = allocatedAmount - spentAmount;
                         return (
@@ -1019,6 +1050,7 @@ export default function TransactionForm({
                     {isEditing &&
                       transaction &&
                       transaction.category &&
+                      selectedBudgetId === transaction.budgetId &&
                       !budgetCategories.some(
                         (bc) => bc.id === transaction.categoryId,
                       ) && (
@@ -1029,14 +1061,18 @@ export default function TransactionForm({
                   </select>
                   {selectedBudgetId && categoryOptions.length === 0 && (
                     <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                      <div className="group relative">
+                      <button
+                        type="button"
+                        aria-label="No categories found for this budget. Pick + New category to add one here."
+                        className="group relative"
+                      >
                         <Info className="h-4 w-4 text-gray-400" />
-                        <div className="absolute bottom-full right-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-xs text-white group-hover:block">
+                        <span className="absolute bottom-full right-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-left text-xs text-white group-hover:block group-focus:block">
                           No categories found for this budget. Pick &ldquo;+ New
                           category&rdquo; to add one here.
-                          <div className="absolute right-2 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                        </div>
-                      </div>
+                          <span className="absolute right-2 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></span>
+                        </span>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1226,8 +1262,8 @@ export default function TransactionForm({
             {isRecurring && canMakeRecurring
               ? "Create recurring transaction"
               : isEditing
-                ? "Update Transaction"
-                : "Add Transaction"}
+                ? "Update transaction"
+                : "Add transaction"}
           </Button>
         </div>
       </form>
@@ -1238,6 +1274,6 @@ export default function TransactionForm({
         onClose={() => setUpgradeReason(null)}
         reason={upgradeReason ?? undefined}
       />
-    </div>
+    </>
   );
 }

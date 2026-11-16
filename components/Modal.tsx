@@ -70,7 +70,7 @@ export default function Modal({
   // Focus management: move focus into the panel on open, restore whatever
   // had focus before the modal opened once it closes.
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !mounted) return;
 
     previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
 
@@ -83,16 +83,19 @@ export default function Modal({
     return () => {
       previouslyFocusedRef.current?.focus?.();
     };
-  }, [isOpen]);
+  }, [isOpen, mounted]);
 
-  // Close on Escape.
+  // Close on Escape unless an inner control handled it; only the last-opened dialog responds.
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      const dialogs = document.querySelectorAll(
+        '[role="dialog"][aria-modal="true"]',
+      );
+      if (dialogs[dialogs.length - 1] !== panelRef.current) return;
+      onClose();
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
@@ -201,7 +204,7 @@ export default function Modal({
               type="button"
               onClick={onClose}
               aria-label={`Close ${title}`}
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
+              className="tap-target flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
             >
               <X className="h-5 w-5" />
             </button>

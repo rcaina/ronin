@@ -109,11 +109,14 @@
   /* iOS Safari auto-zooms when a focused form control has a font-size below
      16px (e.g. our `text-sm` inputs in modals). Force at least 16px on mobile
      to prevent the zoom, while leaving the smaller desktop sizing untouched.
-     This preserves pinch-to-zoom, unlike disabling it via the viewport meta. */
+     This preserves pinch-to-zoom, unlike disabling it via the viewport meta.
+     The attribute selectors outrank a `text-sm`/`text-xs` utility on the control
+     (written as attributes so Tailwind doesn't treat them as utilities). */
   @media (max-width: 639px) {
     input,
     select,
-    textarea {
+    textarea,
+    :is(input, select, textarea):is([class~="text-xs"], [class~="text-sm"]) {
       font-size: 16px;
     }
   }
@@ -134,6 +137,11 @@
   /* Interactive variant — adds smooth hover lift. */
   .card-interactive {
     @apply card-surface transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-gray-300/80 hover:shadow-lifted;
+  }
+
+  /* 44px touch target below lg for icon buttons and pills; desktop keeps its own size. */
+  .tap-target {
+    @apply inline-flex min-h-11 min-w-11 items-center justify-center lg:min-h-0 lg:min-w-0;
   }
 }
 

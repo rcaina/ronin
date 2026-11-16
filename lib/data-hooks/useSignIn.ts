@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "./services/auth";
 import type { SignInRequest } from "@/lib/types/user";
+import { safeCallbackPath } from "@/lib/utils/safe-redirect";
 
 interface UseSignInReturn {
   signIn: (data: SignInRequest) => Promise<void>;
@@ -22,8 +23,12 @@ export function useSignIn(): UseSignInReturn {
     try {
       await signIn(data);
 
-      // Redirect to the main page on successful sign-in
-      router.push("/");
+      router.push(
+        safeCallbackPath(
+          new URLSearchParams(window.location.search).get("callbackUrl"),
+          window.location.origin,
+        ),
+      );
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "An error occurred during sign in",

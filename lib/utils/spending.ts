@@ -210,6 +210,18 @@ export const calculateSpendingPercentage = (
   income: number,
 ): number => (income > 0 ? (spent / income) * 100 : 0);
 
+export type CategoryStatus = "open" | "full" | "over";
+
+/** A category's spending against what it can spend (planned plus carry); $0 of $0 is open, not full. */
+export const getCategoryStatus = (
+  spent: number,
+  available: number,
+): CategoryStatus => {
+  const remaining = roundToCents(available - spent);
+  if (remaining < 0) return "over";
+  return remaining === 0 && spent > 0 ? "full" : "open";
+};
+
 /**
  * Flatten every category transaction across one or more budgets, including
  * each split parent transaction exactly once. Split parents carry
@@ -246,23 +258,6 @@ export const flattenBudgetTransactions = (
   }
 
   return result;
-};
-
-/**
- * Total spending across transactions that occurred within the last `days`
- * days (measured from now, not bucketed to midnight).
- */
-export const calculateRecentSpending = (
-  transactions: SpendingTransaction[],
-  days = 7,
-): number => {
-  const since = new Date();
-  since.setDate(since.getDate() - days);
-
-  return transactions.reduce((sum, transaction) => {
-    const date = getTransactionDate(transaction);
-    return date >= since ? sum + getTransactionSpending(transaction) : sum;
-  }, 0);
 };
 
 export interface DailySpendingPoint {

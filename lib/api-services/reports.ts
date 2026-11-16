@@ -66,7 +66,7 @@ export const getHistoricalReportBudgets = async (
       deleted: null,
       ...(window && {
         startAt: { lte: window.end },
-        endAt: { gte: window.start },
+        OR: [{ endAt: null }, { endAt: { gte: window.start } }],
       }),
     },
     include: reportBudgetInclude,

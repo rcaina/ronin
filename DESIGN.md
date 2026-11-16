@@ -66,6 +66,9 @@ Rules:
   bottom padding (`pb-24 lg:pb-8`) so it clears the tab bar.
 - Touch targets ≥ 44 px on mobile. Action icons that appear on hover on desktop must
   be always-visible (or reachable) on mobile — hover does not exist on touch.
+  Add `tap-target` to icon buttons and pills (44 px minimum below `lg`); pair a
+  `lg:group-hover:opacity-100` reveal with `lg:group-focus-within:opacity-100`.
+  A clickable `div` gets `pressable(onPress)` from `lib/utils` (role, tabIndex, Enter/Space).
 - Spacing rhythm: page gutter `px-4 sm:px-6 lg:px-8`; grid gaps `gap-3 sm:gap-4 lg:gap-6`.
 - Stat grids: `grid-cols-2 lg:grid-cols-4`. Chart grids: `grid-cols-1 sm:grid-cols-2 xl:grid-cols-4`.
 - Horizontal scroll with `scrollbar-hide` is acceptable for tab rows on mobile.
@@ -111,7 +114,7 @@ shadow-soft` translating via `translate-x-6` / `translate-x-1`. Disabled
 ## 8. Voice & content
 
 - Sentence case everywhere ("Create budget", not "Create Budget").
-- Empty states encourage: "No transactions yet — add your first one."
+- Empty states encourage: "No transactions yet. Add your first one."
 - Destructive actions always confirm via `DeleteConfirmationModal`.
 
 ## 9. Adding a new page (checklist)

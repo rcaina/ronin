@@ -5,7 +5,8 @@ import { Camera, Loader2, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import Button from "../Button";
 import ReceiptReview from "./ReceiptReview";
-import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { useActiveBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { findContinuousBudgetId } from "@/lib/utils/budget-month";
 import { useScanReceipt } from "@/lib/data-hooks/transactions/useReceiptScan";
 import { downscaleImageToBase64 } from "@/lib/utils/image";
 import { useLockBodyScroll } from "@/lib/utils/hooks";
@@ -29,11 +30,13 @@ export default function ReceiptScanModal({
   budgetId,
   cardId,
 }: ReceiptScanModalProps) {
-  const { data: budgets = [] } = useBudgets();
+  const { data: budgets = [] } = useActiveBudgets();
   const { mutate: scan, isPending } = useScanReceipt();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [selectedBudgetId, setSelectedBudgetId] = useState(budgetId ?? "");
+  const [pickedBudgetId, setPickedBudgetId] = useState(budgetId ?? "");
+  const selectedBudgetId =
+    pickedBudgetId || (findContinuousBudgetId(budgets) ?? "");
   const [result, setResult] = useState<ScanReceiptResult | null>(null);
   const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
 
@@ -44,7 +47,7 @@ export default function ReceiptScanModal({
 
   const handleClose = () => {
     reset();
-    setSelectedBudgetId(budgetId ?? "");
+    setPickedBudgetId(budgetId ?? "");
     onClose();
   };
 
@@ -112,7 +115,7 @@ export default function ReceiptScanModal({
               </h3>
               <button
                 onClick={handleClose}
-                className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                className="tap-target rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" />
@@ -126,7 +129,7 @@ export default function ReceiptScanModal({
                 </label>
                 <select
                   value={selectedBudgetId}
-                  onChange={(e) => setSelectedBudgetId(e.target.value)}
+                  onChange={(e) => setPickedBudgetId(e.target.value)}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                   disabled={isPending}
                 >

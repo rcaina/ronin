@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import { X } from "lucide-react";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import { useBudgetCards } from "@/lib/data-hooks/budgets/useBudgetCards";
-import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { useActiveBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { findContinuousBudgetId } from "@/lib/utils/budget-month";
 import { useCreateCardPayment } from "@/lib/data-hooks/transactions/useTransactions";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import { useLockBodyScroll } from "@/lib/utils/hooks";
@@ -32,7 +33,7 @@ export function CardPaymentModal({
 }: CardPaymentModalProps) {
   const { data: allCards = [] } = useCards();
   const budgetCardsQuery = useBudgetCards(budgetId ?? "");
-  const { data: budgets = [] } = useBudgets();
+  const { data: budgets = [] } = useActiveBudgets();
   const createCardPaymentMutation = useCreateCardPayment();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -99,7 +100,7 @@ export function CardPaymentModal({
     ) {
       setFormData((prev) => ({
         ...prev,
-        budgetId: budgets[0]?.id ?? "",
+        budgetId: findContinuousBudgetId(budgets) ?? budgets[0]?.id ?? "",
       }));
     }
   }, [budgets, editingTransaction, budgetId, formData.budgetId]);
@@ -157,11 +158,12 @@ export function CardPaymentModal({
       <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-xl border bg-surface-card p-6 shadow-sm">
         <div className="mb-6 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">
-            {editingTransaction ? "Edit Card Payment" : "Pay Credit Card"}
+            {editingTransaction ? "Edit card payment" : "Pay credit card"}
           </h3>
           <button
+            aria-label="Close"
             onClick={onClose}
-            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="tap-target rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
           </button>
@@ -293,7 +295,7 @@ export function CardPaymentModal({
               }
               className="flex-1"
             >
-              {editingTransaction ? "Update Payment" : "Create Payment"}
+              {editingTransaction ? "Update payment" : "Create payment"}
             </Button>
           </div>
         </form>

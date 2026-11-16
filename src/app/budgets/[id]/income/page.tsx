@@ -13,7 +13,9 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
-import { formatCurrency } from "@/lib/utils";
+import { useBudgetMonth } from "@/lib/utils/hooks";
+import { formatMonthLabel } from "@/lib/utils/budget-month";
+import { formatCurrency, formatDateUTC } from "@/lib/utils";
 import { isDebitCard, oldestDebitCard } from "@/lib/utils/cards";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import Button from "@/components/Button";
@@ -51,7 +53,14 @@ export default function IncomePage() {
   const [transactionToEdit, setTransactionToEdit] =
     useState<TransactionWithRelations | null>(null);
 
-  const { data: budget, isLoading, refetch } = useBudget(budgetId);
+  const [month] = useBudgetMonth();
+  const {
+    data: budget,
+    isLoading,
+    refetch,
+  } = useBudget(budgetId, false, month);
+  const monthLabel =
+    budget?.kind === "CONTINUOUS" ? formatMonthLabel(month) : null;
   const { setActions } = useBudgetHeader();
 
   // Register header actions
@@ -60,6 +69,7 @@ export default function IncomePage() {
       {
         icon: <Plus className="h-4 w-4" />,
         label: "Add income",
+        addsTransaction: true,
         onClick: () => setIsAddModalOpen(true),
         variant: "primary" as const,
       },
@@ -220,7 +230,7 @@ export default function IncomePage() {
                 </p>
               </div>
               <span className="flex-shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium capitalize text-white sm:px-4 sm:py-2 sm:text-sm">
-                {budget.period.replace("_", " ").toLowerCase()}
+                {monthLabel ?? budget.period.replace("_", " ").toLowerCase()}
               </span>
             </div>
           </div>
@@ -243,9 +253,9 @@ export default function IncomePage() {
               {filteredTransactions.length > 0 ? (
                 filteredTransactions.map((transaction) => {
                   const dateLabel = [
-                    transaction.occurredAt
-                      ? new Date(transaction.occurredAt).toLocaleDateString()
-                      : new Date(transaction.createdAt).toLocaleDateString(),
+                    formatDateUTC(
+                      new Date(transaction.occurredAt ?? transaction.createdAt),
+                    ),
                     transaction.card?.name,
                   ]
                     .filter(Boolean)
@@ -290,7 +300,7 @@ export default function IncomePage() {
                         </div>
 
                         <div className="flex items-center space-x-2 sm:space-x-4">
-                          <div className="flex items-center opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
+                          <div className="flex items-center opacity-100 transition-opacity lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100">
                             <button
                               type="button"
                               onClick={() => handleEditIncome(transaction)}
@@ -328,22 +338,26 @@ export default function IncomePage() {
                     <DollarSign className="h-7 w-7" strokeWidth={1.5} />
                   </div>
                   <h3 className="mb-2 text-lg font-semibold text-gray-900">
-                    No income transactions
+                    {monthLabel
+                      ? `No income in ${monthLabel}`
+                      : "No income transactions"}
                   </h3>
                   <p className="text-sm text-gray-500">
                     {searchQuery
                       ? "No income transactions match your search."
                       : "Get started by adding your first income transaction."}
                   </p>
-                  {!searchQuery && defaultDebitCard && (
-                    <Button
-                      onClick={() => setIsAddModalOpen(true)}
-                      className="mt-4"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add income
-                    </Button>
-                  )}
+                  {!searchQuery &&
+                    defaultDebitCard &&
+                    budget?.status === "ACTIVE" && (
+                      <Button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="mt-4"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add income
+                      </Button>
+                    )}
                 </div>
               )}
             </div>
@@ -380,7 +394,7 @@ export default function IncomePage() {
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
-        title="Delete Income Transaction"
+        title="Delete income transaction"
         message={`Are you sure you want to delete "${transactionToDelete?.name}"? This action cannot be undone.`}
         onConfirm={confirmDeleteIncome}
         onClose={() => {

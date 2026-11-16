@@ -15,6 +15,7 @@ import {
 } from "../utils/recurring";
 import { evaluateRecurringPosted } from "../utils/notifications";
 import { notifyRecurringPosted } from "./notifications";
+import { assertOwnedCard, assertOwnedCategory } from "./transactions";
 
 const recurringInclude = {
   category: {
@@ -50,7 +51,11 @@ export const getRecurringTransactions = async (
     needsBudget:
       !template.paused &&
       template.nextRunAt.getTime() <= now.getTime() &&
-      findBudgetForOccurrence(template.nextRunAt, activeBudgets) === null,
+      findBudgetForOccurrence(
+        template.nextRunAt,
+        activeBudgets,
+        template.category?.budgetId,
+      ) === null,
   }));
 };
 
@@ -68,11 +73,26 @@ const getOwnedRecurringTransaction = async (
   return template;
 };
 
+const assertOwnedTemplateRefs = async (
+  tx: PrismaClientTx,
+  accountId: string,
+  data: { categoryId?: string; cardId?: string },
+) => {
+  if (data.categoryId?.trim()) {
+    await assertOwnedCategory(tx, accountId, data.categoryId);
+  }
+  if (data.cardId?.trim()) {
+    await assertOwnedCard(tx, accountId, data.cardId);
+  }
+};
+
 export const createRecurringTransaction = async (
   tx: PrismaClientTx,
   data: CreateRecurringTransactionSchema,
   user: User & { accountId: string },
 ) => {
+  await assertOwnedTemplateRefs(tx, user.accountId, data);
+
   return tx.recurringTransaction.create({
     data: {
       name: data.name,
@@ -101,6 +121,7 @@ export const updateRecurringTransaction = async (
   user: User & { accountId: string },
 ) => {
   await getOwnedRecurringTransaction(tx, id, user);
+  await assertOwnedTemplateRefs(tx, user.accountId, data);
 
   return tx.recurringTransaction.update({
     where: { id },
@@ -183,11 +204,22 @@ export const postDueOccurrencesForTemplate = async (
     select: { id: true, status: true, startAt: true, endAt: true },
   });
 
+  const category = template.categoryId
+    ? await tx.category.findUnique({
+        where: { id: template.categoryId },
+        select: { budgetId: true },
+      })
+    : null;
+
   let posted = 0;
 
   for (let i = 0; i < occurrences.length; i++) {
     const occurrenceDate = occurrences[i]!;
-    const budget = findBudgetForOccurrence(occurrenceDate, activeBudgets);
+    const budget = findBudgetForOccurrence(
+      occurrenceDate,
+      activeBudgets,
+      category?.budgetId,
+    );
 
     if (!budget) {
       // Hold: no budget covers this occurrence yet. Park the pointer here —

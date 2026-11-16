@@ -42,7 +42,7 @@ export default function FeatureToggles({ isAdmin }: FeatureTogglesProps) {
       </h3>
       <p className="mt-1 text-sm text-gray-600">
         Turn modules on or off for your household. Turning a module off hides it
-        from navigation — your data is kept and comes back when you turn it back
+        from navigation. Your data is kept and comes back when you turn it back
         on.
       </p>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, CreditCard, DollarSign, Shield, Merge, X } from "lucide-react";
+import { Plus, CreditCard, DollarSign, Wallet, Merge, X } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -10,6 +10,7 @@ import FeatureDisabledState from "@/components/FeatureDisabledState";
 import { useIsFeatureEnabled } from "@/lib/data-hooks/accounts/useFeatureSettings";
 import { default as CardComponent } from "@/components/cards/Card";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import Modal from "@/components/Modal";
 import AddCardForm from "@/components/cards/AddCardForm";
 import MergeCardsModal from "@/components/cards/MergeCardsModal";
 import MergeSelectionBar from "@/components/MergeSelectionBar";
@@ -27,8 +28,7 @@ import { usePageLoading } from "@/components/ConditionalLayout";
 import type { CardType } from "@prisma/client";
 import Button from "@/components/Button";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
-import { formatCurrency } from "@/lib/utils";
-import { useLockBodyScroll } from "@/lib/utils/hooks";
+import { formatCurrency, roundToCents } from "@/lib/utils";
 import StatsCard from "@/components/StatsCard";
 
 interface User {
@@ -56,7 +56,6 @@ const CardsPage = () => {
   const mergeCardsMutation = useMergeCards();
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
-  useLockBodyScroll(showAddCardModal);
   const [cardToEdit, setCardToEdit] = useState<ApiCard | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -72,8 +71,11 @@ const CardsPage = () => {
 
   // Map API cards to component cards
   const cards: Card[] = useMemo(() => {
-    return apiCards ? apiCards.map((apiCard) => mapApiCardToCard(apiCard)) : [];
-  }, [apiCards]);
+    const ownerIds = users.map((u) => u.id);
+    return apiCards
+      ? apiCards.map((apiCard) => mapApiCardToCard(apiCard, ownerIds))
+      : [];
+  }, [apiCards, users]);
 
   // Fetch users for the account
   const fetchUsers = async () => {
@@ -270,19 +272,26 @@ const CardsPage = () => {
     [cards, selectedCardIds],
   );
 
-  const { totalSpent, totalLimit, activeCards, creditCards } = useMemo(() => {
+  const { totalSpent, totalLimit, available, creditCards } = useMemo(() => {
     const totalSpent = cards.reduce((sum, card) => sum + card.amountSpent, 0);
     const totalLimit = cards
       .filter(
         (card) => card.type === "credit" || card.type === "business_credit",
       )
       .reduce((sum, card) => sum + (card.spendingLimit ?? 0), 0);
-    const activeCards = cards.filter((card) => card.isActive).length;
+    const available = roundToCents(
+      cards
+        .filter((card) => card.spendingLimit)
+        .reduce(
+          (sum, card) => sum + (card.spendingLimit ?? 0) - card.amountSpent,
+          0,
+        ),
+    );
     const creditCards = cards.filter(
       (card) => card.type === "credit" || card.type === "business_credit",
     ).length;
 
-    return { totalSpent, totalLimit, activeCards, creditCards };
+    return { totalSpent, totalLimit, available, creditCards };
   }, [cards]);
 
   // Build a tab per card owner. Only surface tabs when more than one person
@@ -506,11 +515,12 @@ const CardsPage = () => {
               />
 
               <StatsCard
-                title="Active cards"
-                value={activeCards}
-                subtitle={`${cards.length - activeCards} inactive`}
+                title="Available"
+                value={formatCurrency(available)}
+                subtitle="Left on cards with a limit"
+                valueColor={available < 0 ? "text-red-600" : undefined}
                 icon={
-                  <Shield className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
+                  <Wallet className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
                 }
                 iconColor="text-secondary-600"
               />
@@ -540,7 +550,7 @@ const CardsPage = () => {
                       <button
                         key={tab.id}
                         onClick={() => setActiveOwner(tab.id)}
-                        className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
+                        className={`tap-target flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
                           effectiveOwner === tab.id
                             ? "bg-surface-card text-gray-900 shadow-soft"
                             : "text-gray-500 hover:text-gray-700"
@@ -607,31 +617,26 @@ const CardsPage = () => {
       </div>
 
       {/* Add Card Modal */}
-      {showAddCardModal && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm"
-          onClick={handleCancelAdd}
-        >
-          <div
-            className="max-h-[calc(100dvh-2rem)] w-full max-w-md transform animate-scale-in overflow-y-auto overscroll-contain transition-all"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <AddCardForm
-              onSubmit={handleSubmitCard}
-              onCancel={handleCancelAdd}
-              isLoading={createCardMutation.isPending}
-              users={users}
-              loadingUsers={loadingUsers}
-              defaultValues={{
-                userId:
-                  users.length === 1
-                    ? (users[0]?.id ?? "")
-                    : (session?.user?.id ?? ""),
-              }}
-            />
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showAddCardModal}
+        onClose={handleCancelAdd}
+        title="Add card"
+      >
+        <AddCardForm
+          inModal
+          onSubmit={handleSubmitCard}
+          onCancel={handleCancelAdd}
+          isLoading={createCardMutation.isPending}
+          users={users}
+          loadingUsers={loadingUsers}
+          defaultValues={{
+            userId:
+              users.length === 1
+                ? (users[0]?.id ?? "")
+                : (session?.user?.id ?? ""),
+          }}
+        />
+      </Modal>
 
       {/* Delete Confirmation Modal */}
       {cardToDelete && (
@@ -639,11 +644,11 @@ const CardsPage = () => {
           isOpen={!!cardToDelete}
           onClose={handleCancelDelete}
           onConfirm={handleConfirmDelete}
-          title="Delete Card"
+          title="Delete card"
           message={`Are you sure you want to delete "${cardToDelete?.name ?? ""}"? This action cannot be undone.`}
           itemName={cardToDelete?.name ?? ""}
           isLoading={deleteCardMutation.isPending}
-          confirmText="Delete Card"
+          confirmText="Delete card"
         />
       )}
 

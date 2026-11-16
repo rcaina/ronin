@@ -140,7 +140,7 @@ const SettingsPageContent = () => {
       toast.success("Welcome to Premium!");
       void queryClient.invalidateQueries({ queryKey: billingStatusKey });
     } else if (checkout === "cancelled") {
-      toast("Checkout cancelled — you can upgrade anytime.");
+      toast("Checkout cancelled. You can upgrade anytime.");
     }
 
     const params = new URLSearchParams(searchParams.toString());
@@ -515,8 +515,7 @@ const SettingsPageContent = () => {
                 </div>
                 <p className="mb-5 text-sm text-gray-600">
                   Choose how Ronin looks. Your choice is saved to your account,
-                  so it stays the same the next time you sign in — on any
-                  device.
+                  so it stays the same the next time you sign in, on any device.
                 </p>
                 <ThemeSelector />
               </div>
@@ -660,7 +659,7 @@ const SettingsPageContent = () => {
                   </div>
                 ) : accountUsers.length === 0 ? (
                   <p className="text-sm text-gray-500">
-                    No users yet — add your first one.
+                    No users yet. Add your first one.
                   </p>
                 ) : (
                   <ul className="divide-y divide-gray-200/70">

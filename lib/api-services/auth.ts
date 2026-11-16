@@ -2,6 +2,7 @@ import { Role } from "@prisma/client";
 import type { PrismaClientTx } from "../prisma";
 import bcrypt from "bcryptjs";
 import { isEmailAllowed } from "../utils/auth";
+import { ensureMainDebitCard, newContinuousBudgetData } from "./budgets";
 import type { z } from "zod";
 import type { signUpSchema } from "../api-schemas/auth";
 
@@ -49,6 +50,11 @@ export async function createUserWithAccount(
       accountId: account.id,
     },
   });
+
+  const budget = await tx.budget.create({
+    data: newContinuousBudgetData(account.id),
+  });
+  await ensureMainDebitCard(tx, budget.id, user.id);
 
   return { ...user, password: undefined };
 }

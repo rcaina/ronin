@@ -9,7 +9,13 @@ import {
   useDeleteTransaction,
   useCreateTransaction,
 } from "@/lib/data-hooks/transactions/useTransactions";
-import { getTransactionDate } from "@/lib/utils/spending";
+import {
+  getTransactionDate,
+  getTransactionSpending,
+  isWithinWindow,
+  sumTransactionSpending,
+} from "@/lib/utils/spending";
+import { getMonthWindow, toMonthKey } from "@/lib/utils/budget-month";
 import Pagination from "@/components/Pagination";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
@@ -147,7 +153,9 @@ const TransactionsPageContent = () => {
   const [sortOrder, setSortOrder] = useState<TransactionSortOrder>(() =>
     parseSortOrderParam(searchParams.get("order")),
   );
-  const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
+  const [showAddTransactionModal, setShowAddTransactionModal] = useState(
+    () => searchParams.get("new") === "transaction",
+  );
   const [showReceiptScanModal, setShowReceiptScanModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showFiltersModal, setShowFiltersModal] = useState(false);
@@ -258,20 +266,16 @@ const TransactionsPageContent = () => {
     );
 
     const totalTransactions = filteredTransactions.length;
-    const totalAmount =
-      filteredTransactions?.reduce((sum, t) => sum + t.amount, 0) ?? 0;
-    const averageAmount =
-      totalTransactions > 0 ? totalAmount / totalTransactions : 0;
-    const thisMonth = new Date().getMonth();
-    const thisYear = new Date().getFullYear();
-    const thisMonthTransactions = filteredTransactions.filter((t) => {
-      const date = getTransactionDate(t);
-      return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
-    });
-    const thisMonthAmount = thisMonthTransactions?.reduce(
-      (sum, t) => sum + t.amount,
-      0,
+    const totalAmount = sumTransactionSpending(filteredTransactions);
+    const purchaseCount = filteredTransactions.filter(
+      (t) => getTransactionSpending(t) > 0,
+    ).length;
+    const averageAmount = purchaseCount > 0 ? totalAmount / purchaseCount : 0;
+    const thisMonthWindow = getMonthWindow(toMonthKey(new Date()));
+    const thisMonthTransactions = filteredTransactions.filter((t) =>
+      isWithinWindow(t, thisMonthWindow),
     );
+    const thisMonthAmount = sumTransactionSpending(thisMonthTransactions);
 
     return {
       totalTransactions,
@@ -475,6 +479,15 @@ const TransactionsPageContent = () => {
   };
 
   // Bulk selection handlers
+  // Keep only visible rows selected so "Delete selected" never removes hidden ones.
+  useEffect(() => {
+    const visible = new Set(filteredAndSortedTransactions.map((t) => t.id));
+    setSelectedTransactions((prev) => {
+      const next = new Set([...prev].filter((id) => visible.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [filteredAndSortedTransactions]);
+
   const handleSelectAll = () => {
     // Filter out transactions that are being edited
     const selectableTransactions = filteredAndSortedTransactions.filter(
@@ -690,7 +703,7 @@ const TransactionsPageContent = () => {
               <StatsCard
                 title="Total transactions"
                 value={stats.totalTransactions}
-                subtitle="All time"
+                subtitle={hasActiveFilters ? "Matching filters" : "All time"}
                 icon={
                   <DollarSign className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
                 }
@@ -698,9 +711,9 @@ const TransactionsPageContent = () => {
               />
 
               <StatsCard
-                title="Total amount"
+                title="Total spent"
                 value={formatCurrency(stats.totalAmount)}
-                subtitle="All time"
+                subtitle={hasActiveFilters ? "Matching filters" : "All time"}
                 icon={
                   <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
                 }
@@ -708,9 +721,9 @@ const TransactionsPageContent = () => {
               />
 
               <StatsCard
-                title="Average transaction"
+                title="Average purchase"
                 value={formatCurrency(stats.averageAmount)}
-                subtitle="Per transaction"
+                subtitle="Net of returns"
                 icon={
                   <TrendingUp className="h-4 w-4 text-green-600 sm:h-5 sm:w-5" />
                 }
@@ -718,7 +731,7 @@ const TransactionsPageContent = () => {
               />
 
               <StatsCard
-                title="This month"
+                title="Spent this month"
                 value={formatCurrency(stats.thisMonthAmount)}
                 subtitle={`${stats.thisMonthTransactions} transactions`}
                 icon={
@@ -919,7 +932,7 @@ const TransactionsPageContent = () => {
                                 onClick={() =>
                                   toggleSplitExpanded(transaction.id)
                                 }
-                                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
+                                className="tap-target flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
                                 aria-label={
                                   isSplitExpanded
                                     ? "Hide split breakdown"
@@ -955,13 +968,13 @@ const TransactionsPageContent = () => {
                                 >
                                   {transaction.transactionType ===
                                   "CARD_PAYMENT"
-                                    ? "Card Payment"
+                                    ? "Card payment"
                                     : hasSplits
                                       ? getSplitBadgeLabel(
                                           transaction.splits?.length ?? 0,
                                         )
                                       : (transaction.category?.name ??
-                                        "No Category")}
+                                        "No category")}
                                 </span>
                                 {transaction.recurringTransactionId && (
                                   <span
@@ -1011,12 +1024,12 @@ const TransactionsPageContent = () => {
                             {/* Action Icons - Copy stays visible on mobile;
                               Edit/Delete are desktop-hover only there since
                               mobile exposes them via swipe (SwipeableRow). */}
-                            <div className="flex items-center gap-0.5 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
+                            <div className="flex items-center gap-0.5 opacity-100 transition-opacity lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100">
                               <button
                                 onClick={() =>
                                   handleCopyTransaction(transaction)
                                 }
-                                className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
+                                className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
                                 title="Copy transaction"
                               >
                                 <Copy className="h-4 w-4" />
@@ -1148,7 +1161,7 @@ const TransactionsPageContent = () => {
         isOpen={!!transactionToDelete}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        title="Delete Transaction"
+        title="Delete transaction"
         message={
           transactionToDelete?.splits && transactionToDelete.splits.length > 0
             ? `This will delete the transaction '{itemName}' and its ${transactionToDelete.splits.length} category splits. This action cannot be undone.`
@@ -1157,7 +1170,7 @@ const TransactionsPageContent = () => {
         itemName={transactionToDelete?.name ?? "Unnamed transaction"}
         isLoading={deleteTransactionMutation.isPending}
         loadingText="Deleting..."
-        confirmText="Delete Transaction"
+        confirmText="Delete transaction"
         cancelText="Cancel"
       />
 
@@ -1166,12 +1179,12 @@ const TransactionsPageContent = () => {
         isOpen={showBulkDeleteModal}
         onClose={handleCancelBulkDelete}
         onConfirm={handleConfirmBulkDelete}
-        title="Delete Multiple Transactions"
+        title="Delete multiple transactions"
         message="Are you sure you want to delete {itemName}? This action cannot be undone."
         itemName={`${selectedTransactions.size} selected transaction${selectedTransactions.size !== 1 ? "s" : ""}`}
         isLoading={deleteTransactionMutation.isPending}
         loadingText="Deleting..."
-        confirmText="Delete Transactions"
+        confirmText="Delete transactions"
         cancelText="Cancel"
       />
     </div>

@@ -151,7 +151,7 @@ export default function NotificationSettingsPanel() {
           ) : needsIosInstall ? (
             <p className="mt-4 rounded-xl bg-secondary-50 p-3 text-sm text-secondary-800">
               On iPhone/iPad, add Ronin to your home screen first (Share → Add
-              to Home Screen) — iOS only allows push notifications from an
+              to Home Screen). iOS only allows push notifications from an
               installed app.
             </p>
           ) : (

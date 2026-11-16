@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useParams } from "next/navigation";
+import { usePathname, useParams, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 import {
   Target,
@@ -17,10 +17,17 @@ interface BudgetNavItem {
   label: string;
 }
 
-export default function BudgetPageNavigation() {
+export default function BudgetPageNavigation({
+  trailing,
+}: {
+  /** Shown at the right end of the desktop tab row. */
+  trailing?: React.ReactNode;
+}) {
   const params = useParams();
   const id = params.id as string;
   const pathname = usePathname();
+  const month = useSearchParams().get("month");
+  const query = month ? `?month=${encodeURIComponent(month)}` : "";
   const activeRef = useRef<HTMLAnchorElement>(null);
 
   const budgetNavItems: BudgetNavItem[] = [
@@ -60,15 +67,15 @@ export default function BudgetPageNavigation() {
   return (
     <>
       {/* Desktop: in-flow pill row under the page header */}
-      <div className="hidden bg-surface lg:block">
-        <nav className="scrollbar-hide mx-auto w-full overflow-x-auto px-4 py-2 sm:px-6 lg:px-8">
+      <div className="mx-auto hidden w-full items-center justify-between gap-4 bg-surface px-4 py-2 sm:px-6 lg:flex lg:px-8">
+        <nav className="scrollbar-hide min-w-0 overflow-x-auto">
           <div className="inline-flex rounded-full bg-surface-muted p-1">
             {budgetNavItems.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={`${item.href}${query}`}
                   className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
                     isActive
                       ? "bg-surface-card text-gray-900 shadow-soft"
@@ -82,6 +89,7 @@ export default function BudgetPageNavigation() {
             })}
           </div>
         </nav>
+        {trailing}
       </div>
 
       {/* Mobile: floating pill bar docked just above the bottom tab bar so the
@@ -97,7 +105,7 @@ export default function BudgetPageNavigation() {
               <Link
                 key={item.href}
                 ref={isActive ? activeRef : undefined}
-                href={item.href}
+                href={`${item.href}${query}`}
                 className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-all duration-200 ease-out ${
                   isActive
                     ? "bg-secondary/15 text-gray-900"

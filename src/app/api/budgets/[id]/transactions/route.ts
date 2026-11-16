@@ -17,7 +17,11 @@ export const GET = withUser({
       const budgetId = validateBudgetId(id);
       await ensureBudgetOwnership(budgetId, user.accountId);
 
-      const budgetTransactions = await getBudgetTransactions(prisma, budgetId);
+      const budgetTransactions = await getBudgetTransactions(
+        prisma,
+        budgetId,
+        req.nextUrl.searchParams.get("month"),
+      );
 
       return NextResponse.json(budgetTransactions, { status: 200 });
     },

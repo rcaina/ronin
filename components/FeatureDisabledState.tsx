@@ -26,8 +26,8 @@ export default function FeatureDisabledState({
           {moduleLabel} is turned off
         </h3>
         <p className="text-sm text-gray-500">
-          This feature is turned off for your household. Your data is kept — an
-          account admin can turn it back on in settings.
+          This feature is turned off for your household. Your data is kept, and
+          an account admin can turn it back on in settings.
         </p>
         <Link href="/settings?tab=features">
           <Button variant="outline">Go to settings</Button>

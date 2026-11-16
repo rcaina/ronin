@@ -24,6 +24,7 @@ export const GET = withUser({
         prisma,
         budgetId,
         excludeCardPayments,
+        req.nextUrl.searchParams.get("month"),
       );
 
       return NextResponse.json(budgetCards, { status: 200 });

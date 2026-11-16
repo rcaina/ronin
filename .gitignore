@@ -51,3 +51,5 @@ MOBILE_PLAN.md
 PREMIUM_FEATURES_PLAN.md
 SUBSCRIPTION_PLAN.md
 SPLIT_TRANSACTIONS_PLAN.md
+# /feature manifests (per-branch, local only)
+.claude/features/

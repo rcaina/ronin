@@ -566,11 +566,11 @@ const PocketDetailPage = () => {
         isOpen={!!allocationToDelete}
         onClose={handleCancelDeleteAllocation}
         onConfirm={handleConfirmDeleteAllocation}
-        title="Remove Allocation"
+        title="Remove allocation"
         message="Are you sure you want to remove this allocation? This action cannot be undone."
         itemName="Allocation"
         isLoading={deleteAllocationMutation.isPending}
-        confirmText="Remove Allocation"
+        confirmText="Remove allocation"
       />
 
       {/* Upgrade paywall — triggered by allocation UpgradeRequired responses */}

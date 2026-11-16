@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { env } from "@/env";
+import { SESSION_COOKIE_NAME } from "@/lib/constants/auth";
 
 export async function middleware(request: NextRequest) {
   const token = await getToken({
     req: request,
     secret: env.AUTH_SECRET,
+    cookieName: SESSION_COOKIE_NAME,
   });
 
   const pathname = request.nextUrl.pathname;
@@ -15,7 +17,6 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/sign-up") ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password");
-  const isSetupPage = pathname.startsWith("/welcome");
 
   if (isAuthPage) {
     if (token) {
@@ -30,16 +31,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
-  // If user is authenticated and on setup/welcome pages, allow access
-  if (isSetupPage) {
-    return NextResponse.next();
-  }
-
-  // If authenticated and not on setup/welcome/auth pages, check if user has budget
-  if (!token.hasBudget) {
-    return NextResponse.redirect(new URL("/welcome", request.url));
-  }
-
   return NextResponse.next();
 }
 
@@ -50,9 +41,8 @@ export const config = {
      * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
+     * - files with an extension (public/: sw.js, site.webmanifest, icons)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|public).*)",
+    "/((?!api|_next/static|_next/image|.*\\..*).*)",
   ],
 };

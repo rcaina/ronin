@@ -1,11 +1,15 @@
 "use client";
 
 import BudgetPageNavigation from "@/components/budgets/BudgetPageNavigation";
+import MonthSwitcher from "@/components/budgets/MonthSwitcher";
+import { useBudgetMonth } from "@/lib/utils/hooks";
+import { toMonthKey } from "@/lib/utils/budget-month";
 import PageHeader from "@/components/PageHeader";
 import { useParams, usePathname } from "next/navigation";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBackNavigation } from "@/lib/utils/navigation-history";
 import { useMemo } from "react";
+import { useIsFetching } from "@tanstack/react-query";
 import {
   BudgetHeaderProvider,
   useBudgetHeader,
@@ -19,6 +23,22 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const pageLoading = usePageIsLoading();
 
   const { data: budget } = useBudget(id);
+  const [month, setMonth] = useBudgetMonth();
+  const showMonthSwitcher = budget?.kind === "CONTINUOUS";
+  const monthQuery = showMonthSwitcher ? `?month=${month}` : "";
+  // Pages keep the previous month on screen while the new one loads; block edits against it until it arrives.
+  const monthLoading =
+    useIsFetching({
+      predicate: (query) =>
+        query.state.data === undefined && query.queryKey.includes(month),
+    }) > 0;
+  const monthSwitcher = showMonthSwitcher && (
+    <MonthSwitcher
+      month={month}
+      onChange={setMonth}
+      minMonth={toMonthKey(new Date(budget.startAt))}
+    />
+  );
   const {
     actions: dynamicActions,
     title: dynamicTitle,
@@ -34,9 +54,11 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       return {
         eyebrow: undefined as string | undefined,
         title: budgetName,
-        description: budget
-          ? `${budget.period.replace("_", " ")} Budget • ${new Date(budget.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`
-          : "Loading...",
+        description: !budget
+          ? "Loading..."
+          : budget.kind === "CONTINUOUS"
+            ? "Plan and track one month at a time"
+            : `${budget.period.replace("_", " ")} Budget • ${new Date(budget.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`,
         showBackButton: true,
         backTo: `/budgets`,
       };
@@ -46,7 +68,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         title: "Income",
         description: "Manage your income sources",
         showBackButton: true,
-        backTo: `/budgets/${id}`,
+        backTo: `/budgets/${id}${monthQuery}`,
       };
     } else if (pathname?.endsWith("/categories")) {
       return {
@@ -54,7 +76,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         title: "Categories",
         description: "Manage your budget categories",
         showBackButton: true,
-        backTo: `/budgets/${id}`,
+        backTo: `/budgets/${id}${monthQuery}`,
       };
     } else if (pathname?.endsWith("/transactions")) {
       return {
@@ -62,7 +84,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         title: "Transactions",
         description: "Track and manage transactions for this budget",
         showBackButton: true,
-        backTo: `/budgets/${id}`,
+        backTo: `/budgets/${id}${monthQuery}`,
       };
     } else if (
       pathname?.includes("/cards") &&
@@ -74,7 +96,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         title: "Cards",
         description: "View and manage cards for this budget",
         showBackButton: true,
-        backTo: `/budgets/${id}`,
+        backTo: `/budgets/${id}${monthQuery}`,
       };
     } else if (
       pathname?.includes("/cards/") &&
@@ -86,12 +108,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         title: "Card details",
         description: "View and manage card transactions",
         showBackButton: true,
-        backTo: `/budgets/${id}/cards`,
+        backTo: `/budgets/${id}/cards${monthQuery}`,
       };
     }
 
     return null;
-  }, [pathname, id, budget]);
+  }, [pathname, id, budget, monthQuery]);
 
   // Scoped history: back returns to the previous page within this budget
   // (e.g. Categories -> Cards -> back = Categories), falling back to this
@@ -127,15 +149,28 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   ? { onClick: handleBack }
                   : undefined
               }
-              actions={dynamicActions}
+              actions={
+                budget?.status === "ACTIVE"
+                  ? dynamicActions
+                  : dynamicActions.filter((action) => !action.addsTransaction)
+              }
             />
           )}
 
-          <BudgetPageNavigation />
+          <BudgetPageNavigation trailing={monthSwitcher} />
+          {monthSwitcher && (
+            <div className="px-4 py-2 sm:px-6 lg:hidden">{monthSwitcher}</div>
+          )}
         </>
       )}
 
-      <div className="pt-4 lg:flex-1 lg:overflow-y-auto lg:overflow-x-hidden lg:pt-0">
+      <div
+        inert={showMonthSwitcher && monthLoading}
+        aria-busy={showMonthSwitcher && monthLoading}
+        className={`pt-4 transition-opacity duration-200 lg:flex-1 lg:overflow-y-auto lg:overflow-x-hidden lg:pt-0 ${
+          showMonthSwitcher && monthLoading ? "opacity-60" : ""
+        }`}
+      >
         {children}
       </div>
     </div>

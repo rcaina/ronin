@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/PageHeader";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
@@ -24,9 +25,13 @@ import {
   useUpdateCard,
 } from "@/lib/data-hooks/cards/useCards";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { findContinuousBudgetId } from "@/lib/utils/budget-month";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
-import { formatCurrency, roundToCents } from "@/lib/utils";
-import { calculateSpendingPercentage } from "@/lib/utils/spending";
+import { formatCurrency, formatDateUTC, roundToCents } from "@/lib/utils";
+import {
+  calculateSpendingPercentage,
+  getTransactionDate,
+} from "@/lib/utils/spending";
 import { useBackNavigation } from "@/lib/utils/navigation-history";
 import { getCardTransactionDisplay } from "@/lib/utils/transactions";
 import { usePageLoading } from "@/components/ConditionalLayout";
@@ -51,6 +56,7 @@ const CardDetailsPage = () => {
   // going back to wherever the user actually came from is correct here.
   // Falls back to the cards list when there's no tracked previous page.
   const handleBack = useBackNavigation("/cards");
+  const { data: session } = useSession();
   const { data: card, isLoading: cardLoading, error: cardError } = useCard(id);
   const { data: transactions = [], isLoading: transactionsLoading } =
     useCardTransactions(id);
@@ -66,7 +72,12 @@ const CardDetailsPage = () => {
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
 
   // Map API card to component card
-  const mappedCard: Card | null = card ? mapApiCardToCard(card) : null;
+  const mappedCard: Card | null = card
+    ? mapApiCardToCard(
+        card,
+        users.map((u) => u.id),
+      )
+    : null;
 
   // Fetch users for the account
   const fetchUsers = async () => {
@@ -228,16 +239,22 @@ const CardDetailsPage = () => {
               <h2 className="text-xl font-semibold tracking-tight text-gray-900">
                 Card details
               </h2>
-              <div className="flex gap-2">
-                <Button onClick={handleEditCard} variant="secondary" size="sm">
-                  <Edit className="h-4 w-4" />
-                  Edit
-                </Button>
-                <Button onClick={handleDeleteCard} variant="danger" size="sm">
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </Button>
-              </div>
+              {card.userId === session?.user?.id && (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleEditCard}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </Button>
+                  <Button onClick={handleDeleteCard} variant="danger" size="sm">
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </Button>
+                </div>
+              )}
             </div>
 
             {isEditing && (
@@ -250,6 +267,7 @@ const CardDetailsPage = () => {
                 loadingUsers={loadingUsers}
                 defaultValues={{
                   name: card.name,
+                  lastFourDigits: card.lastFourDigits ?? "",
                   cardType: card.cardType,
                   spendingLimit: card.spendingLimit?.toString() ?? "",
                   userId: card.userId,
@@ -396,7 +414,7 @@ const CardDetailsPage = () => {
                         <div className="flex items-center gap-3">
                           <div className="flex-1">
                             <p className="font-medium text-gray-900">
-                              {transaction.name ?? "Unnamed Transaction"}
+                              {transaction.name ?? "Unnamed transaction"}
                             </p>
                             {transaction.transactionType ===
                             TransactionType.INCOME ? (
@@ -417,9 +435,7 @@ const CardDetailsPage = () => {
                               {formatCurrency(Math.abs(transaction.amount))}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {new Date(
-                                transaction.createdAt,
-                              ).toLocaleDateString()}
+                              {formatDateUTC(getTransactionDate(transaction))}
                             </p>
                           </div>
                         </div>
@@ -452,17 +468,21 @@ const CardDetailsPage = () => {
         isOpen={!!cardToDelete}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        title="Delete Card"
+        title="Delete card"
         message={`Are you sure you want to delete "${cardToDelete?.name ?? ""}"? This action cannot be undone.`}
         itemName={cardToDelete?.name ?? ""}
         isLoading={deleteCardMutation.isPending}
-        confirmText="Delete Card"
+        confirmText="Delete card"
       />
 
       {/* Add Transaction Modal */}
       <AddTransactionModal
         isOpen={showAddTransactionModal}
-        budgetId={budgets[0]?.id ?? ""} // Use first budget or empty string
+        budgetId={
+          findContinuousBudgetId(budgets) ??
+          budgets.find((budget) => budget.status === "ACTIVE")?.id ??
+          ""
+        }
         cardId={id ?? ""}
         onClose={() => setShowAddTransactionModal(false)}
         onSuccess={handleTransactionSuccess}

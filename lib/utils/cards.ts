@@ -24,9 +24,10 @@ export const CARD_TYPE_LABELS: Record<CardType, string> = {
   [CardType.BUSINESS_CREDIT]: "Business credit",
 };
 
-// Array of different gradient colors for cards
+// Owner colors in assignment order: the account's first person gets blue, the second purple.
 export const cardColors = [
-  "bg-gradient-to-br from-blue-600 to-purple-600",
+  "bg-gradient-to-br from-cyan-600 to-blue-600",
+  "bg-gradient-to-br from-violet-600 to-purple-600",
   "bg-gradient-to-br from-green-600 to-teal-600",
   "bg-gradient-to-br from-red-600 to-pink-600",
   "bg-gradient-to-br from-yellow-600 to-orange-600",
@@ -34,34 +35,28 @@ export const cardColors = [
   "bg-gradient-to-br from-purple-600 to-pink-600",
   "bg-gradient-to-br from-emerald-600 to-green-600",
   "bg-gradient-to-br from-rose-600 to-red-600",
-  "bg-gradient-to-br from-cyan-600 to-blue-600",
-  "bg-gradient-to-br from-violet-600 to-purple-600",
+  "bg-gradient-to-br from-blue-600 to-purple-600",
   "bg-gradient-to-br from-amber-600 to-yellow-600",
   "bg-gradient-to-br from-sky-600 to-cyan-600",
-];
+] as const;
 
 /**
- * Generates a consistent color for a card based on its user ID
- * @param userId - The unique identifier for the user who owns the card
- * @returns A Tailwind CSS gradient class
+ * Color for a card owner. `ownerIds` is the account's people in join order
+ * (from /api/users); an owner not in it falls back to a stable hash.
  */
-export const getCardColor = (userId: string): string => {
-  if (!userId) {
-    return cardColors[0] ?? "bg-gradient-to-br from-blue-600 to-purple-600"; // Default to first color if no ID
+export const getCardColor = (
+  userId: string,
+  ownerIds: readonly string[] = [],
+): string => {
+  const position = ownerIds.indexOf(userId);
+  if (position !== -1) {
+    return cardColors[position % cardColors.length]!;
   }
 
-  // Use the user ID to generate a consistent index
   const hash = userId.split("").reduce((acc, char) => {
     return char.charCodeAt(0) + ((acc << 5) - acc);
   }, 0);
-  const index = Math.abs(hash) % cardColors.length;
-
-  const selectedColor = cardColors[index];
-  if (!selectedColor) {
-    return cardColors[0] ?? "bg-gradient-to-br from-blue-600 to-purple-600"; // Fallback to first color
-  }
-
-  return selectedColor;
+  return cardColors[Math.abs(hash) % cardColors.length]!;
 };
 
 /**
@@ -112,8 +107,11 @@ export const mapCardType = (
 };
 
 // Utility function to map API card to component card
-export const mapApiCardToCard = (apiCard: ApiCard): Card => {
-  const cardColor = getCardColor(apiCard.userId);
+export const mapApiCardToCard = (
+  apiCard: ApiCard,
+  ownerIds: readonly string[] = [],
+): Card => {
+  const cardColor = getCardColor(apiCard.userId, ownerIds);
 
   return {
     id: apiCard.id ?? "",
