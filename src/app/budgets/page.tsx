@@ -8,10 +8,8 @@ import {
   Target,
   Archive,
   RotateCcw,
-  Copy,
   Trash2,
   Plus,
-  TrendingUp,
   CheckCircle,
   Lock,
   ChevronRight,
@@ -24,7 +22,6 @@ import {
   useMarkBudgetCompleted,
   useMarkBudgetArchived,
   useReactivateBudget,
-  useDuplicateBudget,
   useGetOrCreateContinuousBudget,
 } from "@/lib/data-hooks/budgets/useBudgets";
 import { useDeleteBudget } from "@/lib/data-hooks/budgets/useBudgets";
@@ -32,7 +29,6 @@ import type { BudgetWithRelations } from "@/lib/types/budget";
 import PageHeader from "@/components/PageHeader";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import CreateBudgetModal from "@/components/budgets/CreateBudgetModal";
-import DuplicateBudgetModal from "@/components/budgets/DuplicateBudgetModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import UpgradeModal from "@/components/UpgradeModal";
 import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
@@ -44,31 +40,8 @@ import {
   calculateSpendingPercentage,
   calculateTotalIncome,
 } from "@/lib/utils/spending";
-import { useBudgetStats } from "@/lib/data-hooks/budgets/useBudgetStats";
-import { ChartContainer } from "@/components/recharts/ChartWrapper";
-import {
-  CHART_COLORS,
-  ChartEmptyState,
-  chartAxisProps,
-  chartGridProps,
-  chartTooltipItemStyle,
-  chartTooltipLabelStyle,
-  chartTooltipStyle,
-  formatCompactCurrency,
-} from "@/components/recharts/theme";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  AreaChart,
-  Area,
-  CartesianGrid,
-} from "recharts";
+import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
+import { formatMonthLabel, toMonthKey } from "@/lib/utils/budget-month";
 
 type TabType = "active" | "completed" | "archived";
 
@@ -78,13 +51,6 @@ const BudgetsPage = () => {
   const [budgetToDelete, setBudgetToDelete] =
     useState<BudgetWithRelations | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  // The budget whose Copy icon was clicked (drives the quick/customize chooser)
-  const [budgetToDuplicate, setBudgetToDuplicate] =
-    useState<BudgetWithRelations | null>(null);
-  // The budget being duplicated through the full wizard, once "Customize
-  // first" is chosen
-  const [budgetToCustomize, setBudgetToCustomize] =
-    useState<BudgetWithRelations | null>(null);
   const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
 
   // Data hooks for different budget statuses (excluding card payments for calculations)
@@ -104,6 +70,12 @@ const BudgetsPage = () => {
   const continuousBudget = allActiveBudgets.find(
     (budget) => budget.kind === "CONTINUOUS",
   );
+  const thisMonth = toMonthKey(new Date());
+  const { data: monthBudget } = useBudget(
+    continuousBudget?.id ?? "",
+    true,
+    thisMonth,
+  );
   const activeBudgets = useMemo(
     () => allActiveBudgets.filter((budget) => budget.kind !== "CONTINUOUS"),
     [allActiveBudgets],
@@ -122,7 +94,6 @@ const BudgetsPage = () => {
   const markCompletedMutation = useMarkBudgetCompleted();
   const markArchivedMutation = useMarkBudgetArchived();
   const reactivateMutation = useReactivateBudget();
-  const duplicateBudgetMutation = useDuplicateBudget();
   const continuousBudgetMutation = useGetOrCreateContinuousBudget();
 
   const handleOpenMonthlyBudget = async () => {
@@ -167,12 +138,17 @@ const BudgetsPage = () => {
 
   const isLoading = activeLoading || completedLoading || archivedLoading;
 
-  // Aggregate statistics across active budgets (plus completed/archived counts)
-  const budgetStats = useBudgetStats(
-    activeBudgets,
-    completedBudgets,
-    archivedBudgets,
+  const monthPlanned = roundToCents(
+    (monthBudget?.categories ?? []).reduce(
+      (sum, category) => sum + (category.allocatedAmount ?? 0),
+      0,
+    ),
   );
+  const monthSpent = roundToCents(
+    monthBudget ? calculateBudgetSpent(monthBudget) : 0,
+  );
+  const monthRemaining = roundToCents(monthPlanned - monthSpent);
+  const monthPercent = calculateSpendingPercentage(monthSpent, monthPlanned);
 
   usePageLoading(isLoading, "Loading budgets...");
   if (isLoading) {
@@ -219,37 +195,6 @@ const BudgetsPage = () => {
     ).length;
 
     return { needs, wants, investments };
-  };
-
-  const handleDuplicateBudget = (budget: BudgetWithRelations) => {
-    setBudgetToDuplicate(budget);
-  };
-
-  // One-call server-side copy: carries over cards, income and categories as-is,
-  // resets the dates to the current period, then opens the copy for edits.
-  const handleQuickDuplicate = async (budget: BudgetWithRelations) => {
-    try {
-      const { budget: duplicated } = await duplicateBudgetMutation.mutateAsync(
-        budget.id,
-      );
-      setBudgetToDuplicate(null);
-      toast.success("Budget duplicated!");
-      router.push(`/budgets/${duplicated.id}`);
-    } catch (err) {
-      if (err instanceof UpgradeRequiredError) {
-        setBudgetToDuplicate(null);
-        setUpgradeReason(err.message);
-        return;
-      }
-      toast.error("Failed to duplicate budget. Please try again.");
-      console.error("Failed to duplicate budget:", err);
-    }
-  };
-
-  const handleCustomizeDuplicate = (budget: BudgetWithRelations) => {
-    setBudgetToDuplicate(null);
-    setBudgetToCustomize(budget);
-    setIsCreateModalOpen(true);
   };
 
   const handleDeleteBudget = (budget: BudgetWithRelations) => {
@@ -308,298 +253,75 @@ const BudgetsPage = () => {
     <div className="flex flex-col bg-surface pt-4 lg:h-screen lg:pt-0">
       <PageHeader
         title="Budgets"
-        description="Manage budgets and track spending"
+        description="Your monthly budget and events"
         action={{
           icon: <Plus className="h-4 w-4" />,
-          label: "Create budget",
+          label: "New event",
           onClick: () => setIsCreateModalOpen(true),
         }}
       />
 
       <div className="lg:flex-1 lg:overflow-y-auto">
         <div className="mx-auto w-full px-4 py-4 sm:px-6 lg:px-8">
-          {/* Budget overview charts — swipeable row on mobile, grid on larger screens */}
-          <div className="scrollbar-hide mb-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 xl:grid-cols-4">
-            {/* Active budgets summary */}
-            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-              <h3 className="mb-3 text-sm font-semibold text-gray-900">
-                Summary
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Target className="h-4 w-4 text-secondary-600" />
-                    <span className="text-xs text-gray-500">Active</span>
-                  </div>
-                  <span className="text-sm font-bold tabular-nums text-gray-900">
-                    {budgetStats.activeBudgetsCount}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-xs text-gray-500">Completed</span>
-                  </div>
-                  <span className="text-sm font-bold tabular-nums text-gray-900">
-                    {completedBudgets.length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-secondary-600" />
-                    <span className="text-xs text-gray-500">Last 7 days</span>
-                  </div>
-                  <span className="text-sm font-bold tabular-nums text-gray-900">
-                    {formatCurrency(roundToCents(budgetStats.recentSpending))}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-secondary-600" />
-                    <span className="text-xs text-gray-500">Daily avg</span>
-                  </div>
-                  <span className="text-sm font-bold tabular-nums text-gray-900">
-                    {formatCurrency(
-                      roundToCents(budgetStats.averageDailySpending),
-                    )}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Spending by category group donut */}
-            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-              <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                Spending by group
-              </h3>
-              {budgetStats.pieChartData.length > 0 ? (
-                <>
-                  <ChartContainer height={150}>
-                    <PieChart>
-                      <Pie
-                        data={budgetStats.pieChartData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={false}
-                        innerRadius={38}
-                        outerRadius={58}
-                        paddingAngle={3}
-                        cornerRadius={4}
-                        dataKey="value"
-                        stroke="none"
-                      >
-                        {budgetStats.pieChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={chartTooltipStyle}
-                        labelStyle={chartTooltipLabelStyle}
-                        itemStyle={chartTooltipItemStyle}
-                        formatter={(
-                          value: number | undefined,
-                          name?: string,
-                        ) => {
-                          if (value === undefined) return ["", name ?? ""];
-
-                          // Calculate total from all data points
-                          const total = budgetStats.pieChartData.reduce(
-                            (sum, item) => sum + item.value,
-                            0,
-                          );
-
-                          // Calculate percentage
-                          const percentage =
-                            total > 0 ? (value / total) * 100 : 0;
-
-                          return [
-                            `$${value.toLocaleString()} (${percentage.toFixed(1)}%)`,
-                            name ?? "",
-                          ];
-                        }}
-                      />
-                    </PieChart>
-                  </ChartContainer>
-                  <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs">
-                    {budgetStats.pieChartData.map((item) => (
-                      <div
-                        key={item.name}
-                        className="flex items-center gap-1.5"
-                      >
-                        <div
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: item.color }}
-                        />
-                        <span className="text-gray-500">{item.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <ChartEmptyState icon={Target} message="No data yet" />
-              )}
-            </div>
-
-            {/* Top spending categories */}
-            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-              <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                Top categories
-              </h3>
-              {budgetStats.topCategoriesData.length > 0 ? (
-                <ChartContainer height={170}>
-                  <BarChart data={budgetStats.topCategoriesData}>
-                    <XAxis
-                      dataKey="name"
-                      angle={-35}
-                      textAnchor="end"
-                      height={48}
-                      {...chartAxisProps}
-                      fontSize={9}
-                    />
-                    <YAxis
-                      tickFormatter={(value: unknown) =>
-                        typeof value === "number"
-                          ? formatCompactCurrency(value)
-                          : ""
-                      }
-                      {...chartAxisProps}
-                      fontSize={9}
-                      width={42}
-                    />
-                    <Tooltip
-                      cursor={{ fill: "rgba(185, 161, 94, 0.08)" }}
-                      contentStyle={chartTooltipStyle}
-                      labelStyle={chartTooltipLabelStyle}
-                      itemStyle={chartTooltipItemStyle}
-                      formatter={(
-                        value: number | undefined,
-                        payload: unknown,
-                      ) => {
-                        if (value === undefined) return "";
-                        const payloadData = payload as
-                          | { payload?: { fullName?: string } }
-                          | undefined;
-                        const fullName = payloadData?.payload?.fullName ?? "";
-                        return [
-                          `$${value.toLocaleString()}`,
-                          fullName ?? "Category",
-                        ];
-                      }}
-                    />
-                    <Bar
-                      dataKey="value"
-                      fill={CHART_COLORS[0]}
-                      radius={[6, 6, 0, 0]}
-                    />
-                  </BarChart>
-                </ChartContainer>
-              ) : (
-                <ChartEmptyState icon={Target} message="No data yet" />
-              )}
-            </div>
-
-            {/* Daily spending trend */}
-            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-              <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                Avg daily spending
-              </h3>
-              {budgetStats.dailySpendingData.length > 0 &&
-              budgetStats.dailySpendingData.some((d) => d.spending > 0) ? (
-                <ChartContainer height={170}>
-                  <AreaChart data={budgetStats.dailySpendingData}>
-                    <defs>
-                      <linearGradient
-                        id="dailySpendingFill"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor={CHART_COLORS[0]}
-                          stopOpacity={0.3}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor={CHART_COLORS[0]}
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid {...chartGridProps} />
-                    <XAxis
-                      dataKey="day"
-                      {...chartAxisProps}
-                      fontSize={9}
-                      height={24}
-                    />
-                    <YAxis
-                      tickFormatter={(value: unknown) =>
-                        typeof value === "number"
-                          ? formatCompactCurrency(value)
-                          : ""
-                      }
-                      {...chartAxisProps}
-                      fontSize={9}
-                      width={42}
-                    />
-                    <Tooltip
-                      contentStyle={chartTooltipStyle}
-                      labelStyle={chartTooltipLabelStyle}
-                      itemStyle={chartTooltipItemStyle}
-                      formatter={(
-                        value: number | undefined,
-                        payload: unknown,
-                      ) => {
-                        if (value === undefined) return "";
-                        const payloadData = payload as
-                          | { payload?: { date?: string } }
-                          | undefined;
-                        const date = payloadData?.payload?.date ?? "";
-                        return [
-                          `$${value.toLocaleString()}`,
-                          date ? `Avg (${date})` : "Avg spending",
-                        ];
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="spending"
-                      stroke={CHART_COLORS[0]}
-                      strokeWidth={2}
-                      fill="url(#dailySpendingFill)"
-                      dot={false}
-                      activeDot={{ r: 4, strokeWidth: 0 }}
-                    />
-                  </AreaChart>
-                </ChartContainer>
-              ) : (
-                <ChartEmptyState icon={TrendingUp} message="No spending data" />
-              )}
-            </div>
-          </div>
-
           <div className="mb-3">
             {continuousBudget ? (
               <button
                 type="button"
                 onClick={() => router.push(`/budgets/${continuousBudget.id}`)}
-                className="card-interactive flex min-h-11 w-full items-center gap-3 p-4 text-left sm:p-5"
+                className="card-interactive w-full p-4 text-left sm:p-5"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-secondary-700">
-                  <Calendar className="h-5 w-5" />
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-secondary-700">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {continuousBudget.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {formatMonthLabel(thisMonth)}
+                    </p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-gray-400" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-gray-900">
-                    {continuousBudget.name}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Plan and track one month at a time
-                  </p>
+                <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-500 ease-out ${
+                      monthPercent > 100
+                        ? "bg-red-500"
+                        : monthPercent === 100
+                          ? "bg-green-500"
+                          : "bg-secondary"
+                    }`}
+                    style={{ width: `${Math.min(monthPercent, 100)}%` }}
+                  />
                 </div>
-                <ChevronRight className="h-5 w-5 shrink-0 text-gray-400" />
+                <div className="mt-3 grid grid-cols-3 divide-x divide-gray-100 rounded-xl bg-surface px-2 py-3 text-center">
+                  <div>
+                    <div className="text-base font-bold tabular-nums tracking-tight text-gray-900 sm:text-lg">
+                      {formatCurrency(monthPlanned)}
+                    </div>
+                    <div className="text-xs text-gray-500">Planned</div>
+                  </div>
+                  <div>
+                    <div className="text-base font-bold tabular-nums tracking-tight text-gray-900 sm:text-lg">
+                      {formatCurrency(monthSpent)}
+                    </div>
+                    <div className="text-xs text-gray-500">Spent</div>
+                  </div>
+                  <div>
+                    <div
+                      className={`text-base font-bold tabular-nums tracking-tight sm:text-lg ${
+                        monthRemaining >= 0 ? "text-gray-900" : "text-red-600"
+                      }`}
+                    >
+                      {formatCurrency(Math.abs(monthRemaining))}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {monthRemaining >= 0 ? "Remaining" : "Over plan"}
+                    </div>
+                  </div>
+                </div>
               </button>
             ) : (
               <div className="card-surface flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:p-5">
@@ -611,8 +333,8 @@ const BudgetsPage = () => {
                     Start your monthly budget
                   </p>
                   <p className="text-xs text-gray-500">
-                    One budget that carries on month to month, so you never
-                    duplicate it again.
+                    One budget that carries on month to month. Plan each month
+                    and see what&apos;s left.
                   </p>
                 </div>
                 <Button
@@ -626,7 +348,9 @@ const BudgetsPage = () => {
             )}
           </div>
 
-          {/* Status tabs — segmented control */}
+          <h2 className="mb-2 mt-6 text-base font-semibold text-gray-900">
+            Events
+          </h2>
           <div className="mb-1 flex-shrink-0">
             <div className="inline-flex rounded-full bg-surface-muted p-1">
               {tabs.map((tab) => (
@@ -665,17 +389,17 @@ const BudgetsPage = () => {
                     <Target className="h-7 w-7" strokeWidth={1.5} />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900">
-                    No {activeTab} budgets
+                    No {activeTab} events
                   </h3>
-                  <p className="text-sm text-gray-500">
-                    {activeTab === "active"
-                      ? "Create your first budget to get started"
-                      : `No ${activeTab} budgets found`}
-                  </p>
                   {activeTab === "active" && (
-                    <Button onClick={() => setIsCreateModalOpen(true)}>
-                      Create budget
-                    </Button>
+                    <>
+                      <p className="text-sm text-gray-500">
+                        Budget a trip, a move or anything with an end date.
+                      </p>
+                      <Button onClick={() => setIsCreateModalOpen(true)}>
+                        New event
+                      </Button>
+                    </>
                   )}
                 </div>
               ) : (
@@ -799,16 +523,6 @@ const BudgetsPage = () => {
                               <button
                                 onClick={(e: MouseEvent) => {
                                   e.stopPropagation();
-                                  handleDuplicateBudget(budget);
-                                }}
-                                className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
-                                title="Duplicate"
-                              >
-                                <Copy className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={(e: MouseEvent) => {
-                                  e.stopPropagation();
                                   handleDeleteBudget(budget);
                                 }}
                                 className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
@@ -927,40 +641,17 @@ const BudgetsPage = () => {
           </div>
         </div>
       </div>
-      {/* Modals */}
-      <DuplicateBudgetModal
-        isOpen={!!budgetToDuplicate}
-        budgetName={budgetToDuplicate?.name ?? ""}
-        isDuplicating={duplicateBudgetMutation.isPending}
-        onClose={() => setBudgetToDuplicate(null)}
-        onQuickDuplicate={async () => {
-          if (budgetToDuplicate) {
-            await handleQuickDuplicate(budgetToDuplicate);
-          }
-        }}
-        onCustomize={() => {
-          if (budgetToDuplicate) {
-            handleCustomizeDuplicate(budgetToDuplicate);
-          }
-        }}
-      />
-
       <CreateBudgetModal
         isOpen={isCreateModalOpen}
-        onClose={() => {
-          setIsCreateModalOpen(false);
-          setBudgetToCustomize(null);
-        }}
+        onClose={() => setIsCreateModalOpen(false)}
         onSuccess={(result) => {
           setIsCreateModalOpen(false);
-          setBudgetToCustomize(null);
           // Quick-created budgets skip the later steps, so open the new budget
           // for the user to fill in income, cards and categories.
           if (result.quickCreate) {
             router.push(`/budgets/${result.budgetId}`);
           }
         }}
-        initialBudget={budgetToCustomize}
       />
 
       <DeleteConfirmationModal

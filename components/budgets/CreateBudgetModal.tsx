@@ -6,15 +6,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { X } from "lucide-react";
 import { toast } from "react-hot-toast";
-import {
-  useCreateBudgetFromScratchWithCards,
-  useDuplicateBudgetWithCards,
-} from "@/lib/data-hooks/budgets/useBudgets";
+import { useCreateBudgetFromScratchWithCards } from "@/lib/data-hooks/budgets/useBudgets";
 import {
   StrategyType,
   PeriodType,
   CategoryType,
-  TransactionType,
   type CardType,
 } from "@prisma/client";
 import {
@@ -38,7 +34,6 @@ import type {
   StepType,
   CardToInclude,
 } from "./types";
-import type { BudgetWithRelations } from "@/lib/types/budget";
 import { useLockBodyScroll } from "@/lib/utils/hooks";
 import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
 import Button from "../Button";
@@ -146,20 +141,15 @@ interface CreateBudgetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (result: { budgetId: string; quickCreate: boolean }) => void;
-  initialBudget?: BudgetWithRelations | null;
 }
 
 export default function CreateBudgetModal({
   isOpen,
   onClose,
   onSuccess,
-  initialBudget,
 }: CreateBudgetModalProps) {
   const createBudgetFromScratchMutation = useCreateBudgetFromScratchWithCards();
-  const duplicateBudgetMutation = useDuplicateBudgetWithCards();
-  const isCreating =
-    createBudgetFromScratchMutation.isPending ||
-    duplicateBudgetMutation.isPending;
+  const isCreating = createBudgetFromScratchMutation.isPending;
   const [selectedCategories, setSelectedCategories] = useState<
     CategoryAllocation[]
   >([]);
@@ -209,98 +199,23 @@ export default function CreateBudgetModal({
     },
   });
 
-  // Prefill form when initialBudget is provided
   useEffect(() => {
     if (isOpen) {
       // Always reset to basic step when modal opens
       setCurrentStep("basic");
-
-      if (initialBudget) {
-        const startDate = new Date();
-        const endDate = calculateEndDate(startDate, initialBudget.period);
-
-        // Set form values
-        setValue("name", `${initialBudget.name} (Copy)`);
-        setValue("strategy", initialBudget.strategy);
-        setValue("period", initialBudget.period);
-        setValue("startAt", formatDateForInput(startDate));
-        setValue("endAt", formatDateForInput(endDate));
-
-        // Set income entries from income transactions
-        const incomeTransactions = (initialBudget.transactions ?? []).filter(
-          (transaction) =>
-            transaction.transactionType === TransactionType.INCOME,
-        );
-        if (incomeTransactions.length > 0) {
-          const entries: IncomeEntry[] = incomeTransactions.map(
-            (transaction, index: number) => {
-              return {
-                id: (index + 1).toString(),
-                amount: Number(transaction.amount),
-                source: transaction.name ?? "",
-                description: transaction.description ?? "",
-                isPlanned: true, // Default since transactions don't have this field
-                frequency: PeriodType.MONTHLY, // Default since transactions don't have this field
-              };
-            },
-          );
-          setIncomeEntries(entries);
-        } else {
-          setIncomeEntries([
-            {
-              id: "1",
-              amount: 0,
-              source: "",
-              description: "",
-              isPlanned: true,
-              frequency: PeriodType.MONTHLY,
-            },
-          ]);
-        }
-
-        // Set categories
-        if (initialBudget.categories && initialBudget.categories.length > 0) {
-          const categories: CategoryAllocation[] = initialBudget.categories.map(
-            (category, index) => ({
-              categoryId: `temp-${Date.now()}-${index}`,
-              name: category.name,
-              group: category.group,
-              allocatedAmount: category.allocatedAmount ?? 0,
-            }),
-          );
-          setSelectedCategories(categories);
-        } else {
-          setSelectedCategories([]);
-        }
-
-        // Start with all cards from the initial budget (user can remove with Delete)
-        const initialCards: CardToInclude[] =
-          initialBudget.cards?.map((card) => ({
-            id: card.id,
-            name: card.name,
-            lastFourDigits: card.lastFourDigits ?? undefined,
-            cardType: card.cardType,
-            spendingLimit: card.spendingLimit ?? undefined,
-            userId: card.userId,
-            user: card.user ?? undefined,
-          })) ?? [];
-        setCardsToInclude(initialCards);
-      } else {
-        // Reset to defaults when opening without initial budget
-        reset();
-        setSelectedCategories([]);
-        setIncomeEntries([
-          {
-            id: "1",
-            amount: 0,
-            source: "",
-            description: "",
-            isPlanned: true,
-            frequency: PeriodType.MONTHLY,
-          },
-        ]);
-        setCardsToInclude([]);
-      }
+      reset();
+      setSelectedCategories([]);
+      setIncomeEntries([
+        {
+          id: "1",
+          amount: 0,
+          source: "",
+          description: "",
+          isPlanned: true,
+          frequency: PeriodType.MONTHLY,
+        },
+      ]);
+      setCardsToInclude([]);
 
       setShowAddCardModal(false);
       setLoadingUsers(true);
@@ -318,7 +233,7 @@ export default function CreateBudgetModal({
         .catch(() => setUsers([]))
         .finally(() => setLoadingUsers(false));
     }
-  }, [initialBudget, isOpen, setValue, reset]);
+  }, [isOpen, reset]);
 
   const watchedName = watch("name");
   const watchedStartAt = watch("startAt");
@@ -328,10 +243,8 @@ export default function CreateBudgetModal({
 
   // 50/30/20 budgets get an express path: Basics → Income → Create. We
   // auto-generate Needs/Wants/Investments categories at 50/30/20 of income, so
-  // the cards/categories/allocation steps are skipped. Duplicating an existing
-  // budget keeps the full flow so the copied categories are preserved.
-  const isExpress =
-    !initialBudget && watchedStrategy === StrategyType.FIFTY_THIRTY_TWENTY;
+  // the cards/categories/allocation steps are skipped.
+  const isExpress = watchedStrategy === StrategyType.FIFTY_THIRTY_TWENTY;
   const visibleSteps: StepType[] = isExpress
     ? ["basic", "income"]
     : ["basic", "income", "cards", "categories", "allocation"];
@@ -619,10 +532,7 @@ export default function CreateBudgetModal({
         userId: card.userId,
       }));
 
-      const mutation = initialBudget
-        ? duplicateBudgetMutation
-        : createBudgetFromScratchMutation;
-      const created = await mutation.mutateAsync({
+      const created = await createBudgetFromScratchMutation.mutateAsync({
         ...data,
         categoryAllocations,
         // `incomes` is optional server-side but must be non-empty when present
@@ -732,7 +642,7 @@ export default function CreateBudgetModal({
         <div className="flex flex-shrink-0 items-start justify-between gap-3 border-b p-4 sm:items-center sm:p-6">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">
-              {initialBudget ? "Duplicate Budget" : "Create New Budget"}
+              New event
             </h2>
             <p className="text-sm text-gray-500">
               {currentStep === "basic" &&
@@ -810,7 +720,6 @@ export default function CreateBudgetModal({
                     cardsToInclude={cardsToInclude}
                     onRemoveCard={handleRemoveCard}
                     onOpenAddCard={() => setShowAddCardModal(true)}
-                    isDuplicating={!!initialBudget}
                   />
                 )}
 

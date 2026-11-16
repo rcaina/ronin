@@ -8,14 +8,12 @@ interface CardsStepProps {
   cardsToInclude: CardToInclude[];
   onRemoveCard: (id: string) => void;
   onOpenAddCard?: () => void;
-  isDuplicating?: boolean;
 }
 
 export default function CardsStep({
   cardsToInclude,
   onRemoveCard,
   onOpenAddCard,
-  isDuplicating = false,
 }: CardsStepProps) {
   const list: CardToInclude[] = cardsToInclude;
   const hasCards = list.length > 0;
@@ -41,9 +39,7 @@ export default function CardsStep({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-900">
-              {isDuplicating
-                ? "Cards to copy (remove any you don't want)"
-                : "Cards to add to this budget"}
+              Cards to add to this budget
             </h3>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
@@ -105,12 +101,11 @@ export default function CardsStep({
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-surface-card px-4 py-8 text-center">
           <CreditCard className="mb-3 h-8 w-8 text-gray-300" />
           <p className="text-sm font-medium text-gray-900">
-            {isDuplicating ? "No cards will be copied" : "No cards added yet"}
+            No cards added yet
           </p>
           <p className="mt-1 max-w-sm text-xs text-gray-500">
-            {isDuplicating
-              ? "Add new cards below or continue without copying any."
-              : 'We\'ll create a default debit card named "Main". Add more below or continue.'}
+            We&apos;ll create a default debit card named &quot;Main&quot;. Add
+            more below or continue.
           </p>
         </div>
       )}

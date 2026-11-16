@@ -14,8 +14,6 @@ import {
   reactivateBudget,
   createBudget,
   createBudgetFromScratchWithCards,
-  duplicateBudgetWithCards,
-  duplicateBudget,
   getOrCreateContinuousBudget,
 } from "../services/budgets";
 import type { UpdateBudgetData } from "@/lib/types/budget";
@@ -23,9 +21,6 @@ import type { BudgetStatus } from "@prisma/client";
 
 type CreateBudgetVariables = Parameters<typeof createBudget>[0];
 type CreateBudgetResponse = Awaited<ReturnType<typeof createBudget>>;
-
-type DuplicateBudgetVariables = Parameters<typeof duplicateBudget>[0];
-type DuplicateBudgetResponse = Awaited<ReturnType<typeof duplicateBudget>>;
 
 export const useBudgets = (
   status?: BudgetStatus,
@@ -137,21 +132,6 @@ export const useCreateBudgetFromScratchWithCards = () => {
   });
 };
 
-export const useDuplicateBudgetWithCards = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<
-    CreateBudgetWithCardsResponse,
-    Error,
-    CreateBudgetWithCardsVariables
-  >({
-    mutationFn: duplicateBudgetWithCards,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["budgets"] });
-    },
-  });
-};
-
 export const useUpdateBudget = () => {
   const queryClient = useQueryClient();
 
@@ -173,17 +153,6 @@ export const useDeleteBudget = () => {
 
   return useMutation({
     mutationFn: (id: string) => deleteBudget(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["budgets"] });
-    },
-  });
-};
-
-export const useDuplicateBudget = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<DuplicateBudgetResponse, Error, DuplicateBudgetVariables>({
-    mutationFn: duplicateBudget,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },

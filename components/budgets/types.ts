@@ -5,7 +5,7 @@ import type {
   CardType,
 } from "@prisma/client";
 
-/** Card entry for the create/duplicate budget wizard (to copy or add) */
+/** Card entry for the create budget wizard */
 export interface CardToInclude {
   id: string;
   name: string;

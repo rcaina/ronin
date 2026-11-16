@@ -15,7 +15,6 @@ import {
   StrategyType,
 } from "@prisma/client";
 import { HttpError } from "../errors";
-import { calculateEndDate } from "../utils";
 import { formatBudget, formatBudgetCategories } from "../db/converter";
 import { getAccountEntitlements } from "./entitlements";
 import { isBudgetLocked } from "../utils/entitlements";
@@ -530,14 +529,6 @@ export async function createBudgetFromScratchWithCards(
   return createBudgetWithCardsAndIncomes(tx, data, user);
 }
 
-export async function duplicateBudgetWithCards(
-  tx: PrismaClientTx,
-  data: z.infer<typeof createBudgetWithCardsSchema>,
-  user: User & { accountId: string },
-) {
-  return createBudgetWithCardsAndIncomes(tx, data, user);
-}
-
 export async function updateBudget(
   tx: PrismaClientTx,
   id: string,
@@ -796,179 +787,6 @@ export async function reactivateBudget(
       status: "ACTIVE" as BudgetStatus,
     },
   });
-}
-
-export async function duplicateBudget(
-  tx: PrismaClientTx,
-  budgetId: string,
-  user: User & { accountId: string },
-) {
-  // Get the original budget with all relations
-  const originalBudget = await tx.budget.findFirst({
-    where: {
-      id: budgetId,
-      accountId: user.accountId,
-      deleted: null,
-    },
-    include: {
-      cards: {
-        where: { deleted: null },
-        select: {
-          id: true,
-          name: true,
-          lastFourDigits: true,
-          cardType: true,
-          spendingLimit: true,
-          userId: true,
-          defaultCardId: true,
-        },
-      },
-      transactions: {
-        where: { deleted: null },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          amount: true,
-          transactionType: true,
-          cardId: true,
-          occurredAt: true,
-        },
-      },
-      categories: {
-        where: { deleted: null },
-        select: {
-          name: true,
-          group: true,
-          allocatedAmount: true,
-          defaultCategoryId: true,
-        },
-      },
-    },
-  });
-
-  if (!originalBudget) {
-    throw new Error("Budget not found");
-  }
-  if (!originalBudget.endAt) {
-    throw new HttpError("The monthly budget can't be duplicated", 400);
-  }
-
-  // The copy starts today and ends where its own period lands, so a monthly
-  // budget copied mid-August runs to the end of August rather than a year out.
-  // ONE_TIME budgets have no derivable cycle, so they keep the original's span.
-  const startAt = new Date();
-  const endAt =
-    originalBudget.period === PeriodType.ONE_TIME
-      ? new Date(
-          startAt.getTime() +
-            (originalBudget.endAt.getTime() - originalBudget.startAt.getTime()),
-        )
-      : calculateEndDate(startAt, originalBudget.period);
-
-  // Create new budget with copied data
-  const newBudget = await tx.budget.create({
-    data: {
-      name: `${originalBudget.name} (Copy)`,
-      strategy: originalBudget.strategy,
-      period: originalBudget.period,
-      startAt,
-      endAt,
-      accountId: user.accountId,
-    },
-  });
-
-  // Copy cards from original budget to new budget, keeping them linked to
-  // the same general card (resolving/creating one if the source predates it),
-  // and remember the old-card -> new-card mapping so income transactions can
-  // be re-pointed at the right new card below.
-  const newCardsByOldId = new Map<string, { id: string }>();
-  for (const card of originalBudget.cards) {
-    const defaultCardId =
-      card.defaultCardId ??
-      (
-        await resolveDefaultCard(tx, {
-          name: card.name,
-          lastFourDigits: card.lastFourDigits,
-          cardType: card.cardType,
-          spendingLimit: card.spendingLimit,
-          userId: card.userId,
-        })
-      ).id;
-
-    const newCard = await tx.card.create({
-      data: {
-        name: card.name,
-        lastFourDigits: card.lastFourDigits,
-        cardType: card.cardType,
-        spendingLimit: card.spendingLimit,
-        userId: card.userId,
-        budgetId: newBudget.id,
-        amountSpent: 0,
-        defaultCardId,
-      },
-    });
-
-    newCardsByOldId.set(card.id, newCard);
-  }
-
-  // Copy income transactions (INCOME type transactions on debit cards),
-  // preserving which debit card each income transaction landed on
-  const debitCards =
-    originalBudget.cards?.filter(
-      (card) =>
-        card.cardType === CardType.DEBIT ||
-        card.cardType === CardType.BUSINESS_DEBIT,
-    ) ?? [];
-  const debitCardIds = debitCards.map((card) => card.id);
-
-  if (debitCardIds.length > 0) {
-    const incomeTransactions =
-      originalBudget.transactions?.filter(
-        (transaction) =>
-          transaction.transactionType === TransactionType.INCOME &&
-          transaction.cardId &&
-          debitCardIds.includes(transaction.cardId),
-      ) ?? [];
-
-    for (const transaction of incomeTransactions) {
-      // transaction.cardId is guaranteed by the filter above
-      const newCard = newCardsByOldId.get(transaction.cardId!);
-      if (!newCard) {
-        continue;
-      }
-
-      await tx.transaction.create({
-        data: {
-          name: transaction.name,
-          description: transaction.description,
-          amount: transaction.amount,
-          budgetId: newBudget.id,
-          cardId: newCard.id,
-          accountId: user.accountId,
-          userId: user.id,
-          transactionType: TransactionType.INCOME,
-          categoryId: null,
-          occurredAt: transaction.occurredAt ?? new Date(),
-        },
-      });
-    }
-  }
-
-  // Copy budget category allocations, preserving the default-category link
-  for (const category of originalBudget.categories) {
-    await tx.category.create({
-      data: {
-        budgetId: newBudget.id,
-        name: category.name,
-        group: category.group,
-        allocatedAmount: category.allocatedAmount,
-        defaultCategoryId: category.defaultCategoryId,
-      },
-    });
-  }
-
-  return newBudget;
 }
 
 // Budget Categories
