@@ -1,6 +1,10 @@
 "use client";
 
-import { getMonthWindow, toMonthKey } from "@/lib/utils/budget-month";
+import {
+  daysLeftInWindow,
+  getMonthWindow,
+  toMonthKey,
+} from "@/lib/utils/budget-month";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -42,6 +46,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  LabelList,
 } from "recharts";
 import { TransactionType, BudgetStatus, PeriodType } from "@prisma/client";
 import { cn, formatCurrency, formatDateUTC, roundToCents } from "@/lib/utils";
@@ -228,7 +233,6 @@ export default function HomePage() {
         ? new Date(budget.startAt)
         : thisMonth.start;
       const periodEnd = budget.endAt ? new Date(budget.endAt) : thisMonth.end;
-      const now = new Date();
 
       const budgetIncome = budget.endAt
         ? calculateTotalIncome(budget)
@@ -237,19 +241,10 @@ export default function HomePage() {
         ? calculateBudgetSpent(budget)
         : calculateBudgetSpentInWindow(budget, thisMonth);
 
-      // Calculate time remaining
-      const daysTotal = Math.ceil(
-        (periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24),
+      const daysRemaining = daysLeftInWindow(
+        { start: periodStart, end: periodEnd },
+        new Date(),
       );
-      const daysElapsed = Math.max(
-        0,
-        Math.ceil(
-          (now.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24),
-        ),
-      );
-      const daysRemaining = Math.max(0, daysTotal - daysElapsed);
-
-      const remaining = roundToCents(Math.max(0, budgetIncome - budgetSpent));
       const utilization = roundToCents(
         calculateSpendingPercentage(budgetSpent, budgetIncome),
       );
@@ -267,7 +262,6 @@ export default function HomePage() {
           budget.name.length > 10
             ? budget.name.substring(0, 10) + "..."
             : budget.name,
-        remaining: remaining,
         utilization: utilization,
         daysRemaining: daysRemaining,
         spent: roundToCents(budgetSpent),
@@ -577,7 +571,7 @@ export default function HomePage() {
                     Budget utilization & time
                   </h3>
                   <p className="text-xs font-medium text-gray-400">
-                    Across all budgets
+                    Share of income spent, days left
                   </p>
                 </div>
                 {budgetUtilizationData.length > 0 ? (
@@ -585,14 +579,13 @@ export default function HomePage() {
                     <BarChart
                       data={budgetUtilizationData}
                       layout="vertical"
-                      margin={{ top: 5, right: 10, left: 60, bottom: 5 }}
+                      margin={{ top: 5, right: 44, left: 60, bottom: 5 }}
                     >
                       <XAxis
                         type="number"
+                        domain={[0, (max: number) => Math.max(100, max)]}
                         tickFormatter={(value: unknown) =>
-                          typeof value === "number"
-                            ? formatCompactCurrency(value)
-                            : ""
+                          typeof value === "number" ? `${value}%` : ""
                         }
                         {...chartAxisProps}
                         fontSize={9}
@@ -609,36 +602,30 @@ export default function HomePage() {
                         contentStyle={chartTooltipStyle}
                         labelStyle={chartTooltipLabelStyle}
                         itemStyle={chartTooltipItemStyle}
-                        formatter={(value: unknown, name?: string) => {
-                          if (name === "remaining") {
-                            return typeof value === "number"
-                              ? [formatChartCurrency(value), "Remaining"]
-                              : [String(value), "Remaining"];
-                          }
-                          if (name === "utilization") {
-                            return typeof value === "number"
-                              ? [`${value.toFixed(1)}%`, "Utilization"]
-                              : [String(value), "Utilization"];
-                          }
-                          if (name === "daysRemaining") {
-                            const numValue =
-                              typeof value === "number" ? value : 0;
-                            return [
-                              `${numValue} day${numValue !== 1 ? "s" : ""}`,
-                              "Days remaining",
-                            ];
-                          }
-                          return [String(value), name ?? ""];
-                        }}
+                        formatter={(value: unknown) => [
+                          typeof value === "number"
+                            ? `${value.toFixed(1)}%`
+                            : String(value),
+                          "Of income spent",
+                        ]}
                         labelFormatter={(label) => `Budget: ${label}`}
                       />
-                      <Bar dataKey="remaining" radius={[0, 6, 6, 0]}>
+                      <Bar dataKey="utilization" radius={[0, 6, 6, 0]}>
                         {budgetUtilizationData.map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
                             fill={entry.statusColor}
                           />
                         ))}
+                        <LabelList
+                          dataKey="daysRemaining"
+                          position="right"
+                          fontSize={9}
+                          fill="var(--chart-axis)"
+                          formatter={(value: unknown) =>
+                            value === 1 ? "1 day" : `${String(value)} days`
+                          }
+                        />
                       </Bar>
                     </BarChart>
                   </ChartContainer>
@@ -777,7 +764,7 @@ export default function HomePage() {
                     )}
 
                     <button
-                      onClick={() => router.push("/budgets")}
+                      onClick={() => router.push("/budgets?new=event")}
                       className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10 active:scale-[0.98]"
                     >
                       <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10">
@@ -794,7 +781,9 @@ export default function HomePage() {
                     </button>
 
                     <button
-                      onClick={() => router.push("/transactions")}
+                      onClick={() =>
+                        router.push("/transactions?new=transaction")
+                      }
                       className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10 active:scale-[0.98]"
                     >
                       <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10">

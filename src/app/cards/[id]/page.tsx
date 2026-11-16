@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/PageHeader";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
@@ -55,6 +56,7 @@ const CardDetailsPage = () => {
   // going back to wherever the user actually came from is correct here.
   // Falls back to the cards list when there's no tracked previous page.
   const handleBack = useBackNavigation("/cards");
+  const { data: session } = useSession();
   const { data: card, isLoading: cardLoading, error: cardError } = useCard(id);
   const { data: transactions = [], isLoading: transactionsLoading } =
     useCardTransactions(id);
@@ -237,16 +239,22 @@ const CardDetailsPage = () => {
               <h2 className="text-xl font-semibold tracking-tight text-gray-900">
                 Card details
               </h2>
-              <div className="flex gap-2">
-                <Button onClick={handleEditCard} variant="secondary" size="sm">
-                  <Edit className="h-4 w-4" />
-                  Edit
-                </Button>
-                <Button onClick={handleDeleteCard} variant="danger" size="sm">
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </Button>
-              </div>
+              {card.userId === session?.user?.id && (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleEditCard}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </Button>
+                  <Button onClick={handleDeleteCard} variant="danger" size="sm">
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </Button>
+                </div>
+              )}
             </div>
 
             {isEditing && (

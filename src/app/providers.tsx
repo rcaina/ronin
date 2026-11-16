@@ -34,6 +34,7 @@ export default function Providers({
           <ConditionalLayout>{children}</ConditionalLayout>
           <Toaster
             position="bottom-right"
+            containerClassName="!bottom-[calc(56px_+_env(safe-area-inset-bottom)_+_1rem)] lg:!bottom-4"
             toastOptions={{
               duration: 4000,
               style: {

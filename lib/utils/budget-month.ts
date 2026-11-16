@@ -36,6 +36,10 @@ export const getMonthWindow = (month: MonthKey): DateWindow => {
   return { start, end: new Date(next.getTime() - 1) };
 };
 
+/** Days left in a window that ends inclusively, counting today. */
+export const daysLeftInWindow = (window: DateWindow, now: Date): number =>
+  Math.max(0, Math.ceil((window.end.getTime() - now.getTime()) / 86_400_000));
+
 export const shiftMonth = (month: MonthKey, delta: number): MonthKey => {
   const start = monthStart(month);
   return toMonthKey(

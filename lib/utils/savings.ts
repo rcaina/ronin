@@ -1,3 +1,4 @@
+import { roundToCents } from "@/lib/utils";
 import type { AllocationSummary, PocketSummary } from "@/lib/types/savings";
 
 export type AllocationWithPocket = AllocationSummary & {
@@ -32,4 +33,38 @@ export function flattenAllocations(
         allocationTime(b) - allocationTime(a) ||
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
+}
+
+export interface GoalProgress {
+  saved: number;
+  goal: number;
+  percentage: number;
+  goals: number;
+  reached: number;
+}
+
+/** Progress over the pockets that have a goal: each pocket counts up to its own goal, so one overfunded pocket can't hide another. Null when no pocket has a goal. */
+export function getGoalProgress(
+  pockets: Pick<PocketSummary, "total" | "goalAmount">[] | undefined,
+): GoalProgress | null {
+  const withGoal = (pockets ?? []).filter(
+    (p): p is { total: number; goalAmount: number } =>
+      typeof p.goalAmount === "number" && p.goalAmount > 0,
+  );
+  if (withGoal.length === 0) return null;
+
+  const goal = roundToCents(withGoal.reduce((sum, p) => sum + p.goalAmount, 0));
+  const saved = roundToCents(
+    withGoal.reduce(
+      (sum, p) => sum + Math.max(0, Math.min(p.total, p.goalAmount)),
+      0,
+    ),
+  );
+  return {
+    saved,
+    goal,
+    percentage: roundToCents((saved / goal) * 100),
+    goals: withGoal.length,
+    reached: withGoal.filter((p) => p.total >= p.goalAmount).length,
+  };
 }

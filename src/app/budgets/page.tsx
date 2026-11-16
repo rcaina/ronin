@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, type MouseEvent } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState, useMemo, type MouseEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Calendar,
   Clock,
@@ -45,12 +45,22 @@ import { formatMonthLabel, toMonthKey } from "@/lib/utils/budget-month";
 
 type TabType = "active" | "completed" | "archived";
 
-const BudgetsPage = () => {
+const BudgetsPageContent = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>("active");
   const [budgetToDelete, setBudgetToDelete] =
     useState<BudgetWithRelations | null>(null);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(
+    () => searchParams.get("new") === "event",
+  );
+
+  // Drop ?new=event once read so refresh and back don't reopen the wizard.
+  useEffect(() => {
+    if (searchParams.has("new")) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [searchParams]);
   const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
 
   // Data hooks for different budget statuses (excluding card payments for calculations)
@@ -684,5 +694,11 @@ const BudgetsPage = () => {
     </div>
   );
 };
+
+const BudgetsPage = () => (
+  <Suspense fallback={null}>
+    <BudgetsPageContent />
+  </Suspense>
+);
 
 export default BudgetsPage;

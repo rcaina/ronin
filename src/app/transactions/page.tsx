@@ -153,7 +153,9 @@ const TransactionsPageContent = () => {
   const [sortOrder, setSortOrder] = useState<TransactionSortOrder>(() =>
     parseSortOrderParam(searchParams.get("order")),
   );
-  const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
+  const [showAddTransactionModal, setShowAddTransactionModal] = useState(
+    () => searchParams.get("new") === "transaction",
+  );
   const [showReceiptScanModal, setShowReceiptScanModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showFiltersModal, setShowFiltersModal] = useState(false);

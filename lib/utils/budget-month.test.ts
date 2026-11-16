@@ -5,6 +5,7 @@ import {
   cardTransactionsInWindow,
   computeCarry,
   computeQuickFill,
+  daysLeftInWindow,
   getMonthWindow,
   isCategoryInMonth,
   mergeMonthPlans,
@@ -375,5 +376,27 @@ describe("mergeMonthPlans", () => {
         { allocatedAmount: 20, months: [] },
       ]),
     ).toEqual([]);
+  });
+});
+
+describe("daysLeftInWindow", () => {
+  const november = getMonthWindow("2026-11");
+
+  it("counts today and the days after it", () => {
+    expect(daysLeftInWindow(november, new Date("2026-11-16T10:00:00Z"))).toBe(
+      15,
+    );
+  });
+
+  it("is 1 on the last day", () => {
+    expect(daysLeftInWindow(november, new Date("2026-11-30T23:00:00Z"))).toBe(
+      1,
+    );
+  });
+
+  it("is 0 once the window has ended", () => {
+    expect(daysLeftInWindow(november, new Date("2026-12-01T00:00:00Z"))).toBe(
+      0,
+    );
   });
 });

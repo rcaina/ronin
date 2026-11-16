@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, CreditCard, DollarSign, Shield, Merge, X } from "lucide-react";
+import { Plus, CreditCard, DollarSign, Wallet, Merge, X } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -28,7 +28,7 @@ import { usePageLoading } from "@/components/ConditionalLayout";
 import type { CardType } from "@prisma/client";
 import Button from "@/components/Button";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, roundToCents } from "@/lib/utils";
 import StatsCard from "@/components/StatsCard";
 
 interface User {
@@ -272,19 +272,26 @@ const CardsPage = () => {
     [cards, selectedCardIds],
   );
 
-  const { totalSpent, totalLimit, activeCards, creditCards } = useMemo(() => {
+  const { totalSpent, totalLimit, available, creditCards } = useMemo(() => {
     const totalSpent = cards.reduce((sum, card) => sum + card.amountSpent, 0);
     const totalLimit = cards
       .filter(
         (card) => card.type === "credit" || card.type === "business_credit",
       )
       .reduce((sum, card) => sum + (card.spendingLimit ?? 0), 0);
-    const activeCards = cards.filter((card) => card.isActive).length;
+    const available = roundToCents(
+      cards
+        .filter((card) => card.spendingLimit)
+        .reduce(
+          (sum, card) => sum + (card.spendingLimit ?? 0) - card.amountSpent,
+          0,
+        ),
+    );
     const creditCards = cards.filter(
       (card) => card.type === "credit" || card.type === "business_credit",
     ).length;
 
-    return { totalSpent, totalLimit, activeCards, creditCards };
+    return { totalSpent, totalLimit, available, creditCards };
   }, [cards]);
 
   // Build a tab per card owner. Only surface tabs when more than one person
@@ -508,11 +515,12 @@ const CardsPage = () => {
               />
 
               <StatsCard
-                title="Active cards"
-                value={activeCards}
-                subtitle={`${cards.length - activeCards} inactive`}
+                title="Available"
+                value={formatCurrency(available)}
+                subtitle="Left on cards with a limit"
+                valueColor={available < 0 ? "text-red-600" : undefined}
                 icon={
-                  <Shield className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
+                  <Wallet className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
                 }
                 iconColor="text-secondary-600"
               />

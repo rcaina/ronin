@@ -15,6 +15,7 @@ import { toast } from "react-hot-toast";
 import type { CreatePocketSchema } from "@/lib/api-schemas/savings";
 import { AlertCircle, PiggyBank, Target, DollarSign, Plus } from "lucide-react";
 import { formatCurrency, roundToCents } from "@/lib/utils";
+import { getGoalProgress } from "@/lib/utils/savings";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
 import {
   CHART_COLORS,
@@ -62,45 +63,7 @@ const SavingsCategoriesPage = () => {
     typeof savings?.total === "number" && !isNaN(savings.total)
       ? savings.total
       : 0;
-  const totalGoalAmount = roundToCents(
-    savings?.pockets?.reduce((sum, pocket) => {
-      // Safe type check for goalAmount - use Number() to ensure numeric conversion
-      const goalValue =
-        pocket.goalAmount != null &&
-        typeof pocket.goalAmount === "number" &&
-        !isNaN(pocket.goalAmount)
-          ? Number(pocket.goalAmount)
-          : 0;
-      return goalValue > 0 ? sum + goalValue : sum;
-    }, 0) ?? 0,
-  );
-  const totalProgress =
-    totalGoalAmount > 0 ? (totalSaved / totalGoalAmount) * 100 : 0;
-  const totalProgressPercentage = roundToCents(Math.min(totalProgress, 100));
-
-  // Count pockets with goals
-  const pocketsWithGoals =
-    savings?.pockets?.filter((p) => {
-      return (
-        p.goalAmount !== null &&
-        p.goalAmount !== undefined &&
-        typeof p.goalAmount === "number" &&
-        p.goalAmount > 0
-      );
-    }).length ?? 0;
-  const pocketsReachedGoal =
-    savings?.pockets?.filter((p) => {
-      if (
-        p.goalAmount !== null &&
-        p.goalAmount !== undefined &&
-        typeof p.goalAmount === "number" &&
-        p.goalAmount > 0 &&
-        typeof p.total === "number"
-      ) {
-        return p.total >= p.goalAmount;
-      }
-      return false;
-    }).length ?? 0;
+  const goals = getGoalProgress(savings?.pockets);
 
   // Donut breakdown of savings by pocket (uses data already on the page)
   const pocketBreakdownData =
@@ -192,25 +155,23 @@ const SavingsCategoriesPage = () => {
             iconColor="text-secondary-600"
           />
 
-          {totalGoalAmount > 0 && (
+          {goals && (
             <StatsCard
               title="Goal progress"
-              value={`${totalProgressPercentage.toFixed(0)}%`}
-              subtitle={`${pocketsReachedGoal}/${pocketsWithGoals} goals reached`}
+              value={`${Math.floor(goals.percentage)}%`}
+              subtitle={`${goals.reached}/${goals.goals} goals reached`}
               icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
               iconColor="text-secondary-600"
               valueColor={
-                totalProgressPercentage >= 100
-                  ? "text-green-600"
-                  : "text-gray-900"
+                goals.percentage >= 100 ? "text-green-600" : "text-gray-900"
               }
             />
           )}
 
-          {totalGoalAmount > 0 && (
+          {goals && (
             <StatsCard
               title="Total goal"
-              value={formatCurrency(totalGoalAmount)}
+              value={formatCurrency(goals.goal)}
               subtitle="Combined goal amount"
               icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
               iconColor="text-gray-500"
@@ -290,24 +251,22 @@ const SavingsCategoriesPage = () => {
           </div>
 
           {/* Goal progress — overall + per pocket */}
-          {totalGoalAmount > 0 && (
+          {goals && (
             <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0 sm:p-5">
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-gray-900">
                   Goal progress
                 </h3>
                 <span className="text-xs font-medium tabular-nums text-gray-500">
-                  {totalProgressPercentage.toFixed(1)}% complete
+                  {Math.floor(goals.percentage)}% complete
                 </span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ease-out ${
-                    totalProgressPercentage >= 100
-                      ? "bg-green-500"
-                      : "bg-secondary"
+                    goals.percentage >= 100 ? "bg-green-500" : "bg-secondary"
                   }`}
-                  style={{ width: `${totalProgressPercentage}%` }}
+                  style={{ width: `${goals.percentage}%` }}
                 ></div>
               </div>
               <div className="mt-4 space-y-3">

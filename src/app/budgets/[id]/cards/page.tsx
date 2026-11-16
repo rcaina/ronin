@@ -4,7 +4,7 @@ import {
   Plus,
   CreditCard,
   DollarSign,
-  Shield,
+  Wallet,
   AlertCircle,
   Target,
   FolderInput,
@@ -32,7 +32,7 @@ import { type Card, mapCardType, getCardColor } from "@/lib/utils/cards";
 import { useBudgetMonth } from "@/lib/utils/hooks";
 import { formatMonthLabel } from "@/lib/utils/budget-month";
 import StatsCard from "@/components/StatsCard";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, roundToCents } from "@/lib/utils";
 import type { Card as PrismaCard } from "@prisma/client";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
@@ -306,7 +306,7 @@ const BudgetCardsPage = () => {
     );
   };
 
-  const { totalSpent, totalLimit, activeCards, creditCards } = useMemo(() => {
+  const { totalSpent, totalLimit, available, creditCards } = useMemo(() => {
     const totalSpent = cards.reduce((sum, card) => sum + card.amountSpent, 0);
     const totalLimit = cards
       .filter(
@@ -315,12 +315,19 @@ const BudgetCardsPage = () => {
           (card.type === "credit" || card.type === "business_credit"),
       )
       .reduce((sum, card) => sum + (card.spendingLimit ?? 0), 0);
-    const activeCards = cards.filter((card) => card.isActive).length;
+    const available = roundToCents(
+      cards
+        .filter((card) => card.spendingLimit)
+        .reduce(
+          (sum, card) => sum + (card.spendingLimit ?? 0) - card.amountSpent,
+          0,
+        ),
+    );
     const creditCards = cards.filter(
       (card) => card.type === "credit" || card.type === "business_credit",
     ).length;
 
-    return { totalSpent, totalLimit, activeCards, creditCards };
+    return { totalSpent, totalLimit, available, creditCards };
   }, [cards]);
 
   // Build a tab per card owner. Only surface tabs when more than one person
@@ -450,10 +457,11 @@ const BudgetCardsPage = () => {
             />
 
             <StatsCard
-              title="Active cards"
-              value={activeCards}
-              subtitle={`${cards.length - activeCards} inactive`}
-              icon={<Shield className="h-4 w-4 sm:h-5 sm:w-5" />}
+              title="Available"
+              value={formatCurrency(available)}
+              subtitle="Left on cards with a limit"
+              valueColor={available < 0 ? "text-red-600" : undefined}
+              icon={<Wallet className="h-4 w-4 sm:h-5 sm:w-5" />}
             />
 
             <StatsCard
@@ -593,7 +601,7 @@ const BudgetCardsPage = () => {
                     onCopy={handleCopyCard}
                     onDelete={handleDeleteCard}
                     onClick={handleCardClick}
-                    canEdit={false}
+                    canEdit={card.userId === session?.user?.id}
                   />
                 );
               })}

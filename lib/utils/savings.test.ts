@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { flattenAllocations } from "./savings";
+import { flattenAllocations, getGoalProgress } from "./savings";
 import type { PocketSummary } from "@/lib/types/savings";
 
 const pocket = (
@@ -91,5 +91,38 @@ describe("flattenAllocations", () => {
 
   it("returns an empty list when there are no pockets", () => {
     expect(flattenAllocations(undefined)).toEqual([]);
+  });
+});
+
+describe("getGoalProgress", () => {
+  it("caps each pocket at its goal so an unfunded goal keeps progress under 100%", () => {
+    expect(
+      getGoalProgress([
+        { total: 900, goalAmount: 300 },
+        { total: 0, goalAmount: 300 },
+      ]),
+    ).toEqual({ saved: 300, goal: 600, percentage: 50, goals: 2, reached: 1 });
+  });
+
+  it("ignores pockets without a goal", () => {
+    expect(
+      getGoalProgress([
+        { total: 500, goalAmount: null },
+        { total: 50, goalAmount: 200 },
+      ]),
+    ).toEqual({ saved: 50, goal: 200, percentage: 25, goals: 1, reached: 0 });
+  });
+
+  it("reads 100% only when every goal is met", () => {
+    expect(
+      getGoalProgress([
+        { total: 300, goalAmount: 300 },
+        { total: 450, goalAmount: 400 },
+      ])?.percentage,
+    ).toBe(100);
+  });
+
+  it("is null when no pocket has a goal", () => {
+    expect(getGoalProgress([{ total: 100, goalAmount: 0 }])).toBeNull();
   });
 });
