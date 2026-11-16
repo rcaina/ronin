@@ -7,6 +7,7 @@ import Modal from "../Modal";
 import Button from "../Button";
 import UpgradeModal from "../UpgradeModal";
 import { useActiveBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { findContinuousBudgetId } from "@/lib/utils/budget-month";
 import {
   useImportTransactions,
   useImportTransactionsPreview,
@@ -89,7 +90,9 @@ export default function ImportTransactionsModal({
   const [headers, setHeaders] = useState<string[]>([]);
   const [dataRows, setDataRows] = useState<string[][]>([]);
   const [mapping, setMapping] = useState<Mapping>(emptyMapping());
-  const [selectedBudgetId, setSelectedBudgetId] = useState("");
+  const [pickedBudgetId, setPickedBudgetId] = useState("");
+  const selectedBudgetId =
+    pickedBudgetId || (findContinuousBudgetId(budgets) ?? "");
   const [preview, setPreview] = useState<ImportPreviewRow[]>([]);
   const [excluded, setExcluded] = useState<Set<number>>(new Set());
   const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
@@ -314,7 +317,7 @@ export default function ImportTransactionsModal({
               </label>
               <select
                 value={selectedBudgetId}
-                onChange={(e) => setSelectedBudgetId(e.target.value)}
+                onChange={(e) => setPickedBudgetId(e.target.value)}
                 className="w-full rounded-xl border border-gray-300 bg-surface-card px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               >
                 <option value="">Select an active budget</option>

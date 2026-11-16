@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import { useBudgetCards } from "@/lib/data-hooks/budgets/useBudgetCards";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { findContinuousBudgetId } from "@/lib/utils/budget-month";
 import { useCreateCardPayment } from "@/lib/data-hooks/transactions/useTransactions";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import { useLockBodyScroll } from "@/lib/utils/hooks";
@@ -99,7 +100,7 @@ export function CardPaymentModal({
     ) {
       setFormData((prev) => ({
         ...prev,
-        budgetId: budgets[0]?.id ?? "",
+        budgetId: findContinuousBudgetId(budgets) ?? budgets[0]?.id ?? "",
       }));
     }
   }, [budgets, editingTransaction, budgetId, formData.budgetId]);

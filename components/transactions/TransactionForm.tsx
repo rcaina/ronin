@@ -13,6 +13,7 @@ import {
 import { useBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { findContinuousBudgetId } from "@/lib/utils/budget-month";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import { useBillingStatus } from "@/lib/data-hooks/billing/useBilling";
 import { useCreateRecurringTransaction } from "@/lib/data-hooks/recurring/useRecurring";
@@ -232,6 +233,13 @@ export default function TransactionForm({
     setSelectedBudgetId(watchedBudgetId);
     setNewCategoryTarget(null);
   }, [watchedBudgetId]);
+
+  const continuousBudgetId = findContinuousBudgetId(budgets);
+  useEffect(() => {
+    if (!transaction && !budgetId && !watchedBudgetId && continuousBudgetId) {
+      setValue("budgetId", continuousBudgetId);
+    }
+  }, [transaction, budgetId, watchedBudgetId, continuousBudgetId, setValue]);
 
   // Determine if the selected card is a credit card
   const selectedCard = cards.find((card) => card.id === watchedCardId);

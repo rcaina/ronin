@@ -10,6 +10,7 @@ import Modal from "../Modal";
 import Button from "../Button";
 import DateInput from "../DateInput";
 import { useActiveBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { findContinuousBudgetId } from "@/lib/utils/budget-month";
 import { useBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategories";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import {
@@ -125,7 +126,9 @@ export default function RecurringTransactionForm({
         categoryId: "",
         cardId: "",
       });
-      setReferenceBudgetId(activeBudgets[0]?.id ?? "");
+      setReferenceBudgetId(
+        findContinuousBudgetId(activeBudgets) ?? activeBudgets[0]?.id ?? "",
+      );
     }
     // Only reset when the modal opens or the template being edited changes —
     // not on every activeBudgets refetch.
@@ -296,8 +299,9 @@ export default function RecurringTransactionForm({
                 <div className="group relative">
                   <Info className="h-4 w-4 text-secondary-600" />
                   <div className="absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg bg-primary-950 p-2 text-xs text-white group-hover:block">
-                    Used only to choose a category below — each occurrence posts
-                    into whichever active budget covers its date.
+                    Used only to choose a category below. Each occurrence posts
+                    into your monthly budget, or the active budget covering its
+                    date if you have none.
                   </div>
                 </div>
               </label>

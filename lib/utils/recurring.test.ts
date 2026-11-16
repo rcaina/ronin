@@ -241,4 +241,26 @@ describe("findBudgetForOccurrence", () => {
     expect(findBudgetForOccurrence(d("2026-01-01"), budgets)?.id).toBe("jan");
     expect(findBudgetForOccurrence(d("2026-01-31"), budgets)?.id).toBe("jan");
   });
+
+  it("treats an open-ended budget as covering every date", () => {
+    const budgets = [
+      { ...budget("monthly", "2026-06-01", "2026-06-01"), endAt: null },
+    ];
+    expect(findBudgetForOccurrence(d("2026-01-15"), budgets)?.id).toBe(
+      "monthly",
+    );
+    expect(findBudgetForOccurrence(d("2030-12-31"), budgets)?.id).toBe(
+      "monthly",
+    );
+  });
+
+  it("prefers the open-ended budget over a dated one covering the date", () => {
+    const budgets = [
+      { ...budget("monthly", "2026-01-01", "2026-01-01"), endAt: null },
+      budget("trip", "2026-07-01", "2026-07-31"),
+    ];
+    expect(findBudgetForOccurrence(d("2026-07-10"), budgets)?.id).toBe(
+      "monthly",
+    );
+  });
 });

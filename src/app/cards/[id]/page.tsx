@@ -24,6 +24,7 @@ import {
   useUpdateCard,
 } from "@/lib/data-hooks/cards/useCards";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { findContinuousBudgetId } from "@/lib/utils/budget-month";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import { formatCurrency, roundToCents } from "@/lib/utils";
 import { calculateSpendingPercentage } from "@/lib/utils/spending";
@@ -462,7 +463,7 @@ const CardDetailsPage = () => {
       {/* Add Transaction Modal */}
       <AddTransactionModal
         isOpen={showAddTransactionModal}
-        budgetId={budgets[0]?.id ?? ""} // Use first budget or empty string
+        budgetId={findContinuousBudgetId(budgets) ?? budgets[0]?.id ?? ""}
         cardId={id ?? ""}
         onClose={() => setShowAddTransactionModal(false)}
         onSuccess={handleTransactionSuccess}

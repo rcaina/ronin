@@ -148,20 +148,22 @@ export interface BudgetWindow {
 }
 
 /**
- * Finds the ACTIVE budget whose `[startAt, endAt]` range contains
- * `occurrenceDate`, or `null` if none does — the "needs a budget" hold case.
- * When more than one active budget's range contains the date (shouldn't
- * normally happen, but budgets aren't required to be non-overlapping), the
- * one with the latest `startAt` wins, matching "the current period" intent.
+ * Finds the ACTIVE budget an occurrence posts into, or `null` if none covers
+ * it — the "needs a budget" hold case. An open-ended (continuous) budget
+ * covers every date and always wins. Otherwise the budget whose
+ * `[startAt, endAt]` range contains the date; on overlap the latest `startAt`
+ * wins, matching "the current period" intent.
  */
 export const findBudgetForOccurrence = <B extends BudgetWindow>(
   occurrenceDate: Date,
   budgets: readonly B[],
 ): B | null => {
-  const candidates = budgets.filter(
+  const active = budgets.filter((b) => b.status === "ACTIVE");
+  const openEnded = active.find((b) => b.endAt === null);
+  if (openEnded) return openEnded;
+
+  const candidates = active.filter(
     (b) =>
-      b.status === "ACTIVE" &&
-      // Open-ended (continuous) budgets aren't recurring targets until entry points move to them.
       b.endAt !== null &&
       b.startAt.getTime() <= occurrenceDate.getTime() &&
       occurrenceDate.getTime() <= b.endAt.getTime(),

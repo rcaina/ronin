@@ -53,6 +53,12 @@ export const resolveMonthWindow = (
   return kind === BudgetKind.CONTINUOUS ? getMonthWindow(month) : null;
 };
 
+/** New transactions, scans and imports default to the continuous budget when the account has one. */
+export const findContinuousBudgetId = (
+  budgets: readonly { id: string; kind: BudgetKind }[],
+): string | undefined =>
+  budgets.find((budget) => budget.kind === BudgetKind.CONTINUOUS)?.id;
+
 export const formatMonthLabel = (month: MonthKey): string =>
   monthStart(month).toLocaleDateString("en-US", {
     month: "long",
