@@ -9,6 +9,7 @@ import { useParams, usePathname } from "next/navigation";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBackNavigation } from "@/lib/utils/navigation-history";
 import { useMemo } from "react";
+import { useIsFetching } from "@tanstack/react-query";
 import {
   BudgetHeaderProvider,
   useBudgetHeader,
@@ -25,6 +26,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const [month, setMonth] = useBudgetMonth();
   const showMonthSwitcher = budget?.kind === "CONTINUOUS";
   const monthQuery = showMonthSwitcher ? `?month=${month}` : "";
+  // Pages keep the previous month on screen while the new one loads; block edits against it until it arrives.
+  const monthLoading =
+    useIsFetching({
+      predicate: (query) =>
+        query.state.data === undefined && query.queryKey.includes(month),
+    }) > 0;
   const monthSwitcher = showMonthSwitcher && (
     <MonthSwitcher
       month={month}
@@ -157,7 +164,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         </>
       )}
 
-      <div className="pt-4 lg:flex-1 lg:overflow-y-auto lg:overflow-x-hidden lg:pt-0">
+      <div
+        inert={showMonthSwitcher && monthLoading}
+        aria-busy={showMonthSwitcher && monthLoading}
+        className={`pt-4 transition-opacity duration-200 lg:flex-1 lg:overflow-y-auto lg:overflow-x-hidden lg:pt-0 ${
+          showMonthSwitcher && monthLoading ? "opacity-60" : ""
+        }`}
+      >
         {children}
       </div>
     </div>

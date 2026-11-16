@@ -1045,9 +1045,11 @@ export const createBudgetCategory = async (
       group: data.group,
       allocatedAmount: data.allocatedAmount,
       defaultCategoryId: defaultCategory.id,
-      // Added while viewing a past month: start it there so that month shows it.
+      // Added while viewing another month: start it there, so a past month shows it and earlier months don't.
       ...(monthWindow &&
-        monthWindow.end < new Date() && { createdAt: monthWindow.start }),
+        (monthWindow.end < new Date() || monthWindow.start > new Date()) && {
+          createdAt: monthWindow.start,
+        }),
     },
   });
 

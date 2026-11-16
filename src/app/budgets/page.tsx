@@ -64,8 +64,12 @@ const BudgetsPageContent = () => {
   const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
 
   // Data hooks for different budget statuses (excluding card payments for calculations)
-  const { data: activeBudgetsData, isLoading: activeLoading } =
-    useActiveBudgets(true);
+  const {
+    data: activeBudgetsData,
+    isLoading: activeLoading,
+    error: activeError,
+    refetch: refetchActive,
+  } = useActiveBudgets(true);
   const { data: completedBudgetsData, isLoading: completedLoading } =
     useCompletedBudgets(true);
   const { data: archivedBudgetsData, isLoading: archivedLoading } =
@@ -81,11 +85,12 @@ const BudgetsPageContent = () => {
     (budget) => budget.kind === "CONTINUOUS",
   );
   const thisMonth = toMonthKey(new Date());
-  const { data: monthBudget, isLoading: monthLoading } = useBudget(
-    continuousBudget?.id ?? "",
-    true,
-    thisMonth,
-  );
+  const {
+    data: monthBudget,
+    isLoading: monthLoading,
+    error: monthError,
+    refetch: refetchMonth,
+  } = useBudget(continuousBudget?.id ?? "", true, thisMonth);
   const activeBudgets = useMemo(
     () => allActiveBudgets.filter((budget) => budget.kind !== "CONTINUOUS"),
     [allActiveBudgets],
@@ -164,6 +169,25 @@ const BudgetsPageContent = () => {
   usePageLoading(isLoading, "Loading budgets...");
   if (isLoading) {
     return null;
+  }
+
+  // Without this, a failed load reads as "no monthly budget" or a $0 month.
+  if ((activeError && !activeBudgetsData) || (monthError && !monthBudget)) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-red-600">Failed to load budgets</p>
+        <Button
+          variant="outline"
+          className="mt-3 min-h-11"
+          onClick={() => {
+            void refetchActive();
+            if (continuousBudget) void refetchMonth();
+          }}
+        >
+          Try again
+        </Button>
+      </div>
+    );
   }
 
   const getBudgetStatus = (budget: BudgetWithRelations) => {
@@ -298,13 +322,15 @@ const BudgetsPageContent = () => {
                 <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-gray-100">
                   <div
                     className={`h-2 rounded-full transition-all duration-500 ease-out ${
-                      monthPercent > 100
+                      monthRemaining < 0
                         ? "bg-red-500"
                         : monthPercent === 100
                           ? "bg-green-500"
                           : "bg-secondary"
                     }`}
-                    style={{ width: `${Math.min(monthPercent, 100)}%` }}
+                    style={{
+                      width: `${monthRemaining < 0 ? 100 : Math.min(monthPercent, 100)}%`,
+                    }}
                   />
                 </div>
                 <div className="mt-3 grid grid-cols-3 divide-x divide-gray-100 rounded-xl bg-surface px-2 py-3 text-center">

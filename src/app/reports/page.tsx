@@ -168,7 +168,7 @@ export default function ReportsPage() {
               <div
                 role="tablist"
                 aria-label="Select report range"
-                className="scrollbar-hide inline-flex w-fit shrink-0 items-center gap-1 overflow-x-auto rounded-full bg-surface-muted p-1"
+                className="scrollbar-hide inline-flex max-w-full shrink-0 items-center gap-1 overflow-x-auto rounded-full bg-surface-muted p-1"
               >
                 {RANGE_OPTIONS.map((option) => {
                   const isActive = option.value === range;

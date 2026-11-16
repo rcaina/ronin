@@ -756,7 +756,7 @@ const BudgetDetailsPage = () => {
                         `/budgets/${String(id)}/categories${monthQuery}`,
                       )
                     }
-                    className="text-[10px] font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800 sm:text-xs"
+                    className="tap-target text-[10px] font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800 sm:text-xs"
                   >
                     View details
                   </button>
@@ -798,7 +798,7 @@ const BudgetDetailsPage = () => {
                         (cat) =>
                           getCategoryStatus(
                             roundToCents(calculateCategorySpent(cat)),
-                            (cat.allocatedAmount ?? 0) + (cat.carry ?? 0),
+                            cat.allocatedAmount ?? 0,
                           ) !== "open",
                       ).length;
 

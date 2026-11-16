@@ -23,4 +23,10 @@ describe("safeCallbackPath", () => {
     expect(safeCallbackPath("//evil.example/x", origin)).toBe("/");
     expect(safeCallbackPath("javascript:alert(1)", origin)).toBe("/");
   });
+
+  it("refuses same-origin paths that normalize to a protocol-relative URL", () => {
+    expect(safeCallbackPath("/.//evil.example", origin)).toBe("/");
+    expect(safeCallbackPath("/%2e//evil.example", origin)).toBe("/");
+    expect(safeCallbackPath("/./\\evil.example", origin)).toBe("/");
+  });
 });

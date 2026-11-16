@@ -646,7 +646,7 @@ const BudgetCategoriesPage = () => {
 
                   {/* Tooltip for over budget categories */}
                   {getOverBudgetSubtitle().tooltip && (
-                    <div className="absolute left-1/2 top-full z-10 mt-2 min-w-[200px] -translate-x-1/2 transform whitespace-nowrap rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100 group-focus:opacity-100">
+                    <div className="absolute right-0 top-full z-10 mt-2 min-w-[200px] max-w-[calc(100vw-2rem)] rounded-xl bg-primary-950/90 px-3 py-2 text-sm text-white opacity-0 shadow-lifted transition-opacity duration-200 group-hover:opacity-100 group-focus:opacity-100 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:whitespace-nowrap">
                       <div className="mb-2 flex items-center gap-2">
                         <Info className="h-4 w-4 text-secondary-300" />
                         <span className="font-medium">

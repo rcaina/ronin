@@ -78,23 +78,28 @@ export default function QuickFillModal({
       title={`Fill ${monthLabel}`}
       footer={
         <div className="flex gap-3">
-          <Button variant="outline" onClick={onClose} className="flex-1">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={fillMutation.isPending}
+            className="min-h-11 flex-1"
+          >
             Cancel
           </Button>
           <Button
             variant="primary"
             onClick={() => void handleFill()}
-            disabled={fillMutation.isPending}
-            className="flex-1"
+            isLoading={fillMutation.isPending}
+            className="min-h-11 flex-1"
           >
-            {fillMutation.isPending ? "Filling..." : "Fill month"}
+            Fill month
           </Button>
         </div>
       }
     >
       <p className="mb-3 text-sm text-gray-500">
-        Replaces {monthLabel}&apos;s planned amount on every category with
-        history in those months.
+        Replaces {monthLabel}&apos;s planned amount on every category that
+        existed in the months you copy from.
       </p>
       <div className="space-y-2">
         {options.map((option) => (

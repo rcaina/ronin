@@ -34,7 +34,7 @@ export default function MonthSwitcher({
           This month
         </Button>
       )}
-      <div className="card-surface flex flex-1 items-center justify-between gap-1 p-1 sm:flex-none">
+      <div className="card-surface flex min-w-0 flex-1 items-center justify-between gap-1 p-1 sm:flex-none">
         <button
           type="button"
           onClick={() => onChange(shiftMonth(month, -1))}
@@ -46,7 +46,7 @@ export default function MonthSwitcher({
         </button>
         <span
           aria-live="polite"
-          className="min-w-36 text-center text-sm font-semibold tabular-nums text-gray-900"
+          className="min-w-0 flex-1 truncate text-center text-sm font-semibold tabular-nums text-gray-900 sm:min-w-36 sm:flex-none"
         >
           {formatMonthLabel(month)}
         </span>

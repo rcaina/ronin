@@ -248,7 +248,7 @@ export default function BudgetCategoriesListView({
                                 ></div>
                                 <div className="min-w-0 flex-1">
                                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:space-x-2">
-                                    <p className="font-medium text-gray-900">
+                                    <p className="break-words font-medium text-gray-900">
                                       {budgetCategory.name}
                                     </p>
                                     <span className="text-sm text-gray-500">
@@ -312,10 +312,7 @@ export default function BudgetCategoriesListView({
                                   {formatCurrency(spent)}
                                 </p>
                                 <p className="text-sm text-gray-500">
-                                  of{" "}
-                                  {formatCurrency(
-                                    budgetCategory.allocatedAmount ?? 0,
-                                  )}
+                                  of {formatCurrency(available)}
                                 </p>
                               </div>
                               {transactions.length > 0 && (

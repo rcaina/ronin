@@ -42,6 +42,16 @@ interface AccountSummary {
   recurringMoved: number;
 }
 
+// Budgets created after this migration ran are events made in the new app, never legacy monthly budgets.
+const CUTOFF_MIGRATION = "20261116064245_continuous_budget_kind";
+
+const legacyMonthlyBudgets = (cutoff: Date) => ({
+  kind: BudgetKind.EVENT,
+  period: PeriodType.MONTHLY,
+  deleted: null,
+  createdAt: { lt: cutoff },
+});
+
 class DryRunRollback extends Error {
   constructor(readonly summary: AccountSummary) {
     super("dry run");
@@ -52,14 +62,10 @@ async function mergeAccount(
   tx: Prisma.TransactionClient,
   accountId: string,
   now: Date,
+  cutoff: Date,
 ): Promise<AccountSummary> {
   const sources = await tx.budget.findMany({
-    where: {
-      accountId,
-      kind: BudgetKind.EVENT,
-      period: PeriodType.MONTHLY,
-      deleted: null,
-    },
+    where: { accountId, ...legacyMonthlyBudgets(cutoff) },
     include: {
       categories: { where: { deleted: null } },
       cards: { where: { deleted: null } },
@@ -240,12 +246,20 @@ async function main() {
   const dryRun = process.argv.includes("--dry-run");
   const now = new Date();
 
+  const [migration] = await prisma.$queryRaw<{ finished_at: Date | null }[]>`
+    SELECT finished_at FROM _prisma_migrations
+    WHERE migration_name = ${CUTOFF_MIGRATION} AND rolled_back_at IS NULL`;
+  const cutoff = migration?.finished_at;
+  if (!cutoff) {
+    console.error(
+      `Migration ${CUTOFF_MIGRATION} has not been applied to this database; run the migrations first.`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
   const accounts = await prisma.budget.findMany({
-    where: {
-      kind: BudgetKind.EVENT,
-      period: PeriodType.MONTHLY,
-      deleted: null,
-    },
+    where: legacyMonthlyBudgets(cutoff),
     distinct: ["accountId"],
     select: { accountId: true },
   });
@@ -264,7 +278,7 @@ async function main() {
       const summary = await prisma
         .$transaction(
           async (tx) => {
-            const result = await mergeAccount(tx, accountId, now);
+            const result = await mergeAccount(tx, accountId, now, cutoff);
             if (dryRun) throw new DryRunRollback(result);
             return result;
           },

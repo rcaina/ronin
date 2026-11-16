@@ -167,7 +167,7 @@ export default function BudgetCategoryCard({
               />
             </div>
           ) : (
-            <h3 className="text-base font-semibold text-gray-900">
+            <h3 className="min-w-0 break-words text-base font-semibold text-gray-900">
               {budgetCategory.name}
             </h3>
           )}
@@ -251,7 +251,7 @@ export default function BudgetCategoryCard({
                 <span className="font-medium tabular-nums text-gray-900">
                   {formatCurrency(categorySpent)}
                 </span>{" "}
-                spent of {formatCurrency(budgetCategory.allocatedAmount ?? 0)}
+                spent of {formatCurrency(available)}
               </span>
               <span
                 className={`flex-shrink-0 font-medium tabular-nums ${

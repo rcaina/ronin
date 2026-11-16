@@ -579,7 +579,7 @@ export default function HomePage() {
                     <BarChart
                       data={budgetUtilizationData}
                       layout="vertical"
-                      margin={{ top: 5, right: 44, left: 60, bottom: 5 }}
+                      margin={{ top: 5, right: 44, left: 0, bottom: 5 }}
                     >
                       <XAxis
                         type="number"

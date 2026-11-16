@@ -6,9 +6,9 @@ export const safeCallbackPath = (
   if (!callbackUrl) return "/";
   try {
     const url = new URL(callbackUrl, origin);
-    return url.origin === origin
-      ? `${url.pathname}${url.search}${url.hash}`
-      : "/";
+    // "/.//evil.com" normalizes to the pathname "//evil.com", which the router reads as another host.
+    if (url.origin !== origin || url.pathname.startsWith("//")) return "/";
+    return `${url.pathname}${url.search}${url.hash}`;
   } catch {
     return "/";
   }
