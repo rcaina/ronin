@@ -99,7 +99,7 @@ export const canCreateBudget = (
   if (activeBudgetCount >= FREE_LIMITS.maxActiveBudgets) {
     return {
       allowed: false,
-      reason: `Free plan is limited to ${FREE_LIMITS.maxActiveBudgets} active budget. Upgrade to Premium for unlimited budgets.`,
+      reason: `Free plan is limited to ${FREE_LIMITS.maxActiveBudgets} active event. Upgrade to Premium for unlimited events.`,
     };
   }
 

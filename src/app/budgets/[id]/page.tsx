@@ -2,6 +2,7 @@
 
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetMonth } from "@/lib/utils/hooks";
+import { formatMonthLabel } from "@/lib/utils/budget-month";
 import { useParams, useRouter } from "next/navigation";
 import {
   TrendingUp,
@@ -111,6 +112,8 @@ const BudgetDetailsPage = () => {
     error,
   } = useBudget(id as string, true, month); // Exclude card payments for calculations
   const monthQuery = budget?.kind === "CONTINUOUS" ? `?month=${month}` : "";
+  const monthLabel =
+    budget?.kind === "CONTINUOUS" ? formatMonthLabel(month) : null;
   const { setActions } = useBudgetHeader();
   const { setMobileHeaderAction } = useMobileHeaderAction();
   const deleteTransactionMutation = useDeleteTransaction();
@@ -1040,7 +1043,9 @@ const BudgetDetailsPage = () => {
                     return (
                       <div className="py-6 text-center">
                         <p className="text-sm text-gray-500">
-                          No transactions yet — add your first one.
+                          {monthLabel
+                            ? `No transactions in ${monthLabel}.`
+                            : "No transactions yet."}
                         </p>
                         {budget.status === "ACTIVE" && (
                           <button

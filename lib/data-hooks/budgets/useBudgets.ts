@@ -12,15 +12,11 @@ import {
   markBudgetCompleted,
   markBudgetArchived,
   reactivateBudget,
-  createBudget,
   createBudgetFromScratchWithCards,
   getOrCreateContinuousBudget,
 } from "../services/budgets";
 import type { UpdateBudgetData } from "@/lib/types/budget";
 import type { BudgetStatus } from "@prisma/client";
-
-type CreateBudgetVariables = Parameters<typeof createBudget>[0];
-type CreateBudgetResponse = Awaited<ReturnType<typeof createBudget>>;
 
 export const useBudgets = (
   status?: BudgetStatus,
@@ -93,17 +89,6 @@ export const useGetOrCreateContinuousBudget = () => {
 
   return useMutation({
     mutationFn: getOrCreateContinuousBudget,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["budgets"] });
-    },
-  });
-};
-
-export const useCreateBudget = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<CreateBudgetResponse, Error, CreateBudgetVariables>({
-    mutationFn: createBudget,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },

@@ -71,8 +71,8 @@ export const NOTIFICATION_TRIGGERS: readonly NotificationTriggerToggle[] = [
   },
   {
     key: "budgetPeriodEnding",
-    label: "Budget period ending",
-    description: "When your active budget period ends within 3 days.",
+    label: "Event ending",
+    description: "When an event's end date is within 3 days.",
   },
   {
     key: "recurringPosted",

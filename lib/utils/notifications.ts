@@ -119,13 +119,10 @@ export const evaluateBudgetPeriodEnding = (
   return {
     type: "BUDGET_PERIOD_ENDING",
     title: `${input.budgetName} ends soon`,
-    body: `Your budget period ends on ${input.endAt.toLocaleDateString(
-      "en-US",
-      {
-        month: "short",
-        day: "numeric",
-      },
-    )}.`,
+    body: `This event ends on ${input.endAt.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    })}.`,
     data: { budgetId: input.budgetId },
     dedupeKey: buildDedupeKey("BUDGET_PERIOD_ENDING", input.budgetId),
   };

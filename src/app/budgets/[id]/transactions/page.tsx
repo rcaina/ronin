@@ -47,6 +47,7 @@ import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetMonth } from "@/lib/utils/hooks";
+import { formatMonthLabel } from "@/lib/utils/budget-month";
 import { TransactionType, CategoryType } from "@prisma/client";
 import {
   getGroupColor,
@@ -104,6 +105,8 @@ const BudgetTransactionsPageContent = () => {
     isLoading: budgetLoading,
     error: budgetError,
   } = useBudget(budgetId, false, month);
+  const monthLabel =
+    budget?.kind === "CONTINUOUS" ? formatMonthLabel(month) : null;
   const deleteTransactionMutation = useDeleteTransaction();
   const createTransactionMutation = useCreateTransaction();
   const { setActions } = useBudgetHeader();
@@ -1088,7 +1091,9 @@ const BudgetTransactionsPageContent = () => {
                     selectedCategoryType !== "all" ||
                     selectedCard !== "all"
                       ? "No matching transactions"
-                      : "No transactions yet"}
+                      : monthLabel
+                        ? `No transactions in ${monthLabel}`
+                        : "No transactions yet"}
                   </h3>
                   <p className="text-sm text-gray-500">
                     {searchTerm ||

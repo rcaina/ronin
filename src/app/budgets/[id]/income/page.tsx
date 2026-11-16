@@ -14,6 +14,7 @@ import {
 import { toast } from "react-hot-toast";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetMonth } from "@/lib/utils/hooks";
+import { formatMonthLabel } from "@/lib/utils/budget-month";
 import { formatCurrency } from "@/lib/utils";
 import { isDebitCard, oldestDebitCard } from "@/lib/utils/cards";
 import { usePageLoading } from "@/components/ConditionalLayout";
@@ -58,6 +59,8 @@ export default function IncomePage() {
     isLoading,
     refetch,
   } = useBudget(budgetId, false, month);
+  const monthLabel =
+    budget?.kind === "CONTINUOUS" ? formatMonthLabel(month) : null;
   const { setActions } = useBudgetHeader();
 
   // Register header actions
@@ -335,7 +338,9 @@ export default function IncomePage() {
                     <DollarSign className="h-7 w-7" strokeWidth={1.5} />
                   </div>
                   <h3 className="mb-2 text-lg font-semibold text-gray-900">
-                    No income transactions
+                    {monthLabel
+                      ? `No income in ${monthLabel}`
+                      : "No income transactions"}
                   </h3>
                   <p className="text-sm text-gray-500">
                     {searchQuery

@@ -1,7 +1,6 @@
 import type { BudgetWithRelations, SerializedBudget } from "@/lib/types/budget";
 import type {
   UpdateBudgetData,
-  CreateBudgetData,
   CreateBudgetWithCardsData,
 } from "@/lib/types/budget";
 import type { BudgetStatus } from "@prisma/client";
@@ -113,25 +112,6 @@ export const getOrCreateContinuousBudget =
     if (!response.ok) return parseErrorResponse(response);
     return (await response.json()) as SerializedBudget;
   };
-
-export const createBudget = async (
-  data: CreateBudgetData,
-): Promise<{ message: string; budget: SerializedBudget }> => {
-  const response = await fetch("/api/budgets", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) return parseErrorResponse(response);
-
-  return (await response.json()) as {
-    message: string;
-    budget: SerializedBudget;
-  };
-};
 
 export const createBudgetFromScratchWithCards = async (
   data: CreateBudgetWithCardsData,

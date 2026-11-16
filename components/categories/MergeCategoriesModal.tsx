@@ -72,11 +72,11 @@ export default function MergeCategoriesModal({
       <div className="mb-4 flex items-start gap-2">
         <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
         <p className="text-sm text-gray-500">
-          Choose which category to keep. The rest will be merged into it, budget
-          categories linked to them will be relinked, and this can&apos;t be
-          undone.
+          Choose which category to keep. The rest are merged into it, and in
+          every budget their transactions, splits, recurring transactions and
+          monthly plans move over. This can&apos;t be undone.
           {spansMultipleGroups &&
-            " These categories span different groups — the one you keep stays in its own group."}
+            " These categories span different groups. The one you keep stays in its own group."}
         </p>
       </div>
 

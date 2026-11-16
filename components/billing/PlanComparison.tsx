@@ -30,7 +30,7 @@ interface PlanComparisonProps {
  * `included` flag drives the check vs. muted-x icon so the two plans read as a
  * side-by-side comparison. */
 const FREE_FEATURES = [
-  { label: `${FREE_LIMITS.maxActiveBudgets} active budget`, included: true },
+  { label: `${FREE_LIMITS.maxActiveBudgets} active event`, included: true },
   { label: `${FREE_LIMITS.maxMembers} household member`, included: true },
   {
     label: `Up to ${FREE_LIMITS.maxPockets} savings pockets`,

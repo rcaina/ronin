@@ -908,7 +908,9 @@ const CardDetailsPage = () => {
                 <div className="rounded-xl border-2 border-dashed border-gray-300 bg-surface-card py-12 text-center">
                   <Calendar className="mx-auto mb-4 h-12 w-12 text-gray-400" />
                   <h3 className="mb-2 text-lg font-medium text-gray-900">
-                    No transactions yet
+                    {periodLabel
+                      ? `No transactions in ${periodLabel}`
+                      : "No transactions yet"}
                   </h3>
                   <p className="mb-6 text-sm text-gray-500">
                     Add your first transaction to this card to get started

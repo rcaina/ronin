@@ -248,23 +248,6 @@ export const flattenBudgetTransactions = (
   return result;
 };
 
-/**
- * Total spending across transactions that occurred within the last `days`
- * days (measured from now, not bucketed to midnight).
- */
-export const calculateRecentSpending = (
-  transactions: SpendingTransaction[],
-  days = 7,
-): number => {
-  const since = new Date();
-  since.setDate(since.getDate() - days);
-
-  return transactions.reduce((sum, transaction) => {
-    const date = getTransactionDate(transaction);
-    return date >= since ? sum + getTransactionSpending(transaction) : sum;
-  }, 0);
-};
-
 export interface DailySpendingPoint {
   /** Short weekday label for the x-axis, e.g. "Mon". */
   day: string;
