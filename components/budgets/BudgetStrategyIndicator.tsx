@@ -5,6 +5,7 @@ import { Target, PieChart, CheckCircle2, AlertTriangle } from "lucide-react";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import { formatCurrency, roundToCents } from "@/lib/utils";
 import { calculateCategorySpent } from "@/lib/utils/spending";
+import { calculateReadyToAssign } from "@/lib/utils/budget-month";
 import { GROUP_COLORS } from "@/components/recharts/theme";
 
 // The 50/30/20 split, in income-share terms. Drives both the targets shown and
@@ -81,7 +82,10 @@ export default function BudgetStrategyIndicator({
         0,
       ),
     );
-    const unallocated = roundToCents(totalIncome - totalAllocated);
+    const unallocated = calculateReadyToAssign(
+      totalIncome,
+      budget.categories ?? [],
+    );
     const allocatedPct = hasIncome ? (totalAllocated / totalIncome) * 100 : 0;
 
     const status = !hasIncome
@@ -140,7 +144,9 @@ export default function BudgetStrategyIndicator({
             </div>
           </div>
           <div>
-            <div className="text-xs font-medium text-gray-500">Unallocated</div>
+            <div className="text-xs font-medium text-gray-500">
+              Ready to assign
+            </div>
             <div
               className={`text-sm font-bold tabular-nums ${
                 unallocated < -0.01 ? "text-red-600" : "text-gray-900"

@@ -34,12 +34,14 @@ import type {
 } from "../types/budget";
 import type { TransactionSplitWithCategory } from "../types/transaction";
 import {
+  computeCarry,
   computeQuickFill,
   getMonthWindow,
   parseMonthKey,
   projectCategoryToMonth,
   shiftMonth,
   toMonthKey,
+  type QuickFillCategory,
   type QuickFillSource,
 } from "../utils/budget-month";
 import { isWithinWindow, type DateWindow } from "../utils/spending";
@@ -79,6 +81,37 @@ const getMonthAssignments = async (
     select: { categoryId: true, assigned: true },
   });
   return new Map(rows.map((row) => [row.categoryId, row.assigned]));
+};
+
+/** Balance carried into the month that starts `window.start`, per rollover category. */
+const getMonthCarries = async (
+  tx: PrismaClientTx,
+  categories: Array<Omit<QuickFillCategory, "months"> & { rollover: boolean }>,
+  window: DateWindow,
+): Promise<Map<string, number>> => {
+  const rollover = categories.filter((category) => category.rollover);
+  if (rollover.length === 0) return new Map();
+
+  const rows = await tx.categoryMonth.findMany({
+    where: {
+      categoryId: { in: rollover.map((category) => category.id) },
+      month: { lt: window.start },
+    },
+    select: { categoryId: true, month: true, assigned: true },
+  });
+  const month = toMonthKey(window.start);
+  return new Map(
+    rollover.map((category) => [
+      category.id,
+      computeCarry(
+        {
+          ...category,
+          months: rows.filter((row) => row.categoryId === category.id),
+        },
+        month,
+      ),
+    ]),
+  );
 };
 
 /** Reuses the budget's debit card, or creates one named "Main" linked to its general card. */
@@ -1056,15 +1089,19 @@ export const getBudgetCategories = async (
   const assignments = monthWindow
     ? await getMonthAssignments(tx, budgetId, monthWindow)
     : null;
+  const carries = monthWindow
+    ? await getMonthCarries(tx, categories, monthWindow)
+    : null;
   const formattedCategories = formatBudgetCategories(
     monthWindow
-      ? categories.map((category) =>
-          projectCategoryToMonth(
+      ? categories.map((category) => ({
+          ...projectCategoryToMonth(
             category,
             monthWindow,
             assignments?.get(category.id),
           ),
-        )
+          carry: carries?.get(category.id) ?? 0,
+        }))
       : categories,
   );
 
@@ -1356,6 +1393,7 @@ export const updateBudgetCategory = async (
     allocatedAmount?: number;
     name?: string;
     group?: CategoryType;
+    rollover?: boolean;
   } = {};
 
   const monthWindow = resolveMonthWindow(budget.kind, data.month);
@@ -1377,6 +1415,9 @@ export const updateBudgetCategory = async (
   }
   if (data.group) {
     updateData.group = data.group;
+  }
+  if (data.rollover !== undefined) {
+    updateData.rollover = data.rollover;
   }
 
   const updatedCategory = await tx.category.update({

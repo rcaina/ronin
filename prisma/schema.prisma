@@ -152,6 +152,7 @@ model Category {
   name                  String
   group                 CategoryType
   allocatedAmount       Float?
+  rollover              Boolean                @default(false)
   transactions          Transaction[]
   transactionSplits     TransactionSplit[]
   recurringTransactions RecurringTransaction[]

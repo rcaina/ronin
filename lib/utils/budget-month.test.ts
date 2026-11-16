@@ -1,6 +1,8 @@
 import { TransactionType } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import {
+  calculateReadyToAssign,
+  computeCarry,
   computeQuickFill,
   getMonthWindow,
   type QuickFillCategory,
@@ -194,5 +196,79 @@ describe("computeQuickFill", () => {
       expect(fill.has("groceries")).toBe(false);
       expect(fill.has("fuel")).toBe(true);
     }
+  });
+});
+
+describe("computeCarry", () => {
+  const spend = (date: string, amount: number) => ({
+    transactionType: TransactionType.REGULAR,
+    amount,
+    occurredAt: date,
+    createdAt: date,
+  });
+  const category = (
+    overrides: Partial<Parameters<typeof computeCarry>[0]> = {},
+  ): Parameters<typeof computeCarry>[0] => ({
+    id: "groceries",
+    createdAt: new Date("2026-09-10T00:00:00.000Z"),
+    allocatedAmount: 300,
+    rollover: true,
+    months: [],
+    transactions: [],
+    ...overrides,
+  });
+
+  it("carries nothing when rollover is off", () => {
+    const off = category({
+      rollover: false,
+      transactions: [spend("2026-09-15T00:00:00.000Z", 100)],
+    });
+
+    expect(computeCarry(off, "2026-11")).toBe(0);
+  });
+
+  it("carries nothing into the category's first month", () => {
+    expect(computeCarry(category(), "2026-09")).toBe(0);
+  });
+
+  it("adds planned minus spent for each earlier month, using the month's plan over the default", () => {
+    const groceries = category({
+      months: [{ month: new Date("2026-10-01T00:00:00.000Z"), assigned: 150 }],
+      transactions: [
+        spend("2026-09-15T00:00:00.000Z", 100),
+        spend("2026-10-15T00:00:00.000Z", 250),
+        spend("2026-11-02T00:00:00.000Z", 999),
+      ],
+    });
+
+    // Sep: 300 - 100 = +200; Oct: 150 - 250 = -100; Nov is the viewed month.
+    expect(computeCarry(groceries, "2026-11")).toBe(100);
+  });
+
+  it("carries a negative balance after overspending", () => {
+    const overspent = category({
+      createdAt: new Date("2026-10-01T00:00:00.000Z"),
+      transactions: [spend("2026-10-20T00:00:00.000Z", 350)],
+    });
+
+    expect(computeCarry(overspent, "2026-11")).toBe(-50);
+  });
+
+  it("starts at the earliest transaction when it predates the category", () => {
+    const backdated = category({
+      createdAt: new Date("2026-11-01T00:00:00.000Z"),
+      transactions: [spend("2026-10-20T00:00:00.000Z", 50)],
+    });
+
+    expect(computeCarry(backdated, "2026-11")).toBe(250);
+  });
+});
+
+describe("calculateReadyToAssign", () => {
+  it("is income minus planned, negative when over-planned", () => {
+    const planned = [{ allocatedAmount: 1200 }, { allocatedAmount: null }];
+
+    expect(calculateReadyToAssign(2000.5, planned)).toBe(800.5);
+    expect(calculateReadyToAssign(1000, planned)).toBe(-200);
   });
 });

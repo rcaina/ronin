@@ -1,6 +1,7 @@
 import { roundToCents } from "@/lib/utils";
 import {
   calculateCategorySpentInWindow,
+  getTransactionDate,
   isWithinWindow,
   type DateWindow,
   type SpendingCategory,
@@ -135,3 +136,56 @@ export const computeQuickFill = (
 
   return fill;
 };
+
+/**
+ * Balance carried into `month` by a rollover category: planned minus spent for every
+ * month from its first month up to the one before `month`. Zero when rollover is off.
+ */
+export const computeCarry = (
+  category: QuickFillCategory & { rollover: boolean },
+  month: MonthKey,
+): number => {
+  if (!category.rollover) return 0;
+
+  const firstDate = new Date(
+    Math.min(
+      category.createdAt.getTime(),
+      ...category.months.map((row) => row.month.getTime()),
+      ...(category.transactions ?? []).map((transaction) =>
+        getTransactionDate(transaction).getTime(),
+      ),
+      ...(category.transactionSplits ?? []).map((split) =>
+        getTransactionDate(split.transaction).getTime(),
+      ),
+    ),
+  );
+
+  let carry = 0;
+  for (
+    let current = toMonthKey(firstDate);
+    current < month;
+    current = shiftMonth(current, 1)
+  ) {
+    const window = getMonthWindow(current);
+    const row = category.months.find(
+      (row) => row.month.getTime() === window.start.getTime(),
+    );
+    carry +=
+      (row?.assigned ?? category.allocatedAmount ?? 0) -
+      calculateCategorySpentInWindow(category, window);
+  }
+  return roundToCents(carry);
+};
+
+/** Month income not yet planned into a category; negative when over-planned. */
+export const calculateReadyToAssign = (
+  income: number,
+  categories: Array<{ allocatedAmount?: number | null }>,
+): number =>
+  roundToCents(
+    income -
+      categories.reduce(
+        (sum, category) => sum + (category.allocatedAmount ?? 0),
+        0,
+      ),
+  );

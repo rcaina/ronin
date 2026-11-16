@@ -19,6 +19,7 @@ import {
   type SpendingTransaction,
 } from "@/lib/utils/spending";
 import Button from "@/components/Button";
+import ToggleRow from "@/components/settings/ToggleRow";
 import { formatMonthLabel, type MonthKey } from "@/lib/utils/budget-month";
 
 interface BudgetCategoryCardProps {
@@ -40,6 +41,7 @@ export default function BudgetCategoryCard({
   );
   const [editingAmount, setEditingAmount] = useState<string | number>(0);
   const [editingName, setEditingName] = useState<string>("");
+  const [editingRollover, setEditingRollover] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<{
     id: string;
     name: string;
@@ -58,18 +60,17 @@ export default function BudgetCategoryCard({
     ),
   };
   const categorySpent = roundToCents(calculateCategorySpent(spendingCategory));
-  const categoryRemaining = roundToCents(
-    (budgetCategory.allocatedAmount ?? 0) - categorySpent,
-  );
+  const carry = budgetCategory.carry ?? 0;
+  const available = (budgetCategory.allocatedAmount ?? 0) + carry;
+  const categoryRemaining = roundToCents(available - categorySpent);
   const categoryPercentage =
-    budgetCategory.allocatedAmount && budgetCategory.allocatedAmount > 0
-      ? roundToCents((categorySpent / budgetCategory.allocatedAmount) * 100)
-      : 0;
+    available > 0 ? roundToCents((categorySpent / available) * 100) : 0;
 
   const handleStartEditCategory = () => {
     setEditingCategoryId(budgetCategory.id);
     setEditingAmount(budgetCategory.allocatedAmount ?? 0);
     setEditingName(budgetCategory.name);
+    setEditingRollover(budgetCategory.rollover);
   };
 
   const handleCancelEditCategory = () => {
@@ -95,6 +96,7 @@ export default function BudgetCategoryCard({
           allocatedAmount: amount,
           name: editingName,
           month,
+          ...(month && { rollover: editingRollover }),
         },
       });
 
@@ -241,7 +243,17 @@ export default function BudgetCategoryCard({
                 />
               </div>
             </div>
-          ) : (
+          ) : null}
+          {editingCategoryId === budgetCategory.id && month ? (
+            <ToggleRow
+              label="Roll over"
+              description="Carry what's left, or what's overspent, into next month."
+              checked={editingRollover}
+              disabled={updateBudgetCategoryMutation.isPending}
+              onChange={() => setEditingRollover((value) => !value)}
+            />
+          ) : null}
+          {editingCategoryId !== budgetCategory.id && (
             <div className="flex items-baseline justify-between gap-2 text-xs">
               <span className="truncate text-gray-500">
                 <span className="font-medium tabular-nums text-gray-900">
@@ -259,6 +271,14 @@ export default function BudgetCategoryCard({
                   : `${formatCurrency(Math.abs(categoryRemaining))} over`}
               </span>
             </div>
+          )}
+          {carry !== 0 && editingCategoryId !== budgetCategory.id && (
+            <p
+              className={`text-xs tabular-nums ${carry > 0 ? "text-green-600" : "text-red-600"}`}
+            >
+              Carried {carry > 0 ? "+" : "-"}
+              {formatCurrency(Math.abs(carry))}
+            </p>
           )}
 
           <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">

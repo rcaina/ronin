@@ -156,6 +156,9 @@ export type BudgetCategoryWithCategory = {
   group: string;
   allocatedAmount: number | null;
   spentAmount?: number;
+  rollover: boolean;
+  /** Month view of a continuous budget: balance rolled in from earlier months. */
+  carry?: number;
   createdAt: Date;
   updatedAt: Date;
   deleted: Date | null;
@@ -180,6 +183,7 @@ export interface UpdateBudgetCategoryData {
   allocatedAmount?: number;
   name?: string;
   group?: CategoryType;
+  rollover?: boolean;
   /** On a continuous budget, `allocatedAmount` is planned for this month only. */
   month?: string;
 }

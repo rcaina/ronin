@@ -225,11 +225,12 @@ export default function BudgetCategoriesListView({
                           }
                         }, 0),
                       );
+                      const carry = budgetCategory.carry ?? 0;
+                      const available =
+                        (budgetCategory.allocatedAmount ?? 0) + carry;
+                      const remaining = roundToCents(available - spent);
                       const percentage = roundToCents(
-                        budgetCategory.allocatedAmount &&
-                          budgetCategory.allocatedAmount > 0
-                          ? (spent / budgetCategory.allocatedAmount) * 100
-                          : 0,
+                        available > 0 ? (spent / available) * 100 : 0,
                       );
 
                       return (
@@ -264,21 +265,20 @@ export default function BudgetCategoriesListView({
                                       <span>
                                         Spent: ${spent.toLocaleString()}
                                       </span>
+                                      {carry !== 0 && (
+                                        <span>
+                                          Carried: {carry > 0 ? "+" : "-"}$
+                                          {Math.abs(carry).toLocaleString()}
+                                        </span>
+                                      )}
                                       <span
                                         className={
-                                          (budgetCategory.allocatedAmount ??
-                                            0) -
-                                            spent >=
-                                          0
+                                          remaining >= 0
                                             ? "text-gray-500"
                                             : "text-red-500"
                                         }
                                       >
-                                        Remaining: $
-                                        {(
-                                          (budgetCategory.allocatedAmount ??
-                                            0) - spent
-                                        ).toLocaleString()}
+                                        Remaining: ${remaining.toLocaleString()}
                                       </span>
                                     </div>
                                     <div className="h-2 w-full rounded-full bg-gray-200">
@@ -303,8 +303,7 @@ export default function BudgetCategoriesListView({
                               <div className="text-right">
                                 <p
                                   className={`font-medium ${
-                                    spent >
-                                    (budgetCategory.allocatedAmount ?? 0)
+                                    remaining < 0
                                       ? "text-red-600"
                                       : "text-gray-900"
                                   }`}
