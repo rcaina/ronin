@@ -181,12 +181,14 @@ const BudgetTransactionsPageContent = () => {
       {
         icon: <Plus className="h-4 w-4" />,
         label: "Add transaction",
+        addsTransaction: true,
         onClick: () => setShowAddTransactionModal(true),
         variant: "primary" as const,
       },
       {
         icon: <ScanLine className="h-4 w-4" />,
         label: "Scan receipt",
+        addsTransaction: true,
         onClick: () => setShowReceiptScanModal(true),
         variant: "outline" as const,
       },
@@ -194,9 +196,9 @@ const BudgetTransactionsPageContent = () => {
   }, [setActions, isLocked]);
 
   // Register the mobile header's scan-receipt shortcut; clean up on unmount
-  // so it doesn't leak into other pages. Suppressed while locked.
+  // so it doesn't leak into other pages. Suppressed while locked or not ACTIVE.
   useEffect(() => {
-    if (isLocked) {
+    if (isLocked || budget?.status !== "ACTIVE") {
       setMobileHeaderAction(null);
       return;
     }
@@ -206,7 +208,7 @@ const BudgetTransactionsPageContent = () => {
       onClick: () => setShowReceiptScanModal(true),
     });
     return () => setMobileHeaderAction(null);
-  }, [setMobileHeaderAction, isLocked]);
+  }, [setMobileHeaderAction, isLocked, budget?.status]);
 
   // Filter and sort transactions
   const filteredAndSortedTransactions = useMemo(() => {

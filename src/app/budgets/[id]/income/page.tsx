@@ -66,6 +66,7 @@ export default function IncomePage() {
       {
         icon: <Plus className="h-4 w-4" />,
         label: "Add income",
+        addsTransaction: true,
         onClick: () => setIsAddModalOpen(true),
         variant: "primary" as const,
       },
@@ -341,15 +342,17 @@ export default function IncomePage() {
                       ? "No income transactions match your search."
                       : "Get started by adding your first income transaction."}
                   </p>
-                  {!searchQuery && defaultDebitCard && (
-                    <Button
-                      onClick={() => setIsAddModalOpen(true)}
-                      className="mt-4"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add income
-                    </Button>
-                  )}
+                  {!searchQuery &&
+                    defaultDebitCard &&
+                    budget?.status === "ACTIVE" && (
+                      <Button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="mt-4"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add income
+                      </Button>
+                    )}
                 </div>
               )}
             </div>

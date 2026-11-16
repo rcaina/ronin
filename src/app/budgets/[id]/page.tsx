@@ -125,18 +125,21 @@ const BudgetDetailsPage = () => {
       {
         icon: <Plus className="h-4 w-4" />,
         label: "Add transaction",
+        addsTransaction: true,
         onClick: () => setIsAddTransactionOpen(true),
         variant: "primary" as const,
       },
       {
         icon: <ScanLine className="h-4 w-4" />,
         label: "Scan receipt",
+        addsTransaction: true,
         onClick: () => setIsReceiptScanOpen(true),
         variant: "outline" as const,
       },
       {
         icon: <DollarSign className="h-4 w-4" />,
         label: "Pay credit card",
+        addsTransaction: true,
         onClick: () => setIsCardPaymentOpen(true),
         variant: "secondary" as const,
       },
@@ -145,9 +148,9 @@ const BudgetDetailsPage = () => {
 
   // Register the mobile header's scan-receipt shortcut; clean up on unmount
   // so it doesn't leak into other pages. Suppressed while locked (the budget
-  // is hard-blocked behind the gate).
+  // is hard-blocked behind the gate) or not ACTIVE.
   useEffect(() => {
-    if (budget?.locked) {
+    if (budget?.locked || budget?.status !== "ACTIVE") {
       setMobileHeaderAction(null);
       return;
     }
@@ -157,7 +160,7 @@ const BudgetDetailsPage = () => {
       onClick: () => setIsReceiptScanOpen(true),
     });
     return () => setMobileHeaderAction(null);
-  }, [setMobileHeaderAction, budget?.locked]);
+  }, [setMobileHeaderAction, budget?.locked, budget?.status]);
 
   // Per-budget statistics (totals + chart data), computed from shared utils
   const {
@@ -1034,12 +1037,14 @@ const BudgetDetailsPage = () => {
                         <p className="text-sm text-gray-500">
                           No transactions yet — add your first one.
                         </p>
-                        <button
-                          onClick={() => setIsAddTransactionOpen(true)}
-                          className="mt-2 text-xs font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800"
-                        >
-                          Add your first transaction
-                        </button>
+                        {budget.status === "ACTIVE" && (
+                          <button
+                            onClick={() => setIsAddTransactionOpen(true)}
+                            className="mt-2 text-xs font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800"
+                          >
+                            Add your first transaction
+                          </button>
+                        )}
                       </div>
                     );
                   }

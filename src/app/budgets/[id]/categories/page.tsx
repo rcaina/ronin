@@ -160,12 +160,14 @@ const BudgetCategoriesPage = () => {
       {
         icon: <Plus className="h-4 w-4" />,
         label: "Add transaction",
+        addsTransaction: true,
         onClick: () => setIsAddTransactionOpen(true),
         variant: "primary" as const,
       },
       {
         icon: <ScanLine className="h-4 w-4" />,
         label: "Scan receipt",
+        addsTransaction: true,
         onClick: () => setIsReceiptScanOpen(true),
         variant: "outline" as const,
       },
@@ -173,15 +175,19 @@ const BudgetCategoriesPage = () => {
   }, [setActions, isContinuous]);
 
   // Register the mobile header's scan-receipt shortcut; clean up on unmount
-  // so it doesn't leak into other pages.
+  // so it doesn't leak into other pages. Suppressed unless the budget is ACTIVE.
   useEffect(() => {
+    if (budget?.status !== "ACTIVE") {
+      setMobileHeaderAction(null);
+      return;
+    }
     setMobileHeaderAction({
       icon: <ScanLine className="h-5 w-5" />,
       label: "Scan receipt",
       onClick: () => setIsReceiptScanOpen(true),
     });
     return () => setMobileHeaderAction(null);
-  }, [setMobileHeaderAction]);
+  }, [setMobileHeaderAction, budget?.status]);
 
   // Use the search query in the hook
   const {

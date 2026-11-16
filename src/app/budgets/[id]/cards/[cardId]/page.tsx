@@ -456,6 +456,7 @@ const CardDetailsPage = () => {
       {
         icon: <Plus className="h-4 w-4" />,
         label: "Add transaction",
+        addsTransaction: true,
         onClick: handleOpenAddTransactionModal,
         variant: "primary",
       },
@@ -476,6 +477,7 @@ const CardDetailsPage = () => {
       actions.push({
         icon: <CreditCard className="h-4 w-4" />,
         label: "Pay credit card",
+        addsTransaction: true,
         onClick: handleOpenCardPaymentModal,
         variant: "secondary",
       });

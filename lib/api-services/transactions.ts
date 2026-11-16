@@ -254,7 +254,37 @@ export const getImportContext = async (
   };
 };
 
+// Transactions may only be added to, or moved into, one of the account's active budgets.
+const assertWritableBudget = async (
+  tx: PrismaClientTx,
+  accountId: string,
+  budgetId: string,
+) => {
+  const budget = await tx.budget.findFirst({
+    where: { id: budgetId, accountId, deleted: null },
+    select: { status: true },
+  });
+  if (!budget) {
+    throw new HttpError("Budget not found", 404);
+  }
+  if (budget.status !== "ACTIVE") {
+    throw new HttpError(
+      "Transactions can only be added to an active budget",
+      400,
+    );
+  }
+};
+
 export const createTransaction = async (
+  tx: PrismaClientTx,
+  data: CreateTransactionSchema,
+  user: User & { accountId: string },
+) => {
+  await assertWritableBudget(tx, user.accountId, data.budgetId);
+  return insertTransaction(tx, data, user);
+};
+
+const insertTransaction = async (
   tx: PrismaClientTx,
   data: CreateTransactionSchema,
   user: User & { accountId: string },
@@ -312,9 +342,13 @@ export const createTransactionsBatch = async (
 ) => {
   // Sequential within the caller's prisma.$transaction so the whole receipt
   // either lands or doesn't — no half-saved splits.
+  const budgetIds = new Set(data.transactions.map((t) => t.budgetId));
+  for (const budgetId of budgetIds) {
+    await assertWritableBudget(tx, user.accountId, budgetId);
+  }
   const created = [];
   for (const transaction of data.transactions) {
-    created.push(await createTransaction(tx, transaction, user));
+    created.push(await insertTransaction(tx, transaction, user));
   }
   return created;
 };
@@ -325,6 +359,16 @@ export async function updateTransaction(
   data: UpdateTransactionSchema,
   user: User & { accountId: string },
 ) {
+  if (data.budgetId) {
+    const current = await tx.transaction.findFirst({
+      where: { id, accountId: user.accountId, deleted: null },
+      select: { budgetId: true },
+    });
+    if (current && current.budgetId !== data.budgetId) {
+      await assertWritableBudget(tx, user.accountId, data.budgetId);
+    }
+  }
+
   const hasSplits = !!data.splits && data.splits.length > 0;
   const clearsSplits =
     !hasSplits && !!data.categoryId && data.categoryId.trim() !== "";
@@ -485,6 +529,8 @@ export async function createCardPayment(
   data: CreateCardPaymentSchema,
   user: User & { accountId: string },
 ) {
+  await assertWritableBudget(tx, user.accountId, data.budgetId);
+
   // Create two linked transactions, both storing the positive payment amount
   // (enforced by createCardPaymentSchema). Card balance math interprets a
   // CARD_PAYMENT as money out on the source (debit/cash) card and as a

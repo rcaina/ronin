@@ -133,7 +133,11 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   ? { onClick: handleBack }
                   : undefined
               }
-              actions={dynamicActions}
+              actions={
+                budget?.status === "ACTIVE"
+                  ? dynamicActions
+                  : dynamicActions.filter((action) => !action.addsTransaction)
+              }
             />
           )}
 
