@@ -219,7 +219,7 @@ export default function ReceiptReview({
         <div className="flex items-center gap-2">
           <button
             onClick={onBack}
-            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="tap-target rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
             aria-label="Back to capture"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -361,7 +361,7 @@ export default function ReceiptReview({
               </select>
               <button
                 onClick={() => removeItem(item.key)}
-                className="col-span-1 flex justify-center rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                className="tap-target col-span-1 flex justify-center rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
                 aria-label="Remove item"
                 disabled={isPending}
               >

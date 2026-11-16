@@ -184,7 +184,7 @@ export default function AddBudgetCategoryForm({
             htmlFor="categoryName"
             className="mb-1 block text-sm font-medium text-gray-700"
           >
-            Category Name
+            Category name
           </label>
           <input
             type="text"
@@ -289,7 +289,7 @@ export default function AddBudgetCategoryForm({
             htmlFor="allocatedAmount"
             className="mb-1 block text-sm font-medium text-gray-700"
           >
-            Allocated Amount
+            Allocated amount
           </label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">

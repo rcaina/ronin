@@ -55,7 +55,12 @@ export const POST = withUser({
 
       const account = await getAccountEntitlements(prisma, user.accountId);
       const activeBudgetCount = await prisma.budget.count({
-        where: { accountId: user.accountId, deleted: null, status: "ACTIVE" },
+        where: {
+          accountId: user.accountId,
+          deleted: null,
+          status: "ACTIVE",
+          kind: "EVENT",
+        },
       });
       const entitlementCheck = canCreateBudget(account, activeBudgetCount);
       if (!entitlementCheck.allowed) {

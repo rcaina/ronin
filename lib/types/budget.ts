@@ -25,7 +25,7 @@ export type SerializedBudget = Omit<
 > & {
   // API responses serialize Date fields to ISO strings via JSON.stringify/NextResponse.json.
   startAt: string;
-  endAt: string;
+  endAt: string | null;
   deleted: string | null;
   createdAt: string;
   updatedAt: string;
@@ -35,6 +35,8 @@ export type BudgetWithRelations = SerializedBudget & {
   categories: (Category & {
     transactions: Transaction[];
     transactionSplits?: CategoryTransactionSplit[];
+    /** Month view of a continuous budget: balance rolled in from earlier months. */
+    carry?: number;
   })[];
   transactions: Transaction[];
   cards?: (Card & {
@@ -72,7 +74,6 @@ export type GroupLabelFunction = (group: CategoryType) => string;
 export interface CreateBudgetData {
   name: string;
   strategy: StrategyType;
-  period: PeriodType;
   startAt: string;
   endAt: string;
   // If false, we skip auto-creating the default "Main" debit card because
@@ -103,7 +104,6 @@ export interface CardToIncludeData {
 export interface CreateBudgetWithCardsData {
   name: string;
   strategy: StrategyType;
-  period: PeriodType;
   startAt: string;
   endAt: string;
   categoryAllocations?: Array<{
@@ -124,7 +124,6 @@ export interface CreateBudgetWithCardsData {
 export interface UpdateBudgetData {
   name?: string;
   strategy?: StrategyType;
-  period?: PeriodType;
   startAt?: string;
   endAt?: string;
   categoryAllocations?: Array<{
@@ -156,6 +155,9 @@ export type BudgetCategoryWithCategory = {
   group: string;
   allocatedAmount: number | null;
   spentAmount?: number;
+  rollover: boolean;
+  /** Month view of a continuous budget: balance rolled in from earlier months. */
+  carry?: number;
   createdAt: Date;
   updatedAt: Date;
   deleted: Date | null;
@@ -174,12 +176,17 @@ export interface CreateBudgetCategoryData {
   categoryName: string;
   group: CategoryType;
   allocatedAmount: number;
+  /** Month viewed when adding, on a continuous budget. */
+  month?: string;
 }
 
 export interface UpdateBudgetCategoryData {
   allocatedAmount?: number;
   name?: string;
   group?: CategoryType;
+  rollover?: boolean;
+  /** On a continuous budget, `allocatedAmount` is planned for this month only. */
+  month?: string;
 }
 
 export interface ImportBudgetCategoriesData {

@@ -17,6 +17,11 @@ import {
   calculateGeneralCardFinancials,
 } from "./card-financials";
 import { splitsInclude } from "./transactions";
+import {
+  cardTransactionsInWindow,
+  resolveMonthWindow,
+} from "../utils/budget-month";
+import { isWithinWindow } from "../utils/spending";
 
 export async function getCards(
   tx: PrismaClientTx,
@@ -121,6 +126,7 @@ export async function getCardById(
   id: string,
   accountId: string,
   excludeCardPayments = false,
+  month?: string | null,
 ) {
   const transactionsFilter = {
     where: {
@@ -134,6 +140,8 @@ export async function getCardById(
     select: {
       amount: true,
       transactionType: true,
+      occurredAt: true,
+      createdAt: true,
     },
   };
 
@@ -166,6 +174,7 @@ export async function getCardById(
           transactions: transactionsFilter,
         },
       },
+      budget: { select: { kind: true } },
     },
   });
 
@@ -175,9 +184,12 @@ export async function getCardById(
 
   // A general (template) card's financials roll up its linked budget cards;
   // a budget card's come from its own transactions.
-  return card.budgetId === null
-    ? calculateGeneralCardFinancials(card)
-    : calculateCardFinancials(card);
+  if (card.budget === null) return calculateGeneralCardFinancials(card);
+  const monthWindow = resolveMonthWindow(card.budget.kind, month);
+  return calculateCardFinancials({
+    ...card,
+    transactions: cardTransactionsInWindow(card.transactions, monthWindow),
+  });
 }
 
 // Find the user's general (template) card matching the given identity —
@@ -509,8 +521,19 @@ export async function deleteCard(
 
 //transactions region
 
-export const getCardTransactions = async (tx: PrismaClientTx, cardId: string) =>
-  await tx.transaction.findMany({
+export const getCardTransactions = async (
+  tx: PrismaClientTx,
+  cardId: string,
+  month?: string | null,
+) => {
+  const card = await tx.card.findUniqueOrThrow({
+    where: { id: cardId },
+    select: { budget: { select: { kind: true } } },
+  });
+  const monthWindow = card.budget
+    ? resolveMonthWindow(card.budget.kind, month)
+    : null;
+  const transactions = await tx.transaction.findMany({
     where: {
       deleted: null,
       // A general (template) card's transactions are the union of the
@@ -546,3 +569,7 @@ export const getCardTransactions = async (tx: PrismaClientTx, cardId: string) =>
       { createdAt: "desc" as const },
     ],
   });
+  return transactions.filter((transaction) =>
+    isWithinWindow(transaction, monthWindow),
+  );
+};

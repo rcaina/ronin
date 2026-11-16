@@ -150,7 +150,7 @@ export default function CategoriesStep({
       {/* Header */}
       <div>
         <h3 className="text-lg font-semibold text-gray-900">
-          Budget Categories
+          Budget categories
         </h3>
         <p className="text-sm text-gray-500">
           Select from default categories or create custom ones to track in your
@@ -169,7 +169,7 @@ export default function CategoriesStep({
           <div className="space-y-4">
             <div>
               <h4 className="mb-3 text-sm font-semibold text-gray-700">
-                Default Categories
+                Default categories
               </h4>
               <p className="mb-4 text-xs text-gray-500">
                 Click on a category to add it to your budget
@@ -204,7 +204,7 @@ export default function CategoriesStep({
                               defaultCat.group,
                             )
                           }
-                          className={`flex items-center space-x-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+                          className={`tap-target flex items-center space-x-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
                             isSelected
                               ? "border-green-500 bg-green-50 text-green-700 hover:border-green-600 hover:bg-green-100"
                               : "border-gray-200 bg-surface-card text-gray-700 hover:border-secondary hover:bg-secondary/5 hover:text-secondary"
@@ -238,7 +238,7 @@ export default function CategoriesStep({
         ) && (
           <div className="border-t border-gray-200 pt-6">
             <h4 className="mb-3 text-sm font-semibold text-gray-700">
-              Selected Categories
+              Selected categories
             </h4>
             <p className="mb-4 text-xs text-gray-500">
               Categories you&apos;ve added to your budget
@@ -298,7 +298,7 @@ export default function CategoriesStep({
                   type="button"
                   onClick={handleAddNewCategory}
                   disabled={!newCategoryName.trim()}
-                  className="rounded-md bg-green-600 p-2 text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                  className="tap-target rounded-md bg-green-600 p-2 text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-300"
                   title="Add category"
                 >
                   <Check className="h-4 w-4" />
@@ -306,7 +306,7 @@ export default function CategoriesStep({
                 <button
                   type="button"
                   onClick={handleCancelAdd}
-                  className="rounded-md border border-red-500 bg-red-500 p-2 text-white transition-colors hover:border-red-600 hover:bg-red-600"
+                  className="tap-target rounded-md border border-red-500 bg-red-500 p-2 text-white transition-colors hover:border-red-600 hover:bg-red-600"
                   title="Cancel"
                 >
                   <X className="h-4 w-4" />
@@ -336,7 +336,7 @@ export default function CategoriesStep({
                 <button
                   type="button"
                   onClick={() => onRemoveCategory(category.categoryId)}
-                  className="rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-red-600"
+                  className="tap-target rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-red-600"
                   title="Remove category"
                 >
                   <X className="h-4 w-4" />

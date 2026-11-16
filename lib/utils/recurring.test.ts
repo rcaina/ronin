@@ -241,4 +241,55 @@ describe("findBudgetForOccurrence", () => {
     expect(findBudgetForOccurrence(d("2026-01-01"), budgets)?.id).toBe("jan");
     expect(findBudgetForOccurrence(d("2026-01-31"), budgets)?.id).toBe("jan");
   });
+
+  it("treats an open-ended budget as covering every date", () => {
+    const budgets = [
+      { ...budget("monthly", "2026-06-01", "2026-06-01"), endAt: null },
+    ];
+    expect(findBudgetForOccurrence(d("2026-01-15"), budgets)?.id).toBe(
+      "monthly",
+    );
+    expect(findBudgetForOccurrence(d("2030-12-31"), budgets)?.id).toBe(
+      "monthly",
+    );
+  });
+
+  it("prefers the open-ended budget over a dated one covering the date", () => {
+    const budgets = [
+      { ...budget("monthly", "2026-01-01", "2026-01-01"), endAt: null },
+      budget("trip", "2026-07-01", "2026-07-31"),
+    ];
+    expect(findBudgetForOccurrence(d("2026-07-10"), budgets)?.id).toBe(
+      "monthly",
+    );
+  });
+
+  describe("with the template's category in an event", () => {
+    const budgets = [
+      { ...budget("monthly", "2026-01-01", "2026-01-01"), endAt: null },
+      budget("trip", "2026-07-01", "2026-07-31"),
+    ];
+
+    it("posts into that event while its range covers the date", () => {
+      expect(
+        findBudgetForOccurrence(d("2026-07-31"), budgets, "trip")?.id,
+      ).toBe("trip");
+    });
+
+    it("falls back to the monthly budget outside the event's range", () => {
+      expect(
+        findBudgetForOccurrence(d("2026-08-01"), budgets, "trip")?.id,
+      ).toBe("monthly");
+    });
+
+    it("ignores the event once it is no longer active", () => {
+      const done = [
+        budgets[0]!,
+        { ...budgets[1]!, status: "COMPLETED" as const },
+      ];
+      expect(findBudgetForOccurrence(d("2026-07-10"), done, "trip")?.id).toBe(
+        "monthly",
+      );
+    });
+  });
 });

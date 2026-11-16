@@ -9,7 +9,7 @@ export const TRIAL_PERIOD_DAYS = 14;
  * Billing tab's inline upgrade section — keep this the single source of
  * truth so the two surfaces can't drift. */
 export const PREMIUM_BENEFITS = [
-  "Unlimited active budgets",
+  "Unlimited active events",
   "Unlimited household members",
   "AI receipt scanning",
   "Unlimited savings pockets",

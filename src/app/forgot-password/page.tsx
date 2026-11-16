@@ -90,6 +90,7 @@ export default function ForgotPassword() {
                 <input
                   id="email"
                   type="email"
+                  autoComplete="email"
                   {...register("email", {
                     required: "Email is required",
                     pattern: {
@@ -115,7 +116,7 @@ export default function ForgotPassword() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="flex w-full justify-center rounded-xl bg-secondary px-4 py-2.5 text-sm font-semibold text-primary-950 shadow-soft transition-all duration-200 ease-out hover:bg-secondary-600 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex w-full justify-center rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-primary-950 shadow-soft transition-all duration-200 ease-out hover:bg-secondary-600 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isLoading ? "Sending..." : "Send reset link"}
                 </button>

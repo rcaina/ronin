@@ -29,10 +29,14 @@ import {
   useDeleteCard,
   useUpdateCard,
 } from "@/lib/data-hooks/cards/useCards";
-import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useDeleteTransaction } from "@/lib/data-hooks/transactions/useTransactions";
-import { getTransactionDate } from "@/lib/utils/spending";
+import {
+  calculateSpendingPercentage,
+  getTransactionDate,
+} from "@/lib/utils/spending";
+import { useBudgetMonth } from "@/lib/utils/hooks";
+import { formatMonthLabel } from "@/lib/utils/budget-month";
 import { isDebitCard, mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import Button from "@/components/Button";
@@ -43,8 +47,16 @@ import {
   type HeaderAction,
 } from "../../../../../../components/budgets/BudgetHeaderContext";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
-import { getGroupColor } from "@/lib/utils";
-import { getSplitBadgeLabel } from "@/lib/utils/transactions";
+import {
+  formatCurrency,
+  formatDateUTC,
+  getGroupColor,
+  roundToCents,
+} from "@/lib/utils";
+import {
+  getCardTransactionDisplay,
+  getSplitBadgeLabel,
+} from "@/lib/utils/transactions";
 import LockedBudgetGate from "../../LockedBudgetGate";
 
 interface User {
@@ -199,15 +211,17 @@ const CardDetailsPage = () => {
   // instead of rendering any card content.
   const { data: budget, isLoading: budgetLoading } = useBudget(budgetId);
   const isLocked = budget?.locked ?? false;
+  const [month] = useBudgetMonth();
+  const periodLabel =
+    budget?.kind === "CONTINUOUS" ? formatMonthLabel(month) : null;
 
   const {
     data: card,
     isLoading: cardLoading,
     error: cardError,
-  } = useCard(cardId);
+  } = useCard(cardId, undefined, month);
   const { data: transactions = [], isLoading: transactionsLoading } =
-    useCardTransactions(cardId);
-  const { data: budgets = [] } = useBudgets();
+    useCardTransactions(cardId, month);
   const deleteCardMutation = useDeleteCard();
   const updateCardMutation = useUpdateCard();
   const { setActions, setTitle, setDescription } = useBudgetHeader();
@@ -248,7 +262,12 @@ const CardDetailsPage = () => {
   });
 
   // Map API card to component card
-  const mappedCard: Card | null = card ? mapApiCardToCard(card) : null;
+  const mappedCard: Card | null = card
+    ? mapApiCardToCard(
+        card,
+        users.map((u) => u.id),
+      )
+    : null;
 
   // Check if current user owns this card
   const isCardOwner = card?.userId === session?.user?.id;
@@ -371,14 +390,16 @@ const CardDetailsPage = () => {
       );
       return;
     }
-    // Split transactions aren't safe to edit inline (it could corrupt the
-    // per-category breakdown) — route to the full form modal instead.
-    if (transaction.splits && transaction.splits.length > 0) {
+    // Splits and income can't be saved by the inline editor (it requires a
+    // category and only writes REGULAR or RETURN), so they use the full form.
+    if (
+      (transaction.splits && transaction.splits.length > 0) ||
+      transaction.transactionType === TransactionType.INCOME
+    ) {
       setEditingSplitTransaction(transaction);
       return;
-    } else {
-      setEditingTransactionId(transaction.id);
     }
+    setEditingTransactionId(transaction.id);
   };
 
   const handleDeleteTransaction = (transaction: TransactionWithRelations) => {
@@ -451,6 +472,7 @@ const CardDetailsPage = () => {
       {
         icon: <Plus className="h-4 w-4" />,
         label: "Add transaction",
+        addsTransaction: true,
         onClick: handleOpenAddTransactionModal,
         variant: "primary",
       },
@@ -471,6 +493,7 @@ const CardDetailsPage = () => {
       actions.push({
         icon: <CreditCard className="h-4 w-4" />,
         label: "Pay credit card",
+        addsTransaction: true,
         onClick: handleOpenCardPaymentModal,
         variant: "secondary",
       });
@@ -552,7 +575,6 @@ const CardDetailsPage = () => {
   }
 
   if (cardError || !card || !mappedCard) {
-    console.error("CardDetailsPage error:", { cardError, card, mappedCard });
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
@@ -561,24 +583,19 @@ const CardDetailsPage = () => {
               ? cardError.message
               : "Failed to load card"}
           </span>
-          <div className="mt-2 text-sm text-gray-500">Card ID: {cardId}</div>
-          <div className="mt-2 text-sm text-gray-500">
-            Session: {session ? "Authenticated" : "Not authenticated"}
-          </div>
         </div>
       </div>
     );
   }
 
+  const isDebit = isDebitCard(card);
   const totalSpent = mappedCard.amountSpent;
-  const availableCredit =
-    card.cardType === CardType.CREDIT ||
-    card.cardType === CardType.BUSINESS_CREDIT
-      ? (mappedCard.spendingLimit ?? 0) - totalSpent
-      : (mappedCard.spendingLimit ?? 0) + totalSpent;
-  const utilizationRate = mappedCard.spendingLimit
-    ? (totalSpent / mappedCard.spendingLimit) * 100
-    : 0;
+  // A debit card's limit is the income deposited on it.
+  const available = roundToCents((mappedCard.spendingLimit ?? 0) - totalSpent);
+  const utilizationRate = calculateSpendingPercentage(
+    totalSpent,
+    mappedCard.spendingLimit ?? 0,
+  );
 
   return (
     <>
@@ -588,9 +605,9 @@ const CardDetailsPage = () => {
             {/* Card Stats */}
             <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
               <StatsCard
-                title="Total Spent"
-                value={`$${totalSpent.toLocaleString()}`}
-                subtitle="All time"
+                title="Total spent"
+                value={formatCurrency(totalSpent)}
+                subtitle={periodLabel ?? "All time"}
                 icon={
                   <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
                 }
@@ -600,8 +617,8 @@ const CardDetailsPage = () => {
               {mappedCard.spendingLimit && (
                 <>
                   <StatsCard
-                    title="Available Credit"
-                    value={`$${availableCredit.toLocaleString()}`}
+                    title={isDebit ? "Available funds" : "Available credit"}
+                    value={formatCurrency(available)}
                     subtitle={`${utilizationRate.toFixed(1)}% utilized`}
                     icon={
                       <CreditCard className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
@@ -610,9 +627,17 @@ const CardDetailsPage = () => {
                   />
 
                   <StatsCard
-                    title="Credit Limit"
-                    value={`$${mappedCard.spendingLimit.toLocaleString()}`}
-                    subtitle="Total limit"
+                    title={isDebit ? "Total income" : "Credit limit"}
+                    value={formatCurrency(mappedCard.spendingLimit)}
+                    subtitle={
+                      isDebit
+                        ? periodLabel
+                          ? `Deposited in ${periodLabel}`
+                          : "Deposited on card"
+                        : periodLabel
+                          ? "Monthly limit"
+                          : "Total limit"
+                    }
                     icon={
                       <CreditCard className="h-4 w-4 text-indigo-500 sm:h-5 sm:w-5" />
                     }
@@ -624,7 +649,7 @@ const CardDetailsPage = () => {
               <StatsCard
                 title="Transactions"
                 value={transactions.length}
-                subtitle="Total transactions"
+                subtitle={periodLabel ?? "Total transactions"}
                 icon={
                   <Calendar className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
                 }
@@ -636,7 +661,7 @@ const CardDetailsPage = () => {
             <div className="mb-6 rounded-xl border bg-surface-card p-4 shadow-sm">
               <h3 className="mb-4 flex items-center justify-between">
                 <span className="text-lg font-semibold text-gray-900">
-                  Card Information
+                  Card information
                 </span>
                 {isCardOwner && (
                   <button
@@ -645,7 +670,7 @@ const CardDetailsPage = () => {
                       handleEditCard();
                     }}
                     title="Edit"
-                    className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-primary"
+                    className="tap-target rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-primary"
                   >
                     <Edit className="h-4 w-4" />
                   </button>
@@ -657,7 +682,7 @@ const CardDetailsPage = () => {
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <label className="mb-1 block text-sm font-medium text-gray-700">
-                        Card Name
+                        Card name
                       </label>
                       <input
                         type="text"
@@ -674,7 +699,7 @@ const CardDetailsPage = () => {
                     </div>
                     <div>
                       <label className="mb-1 block text-sm font-medium text-gray-700">
-                        Card Type
+                        Card type
                       </label>
                       <select
                         value={editFormData.cardType}
@@ -690,16 +715,16 @@ const CardDetailsPage = () => {
                         <option value={CardType.DEBIT}>Debit</option>
                         <option value={CardType.CREDIT}>Credit</option>
                         <option value={CardType.BUSINESS_DEBIT}>
-                          Business Debit
+                          Business debit
                         </option>
                         <option value={CardType.BUSINESS_CREDIT}>
-                          Business Credit
+                          Business credit
                         </option>
                       </select>
                     </div>
                     <div>
                       <label className="mb-1 block text-sm font-medium text-gray-700">
-                        Spending Limit
+                        {periodLabel ? "Monthly limit" : "Spending limit"}
                       </label>
                       <input
                         type="number"
@@ -753,7 +778,7 @@ const CardDetailsPage = () => {
                       size="sm"
                       isLoading={updateCardMutation.isPending}
                     >
-                      Save Changes
+                      Save changes
                     </Button>
                   </div>
                 </div>
@@ -888,7 +913,9 @@ const CardDetailsPage = () => {
                 <div className="rounded-xl border-2 border-dashed border-gray-300 bg-surface-card py-12 text-center">
                   <Calendar className="mx-auto mb-4 h-12 w-12 text-gray-400" />
                   <h3 className="mb-2 text-lg font-medium text-gray-900">
-                    No transactions yet
+                    {periodLabel
+                      ? `No transactions in ${periodLabel}`
+                      : "No transactions yet"}
                   </h3>
                   <p className="mb-6 text-sm text-gray-500">
                     Add your first transaction to this card to get started
@@ -899,7 +926,7 @@ const CardDetailsPage = () => {
                       variant="primary"
                     >
                       <Plus className="h-4 w-4" />
-                      Add Transaction
+                      Add transaction
                     </Button>
                   )}
                 </div>
@@ -931,6 +958,11 @@ const CardDetailsPage = () => {
                       );
                     }
 
+                    const amountDisplay = getCardTransactionDisplay(
+                      transaction.transactionType,
+                      card.cardType,
+                    );
+
                     return (
                       <SwipeableRow
                         key={transaction.id}
@@ -955,7 +987,7 @@ const CardDetailsPage = () => {
                             <div className="flex items-center gap-3">
                               <div className="flex-1">
                                 <p className="font-medium text-gray-900">
-                                  {transaction.name ?? "Unnamed Transaction"}
+                                  {transaction.name ?? "Unnamed transaction"}
                                 </p>
                                 {transaction.transactionType ===
                                 TransactionType.INCOME ? (
@@ -979,7 +1011,7 @@ const CardDetailsPage = () => {
                               <div className="flex items-center gap-2">
                                 {/* Action Icons — desktop hover only; mobile
                                   exposes them via swipe (SwipeableRow). */}
-                                <div className="hidden items-center space-x-1 opacity-0 transition-opacity lg:flex lg:group-hover:opacity-100">
+                                <div className="hidden items-center space-x-1 opacity-0 transition-opacity lg:flex lg:group-focus-within:opacity-100 lg:group-hover:opacity-100">
                                   <button
                                     onClick={() =>
                                       handleEditTransaction(transaction)
@@ -1001,51 +1033,20 @@ const CardDetailsPage = () => {
                                 </div>
                                 <div className="text-right">
                                   <p
-                                    className={`font-semibold ${
-                                      transaction.transactionType ===
-                                      TransactionType.INCOME
-                                        ? "text-green-600" // Income transactions are always green
-                                        : transaction.transactionType ===
-                                            TransactionType.CARD_PAYMENT
-                                          ? "text-red-600" // Always red for card payments
-                                          : // For debit (and cash) cards: returns are green, regular transactions are red
-                                            isDebitCard(card) ||
-                                              card.cardType === CardType.CASH
-                                            ? transaction.transactionType ===
-                                              TransactionType.RETURN
-                                              ? "text-green-600" // Returns are green for debit cards
-                                              : "text-red-600" // Regular transactions are red for debit cards
-                                            : transaction.transactionType ===
-                                                TransactionType.RETURN
-                                              ? "text-green-600"
-                                              : "text-red-600"
-                                    }`}
+                                    className={`font-semibold tabular-nums ${amountDisplay.colorClass}`}
                                   >
-                                    {transaction.transactionType ===
-                                    TransactionType.INCOME
-                                      ? "+$" // Income transactions are always positive
-                                      : transaction.transactionType ===
-                                          TransactionType.CARD_PAYMENT
-                                        ? "-$" // Always negative for card payments
-                                        : // For debit (and cash) cards: returns are positive, regular transactions are negative
-                                          isDebitCard(card) ||
-                                            card.cardType === CardType.CASH
-                                          ? transaction.transactionType ===
-                                            TransactionType.RETURN
-                                            ? "+$" // Returns are positive for debit cards
-                                            : "-$" // Regular transactions are negative for debit cards
-                                          : transaction.amount >= 0
-                                            ? "+$"
-                                            : "$"}
-                                    {Math.abs(transaction.amount).toFixed(2)}
+                                    {amountDisplay.prefix}
+                                    {formatCurrency(
+                                      Math.abs(transaction.amount),
+                                    )}
                                   </p>
                                   <p
                                     className="inline-flex items-center gap-1 text-xs text-gray-500"
                                     suppressHydrationWarning
                                   >
-                                    {getTransactionDate(
-                                      transaction,
-                                    ).toLocaleDateString()}
+                                    {formatDateUTC(
+                                      getTransactionDate(transaction),
+                                    )}
                                     {!transaction.occurredAt && (
                                       <MissingDateWarning />
                                     )}
@@ -1070,17 +1071,17 @@ const CardDetailsPage = () => {
         isOpen={!!cardToDelete}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        title="Delete Card"
+        title="Delete card"
         message={`Are you sure you want to delete "${cardToDelete?.name ?? ""}"? This action cannot be undone.`}
         itemName={cardToDelete?.name ?? ""}
         isLoading={deleteCardMutation.isPending}
-        confirmText="Delete Card"
+        confirmText="Delete card"
       />
 
       {/* Add Transaction Modal */}
       <AddTransactionModal
         isOpen={showAddTransactionModal}
-        budgetId={budgets[0]?.id ?? ""} // Use first budget or empty string
+        budgetId={budgetId}
         cardId={cardId ?? ""}
         onClose={() => setShowAddTransactionModal(false)}
         onSuccess={handleTransactionSuccess}
@@ -1091,7 +1092,7 @@ const CardDetailsPage = () => {
       <AddTransactionModal
         isOpen={!!editingSplitTransaction}
         transaction={editingSplitTransaction ?? undefined}
-        budgetId={budgets[0]?.id ?? ""}
+        budgetId={budgetId}
         cardId={cardId ?? ""}
         onClose={() => setEditingSplitTransaction(null)}
         onSuccess={() => setEditingSplitTransaction(null)}
@@ -1102,6 +1103,7 @@ const CardDetailsPage = () => {
         isOpen={showCardPaymentModal}
         onClose={() => setShowCardPaymentModal(false)}
         currentCardId={cardId ?? ""}
+        budgetId={budgetId}
       />
 
       {/* Delete Transaction Confirmation Modal */}
@@ -1109,7 +1111,7 @@ const CardDetailsPage = () => {
         isOpen={!!transactionToDelete}
         onClose={handleCancelDeleteTransaction}
         onConfirm={handleConfirmDeleteTransaction}
-        title="Delete Transaction"
+        title="Delete transaction"
         message={
           transactionToDelete?.splits && transactionToDelete.splits.length > 0
             ? `This will delete the transaction '{itemName}' and its ${transactionToDelete.splits.length} category splits. This action cannot be undone.`
@@ -1118,7 +1120,7 @@ const CardDetailsPage = () => {
         itemName={transactionToDelete?.name ?? "Unnamed transaction"}
         isLoading={deleteTransactionMutation.isPending}
         loadingText="Deleting..."
-        confirmText="Delete Transaction"
+        confirmText="Delete transaction"
         cancelText="Cancel"
       />
 

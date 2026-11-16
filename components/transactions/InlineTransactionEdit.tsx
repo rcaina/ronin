@@ -19,6 +19,7 @@ import Button from "../Button";
 import DateInput from "../DateInput";
 import { formatCurrency } from "@/lib/utils";
 import { getSplitBadgeLabel } from "@/lib/utils/transactions";
+import { monthOfDateInput } from "@/lib/utils/budget-month";
 import { CategoryType, TransactionType } from "@prisma/client";
 
 // Validation schema
@@ -60,6 +61,7 @@ export default function InlineTransactionEdit({
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
@@ -82,6 +84,8 @@ export default function InlineTransactionEdit({
   const selectedBudgetId = watch("budgetId");
   const { data: budgetCategories = [] } = useBudgetCategories(
     selectedBudgetId || transaction.budgetId,
+    undefined,
+    monthOfDateInput(watch("occurredAt"), new Date(transaction.createdAt)),
   );
 
   const onSubmit = (data: TransactionFormData) => {
@@ -206,7 +210,9 @@ export default function InlineTransactionEdit({
             <div className="flex-1">
               <div className="text-xs text-gray-500">Budget</div>
               <select
-                {...register("budgetId")}
+                {...register("budgetId", {
+                  onChange: () => setValue("categoryId", ""),
+                })}
                 className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
                   errors.budgetId
                     ? "border-red-300 focus:border-red-500 focus:ring-red-500"
@@ -215,11 +221,17 @@ export default function InlineTransactionEdit({
                 disabled={isUpdating}
               >
                 <option value="">Select a budget</option>
-                {budgets.map((budget) => (
-                  <option key={budget.id} value={budget.id}>
-                    {budget.name}
-                  </option>
-                ))}
+                {budgets
+                  .filter(
+                    (budget) =>
+                      budget.status === "ACTIVE" ||
+                      budget.id === transaction.budgetId,
+                  )
+                  .map((budget) => (
+                    <option key={budget.id} value={budget.id}>
+                      {budget.name}
+                    </option>
+                  ))}
               </select>
               {errors.budgetId && (
                 <p className="mt-1 text-xs text-red-600">
@@ -242,7 +254,9 @@ export default function InlineTransactionEdit({
                 <option value="">Select a category</option>
                 {budgetCategories.map(
                   (budgetCategory: BudgetCategoryWithCategory) => {
-                    const allocatedAmount = budgetCategory.allocatedAmount ?? 0;
+                    const allocatedAmount =
+                      (budgetCategory.allocatedAmount ?? 0) +
+                      (budgetCategory.carry ?? 0);
                     const spentAmount = budgetCategory.spentAmount ?? 0;
                     const availableAmount = allocatedAmount - spentAmount;
                     return (
@@ -255,6 +269,7 @@ export default function InlineTransactionEdit({
                 )}
                 {/* Show current category if it's not in the current budget categories */}
                 {transaction.category &&
+                  selectedBudgetId === transaction.budgetId &&
                   !budgetCategories.some(
                     (bc) => bc.id === transaction.categoryId,
                   ) && (

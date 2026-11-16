@@ -1,9 +1,26 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { CategoryType, PeriodType } from "@prisma/client";
+import type { KeyboardEvent, SyntheticEvent } from "react";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+/** Props that make a clickable non-button element focusable and operable with Enter/Space. */
+export function pressable(onPress: (e: SyntheticEvent<HTMLElement>) => void) {
+  return {
+    role: "button" as const,
+    tabIndex: 0,
+    onClick: onPress,
+    onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
+      // Keys typed in a nested button or input belong to that control.
+      if (e.target !== e.currentTarget) return;
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      onPress(e);
+    },
+  };
 }
 
 /**
@@ -38,62 +55,6 @@ export function formatCurrency(amount: number): string {
     style: "currency",
     currency: "USD",
   }).format(amount);
-}
-
-/**
- * Calculates the adjusted income amount based on income frequency and budget period
- * @param amount - The base income amount
- * @param incomeFrequency - The frequency of the income (weekly, monthly, etc.)
- * @param budgetPeriod - The period of the budget (weekly, monthly, etc.)
- * @returns The adjusted income amount for the budget period
- */
-export function calculateAdjustedIncome(
-  amount: number,
-  incomeFrequency: PeriodType,
-  budgetPeriod: PeriodType,
-): number {
-  // If frequencies match, return the original amount
-  if (incomeFrequency === budgetPeriod) {
-    return roundToCents(amount);
-  }
-
-  // Handle ONE_TIME income - it's a one-time payment regardless of budget period
-  if (incomeFrequency === PeriodType.ONE_TIME) {
-    return roundToCents(amount);
-  }
-
-  // Convert everything to a common base (weeks) for calculation
-  const getWeeksInPeriod = (period: PeriodType): number => {
-    switch (period) {
-      case PeriodType.WEEKLY:
-        return 1;
-      case PeriodType.MONTHLY:
-        return 4.33; // Average weeks per month (52 weeks / 12 months)
-      case PeriodType.QUARTERLY:
-        return 13; // 3 months * 4.33 weeks
-      case PeriodType.YEARLY:
-        return 52; // 52 weeks per year
-      case PeriodType.ONE_TIME:
-        return 0; // One-time payments don't repeat
-      default:
-        return 1;
-    }
-  };
-
-  const incomeWeeks = getWeeksInPeriod(incomeFrequency);
-  const budgetWeeks = getWeeksInPeriod(budgetPeriod);
-
-  // If income frequency is longer than budget period, calculate how many times it occurs
-  if (incomeWeeks > budgetWeeks) {
-    const result = (amount / incomeWeeks) * budgetWeeks;
-    return roundToCents(result);
-  }
-
-  // If income frequency is shorter than budget period, calculate how many times it occurs
-  // Round up to ensure users get the full amount for partial periods
-  const multiplier = budgetWeeks / incomeWeeks;
-  const result = Math.ceil(multiplier) * amount;
-  return roundToCents(result);
 }
 
 /**
@@ -190,8 +151,9 @@ export function parseLocalDate(
   return new Date(year, month - 1, day);
 }
 
-export function formatDateUTC(dateString: string): string {
-  if (!dateString) return "";
+export function formatDateUTC(date: string | Date): string {
+  if (!date) return "";
+  const dateString = typeof date === "string" ? date : date.toISOString();
 
   // Handle both ISO date strings and simple date strings
   let year: number, month: number, day: number;

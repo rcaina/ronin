@@ -4,6 +4,7 @@ import type { z } from "zod";
 import type { createCategorySchema } from "../api-schemas/categories";
 import { HttpError } from "../errors";
 import { roundToCents } from "../utils";
+import { mergeMonthPlans } from "../utils/budget-month";
 import type {
   GroupedCategories,
   MergeCategoriesRequest,
@@ -105,8 +106,8 @@ export async function updateCategory(
  *
  * - Budget-level copies that pointed at a source template are repointed to
  *   the survivor (`defaultCategoryId`).
- * - Any transactions attached directly to a source template are repointed
- *   to the survivor.
+ * - Any transactions, split legs and recurring templates attached directly to
+ *   a source template are repointed to the survivor.
  * - The source templates are soft-deleted.
  */
 export async function mergeCategories(
@@ -147,14 +148,16 @@ export async function mergeCategories(
   // blindly repointing would leave that budget with two active categories
   // linked to the same template. Collapse per-budget duplicates first: keep
   // one copy per budget (preferring the survivor-linked one), move the
-  // others' transactions onto it, and fold their allocations in so the
-  // budget's total allocation is unchanged.
+  // others' transactions, split legs and recurring templates onto it, and
+  // fold their allocations and month plans in so the budget's totals are
+  // unchanged.
   const budgetCopies = await tx.category.findMany({
     where: {
       budgetId: { not: null },
       defaultCategoryId: { in: [targetId, ...sourceIds] },
       deleted: null,
     },
+    include: { months: { select: { month: true, assigned: true } } },
     orderBy: { createdAt: "asc" },
   });
 
@@ -174,21 +177,36 @@ export async function mergeCategories(
     if (duplicates.length === 0) continue;
 
     const duplicateIds = duplicates.map((copy) => copy.id);
-    await tx.transaction.updateMany({
+    const repoint = {
       where: { categoryId: { in: duplicateIds } },
       data: { categoryId: survivor.id },
-    });
+    };
+    await tx.transaction.updateMany(repoint);
+    await tx.transactionSplit.updateMany(repoint);
+    await tx.recurringTransaction.updateMany(repoint);
 
-    const hasAllocation = copies.some((copy) => copy.allocatedAmount !== null);
-    if (hasAllocation) {
-      const mergedAllocation = roundToCents(
-        copies.reduce((sum, copy) => sum + (copy.allocatedAmount ?? 0), 0),
-      );
-      await tx.category.update({
-        where: { id: survivor.id },
-        data: { allocatedAmount: mergedAllocation },
+    const monthPlans = mergeMonthPlans(copies);
+    if (monthPlans.length > 0) {
+      await tx.categoryMonth.deleteMany({
+        where: { categoryId: { in: copies.map((copy) => copy.id) } },
+      });
+      await tx.categoryMonth.createMany({
+        data: monthPlans.map((plan) => ({ ...plan, categoryId: survivor.id })),
       });
     }
+
+    const hasAllocation = copies.some((copy) => copy.allocatedAmount !== null);
+    await tx.category.update({
+      where: { id: survivor.id },
+      data: {
+        rollover: copies.some((copy) => copy.rollover),
+        ...(hasAllocation && {
+          allocatedAmount: roundToCents(
+            copies.reduce((sum, copy) => sum + (copy.allocatedAmount ?? 0), 0),
+          ),
+        }),
+      },
+    });
 
     await tx.category.updateMany({
       where: { id: { in: duplicateIds } },
@@ -205,10 +223,13 @@ export async function mergeCategories(
   // Safety net: repoint any transactions attached directly to the source
   // templates (default categories aren't normally transacted against, but
   // relink defensively rather than leave a dangling reference).
-  await tx.transaction.updateMany({
+  const repointSources = {
     where: { categoryId: { in: sourceIds } },
     data: { categoryId: targetId },
-  });
+  };
+  await tx.transaction.updateMany(repointSources);
+  await tx.transactionSplit.updateMany(repointSources);
+  await tx.recurringTransaction.updateMany(repointSources);
 
   await tx.category.updateMany({
     where: { id: { in: sourceIds } },

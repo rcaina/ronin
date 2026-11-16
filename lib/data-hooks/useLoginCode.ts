@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { requestLoginCode, signInWithCode } from "./services/auth";
+import { safeCallbackPath } from "@/lib/utils/safe-redirect";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -84,7 +85,12 @@ export function useLoginCode(): UseLoginCodeReturn {
     try {
       await signInWithCode({ email, code });
       toast.success("Signed in");
-      router.push("/");
+      router.push(
+        safeCallbackPath(
+          new URLSearchParams(window.location.search).get("callbackUrl"),
+          window.location.origin,
+        ),
+      );
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Invalid or expired code";

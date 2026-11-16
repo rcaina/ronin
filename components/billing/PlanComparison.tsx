@@ -30,7 +30,7 @@ interface PlanComparisonProps {
  * `included` flag drives the check vs. muted-x icon so the two plans read as a
  * side-by-side comparison. */
 const FREE_FEATURES = [
-  { label: `${FREE_LIMITS.maxActiveBudgets} active budget`, included: true },
+  { label: `${FREE_LIMITS.maxActiveBudgets} active event`, included: true },
   { label: `${FREE_LIMITS.maxMembers} household member`, included: true },
   {
     label: `Up to ${FREE_LIMITS.maxPockets} savings pockets`,
@@ -195,7 +195,7 @@ export default function PlanComparison({
         {/* Price / status block */}
         {complimentaryAccess ? (
           <p className="mt-4 text-sm text-gray-600">
-            Your account has complimentary Premium access — every feature is
+            Your account has complimentary Premium access. Every feature is
             unlocked and no billing is required.
           </p>
         ) : isPremium ? (

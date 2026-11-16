@@ -12,10 +12,15 @@ import type {
   ImportBudgetCategoriesData,
 } from "@/lib/types/budget";
 import { parseErrorResponse } from "@/lib/data-hooks/services/http";
+import type {
+  QuickFillPreview,
+  QuickFillSource,
+} from "@/lib/utils/budget-month";
 
 const getBudgetCategories = async (
   budgetId: string,
   searchQuery?: string,
+  month?: string,
 ): Promise<BudgetCategoryWithCategory[]> => {
   const url = new URL(
     `/api/budgets/${budgetId}/categories`,
@@ -24,6 +29,7 @@ const getBudgetCategories = async (
   if (searchQuery?.trim()) {
     url.searchParams.set("search", searchQuery.trim());
   }
+  if (month) url.searchParams.set("month", month);
 
   const response = await fetch(url.toString());
   if (!response.ok) {
@@ -34,12 +40,16 @@ const getBudgetCategories = async (
   return response.json() as Promise<BudgetCategoryWithCategory[]>;
 };
 
-export const useBudgetCategories = (budgetId: string, searchQuery?: string) => {
+export const useBudgetCategories = (
+  budgetId: string,
+  searchQuery?: string,
+  month?: string,
+) => {
   const { data: session } = useSession();
 
   const query = useQuery<BudgetCategoryWithCategory[]>({
-    queryKey: ["budgetCategories", budgetId, searchQuery],
-    queryFn: () => getBudgetCategories(budgetId, searchQuery),
+    queryKey: ["budgetCategories", budgetId, searchQuery, month],
+    queryFn: () => getBudgetCategories(budgetId, searchQuery, month),
     placeholderData: keepPreviousData,
     enabled: !!session && !!budgetId,
     staleTime: 2 * 60 * 1000,
@@ -224,6 +234,62 @@ export const useDeleteBudgetCategory = () => {
       // Also invalidate the budgets list
       void queryClient.invalidateQueries({ queryKey: ["budgets"] });
       // Invalidate the specific budget to refresh the main page
+      void queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
+    },
+  });
+};
+
+const getQuickFillPreview = async (
+  budgetId: string,
+  month: string,
+): Promise<QuickFillPreview> => {
+  const response = await fetch(`/api/budgets/${budgetId}/months/${month}/fill`);
+  if (!response.ok) return parseErrorResponse(response);
+  return response.json() as Promise<QuickFillPreview>;
+};
+
+export const useQuickFillPreview = (budgetId: string, month: string) =>
+  useQuery({
+    queryKey: ["quickFillPreview", budgetId, month],
+    queryFn: () => getQuickFillPreview(budgetId, month),
+    gcTime: 0,
+  });
+
+const fillBudgetMonth = async (
+  budgetId: string,
+  month: string,
+  source: QuickFillSource,
+): Promise<{ filled: number }> => {
+  const response = await fetch(
+    `/api/budgets/${budgetId}/months/${month}/fill`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source }),
+    },
+  );
+  if (!response.ok) return parseErrorResponse(response);
+  return response.json() as Promise<{ filled: number }>;
+};
+
+export const useFillBudgetMonth = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      budgetId,
+      month,
+      source,
+    }: {
+      budgetId: string;
+      month: string;
+      source: QuickFillSource;
+    }) => fillBudgetMonth(budgetId, month, source),
+    onSuccess: (_, { budgetId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: ["budgetCategories", budgetId],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["budgets"] });
       void queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
     },
   });

@@ -4,7 +4,7 @@ import {
   Plus,
   CreditCard,
   DollarSign,
-  Shield,
+  Wallet,
   AlertCircle,
   Target,
   FolderInput,
@@ -15,6 +15,7 @@ import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { default as CardComponent } from "@/components/cards/Card";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import Modal from "@/components/Modal";
 import AddCardForm from "@/components/cards/AddCardForm";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import {
@@ -28,13 +29,16 @@ import { usePageLoading } from "@/components/ConditionalLayout";
 import { type CardType } from "@prisma/client";
 import Button from "@/components/Button";
 import { type Card, mapCardType, getCardColor } from "@/lib/utils/cards";
-import { useLockBodyScroll } from "@/lib/utils/hooks";
+import { useBudgetMonth } from "@/lib/utils/hooks";
+import { formatMonthLabel } from "@/lib/utils/budget-month";
 import StatsCard from "@/components/StatsCard";
+import { formatCurrency, roundToCents } from "@/lib/utils";
 import type { Card as PrismaCard } from "@prisma/client";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import ImportCardsModal from "@/components/cards/ImportCardsModal";
+import LockedBudgetGate from "../LockedBudgetGate";
 
 // Interface for budget cards with user information
 interface BudgetCard extends PrismaCard {
@@ -66,18 +70,20 @@ const BudgetCardsPage = () => {
     isLoading: budgetLoading,
     error: budgetError,
   } = useBudget(budgetId);
+  const [month] = useBudgetMonth();
+  const isContinuous = budget?.kind === "CONTINUOUS";
+  const isLocked = budget?.locked ?? false;
   const {
     data: apiCards,
     isLoading: cardsLoading,
     error: cardsError,
-  } = useBudgetCards(budgetId);
+  } = useBudgetCards(budgetId, undefined, month);
   const { data: generalCards } = useGeneralCards();
   const deleteCardMutation = useDeleteCard();
   const createCardMutation = useCreateCard();
   const updateCardMutation = useUpdateCard();
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
-  useLockBodyScroll(showAddCardModal);
   const [cardToEdit, setCardToEdit] = useState<BudgetCard | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -87,18 +93,24 @@ const BudgetCardsPage = () => {
   const [showImportCardsModal, setShowImportCardsModal] = useState(false);
   const { setActions } = useBudgetHeader();
 
-  // Register header actions
+  // Register header actions; a locked budget shows only the gate, so none.
   useEffect(() => {
+    if (isLocked) {
+      setActions([]);
+      return;
+    }
     setActions([
       {
         icon: <Plus className="h-4 w-4" />,
         label: "Add transaction",
+        addsTransaction: true,
         onClick: () => setShowAddTransactionModal(true),
         variant: "primary" as const,
       },
       {
         icon: <DollarSign className="h-4 w-4" />,
         label: "Pay credit card",
+        addsTransaction: true,
         onClick: () => setShowCardPaymentModal(true),
         variant: "secondary" as const,
       },
@@ -115,12 +127,13 @@ const BudgetCardsPage = () => {
         variant: "outline" as const,
       },
     ]);
-  }, [setActions]);
+  }, [setActions, isLocked]);
 
   // Map Prisma cards to component cards
   const cards: Card[] = useMemo(() => {
     if (!apiCards) return [];
 
+    const ownerIds = users.map((u) => u.id);
     return apiCards.map((prismaCard: BudgetCard) => ({
       id: prismaCard.id,
       name: prismaCard.name,
@@ -129,11 +142,11 @@ const BudgetCardsPage = () => {
       amountSpent: prismaCard.amountSpent ?? 0,
       spendingLimit: prismaCard.spendingLimit ?? undefined,
       userId: prismaCard.userId,
-      user: prismaCard.user?.name ?? "Unknown User",
+      user: prismaCard.user?.name ?? "Unknown user",
       isActive: !prismaCard.deleted,
-      color: getCardColor(prismaCard.userId),
+      color: getCardColor(prismaCard.userId, ownerIds),
     }));
-  }, [apiCards]);
+  }, [apiCards, users]);
 
   const existingCardNames = useMemo(
     () => cards.map((card) => card.name),
@@ -288,10 +301,12 @@ const BudgetCardsPage = () => {
   };
 
   const handleCardClick = (card: Card) => {
-    router.push(`/budgets/${budgetId}/cards/${card.id}`);
+    router.push(
+      `/budgets/${budgetId}/cards/${card.id}${isContinuous ? `?month=${month}` : ""}`,
+    );
   };
 
-  const { totalSpent, totalLimit, activeCards, creditCards } = useMemo(() => {
+  const { totalSpent, totalLimit, available, creditCards } = useMemo(() => {
     const totalSpent = cards.reduce((sum, card) => sum + card.amountSpent, 0);
     const totalLimit = cards
       .filter(
@@ -300,12 +315,19 @@ const BudgetCardsPage = () => {
           (card.type === "credit" || card.type === "business_credit"),
       )
       .reduce((sum, card) => sum + (card.spendingLimit ?? 0), 0);
-    const activeCards = cards.filter((card) => card.isActive).length;
+    const available = roundToCents(
+      cards
+        .filter((card) => card.spendingLimit)
+        .reduce(
+          (sum, card) => sum + (card.spendingLimit ?? 0) - card.amountSpent,
+          0,
+        ),
+    );
     const creditCards = cards.filter(
       (card) => card.type === "credit" || card.type === "business_credit",
     ).length;
 
-    return { totalSpent, totalLimit, activeCards, creditCards };
+    return { totalSpent, totalLimit, available, creditCards };
   }, [cards]);
 
   // Build a tab per card owner. Only surface tabs when more than one person
@@ -407,6 +429,10 @@ const BudgetCardsPage = () => {
     );
   }
 
+  if (budget.locked) {
+    return <LockedBudgetGate />;
+  }
+
   return (
     <>
       <div className="bg-surface lg:h-full lg:overflow-y-auto">
@@ -415,24 +441,27 @@ const BudgetCardsPage = () => {
           <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
             <StatsCard
               title="Total spent"
-              value={`$${totalSpent.toLocaleString()}`}
-              subtitle="Across budget cards"
+              value={formatCurrency(totalSpent)}
+              subtitle={
+                isContinuous ? formatMonthLabel(month) : "Across budget cards"
+              }
               icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
               iconColor="text-green-600"
             />
 
             <StatsCard
               title="Credit limit"
-              value={`$${totalLimit.toLocaleString()}`}
-              subtitle="Available credit"
+              value={formatCurrency(totalLimit)}
+              subtitle={isContinuous ? "Monthly limit" : "Total limit"}
               icon={<CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />}
             />
 
             <StatsCard
-              title="Active cards"
-              value={activeCards}
-              subtitle={`${cards.length - activeCards} inactive`}
-              icon={<Shield className="h-4 w-4 sm:h-5 sm:w-5" />}
+              title="Available"
+              value={formatCurrency(available)}
+              subtitle="Left on cards with a limit"
+              valueColor={available < 0 ? "text-red-600" : undefined}
+              icon={<Wallet className="h-4 w-4 sm:h-5 sm:w-5" />}
             />
 
             <StatsCard
@@ -457,7 +486,7 @@ const BudgetCardsPage = () => {
                     <button
                       key={tab.id}
                       onClick={() => setActiveOwner(tab.id)}
-                      className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
+                      className={`tap-target flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
                         effectiveOwner === tab.id
                           ? "bg-surface-card text-gray-900 shadow-soft"
                           : "text-gray-500 hover:text-gray-700"
@@ -491,6 +520,7 @@ const BudgetCardsPage = () => {
                     <AddCardForm
                       key={`edit-${card.id}`}
                       onSubmit={handleSubmitCard}
+                      monthlyLimit={isContinuous}
                       onCancel={handleCancelEdit}
                       isLoading={updateCardMutation.isPending}
                       cardToEdit={{
@@ -538,6 +568,7 @@ const BudgetCardsPage = () => {
                     <AddCardForm
                       key={`edit-${card.id}`}
                       onSubmit={handleSubmitCard}
+                      monthlyLimit={isContinuous}
                       onCancel={handleCancelEdit}
                       isLoading={updateCardMutation.isPending}
                       cardToEdit={{
@@ -570,7 +601,7 @@ const BudgetCardsPage = () => {
                     onCopy={handleCopyCard}
                     onDelete={handleDeleteCard}
                     onClick={handleCardClick}
-                    canEdit={false}
+                    canEdit={card.userId === session?.user?.id}
                   />
                 );
               })}
@@ -585,6 +616,7 @@ const BudgetCardsPage = () => {
                     <AddCardForm
                       key={`edit-${card.id}`}
                       onSubmit={handleSubmitCard}
+                      monthlyLimit={isContinuous}
                       onCancel={handleCancelEdit}
                       isLoading={updateCardMutation.isPending}
                       cardToEdit={{
@@ -647,33 +679,29 @@ const BudgetCardsPage = () => {
       </div>
 
       {/* Add Card Modal */}
-      {showAddCardModal && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm"
-          onClick={handleCancelAdd}
-        >
-          <div
-            className="max-h-[calc(100dvh-2rem)] w-full max-w-md transform overflow-y-auto overscroll-contain transition-all"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <AddCardForm
-              onSubmit={handleSubmitCard}
-              onCancel={handleCancelAdd}
-              isLoading={createCardMutation.isPending}
-              users={users}
-              loadingUsers={loadingUsers}
-              defaultValues={{
-                userId:
-                  users.length === 1
-                    ? (users[0]?.id ?? "")
-                    : (session?.user?.id ?? ""),
-              }}
-              suggestions={generalCards}
-              existingCardNames={existingCardNames}
-            />
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showAddCardModal}
+        onClose={handleCancelAdd}
+        title="Add card"
+      >
+        <AddCardForm
+          inModal
+          onSubmit={handleSubmitCard}
+          monthlyLimit={isContinuous}
+          onCancel={handleCancelAdd}
+          isLoading={createCardMutation.isPending}
+          users={users}
+          loadingUsers={loadingUsers}
+          defaultValues={{
+            userId:
+              users.length === 1
+                ? (users[0]?.id ?? "")
+                : (session?.user?.id ?? ""),
+          }}
+          suggestions={generalCards}
+          existingCardNames={existingCardNames}
+        />
+      </Modal>
 
       {/* Delete Confirmation Modal */}
       {cardToDelete && (
@@ -681,11 +709,11 @@ const BudgetCardsPage = () => {
           isOpen={!!cardToDelete}
           onClose={handleCancelDelete}
           onConfirm={handleConfirmDelete}
-          title="Delete Card"
+          title="Delete card"
           message={`Are you sure you want to delete "${cardToDelete?.name ?? ""}"? This action cannot be undone.`}
           itemName={cardToDelete?.name ?? ""}
           isLoading={deleteCardMutation.isPending}
-          confirmText="Delete Card"
+          confirmText="Delete card"
         />
       )}
 

@@ -1,134 +1,19 @@
 import { useMemo } from "react";
-import { CategoryType } from "@prisma/client";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import { roundToCents } from "@/lib/utils";
 import {
   calculateAverageSpendingByWeekday,
   calculateBudgetSpent,
   calculateCategorySpent,
-  calculateRecentSpending,
   calculateSpendingPercentage,
   calculateTotalIncome,
   flattenBudgetTransactions,
 } from "@/lib/utils/spending";
 
-import { CHART_COLORS, GROUP_COLORS } from "@/components/recharts/theme";
+import { CHART_COLORS } from "@/components/recharts/theme";
 
 // Palette for the per-category pie chart on the budget detail page.
 const CATEGORY_COLORS = CHART_COLORS;
-
-/**
- * Aggregate statistics for the budgets list page, computed across the active
- * budgets (with completed/archived only contributing to counts).
- */
-export const useBudgetStats = (
-  activeBudgets: BudgetWithRelations[],
-  completedBudgets: BudgetWithRelations[],
-  archivedBudgets: BudgetWithRelations[],
-) =>
-  useMemo(() => {
-    const totalBudgets =
-      activeBudgets.length + completedBudgets.length + archivedBudgets.length;
-
-    const totalIncome = activeBudgets.reduce(
-      (sum, budget) => sum + calculateTotalIncome(budget),
-      0,
-    );
-    const totalSpent = activeBudgets.reduce(
-      (sum, budget) => sum + calculateBudgetSpent(budget),
-      0,
-    );
-    const totalRemaining = totalIncome - totalSpent;
-    const overallSpendingPercentage = calculateSpendingPercentage(
-      totalSpent,
-      totalIncome,
-    );
-
-    // Spending grouped by category group (Needs / Wants / Investment).
-    const spendingByGroup = activeBudgets.reduce(
-      (acc, budget) => {
-        (budget.categories ?? []).forEach((category) => {
-          const group = category.group ?? CategoryType.NEEDS;
-          acc[group] = (acc[group] ?? 0) + calculateCategorySpent(category);
-        });
-        return acc;
-      },
-      {} as Record<CategoryType, number>,
-    );
-
-    const pieChartData = [
-      {
-        name: "Needs",
-        value: roundToCents(spendingByGroup[CategoryType.NEEDS] ?? 0),
-        color: GROUP_COLORS.NEEDS!,
-      },
-      {
-        name: "Wants",
-        value: roundToCents(spendingByGroup[CategoryType.WANTS] ?? 0),
-        color: GROUP_COLORS.WANTS!,
-      },
-      {
-        name: "Investment",
-        value: roundToCents(spendingByGroup[CategoryType.INVESTMENT] ?? 0),
-        color: GROUP_COLORS.INVESTMENT!,
-      },
-    ].filter((item) => item.value > 0);
-
-    // Spending aggregated by category name across all active budgets.
-    const categorySpending = activeBudgets.reduce(
-      (acc, budget) => {
-        (budget.categories ?? []).forEach((category) => {
-          const spent = calculateCategorySpent(category);
-          if (spent > 0) {
-            const existing = acc.find((item) => item.name === category.name);
-            if (existing) {
-              existing.value += spent;
-            } else {
-              acc.push({
-                name: category.name,
-                value: roundToCents(spent),
-                group: category.group,
-              });
-            }
-          }
-        });
-        return acc;
-      },
-      [] as Array<{ name: string; value: number; group: CategoryType }>,
-    );
-
-    const topCategoriesData = categorySpending
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5)
-      .map((item) => ({
-        name:
-          item.name.length > 15
-            ? item.name.substring(0, 15) + "..."
-            : item.name,
-        value: item.value,
-        fullName: item.name,
-      }));
-
-    const allTransactions = flattenBudgetTransactions(activeBudgets);
-    const recentSpending = calculateRecentSpending(allTransactions, 7);
-    const dailySpendingData =
-      calculateAverageSpendingByWeekday(allTransactions);
-
-    return {
-      totalBudgets,
-      activeBudgetsCount: activeBudgets.length,
-      totalIncome,
-      totalSpent,
-      totalRemaining,
-      overallSpendingPercentage,
-      spendingByGroup,
-      recentSpending,
-      averageDailySpending: recentSpending / 7,
-      pieChartData,
-      topCategoriesData,
-      dailySpendingData,
-    };
-  }, [activeBudgets, completedBudgets, archivedBudgets]);
 
 /**
  * Statistics for a single budget, used on the budget detail page.

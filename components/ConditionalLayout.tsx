@@ -77,7 +77,12 @@ export const usePageIsLoading = () => {
 };
 
 // Pages that don't require authentication
-const PUBLIC_PAGES = ["/sign-in", "/sign-up"];
+const PUBLIC_PAGES = [
+  "/sign-in",
+  "/sign-up",
+  "/forgot-password",
+  "/reset-password",
+];
 
 // Pages that don't show the side navigation
 const NO_NAV_PAGES = ["/welcome"];
@@ -124,7 +129,8 @@ export default function ConditionalLayout({
 
   useEffect(() => {
     if (status === "unauthenticated" && !PUBLIC_PAGES.includes(pathname)) {
-      router.push("/sign-in");
+      const here = `${window.location.pathname}${window.location.search}`;
+      router.push(`/sign-in?callbackUrl=${encodeURIComponent(here)}`);
     }
   }, [status, router, pathname]);
 

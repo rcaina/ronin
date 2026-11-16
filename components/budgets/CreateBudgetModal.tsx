@@ -6,22 +6,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { X } from "lucide-react";
 import { toast } from "react-hot-toast";
-import {
-  useCreateBudgetFromScratchWithCards,
-  useDuplicateBudgetWithCards,
-} from "@/lib/data-hooks/budgets/useBudgets";
+import { useCreateBudgetFromScratchWithCards } from "@/lib/data-hooks/budgets/useBudgets";
 import {
   StrategyType,
   PeriodType,
   CategoryType,
-  TransactionType,
   type CardType,
 } from "@prisma/client";
-import {
-  calculateAdjustedIncome,
-  calculateEndDate,
-  roundToCents,
-} from "@/lib/utils";
+import { calculateEndDate, roundToCents, sumMonetaryValues } from "@/lib/utils";
 
 // Import components
 import BudgetStepsSidebar from "./BudgetStepsSidebar";
@@ -38,7 +30,6 @@ import type {
   StepType,
   CardToInclude,
 } from "./types";
-import type { BudgetWithRelations } from "@/lib/types/budget";
 import { useLockBodyScroll } from "@/lib/utils/hooks";
 import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
 import Button from "../Button";
@@ -48,9 +39,8 @@ import UpgradeModal from "../UpgradeModal";
 // Validation schema
 const createBudgetSchema = z
   .object({
-    name: z.string().min(1, "Budget name is required"),
+    name: z.string().min(1, "Event name is required"),
     strategy: z.nativeEnum(StrategyType),
-    period: z.nativeEnum(PeriodType),
     startAt: z.string().min(1, "Start date is required"),
     endAt: z.string().min(1, "End date is required"),
   })
@@ -86,52 +76,6 @@ const createBudgetSchema = z
       message: "End date must be on or after start date",
       path: ["endAt"],
     },
-  )
-  .refine(
-    (data) => {
-      // For One Time budgets, allow manual end date
-      if (data.period === PeriodType.ONE_TIME) {
-        return true;
-      }
-
-      // For recurring periods, validate that end date matches the calculated end date
-      const startParts = data.startAt.split("-").map(Number);
-      const endParts = data.endAt.split("-").map(Number);
-
-      if (startParts.length !== 3 || endParts.length !== 3) {
-        return false;
-      }
-
-      const [startYear, startMonth, startDay] = startParts;
-      const [endYear, endMonth, endDay] = endParts;
-
-      if (
-        !startYear ||
-        !startMonth ||
-        !startDay ||
-        !endYear ||
-        !endMonth ||
-        !endDay
-      ) {
-        return false;
-      }
-
-      const startDate = new Date(startYear, startMonth - 1, startDay);
-      const calculatedEndDate = calculateEndDate(startDate, data.period);
-      const userEndDate = new Date(endYear, endMonth - 1, endDay);
-
-      // Allow some tolerance for timezone differences (1 day)
-      const diffTime = Math.abs(
-        calculatedEndDate.getTime() - userEndDate.getTime(),
-      );
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      return diffDays <= 1;
-    },
-    {
-      message: "End date should match the selected period",
-      path: ["endAt"],
-    },
   );
 
 const formatDateForInput = (date: Date): string => {
@@ -146,20 +90,15 @@ interface CreateBudgetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (result: { budgetId: string; quickCreate: boolean }) => void;
-  initialBudget?: BudgetWithRelations | null;
 }
 
 export default function CreateBudgetModal({
   isOpen,
   onClose,
   onSuccess,
-  initialBudget,
 }: CreateBudgetModalProps) {
   const createBudgetFromScratchMutation = useCreateBudgetFromScratchWithCards();
-  const duplicateBudgetMutation = useDuplicateBudgetWithCards();
-  const isCreating =
-    createBudgetFromScratchMutation.isPending ||
-    duplicateBudgetMutation.isPending;
+  const isCreating = createBudgetFromScratchMutation.isPending;
   const [selectedCategories, setSelectedCategories] = useState<
     CategoryAllocation[]
   >([]);
@@ -201,7 +140,6 @@ export default function CreateBudgetModal({
     defaultValues: {
       name: "",
       strategy: StrategyType.ZERO_SUM,
-      period: PeriodType.MONTHLY,
       startAt: formatDateForInput(new Date()),
       endAt: formatDateForInput(
         calculateEndDate(new Date(), PeriodType.MONTHLY),
@@ -209,98 +147,23 @@ export default function CreateBudgetModal({
     },
   });
 
-  // Prefill form when initialBudget is provided
   useEffect(() => {
     if (isOpen) {
       // Always reset to basic step when modal opens
       setCurrentStep("basic");
-
-      if (initialBudget) {
-        const startDate = new Date();
-        const endDate = calculateEndDate(startDate, initialBudget.period);
-
-        // Set form values
-        setValue("name", `${initialBudget.name} (Copy)`);
-        setValue("strategy", initialBudget.strategy);
-        setValue("period", initialBudget.period);
-        setValue("startAt", formatDateForInput(startDate));
-        setValue("endAt", formatDateForInput(endDate));
-
-        // Set income entries from income transactions
-        const incomeTransactions = (initialBudget.transactions ?? []).filter(
-          (transaction) =>
-            transaction.transactionType === TransactionType.INCOME,
-        );
-        if (incomeTransactions.length > 0) {
-          const entries: IncomeEntry[] = incomeTransactions.map(
-            (transaction, index: number) => {
-              return {
-                id: (index + 1).toString(),
-                amount: Number(transaction.amount),
-                source: transaction.name ?? "",
-                description: transaction.description ?? "",
-                isPlanned: true, // Default since transactions don't have this field
-                frequency: PeriodType.MONTHLY, // Default since transactions don't have this field
-              };
-            },
-          );
-          setIncomeEntries(entries);
-        } else {
-          setIncomeEntries([
-            {
-              id: "1",
-              amount: 0,
-              source: "",
-              description: "",
-              isPlanned: true,
-              frequency: PeriodType.MONTHLY,
-            },
-          ]);
-        }
-
-        // Set categories
-        if (initialBudget.categories && initialBudget.categories.length > 0) {
-          const categories: CategoryAllocation[] = initialBudget.categories.map(
-            (category, index) => ({
-              categoryId: `temp-${Date.now()}-${index}`,
-              name: category.name,
-              group: category.group,
-              allocatedAmount: category.allocatedAmount ?? 0,
-            }),
-          );
-          setSelectedCategories(categories);
-        } else {
-          setSelectedCategories([]);
-        }
-
-        // Start with all cards from the initial budget (user can remove with Delete)
-        const initialCards: CardToInclude[] =
-          initialBudget.cards?.map((card) => ({
-            id: card.id,
-            name: card.name,
-            lastFourDigits: card.lastFourDigits ?? undefined,
-            cardType: card.cardType,
-            spendingLimit: card.spendingLimit ?? undefined,
-            userId: card.userId,
-            user: card.user ?? undefined,
-          })) ?? [];
-        setCardsToInclude(initialCards);
-      } else {
-        // Reset to defaults when opening without initial budget
-        reset();
-        setSelectedCategories([]);
-        setIncomeEntries([
-          {
-            id: "1",
-            amount: 0,
-            source: "",
-            description: "",
-            isPlanned: true,
-            frequency: PeriodType.MONTHLY,
-          },
-        ]);
-        setCardsToInclude([]);
-      }
+      reset();
+      setSelectedCategories([]);
+      setIncomeEntries([
+        {
+          id: "1",
+          amount: 0,
+          source: "",
+          description: "",
+          isPlanned: true,
+          frequency: PeriodType.MONTHLY,
+        },
+      ]);
+      setCardsToInclude([]);
 
       setShowAddCardModal(false);
       setLoadingUsers(true);
@@ -318,80 +181,23 @@ export default function CreateBudgetModal({
         .catch(() => setUsers([]))
         .finally(() => setLoadingUsers(false));
     }
-  }, [initialBudget, isOpen, setValue, reset]);
+  }, [isOpen, reset]);
 
   const watchedName = watch("name");
   const watchedStartAt = watch("startAt");
   const watchedEndAt = watch("endAt");
-  const watchedPeriod = watch("period");
   const watchedStrategy = watch("strategy");
 
   // 50/30/20 budgets get an express path: Basics → Income → Create. We
   // auto-generate Needs/Wants/Investments categories at 50/30/20 of income, so
-  // the cards/categories/allocation steps are skipped. Duplicating an existing
-  // budget keeps the full flow so the copied categories are preserved.
-  const isExpress =
-    !initialBudget && watchedStrategy === StrategyType.FIFTY_THIRTY_TWENTY;
+  // the cards/categories/allocation steps are skipped.
+  const isExpress = watchedStrategy === StrategyType.FIFTY_THIRTY_TWENTY;
   const visibleSteps: StepType[] = isExpress
     ? ["basic", "income"]
     : ["basic", "income", "cards", "categories", "allocation"];
   const isLastStep = isExpress
     ? currentStep === "income"
     : currentStep === "allocation";
-
-  // Auto-calculate end date when period or start date changes
-  useEffect(() => {
-    if (watchedStartAt && watchedPeriod) {
-      // Parse the date string more explicitly to avoid timezone issues
-      const parts = watchedStartAt.split("-").map(Number);
-      if (parts.length === 3) {
-        const year = parts[0]!;
-        const month = parts[1]!;
-        const day = parts[2]!;
-        const startDate = new Date(year, month - 1, day); // month is 0-indexed
-        const endDate = calculateEndDate(startDate, watchedPeriod);
-        setValue("endAt", formatDateForInput(endDate));
-      }
-    }
-  }, [watchedStartAt, watchedPeriod, setValue]);
-
-  // Handle period change
-  const handlePeriodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newPeriod = e.target.value as PeriodType;
-    setValue("period", newPeriod);
-
-    // Recalculate end date
-    if (watchedStartAt) {
-      const parts = watchedStartAt.split("-").map(Number);
-      if (parts.length === 3) {
-        const year = parts[0]!;
-        const month = parts[1]!;
-        const day = parts[2]!;
-        const startDate = new Date(year, month - 1, day);
-        const endDate = calculateEndDate(startDate, newPeriod);
-        setValue("endAt", formatDateForInput(endDate));
-      }
-    }
-  };
-
-  // Handle start date change
-  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newStartDate = e.target.value;
-    setValue("startAt", newStartDate);
-
-    // Recalculate end date
-    if (newStartDate && watchedPeriod) {
-      const parts = newStartDate.split("-").map(Number);
-      if (parts.length === 3) {
-        const year = parts[0]!;
-        const month = parts[1]!;
-        const day = parts[2]!;
-        const startDate = new Date(year, month - 1, day);
-        const endDate = calculateEndDate(startDate, watchedPeriod);
-        setValue("endAt", formatDateForInput(endDate));
-      }
-    }
-  };
 
   // Start with no categories selected (run once on mount)
   useEffect(() => {
@@ -567,15 +373,12 @@ export default function CreateBudgetModal({
         allocatedAmount: number;
       }>;
       if (isExpress && !quickCreate) {
-        const adjustedIncome = incomeEntries.reduce(
-          (sum, entry) =>
-            sum +
-            calculateAdjustedIncome(entry.amount, entry.frequency, data.period),
-          0,
+        const totalIncome = sumMonetaryValues(
+          incomeEntries.map((entry) => entry.amount),
         );
-        const needs = roundToCents(adjustedIncome * 0.5);
-        const wants = roundToCents(adjustedIncome * 0.3);
-        const investments = roundToCents(adjustedIncome - needs - wants);
+        const needs = roundToCents(totalIncome * 0.5);
+        const wants = roundToCents(totalIncome * 0.3);
+        const investments = roundToCents(totalIncome - needs - wants);
         categoryAllocations = [
           { name: "Needs", group: CategoryType.NEEDS, allocatedAmount: needs },
           { name: "Wants", group: CategoryType.WANTS, allocatedAmount: wants },
@@ -619,10 +422,7 @@ export default function CreateBudgetModal({
         userId: card.userId,
       }));
 
-      const mutation = initialBudget
-        ? duplicateBudgetMutation
-        : createBudgetFromScratchMutation;
-      const created = await mutation.mutateAsync({
+      const created = await createBudgetFromScratchMutation.mutateAsync({
         ...data,
         categoryAllocations,
         // `incomes` is optional server-side but must be non-empty when present
@@ -632,7 +432,7 @@ export default function CreateBudgetModal({
 
       if (created.failedCards.length > 0) {
         toast.error(
-          `Budget created, but ${created.failedCards.length} card(s) could not be added: ${created.failedCards.join(", ")}`,
+          `Event created, but ${created.failedCards.length} card(s) could not be added: ${created.failedCards.join(", ")}`,
         );
       }
 
@@ -644,21 +444,21 @@ export default function CreateBudgetModal({
 
       if (created.failedIncomes.length > 0) {
         toast.error(
-          `Budget created, but ${created.failedIncomes.length} income transaction(s) could not be created: ${created.failedIncomes.join(", ")}`,
+          `Event created, but ${created.failedIncomes.length} income transaction(s) could not be created: ${created.failedIncomes.join(", ")}`,
         );
       }
 
       resetModal();
       onSuccess?.({ budgetId: created.budget.id, quickCreate });
       onClose();
-      toast.success("Budget created successfully!");
+      toast.success("Event created");
     } catch (error) {
       if (error instanceof UpgradeRequiredError) {
         setUpgradeReason(error.message);
         return;
       }
       console.error("Failed to create budget:", error);
-      toast.error("Failed to create budget. Please try again.");
+      toast.error("Failed to create event. Please try again.");
     }
   };
 
@@ -699,17 +499,11 @@ export default function CreateBudgetModal({
       0,
     );
 
-    // Calculate adjusted total income
-    const adjustedTotalIncome = incomeEntries.reduce((sum, entry) => {
-      const adjustedAmount = calculateAdjustedIncome(
-        entry.amount,
-        entry.frequency,
-        watch("period"),
-      );
-      return sum + adjustedAmount;
-    }, 0);
+    const totalIncome = sumMonetaryValues(
+      incomeEntries.map((entry) => entry.amount),
+    );
 
-    return adjustedTotalIncome - totalAllocated >= 0;
+    return totalIncome - totalAllocated >= 0;
   };
 
   const isIncomeStepValid = () => {
@@ -732,17 +526,17 @@ export default function CreateBudgetModal({
         <div className="flex flex-shrink-0 items-start justify-between gap-3 border-b p-4 sm:items-center sm:p-6">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">
-              {initialBudget ? "Duplicate Budget" : "Create New Budget"}
+              New event
             </h2>
             <p className="text-sm text-gray-500">
               {currentStep === "basic" &&
-                "Set up your budget basics, or create it now and add income, cards and categories later"}
+                "Set up your event basics, or create it now and add income, cards and categories later"}
               {currentStep === "income" &&
                 (isExpress
-                  ? "Set up your income — we'll auto-create Needs, Wants, and Investments at 50/30/20"
+                  ? "Set up your income. We'll auto-create Needs, Wants and Investments at 50/30/20"
                   : "Set up your income")}
               {currentStep === "cards" &&
-                "Optionally review the cards that will be associated with this budget. You can always adjust cards later from the Cards page."}
+                "Optionally review the cards that will be associated with this event. You can always adjust cards later from the Cards page."}
               {currentStep === "categories" &&
                 "Create your own spending categories (optional). You can organize them by needs, wants, or investments."}
               {currentStep === "allocation" &&
@@ -752,7 +546,7 @@ export default function CreateBudgetModal({
           <button
             onClick={handleClose}
             aria-label="Close"
-            className="-mr-1 flex-shrink-0 rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            className="tap-target -mr-1 flex-shrink-0 rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
           </button>
@@ -788,11 +582,8 @@ export default function CreateBudgetModal({
                 {currentStep === "basic" && (
                   <BasicBudgetStep
                     register={register}
-                    watch={watch}
                     setValue={setValue}
                     errors={errors}
-                    onPeriodChange={handlePeriodChange}
-                    onStartDateChange={handleStartDateChange}
                   />
                 )}
 
@@ -810,7 +601,6 @@ export default function CreateBudgetModal({
                     cardsToInclude={cardsToInclude}
                     onRemoveCard={handleRemoveCard}
                     onOpenAddCard={() => setShowAddCardModal(true)}
-                    isDuplicating={!!initialBudget}
                   />
                 )}
 
@@ -827,14 +617,12 @@ export default function CreateBudgetModal({
                     <PercentageAllocationStep
                       selectedCategories={selectedCategories}
                       incomeEntries={incomeEntries}
-                      budgetPeriod={watch("period")}
                       onAllocationChange={handleAllocationChange}
                     />
                   ) : (
                     <AllocationStep
                       selectedCategories={selectedCategories}
                       incomeEntries={incomeEntries}
-                      budgetPeriod={watch("period")}
                       onAllocationChange={handleAllocationChange}
                     />
                   ))}
@@ -887,7 +675,7 @@ export default function CreateBudgetModal({
                   }
                   onClick={handleSubmit(onSubmit)}
                 >
-                  {isCreating ? "Creating..." : "Create Budget"}
+                  {isCreating ? "Creating..." : "Create event"}
                 </Button>
               ) : (
                 <Button

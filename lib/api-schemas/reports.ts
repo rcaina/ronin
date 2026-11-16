@@ -11,6 +11,7 @@ export const REPORT_RANGES = [
   "3m",
   "6m",
   "1y",
+  "ytd",
   "all",
 ] as const;
 export type ReportRange = (typeof REPORT_RANGES)[number];

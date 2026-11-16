@@ -54,7 +54,7 @@ export default function AddPocketModal({
         <div className="flex items-center justify-between border-b p-5">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              Add New Pocket
+              Add new pocket
             </h2>
             <p className="text-sm text-gray-500">Create a new savings pocket</p>
           </div>
@@ -67,7 +67,7 @@ export default function AddPocketModal({
           <div className="space-y-4 p-5">
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                Pocket Name
+                Pocket name
               </label>
               <input
                 type="text"
@@ -113,7 +113,7 @@ export default function AddPocketModal({
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading || !name.trim()}>
-              {isLoading ? "Adding..." : "Add Pocket"}
+              {isLoading ? "Adding..." : "Add pocket"}
             </Button>
           </div>
         </form>

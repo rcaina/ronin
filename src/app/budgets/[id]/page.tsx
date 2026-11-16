@@ -1,6 +1,8 @@
 "use client";
 
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
+import { useBudgetMonth } from "@/lib/utils/hooks";
+import { formatMonthLabel } from "@/lib/utils/budget-month";
 import { useParams, useRouter } from "next/navigation";
 import {
   TrendingUp,
@@ -29,10 +31,16 @@ import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 import BudgetStrategyIndicator from "@/components/budgets/BudgetStrategyIndicator";
 import LockedBudgetGate from "./LockedBudgetGate";
 import { TransactionType, type Transaction } from "@prisma/client";
-import { formatDateUTC, roundToCents, getGroupColor } from "@/lib/utils";
+import {
+  formatCurrency,
+  formatDateUTC,
+  roundToCents,
+  getGroupColor,
+} from "@/lib/utils";
 import { isDebitCard } from "@/lib/utils/cards";
 import {
   calculateCategorySpent,
+  getCategoryStatus,
   getTransactionDate,
 } from "@/lib/utils/spending";
 import { useDeleteTransaction } from "@/lib/data-hooks/transactions/useTransactions";
@@ -43,6 +51,7 @@ import type {
 import {
   SPLIT_BADGE_CLASSES,
   getSplitBadgeLabel,
+  isMoneyIn,
 } from "@/lib/utils/transactions";
 import { useBudgetDetailStats } from "@/lib/data-hooks/budgets/useBudgetStats";
 import { useBudgetHeader } from "../../../../components/budgets/BudgetHeaderContext";
@@ -56,6 +65,7 @@ import {
   chartTooltipItemStyle,
   chartTooltipLabelStyle,
   chartTooltipStyle,
+  formatChartCurrency,
   formatCompactCurrency,
 } from "@/components/recharts/theme";
 import {
@@ -103,7 +113,15 @@ const BudgetDetailsPage = () => {
     useState<TransactionWithRelations | null>(null);
   const [transactionToDelete, setTransactionToDelete] =
     useState<TransactionWithRelations | null>(null);
-  const { data: budget, isLoading, error } = useBudget(id as string, true); // Exclude card payments for calculations
+  const [month] = useBudgetMonth();
+  const {
+    data: budget,
+    isLoading,
+    error,
+  } = useBudget(id as string, true, month); // Exclude card payments for calculations
+  const monthQuery = budget?.kind === "CONTINUOUS" ? `?month=${month}` : "";
+  const monthLabel =
+    budget?.kind === "CONTINUOUS" ? formatMonthLabel(month) : null;
   const { setActions } = useBudgetHeader();
   const { setMobileHeaderAction } = useMobileHeaderAction();
   const deleteTransactionMutation = useDeleteTransaction();
@@ -119,18 +137,21 @@ const BudgetDetailsPage = () => {
       {
         icon: <Plus className="h-4 w-4" />,
         label: "Add transaction",
+        addsTransaction: true,
         onClick: () => setIsAddTransactionOpen(true),
         variant: "primary" as const,
       },
       {
         icon: <ScanLine className="h-4 w-4" />,
         label: "Scan receipt",
+        addsTransaction: true,
         onClick: () => setIsReceiptScanOpen(true),
         variant: "outline" as const,
       },
       {
         icon: <DollarSign className="h-4 w-4" />,
         label: "Pay credit card",
+        addsTransaction: true,
         onClick: () => setIsCardPaymentOpen(true),
         variant: "secondary" as const,
       },
@@ -139,9 +160,9 @@ const BudgetDetailsPage = () => {
 
   // Register the mobile header's scan-receipt shortcut; clean up on unmount
   // so it doesn't leak into other pages. Suppressed while locked (the budget
-  // is hard-blocked behind the gate).
+  // is hard-blocked behind the gate) or not ACTIVE.
   useEffect(() => {
-    if (budget?.locked) {
+    if (budget?.locked || budget?.status !== "ACTIVE") {
       setMobileHeaderAction(null);
       return;
     }
@@ -151,7 +172,7 @@ const BudgetDetailsPage = () => {
       onClick: () => setIsReceiptScanOpen(true),
     });
     return () => setMobileHeaderAction(null);
-  }, [setMobileHeaderAction, budget?.locked]);
+  }, [setMobileHeaderAction, budget?.locked, budget?.status]);
 
   // Per-budget statistics (totals + chart data), computed from shared utils
   const {
@@ -476,7 +497,7 @@ const BudgetDetailsPage = () => {
                           const percentage =
                             total > 0 ? (value / total) * 100 : 0;
                           return [
-                            `$${value.toLocaleString()} (${percentage.toFixed(1)}%)`,
+                            `${formatChartCurrency(value)} (${percentage.toFixed(1)}%)`,
                             name ?? "",
                           ];
                         }}
@@ -568,7 +589,7 @@ const BudgetDetailsPage = () => {
                           | undefined;
                         const date = payloadData?.payload?.date ?? "";
                         return [
-                          `$${value.toLocaleString()}`,
+                          formatChartCurrency(value),
                           date ? `Avg (${date})` : "Avg spending",
                         ];
                       }}
@@ -638,7 +659,7 @@ const BudgetDetailsPage = () => {
                             }
                           | undefined;
                         return [
-                          `$${value.toLocaleString()}`,
+                          formatChartCurrency(value),
                           payloadData?.fullName ?? name ?? "Category",
                         ];
                       }}
@@ -679,7 +700,7 @@ const BudgetDetailsPage = () => {
                   </h3>
                   <button
                     onClick={() => setIsEditBudgetOpen(true)}
-                    className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
+                    className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
                     title="Edit budget details"
                   >
                     <EditIcon className="h-4 w-4" />
@@ -715,7 +736,9 @@ const BudgetDetailsPage = () => {
                       End date
                     </span>
                     <p className="text-xs font-medium tabular-nums sm:text-sm">
-                      {formatDateUTC(new Date(budget.endAt).toISOString())}
+                      {budget.endAt
+                        ? formatDateUTC(new Date(budget.endAt).toISOString())
+                        : "Ongoing"}
                     </p>
                   </div>
                 </div>
@@ -729,9 +752,11 @@ const BudgetDetailsPage = () => {
                   </h3>
                   <button
                     onClick={() =>
-                      router.push(`/budgets/${String(id)}/categories`)
+                      router.push(
+                        `/budgets/${String(id)}/categories${monthQuery}`,
+                      )
                     }
-                    className="text-[10px] font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800 sm:text-xs"
+                    className="tap-target text-[10px] font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800 sm:text-xs"
                   >
                     View details
                   </button>
@@ -765,18 +790,17 @@ const BudgetDetailsPage = () => {
                           : 0,
                       );
 
-                      // Count categories that are 100% used
-                      const fullyUsedCount = categories.filter((cat) => {
-                        const categorySpent = roundToCents(
-                          calculateCategorySpent(cat),
-                        );
-                        const categoryPercentage = roundToCents(
-                          cat.allocatedAmount && cat.allocatedAmount > 0
-                            ? (categorySpent / cat.allocatedAmount) * 100
-                            : 0,
-                        );
-                        return categoryPercentage >= 100;
-                      }).length;
+                      const groupStatus = getCategoryStatus(
+                        totalSpent,
+                        totalAllocated,
+                      );
+                      const fullyUsedCount = categories.filter(
+                        (cat) =>
+                          getCategoryStatus(
+                            roundToCents(calculateCategorySpent(cat)),
+                            cat.allocatedAmount ?? 0,
+                          ) !== "open",
+                      ).length;
 
                       return (
                         <div key={group} className="space-y-1">
@@ -797,8 +821,8 @@ const BudgetDetailsPage = () => {
                             </div>
                             <div className="text-right">
                               <div className="text-xs font-medium tabular-nums text-gray-900">
-                                ${totalSpent.toLocaleString()} / $
-                                {totalAllocated.toLocaleString()}
+                                {formatCurrency(totalSpent)} /{" "}
+                                {formatCurrency(totalAllocated)}
                               </div>
                               <div className="text-[10px] tabular-nums text-gray-500">
                                 {usagePercentage.toFixed(1)}% used
@@ -808,14 +832,14 @@ const BudgetDetailsPage = () => {
                           <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
                             <div
                               className={`h-1.5 rounded-full transition-all duration-500 ease-out ${
-                                usagePercentage === 100
+                                groupStatus === "full"
                                   ? "bg-green-500"
-                                  : usagePercentage > 100
+                                  : groupStatus === "over"
                                     ? "bg-red-500"
                                     : "bg-secondary"
                               }`}
                               style={{
-                                width: `${usagePercentage > 100 ? 100 : usagePercentage}%`,
+                                width: `${groupStatus === "over" ? 100 : Math.min(usagePercentage, 100)}%`,
                               }}
                             ></div>
                           </div>
@@ -839,7 +863,7 @@ const BudgetDetailsPage = () => {
                       </span>
                     </div>
                     <div className="text-sm font-bold tabular-nums tracking-tight text-gray-900 sm:text-base">
-                      ${totalIncome.toLocaleString()}
+                      {formatCurrency(totalIncome)}
                     </div>
                     <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
                       {(() => {
@@ -873,7 +897,7 @@ const BudgetDetailsPage = () => {
                       </span>
                     </div>
                     <div className="text-sm font-bold tabular-nums tracking-tight text-gray-900 sm:text-base">
-                      ${totalSpent.toLocaleString()}
+                      {formatCurrency(totalSpent)}
                     </div>
                     <div className="mt-0.5 text-[9px] tabular-nums text-gray-400 sm:text-[10px]">
                       {spendingPercentage.toFixed(1)}% of budget
@@ -892,7 +916,7 @@ const BudgetDetailsPage = () => {
                         totalRemaining >= 0 ? "text-gray-900" : "text-red-600"
                       }`}
                     >
-                      ${totalRemaining.toLocaleString()}
+                      {formatCurrency(totalRemaining)}
                     </div>
                     <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
                       {totalRemaining >= 0 ? "Available" : "Over budget"}
@@ -939,7 +963,9 @@ const BudgetDetailsPage = () => {
                 </h3>
                 <button
                   onClick={() =>
-                    router.push(`/budgets/${String(id)}/transactions`)
+                    router.push(
+                      `/budgets/${String(id)}/transactions${monthQuery}`,
+                    )
                   }
                   className="text-xs font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800 sm:text-sm"
                 >
@@ -1024,14 +1050,18 @@ const BudgetDetailsPage = () => {
                     return (
                       <div className="py-6 text-center">
                         <p className="text-sm text-gray-500">
-                          No transactions yet — add your first one.
+                          {monthLabel
+                            ? `No transactions in ${monthLabel}.`
+                            : "No transactions yet."}
                         </p>
-                        <button
-                          onClick={() => setIsAddTransactionOpen(true)}
-                          className="mt-2 text-xs font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800"
-                        >
-                          Add your first transaction
-                        </button>
+                        {budget.status === "ACTIVE" && (
+                          <button
+                            onClick={() => setIsAddTransactionOpen(true)}
+                            className="mt-2 text-xs font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800"
+                          >
+                            Add your first transaction
+                          </button>
+                        )}
                       </div>
                     );
                   }
@@ -1146,7 +1176,7 @@ const BudgetDetailsPage = () => {
                                 onClick={() =>
                                   handleEditTransaction(transaction)
                                 }
-                                className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
+                                className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
                                 title="Edit transaction"
                               >
                                 <Pencil className="h-4 w-4" />
@@ -1155,7 +1185,7 @@ const BudgetDetailsPage = () => {
                                 onClick={() =>
                                   setTransactionToDelete(transaction)
                                 }
-                                className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
+                                className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                                 title="Delete transaction"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -1164,17 +1194,15 @@ const BudgetDetailsPage = () => {
                             <div className="text-right">
                               <div
                                 className={`text-sm font-semibold tabular-nums ${
-                                  transaction.transactionType ===
-                                  TransactionType.RETURN
+                                  isMoneyIn(transaction.transactionType)
                                     ? "text-green-600"
                                     : ""
                                 }`}
                               >
-                                {transaction.transactionType ===
-                                TransactionType.RETURN
+                                {isMoneyIn(transaction.transactionType)
                                   ? "+"
                                   : ""}
-                                ${Math.abs(transaction.amount).toFixed(2)}
+                                {formatCurrency(Math.abs(transaction.amount))}
                               </div>
                               <div className="text-xs capitalize text-gray-500">
                                 {transaction.transactionType
@@ -1238,7 +1266,7 @@ const BudgetDetailsPage = () => {
         isOpen={!!transactionToDelete}
         onClose={() => setTransactionToDelete(null)}
         onConfirm={handleConfirmDelete}
-        title="Delete Transaction"
+        title="Delete transaction"
         message={
           transactionToDelete?.splits && transactionToDelete.splits.length > 0
             ? `This will delete the transaction '{itemName}' and its ${transactionToDelete.splits.length} category splits. This action cannot be undone.`
@@ -1247,7 +1275,7 @@ const BudgetDetailsPage = () => {
         itemName={transactionToDelete?.name ?? "Unnamed transaction"}
         isLoading={deleteTransactionMutation.isPending}
         loadingText="Deleting..."
-        confirmText="Delete Transaction"
+        confirmText="Delete transaction"
         cancelText="Cancel"
       />
     </>

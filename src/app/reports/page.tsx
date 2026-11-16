@@ -58,6 +58,7 @@ const RANGE_OPTIONS: RangeOption[] = [
   { value: "3m", label: "3M", premium: true },
   { value: "6m", label: "6M", premium: true },
   { value: "1y", label: "1Y", premium: true },
+  { value: "ytd", label: "YTD", premium: true },
   { value: "all", label: "All", premium: true },
 ];
 
@@ -85,8 +86,9 @@ export default function ReportsPage() {
   // "current" and "all" don't have a natural "previous period".
   const canCompare = isPremium && range !== "current" && range !== "all";
   const effectiveCompare = canCompare && compare;
+  const priorLabel = range === "ytd" ? "last year" : "last period";
 
-  const { data, isLoading, error } = useReports({
+  const { data, isLoading, isPlaceholderData, error } = useReports({
     range,
     compare: effectiveCompare,
   });
@@ -126,6 +128,10 @@ export default function ReportsPage() {
     return null;
   }
 
+  if (error && !data && !(error instanceof UpgradeRequiredError)) {
+    return <div className="p-6 text-red-600">Failed to load reports</div>;
+  }
+
   const summary = data?.summary ?? {
     income: 0,
     spending: 0,
@@ -138,6 +144,11 @@ export default function ReportsPage() {
   const categoryBreakdown = data?.categoryBreakdown.slice(0, 8) ?? [];
   const groupSplitOverTime = data?.groupSplitOverTime ?? [];
   const incomeVsSpendingOverTime = data?.incomeVsSpendingOverTime ?? [];
+
+  const rangeLoadingClass = cn(
+    "transition-opacity duration-200",
+    isPlaceholderData && "opacity-60",
+  );
 
   const hasSpendingOverTime = spendingOverTime.some((p) => p.spending > 0);
   const hasGroupSplit = groupSplitOverTime.some(
@@ -162,7 +173,7 @@ export default function ReportsPage() {
               <div
                 role="tablist"
                 aria-label="Select report range"
-                className="scrollbar-hide inline-flex w-fit shrink-0 items-center gap-1 overflow-x-auto rounded-full bg-surface-muted p-1"
+                className="scrollbar-hide inline-flex max-w-full shrink-0 items-center gap-1 overflow-x-auto rounded-full bg-surface-muted p-1"
               >
                 {RANGE_OPTIONS.map((option) => {
                   const isActive = option.value === range;
@@ -174,7 +185,7 @@ export default function ReportsPage() {
                       aria-selected={isActive}
                       onClick={() => handleSelectRange(option)}
                       className={cn(
-                        "flex items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ease-out active:scale-[0.97]",
+                        "tap-target flex items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ease-out active:scale-[0.97]",
                         isActive
                           ? "bg-surface-card text-gray-900 shadow-soft"
                           : "text-gray-500 hover:text-gray-700",
@@ -203,7 +214,7 @@ export default function ReportsPage() {
                   !isPremium
                     ? "Premium feature"
                     : !canCompare
-                      ? "Pick a 1M/3M/6M/1Y range to compare periods"
+                      ? "Pick a 1M/3M/6M/1Y/YTD range to compare periods"
                       : "Compare to the previous period"
                 }
               >
@@ -225,13 +236,19 @@ export default function ReportsPage() {
             )}
 
             {/* Stat row */}
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <div
+              aria-busy={isPlaceholderData}
+              className={cn(
+                "mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4",
+                rangeLoadingClass,
+              )}
+            >
               <StatsCard
                 title="Income"
                 value={formatCurrency(summary.income)}
                 subtitle={
                   incomeChangePct != null
-                    ? `${formatPercent(incomeChangePct)} vs last period`
+                    ? `${formatPercent(incomeChangePct)} vs ${priorLabel}`
                     : "This period"
                 }
                 icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
@@ -243,7 +260,7 @@ export default function ReportsPage() {
                 value={formatCurrency(summary.spending)}
                 subtitle={
                   spendingChangePct != null
-                    ? `${formatPercent(spendingChangePct)} vs last period`
+                    ? `${formatPercent(spendingChangePct)} vs ${priorLabel}`
                     : "This period"
                 }
                 icon={<TrendingDown className="h-4 w-4 sm:h-5 sm:w-5" />}
@@ -269,7 +286,13 @@ export default function ReportsPage() {
             </div>
 
             {/* Charts */}
-            <div className="grid grid-cols-1 gap-3 sm:gap-4 xl:grid-cols-2">
+            <div
+              aria-busy={isPlaceholderData}
+              className={cn(
+                "grid grid-cols-1 gap-3 sm:gap-4 xl:grid-cols-2",
+                rangeLoadingClass,
+              )}
+            >
               {/* Spending over time */}
               <div className="card-surface p-4 sm:p-5">
                 <h3 className="mb-3 text-sm font-semibold text-gray-900">

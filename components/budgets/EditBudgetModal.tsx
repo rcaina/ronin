@@ -5,8 +5,7 @@ import { X, Target, TrendingUp } from "lucide-react";
 import { useUpdateBudget } from "@/lib/data-hooks/budgets/useBudgets";
 import { toast } from "react-hot-toast";
 import type { BudgetWithRelations } from "@/lib/types/budget";
-import { PeriodType, StrategyType } from "@prisma/client";
-import { calculateEndDate } from "@/lib/utils";
+import { StrategyType } from "@prisma/client";
 import { useLockBodyScroll } from "@/lib/utils/hooks";
 import Button from "../Button";
 import DateInput from "../DateInput";
@@ -17,23 +16,9 @@ interface EditBudgetModalProps {
   onClose: () => void;
 }
 
-const formatDateForInput = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
-const parseInputDate = (value: string): Date | null => {
-  const [year, month, day] = value.split("-").map(Number);
-  if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day);
-};
-
 interface EditBudgetFormData {
   name: string;
   strategy: StrategyType;
-  period: PeriodType;
   startAt: string;
   endAt: string;
 }
@@ -47,22 +32,25 @@ export default function EditBudgetModal({
   const [formData, setFormData] = useState<EditBudgetFormData>({
     name: "",
     strategy: StrategyType.ZERO_SUM,
-    period: PeriodType.MONTHLY,
     startAt: "",
     endAt: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // The monthly budget has no dates to edit.
+  const isContinuous = budget?.kind === "CONTINUOUS";
+
   // Initialize form data when budget changes
   useEffect(() => {
     if (budget) {
       const startDate = new Date(budget.startAt).toISOString().slice(0, 10);
-      const endDate = new Date(budget.endAt).toISOString().slice(0, 10);
+      const endDate = budget.endAt
+        ? new Date(budget.endAt).toISOString().slice(0, 10)
+        : "";
 
       setFormData({
         name: budget.name,
         strategy: budget.strategy,
-        period: budget.period,
         startAt: startDate,
         endAt: endDate,
       });
@@ -73,43 +61,29 @@ export default function EditBudgetModal({
     field: keyof EditBudgetFormData,
     value: string,
   ) => {
-    setFormData((prev) => {
-      const next = { ...prev, [field]: value };
-
-      // Keep the end date in lockstep with the period (one-time stays
-      // free-form). This is what prevents period/date drift on edit — e.g.
-      // a "Monthly" budget that somehow spans a single week.
-      if (field === "period" || field === "startAt") {
-        const period = field === "period" ? (value as PeriodType) : prev.period;
-        if (period !== PeriodType.ONE_TIME) {
-          const startDate = parseInputDate(next.startAt);
-          if (startDate) {
-            next.endAt = formatDateForInput(
-              calculateEndDate(startDate, period),
-            );
-          }
-        }
-      }
-
-      return next;
-    });
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!budget) return;
+    if (!isContinuous && formData.endAt < formData.startAt) {
+      toast.error("End date must be on or after the start date");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       await updateBudgetMutation.mutateAsync({
         id: budget.id,
-        data: {
-          name: formData.name,
-          strategy: formData.strategy,
-          period: formData.period,
-          startAt: formData.startAt,
-          endAt: formData.endAt,
-        },
+        data: isContinuous
+          ? { name: formData.name, strategy: formData.strategy }
+          : {
+              name: formData.name,
+              strategy: formData.strategy,
+              startAt: formData.startAt,
+              endAt: formData.endAt,
+            },
       });
 
       toast.success("Budget updated successfully!");
@@ -136,32 +110,13 @@ export default function EditBudgetModal({
   const getStrategyLabel = (strategy: string) => {
     switch (strategy) {
       case StrategyType.ZERO_SUM:
-        return "Zero Sum Budget";
+        return "Zero-sum budget";
       case StrategyType.FIFTY_THIRTY_TWENTY:
         return "50/30/20";
       default:
         return strategy;
     }
   };
-
-  const getPeriodLabel = (period: string) => {
-    switch (period) {
-      case PeriodType.WEEKLY:
-        return "Weekly";
-      case PeriodType.MONTHLY:
-        return "Monthly";
-      case PeriodType.QUARTERLY:
-        return "Quarterly";
-      case PeriodType.YEARLY:
-        return "Yearly";
-      case PeriodType.ONE_TIME:
-        return "One Time";
-      default:
-        return period;
-    }
-  };
-
-  const isEndDateLocked = formData.period !== PeriodType.ONE_TIME;
 
   useLockBodyScroll(isOpen);
 
@@ -173,8 +128,9 @@ export default function EditBudgetModal({
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">Edit Budget</h2>
           <button
+            aria-label="Close"
             onClick={onClose}
-            className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            className="tap-target rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
           </button>
@@ -187,7 +143,7 @@ export default function EditBudgetModal({
               htmlFor="name"
               className="block text-sm font-medium text-gray-700"
             >
-              Budget Name
+              Budget name
             </label>
             <input
               type="text"
@@ -232,88 +188,51 @@ export default function EditBudgetModal({
             </div>
           </div>
 
-          {/* Period */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Period
-            </label>
-            <div className="mt-1 grid grid-cols-2 gap-2">
-              {Object.values(PeriodType).map((period) => (
+          {!isContinuous && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
                 <label
-                  key={period}
-                  className="flex cursor-pointer items-center rounded-md border border-gray-200 p-3 hover:bg-gray-50"
+                  htmlFor="startAt"
+                  className="block text-sm font-medium text-gray-700"
                 >
-                  <input
-                    type="radio"
-                    name="period"
-                    value={period}
-                    checked={formData.period === period}
-                    onChange={(e) =>
-                      handleInputChange("period", e.target.value)
-                    }
-                    className="mr-3 h-4 w-4 text-secondary-600 focus:ring-secondary"
-                  />
-                  <span className="text-sm font-medium text-gray-900">
-                    {getPeriodLabel(period)}
-                  </span>
+                  Start date
                 </label>
-              ))}
-            </div>
-          </div>
+                <div className="relative mt-1">
+                  <DateInput
+                    id="startAt"
+                    value={formData.startAt}
+                    onChange={(e) =>
+                      handleInputChange("startAt", e.target.value)
+                    }
+                    className="cursor-pointer"
+                    required
+                    min="1900-01-01"
+                    max="2100-12-31"
+                  />
+                </div>
+              </div>
 
-          {/* Date Range */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="startAt"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Start Date
-              </label>
-              <div className="relative mt-1">
-                <DateInput
-                  id="startAt"
-                  value={formData.startAt}
-                  onChange={(e) => handleInputChange("startAt", e.target.value)}
-                  className="cursor-pointer"
-                  required
-                  min="1900-01-01"
-                  max="2100-12-31"
-                />
+              <div>
+                <label
+                  htmlFor="endAt"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  End date
+                </label>
+                <div className="relative mt-1">
+                  <DateInput
+                    id="endAt"
+                    value={formData.endAt}
+                    onChange={(e) => handleInputChange("endAt", e.target.value)}
+                    className="cursor-pointer"
+                    required
+                    min={formData.startAt || "1900-01-01"}
+                    max="2100-12-31"
+                  />
+                </div>
               </div>
             </div>
-
-            <div>
-              <label
-                htmlFor="endAt"
-                className="block text-sm font-medium text-gray-700"
-              >
-                End Date
-                {isEndDateLocked && (
-                  <span className="ml-1 text-xs text-gray-500">
-                    (set by period)
-                  </span>
-                )}
-              </label>
-              <div className="relative mt-1">
-                <DateInput
-                  id="endAt"
-                  value={formData.endAt}
-                  onChange={(e) => handleInputChange("endAt", e.target.value)}
-                  readOnly={isEndDateLocked}
-                  aria-readonly={isEndDateLocked}
-                  className={
-                    isEndDateLocked
-                      ? "cursor-not-allowed bg-gray-50 text-gray-600"
-                      : "cursor-pointer"
-                  }
-                  required
-                  min="1900-01-01"
-                  max="2100-12-31"
-                />
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end space-x-3 pt-4">
@@ -326,7 +245,7 @@ export default function EditBudgetModal({
               disabled={isSubmitting}
               className="rounded-md bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm hover:bg-accent focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 disabled:opacity-50"
             >
-              Save Changes
+              Save changes
             </Button>
           </div>
         </form>

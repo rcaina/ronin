@@ -31,6 +31,7 @@ export const GET = withUser({
           cardId,
           user.accountId,
           excludeCardPayments,
+          req.nextUrl.searchParams.get("month"),
         );
 
         return NextResponse.json(card, { status: 200 });

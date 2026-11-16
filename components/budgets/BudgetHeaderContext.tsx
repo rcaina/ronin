@@ -9,6 +9,8 @@ export interface HeaderAction {
   onClick: () => void;
   icon?: ReactNode;
   variant?: ActionVariant;
+  /** Hidden by the budget layout unless the budget is ACTIVE. */
+  addsTransaction?: boolean;
 }
 
 interface BudgetHeaderContextType {

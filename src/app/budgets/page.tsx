@@ -1,19 +1,18 @@
 "use client";
 
-import { useState, useMemo, type MouseEvent } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState, useMemo, type MouseEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Calendar,
   Clock,
   Target,
   Archive,
   RotateCcw,
-  Copy,
   Trash2,
   Plus,
-  TrendingUp,
   CheckCircle,
   Lock,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
@@ -23,80 +22,78 @@ import {
   useMarkBudgetCompleted,
   useMarkBudgetArchived,
   useReactivateBudget,
-  useDuplicateBudget,
+  useGetOrCreateContinuousBudget,
 } from "@/lib/data-hooks/budgets/useBudgets";
 import { useDeleteBudget } from "@/lib/data-hooks/budgets/useBudgets";
 import type { BudgetWithRelations } from "@/lib/types/budget";
 import PageHeader from "@/components/PageHeader";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import CreateBudgetModal from "@/components/budgets/CreateBudgetModal";
-import DuplicateBudgetModal from "@/components/budgets/DuplicateBudgetModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import UpgradeModal from "@/components/UpgradeModal";
 import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
 import { CategoryType } from "@prisma/client";
 import Button from "@/components/Button";
-import { formatCurrency, roundToCents } from "@/lib/utils";
+import { formatCurrency, pressable, roundToCents } from "@/lib/utils";
 import {
   calculateBudgetSpent,
   calculateSpendingPercentage,
   calculateTotalIncome,
 } from "@/lib/utils/spending";
-import { useBudgetStats } from "@/lib/data-hooks/budgets/useBudgetStats";
-import { ChartContainer } from "@/components/recharts/ChartWrapper";
-import {
-  CHART_COLORS,
-  ChartEmptyState,
-  chartAxisProps,
-  chartGridProps,
-  chartTooltipItemStyle,
-  chartTooltipLabelStyle,
-  chartTooltipStyle,
-  formatCompactCurrency,
-} from "@/components/recharts/theme";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  AreaChart,
-  Area,
-  CartesianGrid,
-} from "recharts";
+import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
+import { formatMonthLabel, toMonthKey } from "@/lib/utils/budget-month";
 
 type TabType = "active" | "completed" | "archived";
 
-const BudgetsPage = () => {
+const BudgetsPageContent = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>("active");
   const [budgetToDelete, setBudgetToDelete] =
     useState<BudgetWithRelations | null>(null);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  // The budget whose Copy icon was clicked (drives the quick/customize chooser)
-  const [budgetToDuplicate, setBudgetToDuplicate] =
-    useState<BudgetWithRelations | null>(null);
-  // The budget being duplicated through the full wizard, once "Customize
-  // first" is chosen
-  const [budgetToCustomize, setBudgetToCustomize] =
-    useState<BudgetWithRelations | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(
+    () => searchParams.get("new") === "event",
+  );
+
+  // Drop ?new=event once read so refresh and back don't reopen the wizard.
+  useEffect(() => {
+    if (searchParams.has("new")) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [searchParams]);
   const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
 
   // Data hooks for different budget statuses (excluding card payments for calculations)
-  const { data: activeBudgetsData, isLoading: activeLoading } =
-    useActiveBudgets(true);
+  const {
+    data: activeBudgetsData,
+    isLoading: activeLoading,
+    error: activeError,
+    refetch: refetchActive,
+  } = useActiveBudgets(true);
   const { data: completedBudgetsData, isLoading: completedLoading } =
     useCompletedBudgets(true);
   const { data: archivedBudgetsData, isLoading: archivedLoading } =
     useArchivedBudgets(true);
 
   // Ensure budgets are always arrays (memoized to avoid unnecessary re-renders)
-  const activeBudgets = useMemo(
+  const allActiveBudgets = useMemo(
     () => (Array.isArray(activeBudgetsData) ? activeBudgetsData : []),
     [activeBudgetsData],
+  );
+  // The monthly budget is pinned above the tabs, so the tabs list the rest.
+  const continuousBudget = allActiveBudgets.find(
+    (budget) => budget.kind === "CONTINUOUS",
+  );
+  const thisMonth = toMonthKey(new Date());
+  const {
+    data: monthBudget,
+    isLoading: monthLoading,
+    error: monthError,
+    refetch: refetchMonth,
+  } = useBudget(continuousBudget?.id ?? "", true, thisMonth);
+  const activeBudgets = useMemo(
+    () => allActiveBudgets.filter((budget) => budget.kind !== "CONTINUOUS"),
+    [allActiveBudgets],
   );
   const completedBudgets = useMemo(
     () => (Array.isArray(completedBudgetsData) ? completedBudgetsData : []),
@@ -112,7 +109,17 @@ const BudgetsPage = () => {
   const markCompletedMutation = useMarkBudgetCompleted();
   const markArchivedMutation = useMarkBudgetArchived();
   const reactivateMutation = useReactivateBudget();
-  const duplicateBudgetMutation = useDuplicateBudget();
+  const continuousBudgetMutation = useGetOrCreateContinuousBudget();
+
+  const handleOpenMonthlyBudget = async () => {
+    try {
+      const budget = await continuousBudgetMutation.mutateAsync();
+      router.push(`/budgets/${budget.id}`);
+    } catch (error) {
+      console.error("Failed to start monthly budget:", error);
+      toast.error("Couldn't start your monthly budget. Please try again.");
+    }
+  };
 
   // Get current budgets based on active tab, sorted by which budget ends soonest (completed: newest period first)
   const currentBudgets = useMemo(() => {
@@ -134,27 +141,53 @@ const BudgetsPage = () => {
       return [...budgets].sort(
         (a, b) =>
           new Date(b.startAt).getTime() - new Date(a.startAt).getTime() ||
-          new Date(b.endAt).getTime() - new Date(a.endAt).getTime(),
+          new Date(b.endAt ?? 0).getTime() - new Date(a.endAt ?? 0).getTime(),
       );
     }
 
     return [...budgets].sort(
-      (a, b) => new Date(a.endAt).getTime() - new Date(b.endAt).getTime(),
+      (a, b) =>
+        new Date(a.endAt ?? 0).getTime() - new Date(b.endAt ?? 0).getTime(),
     );
   }, [activeTab, activeBudgets, completedBudgets, archivedBudgets]);
 
-  const isLoading = activeLoading || completedLoading || archivedLoading;
+  const isLoading =
+    activeLoading || completedLoading || archivedLoading || monthLoading;
 
-  // Aggregate statistics across active budgets (plus completed/archived counts)
-  const budgetStats = useBudgetStats(
-    activeBudgets,
-    completedBudgets,
-    archivedBudgets,
+  const monthPlanned = roundToCents(
+    (monthBudget?.categories ?? []).reduce(
+      (sum, category) => sum + (category.allocatedAmount ?? 0),
+      0,
+    ),
   );
+  const monthSpent = roundToCents(
+    monthBudget ? calculateBudgetSpent(monthBudget) : 0,
+  );
+  const monthRemaining = roundToCents(monthPlanned - monthSpent);
+  const monthPercent = calculateSpendingPercentage(monthSpent, monthPlanned);
 
   usePageLoading(isLoading, "Loading budgets...");
   if (isLoading) {
     return null;
+  }
+
+  // Without this, a failed load reads as "no monthly budget" or a $0 month.
+  if ((activeError && !activeBudgetsData) || (monthError && !monthBudget)) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-red-600">Failed to load budgets</p>
+        <Button
+          variant="outline"
+          className="mt-3 min-h-11"
+          onClick={() => {
+            void refetchActive();
+            if (continuousBudget) void refetchMonth();
+          }}
+        >
+          Try again
+        </Button>
+      </div>
+    );
   }
 
   const getBudgetStatus = (budget: BudgetWithRelations) => {
@@ -199,37 +232,6 @@ const BudgetsPage = () => {
     return { needs, wants, investments };
   };
 
-  const handleDuplicateBudget = (budget: BudgetWithRelations) => {
-    setBudgetToDuplicate(budget);
-  };
-
-  // One-call server-side copy: carries over cards, income and categories as-is,
-  // resets the dates to the current period, then opens the copy for edits.
-  const handleQuickDuplicate = async (budget: BudgetWithRelations) => {
-    try {
-      const { budget: duplicated } = await duplicateBudgetMutation.mutateAsync(
-        budget.id,
-      );
-      setBudgetToDuplicate(null);
-      toast.success("Budget duplicated!");
-      router.push(`/budgets/${duplicated.id}`);
-    } catch (err) {
-      if (err instanceof UpgradeRequiredError) {
-        setBudgetToDuplicate(null);
-        setUpgradeReason(err.message);
-        return;
-      }
-      toast.error("Failed to duplicate budget. Please try again.");
-      console.error("Failed to duplicate budget:", err);
-    }
-  };
-
-  const handleCustomizeDuplicate = (budget: BudgetWithRelations) => {
-    setBudgetToDuplicate(null);
-    setBudgetToCustomize(budget);
-    setIsCreateModalOpen(true);
-  };
-
   const handleDeleteBudget = (budget: BudgetWithRelations) => {
     setBudgetToDelete(budget);
   };
@@ -237,9 +239,9 @@ const BudgetsPage = () => {
   const handleMarkCompleted = async (budget: BudgetWithRelations) => {
     try {
       await markCompletedMutation.mutateAsync(budget.id);
-      toast.success("Budget marked as completed!");
+      toast.success("Event marked as completed");
     } catch (err) {
-      toast.error("Failed to mark budget as completed. Please try again.");
+      toast.error("Failed to mark event as completed. Please try again.");
       console.error("Failed to mark budget as completed:", err);
     }
   };
@@ -247,9 +249,9 @@ const BudgetsPage = () => {
   const handleMarkArchived = async (budget: BudgetWithRelations) => {
     try {
       await markArchivedMutation.mutateAsync(budget.id);
-      toast.success("Budget archived!");
+      toast.success("Event archived");
     } catch (err) {
-      toast.error("Failed to archive budget. Please try again.");
+      toast.error("Failed to archive event. Please try again.");
       console.error("Failed to archive budget:", err);
     }
   };
@@ -257,13 +259,13 @@ const BudgetsPage = () => {
   const handleReactivate = async (budget: BudgetWithRelations) => {
     try {
       await reactivateMutation.mutateAsync(budget.id);
-      toast.success("Budget reactivated!");
+      toast.success("Event reactivated");
     } catch (err) {
       if (err instanceof UpgradeRequiredError) {
         setUpgradeReason(err.message);
         return;
       }
-      toast.error("Failed to reactivate budget. Please try again.");
+      toast.error("Failed to reactivate event. Please try again.");
       console.error("Failed to reactivate budget:", err);
     }
   };
@@ -286,287 +288,113 @@ const BudgetsPage = () => {
     <div className="flex flex-col bg-surface pt-4 lg:h-screen lg:pt-0">
       <PageHeader
         title="Budgets"
-        description="Manage budgets and track spending"
+        description="Your monthly budget and events"
         action={{
           icon: <Plus className="h-4 w-4" />,
-          label: "Create budget",
+          label: "New event",
           onClick: () => setIsCreateModalOpen(true),
         }}
       />
 
       <div className="lg:flex-1 lg:overflow-y-auto">
         <div className="mx-auto w-full px-4 py-4 sm:px-6 lg:px-8">
-          {/* Budget overview charts — swipeable row on mobile, grid on larger screens */}
-          <div className="scrollbar-hide mb-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 xl:grid-cols-4">
-            {/* Active budgets summary */}
-            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-              <h3 className="mb-3 text-sm font-semibold text-gray-900">
-                Summary
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Target className="h-4 w-4 text-secondary-600" />
-                    <span className="text-xs text-gray-500">Active</span>
+          <div className="mb-3">
+            {continuousBudget ? (
+              <button
+                type="button"
+                onClick={() => router.push(`/budgets/${continuousBudget.id}`)}
+                className="card-interactive w-full p-4 text-left sm:p-5"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-secondary-700">
+                    <Calendar className="h-5 w-5" />
                   </div>
-                  <span className="text-sm font-bold tabular-nums text-gray-900">
-                    {budgetStats.activeBudgetsCount}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-xs text-gray-500">Completed</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {continuousBudget.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {formatMonthLabel(thisMonth)}
+                    </p>
                   </div>
-                  <span className="text-sm font-bold tabular-nums text-gray-900">
-                    {completedBudgets.length}
-                  </span>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-gray-400" />
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-secondary-600" />
-                    <span className="text-xs text-gray-500">Last 7 days</span>
+                <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-500 ease-out ${
+                      monthRemaining < 0
+                        ? "bg-red-500"
+                        : monthPercent === 100
+                          ? "bg-green-500"
+                          : "bg-secondary"
+                    }`}
+                    style={{
+                      width: `${monthRemaining < 0 ? 100 : Math.min(monthPercent, 100)}%`,
+                    }}
+                  />
+                </div>
+                <div className="mt-3 grid grid-cols-3 divide-x divide-gray-100 rounded-xl bg-surface px-2 py-3 text-center">
+                  <div>
+                    <div className="text-base font-bold tabular-nums tracking-tight text-gray-900 sm:text-lg">
+                      {formatCurrency(monthPlanned)}
+                    </div>
+                    <div className="text-xs text-gray-500">Planned</div>
                   </div>
-                  <span className="text-sm font-bold tabular-nums text-gray-900">
-                    {formatCurrency(roundToCents(budgetStats.recentSpending))}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-secondary-600" />
-                    <span className="text-xs text-gray-500">Daily avg</span>
+                  <div>
+                    <div className="text-base font-bold tabular-nums tracking-tight text-gray-900 sm:text-lg">
+                      {formatCurrency(monthSpent)}
+                    </div>
+                    <div className="text-xs text-gray-500">Spent</div>
                   </div>
-                  <span className="text-sm font-bold tabular-nums text-gray-900">
-                    {formatCurrency(
-                      roundToCents(budgetStats.averageDailySpending),
-                    )}
-                  </span>
+                  <div>
+                    <div
+                      className={`text-base font-bold tabular-nums tracking-tight sm:text-lg ${
+                        monthRemaining >= 0 ? "text-gray-900" : "text-red-600"
+                      }`}
+                    >
+                      {formatCurrency(Math.abs(monthRemaining))}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {monthRemaining >= 0 ? "Remaining" : "Over plan"}
+                    </div>
+                  </div>
                 </div>
+              </button>
+            ) : (
+              <div className="card-surface flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:p-5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-muted text-gray-500">
+                  <Calendar className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-gray-900">
+                    Start your monthly budget
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    One budget that carries on month to month. Plan each month
+                    and see what&apos;s left.
+                  </p>
+                </div>
+                <Button
+                  onClick={handleOpenMonthlyBudget}
+                  isLoading={continuousBudgetMutation.isPending}
+                  className="min-h-11"
+                >
+                  Start monthly budget
+                </Button>
               </div>
-            </div>
-
-            {/* Spending by category group donut */}
-            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-              <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                Spending by group
-              </h3>
-              {budgetStats.pieChartData.length > 0 ? (
-                <>
-                  <ChartContainer height={150}>
-                    <PieChart>
-                      <Pie
-                        data={budgetStats.pieChartData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={false}
-                        innerRadius={38}
-                        outerRadius={58}
-                        paddingAngle={3}
-                        cornerRadius={4}
-                        dataKey="value"
-                        stroke="none"
-                      >
-                        {budgetStats.pieChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={chartTooltipStyle}
-                        labelStyle={chartTooltipLabelStyle}
-                        itemStyle={chartTooltipItemStyle}
-                        formatter={(
-                          value: number | undefined,
-                          name?: string,
-                        ) => {
-                          if (value === undefined) return ["", name ?? ""];
-
-                          // Calculate total from all data points
-                          const total = budgetStats.pieChartData.reduce(
-                            (sum, item) => sum + item.value,
-                            0,
-                          );
-
-                          // Calculate percentage
-                          const percentage =
-                            total > 0 ? (value / total) * 100 : 0;
-
-                          return [
-                            `$${value.toLocaleString()} (${percentage.toFixed(1)}%)`,
-                            name ?? "",
-                          ];
-                        }}
-                      />
-                    </PieChart>
-                  </ChartContainer>
-                  <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs">
-                    {budgetStats.pieChartData.map((item) => (
-                      <div
-                        key={item.name}
-                        className="flex items-center gap-1.5"
-                      >
-                        <div
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: item.color }}
-                        />
-                        <span className="text-gray-500">{item.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <ChartEmptyState icon={Target} message="No data yet" />
-              )}
-            </div>
-
-            {/* Top spending categories */}
-            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-              <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                Top categories
-              </h3>
-              {budgetStats.topCategoriesData.length > 0 ? (
-                <ChartContainer height={170}>
-                  <BarChart data={budgetStats.topCategoriesData}>
-                    <XAxis
-                      dataKey="name"
-                      angle={-35}
-                      textAnchor="end"
-                      height={48}
-                      {...chartAxisProps}
-                      fontSize={9}
-                    />
-                    <YAxis
-                      tickFormatter={(value: unknown) =>
-                        typeof value === "number"
-                          ? formatCompactCurrency(value)
-                          : ""
-                      }
-                      {...chartAxisProps}
-                      fontSize={9}
-                      width={42}
-                    />
-                    <Tooltip
-                      cursor={{ fill: "rgba(185, 161, 94, 0.08)" }}
-                      contentStyle={chartTooltipStyle}
-                      labelStyle={chartTooltipLabelStyle}
-                      itemStyle={chartTooltipItemStyle}
-                      formatter={(
-                        value: number | undefined,
-                        payload: unknown,
-                      ) => {
-                        if (value === undefined) return "";
-                        const payloadData = payload as
-                          | { payload?: { fullName?: string } }
-                          | undefined;
-                        const fullName = payloadData?.payload?.fullName ?? "";
-                        return [
-                          `$${value.toLocaleString()}`,
-                          fullName ?? "Category",
-                        ];
-                      }}
-                    />
-                    <Bar
-                      dataKey="value"
-                      fill={CHART_COLORS[0]}
-                      radius={[6, 6, 0, 0]}
-                    />
-                  </BarChart>
-                </ChartContainer>
-              ) : (
-                <ChartEmptyState icon={Target} message="No data yet" />
-              )}
-            </div>
-
-            {/* Daily spending trend */}
-            <div className="card-surface min-w-[16rem] snap-start p-4 sm:min-w-0">
-              <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                Avg daily spending
-              </h3>
-              {budgetStats.dailySpendingData.length > 0 &&
-              budgetStats.dailySpendingData.some((d) => d.spending > 0) ? (
-                <ChartContainer height={170}>
-                  <AreaChart data={budgetStats.dailySpendingData}>
-                    <defs>
-                      <linearGradient
-                        id="dailySpendingFill"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor={CHART_COLORS[0]}
-                          stopOpacity={0.3}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor={CHART_COLORS[0]}
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid {...chartGridProps} />
-                    <XAxis
-                      dataKey="day"
-                      {...chartAxisProps}
-                      fontSize={9}
-                      height={24}
-                    />
-                    <YAxis
-                      tickFormatter={(value: unknown) =>
-                        typeof value === "number"
-                          ? formatCompactCurrency(value)
-                          : ""
-                      }
-                      {...chartAxisProps}
-                      fontSize={9}
-                      width={42}
-                    />
-                    <Tooltip
-                      contentStyle={chartTooltipStyle}
-                      labelStyle={chartTooltipLabelStyle}
-                      itemStyle={chartTooltipItemStyle}
-                      formatter={(
-                        value: number | undefined,
-                        payload: unknown,
-                      ) => {
-                        if (value === undefined) return "";
-                        const payloadData = payload as
-                          | { payload?: { date?: string } }
-                          | undefined;
-                        const date = payloadData?.payload?.date ?? "";
-                        return [
-                          `$${value.toLocaleString()}`,
-                          date ? `Avg (${date})` : "Avg spending",
-                        ];
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="spending"
-                      stroke={CHART_COLORS[0]}
-                      strokeWidth={2}
-                      fill="url(#dailySpendingFill)"
-                      dot={false}
-                      activeDot={{ r: 4, strokeWidth: 0 }}
-                    />
-                  </AreaChart>
-                </ChartContainer>
-              ) : (
-                <ChartEmptyState icon={TrendingUp} message="No spending data" />
-              )}
-            </div>
+            )}
           </div>
 
-          {/* Status tabs — segmented control */}
+          <h2 className="mb-2 mt-6 text-base font-semibold text-gray-900">
+            Events
+          </h2>
           <div className="mb-1 flex-shrink-0">
             <div className="inline-flex rounded-full bg-surface-muted p-1">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
+                  className={`tap-target flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
                     activeTab === tab.id
                       ? "bg-surface-card text-gray-900 shadow-soft"
                       : "text-gray-500 hover:text-gray-700"
@@ -598,17 +426,17 @@ const BudgetsPage = () => {
                     <Target className="h-7 w-7" strokeWidth={1.5} />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900">
-                    No {activeTab} budgets
+                    No {activeTab} events
                   </h3>
-                  <p className="text-sm text-gray-500">
-                    {activeTab === "active"
-                      ? "Create your first budget to get started"
-                      : `No ${activeTab} budgets found`}
-                  </p>
                   {activeTab === "active" && (
-                    <Button onClick={() => setIsCreateModalOpen(true)}>
-                      Create budget
-                    </Button>
+                    <>
+                      <p className="text-sm text-gray-500">
+                        Budget a trip, a move or anything with an end date.
+                      </p>
+                      <Button onClick={() => setIsCreateModalOpen(true)}>
+                        New event
+                      </Button>
+                    </>
                   )}
                 </div>
               ) : (
@@ -625,7 +453,7 @@ const BudgetsPage = () => {
 
                   // Calculate days remaining in budget period
                   const now = new Date();
-                  const endDate = new Date(budget.endAt);
+                  const endDate = new Date(budget.endAt ?? 0);
                   const daysRemaining = Math.ceil(
                     (endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
                   );
@@ -661,13 +489,13 @@ const BudgetsPage = () => {
                           ? "card-surface cursor-not-allowed p-5 opacity-60 sm:p-6"
                           : "card-interactive cursor-pointer p-5 sm:p-6"
                       }
-                      onClick={() =>
+                      {...pressable(() =>
                         isLocked
                           ? setUpgradeReason(
                               "This budget is locked. Upgrade to Premium to access it.",
                             )
-                          : router.push(`/budgets/${budget.id}`)
-                      }
+                          : router.push(`/budgets/${budget.id}`),
+                      )}
                     >
                       <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-start">
                         <div className="flex-1">
@@ -699,7 +527,7 @@ const BudgetsPage = () => {
                                       e.stopPropagation();
                                       await handleMarkCompleted(budget);
                                     }}
-                                    className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-green-50 hover:text-green-600"
+                                    className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-green-50 hover:text-green-600"
                                     title="Mark as completed"
                                   >
                                     <CheckCircle className="h-4 w-4" />
@@ -709,7 +537,7 @@ const BudgetsPage = () => {
                                       e.stopPropagation();
                                       await handleMarkArchived(budget);
                                     }}
-                                    className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-secondary-50 hover:text-secondary-700"
+                                    className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-secondary-50 hover:text-secondary-700"
                                     title="Archive"
                                   >
                                     <Archive className="h-4 w-4" />
@@ -723,7 +551,7 @@ const BudgetsPage = () => {
                                     e.stopPropagation();
                                     await handleReactivate(budget);
                                   }}
-                                  className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-secondary-50 hover:text-secondary-700"
+                                  className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-secondary-50 hover:text-secondary-700"
                                   title="Reactivate"
                                 >
                                   <RotateCcw className="h-4 w-4" />
@@ -732,19 +560,9 @@ const BudgetsPage = () => {
                               <button
                                 onClick={(e: MouseEvent) => {
                                   e.stopPropagation();
-                                  handleDuplicateBudget(budget);
-                                }}
-                                className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
-                                title="Duplicate"
-                              >
-                                <Copy className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={(e: MouseEvent) => {
-                                  e.stopPropagation();
                                   handleDeleteBudget(budget);
                                 }}
-                                className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
+                                className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                                 title="Delete"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -785,7 +603,7 @@ const BudgetsPage = () => {
                         </div>
                         <div className="text-left sm:text-right">
                           <div className="text-xl font-bold tabular-nums tracking-tight text-gray-900 sm:text-2xl">
-                            ${totalBudgetIncome.toLocaleString()}
+                            {formatCurrency(totalBudgetIncome)}
                           </div>
                           <div className="text-xs text-gray-500">
                             Total budget
@@ -823,7 +641,7 @@ const BudgetsPage = () => {
                       <div className="grid grid-cols-3 divide-x divide-gray-100 rounded-xl bg-surface px-2 py-3 text-center">
                         <div>
                           <div className="text-base font-bold tabular-nums tracking-tight text-gray-900 sm:text-lg">
-                            ${totalBudgetSpent.toLocaleString()}
+                            {formatCurrency(totalBudgetSpent)}
                           </div>
                           <div className="text-xs text-gray-500">Spent</div>
                         </div>
@@ -835,7 +653,7 @@ const BudgetsPage = () => {
                                 : "text-red-600"
                             }`}
                           >
-                            ${Math.abs(budgetRemaining).toLocaleString()}
+                            {formatCurrency(Math.abs(budgetRemaining))}
                           </div>
                           <div className="text-xs text-gray-500">
                             {budgetRemaining >= 0 ? "Remaining" : "Over budget"}
@@ -860,40 +678,17 @@ const BudgetsPage = () => {
           </div>
         </div>
       </div>
-      {/* Modals */}
-      <DuplicateBudgetModal
-        isOpen={!!budgetToDuplicate}
-        budgetName={budgetToDuplicate?.name ?? ""}
-        isDuplicating={duplicateBudgetMutation.isPending}
-        onClose={() => setBudgetToDuplicate(null)}
-        onQuickDuplicate={async () => {
-          if (budgetToDuplicate) {
-            await handleQuickDuplicate(budgetToDuplicate);
-          }
-        }}
-        onCustomize={() => {
-          if (budgetToDuplicate) {
-            handleCustomizeDuplicate(budgetToDuplicate);
-          }
-        }}
-      />
-
       <CreateBudgetModal
         isOpen={isCreateModalOpen}
-        onClose={() => {
-          setIsCreateModalOpen(false);
-          setBudgetToCustomize(null);
-        }}
+        onClose={() => setIsCreateModalOpen(false)}
         onSuccess={(result) => {
           setIsCreateModalOpen(false);
-          setBudgetToCustomize(null);
           // Quick-created budgets skip the later steps, so open the new budget
           // for the user to fill in income, cards and categories.
           if (result.quickCreate) {
             router.push(`/budgets/${result.budgetId}`);
           }
         }}
-        initialBudget={budgetToCustomize}
       />
 
       <DeleteConfirmationModal
@@ -903,15 +698,15 @@ const BudgetsPage = () => {
           if (budgetToDelete) {
             try {
               await deleteBudgetMutation.mutateAsync(budgetToDelete.id);
-              toast.success("Budget deleted successfully!");
+              toast.success("Event deleted");
               setBudgetToDelete(null);
             } catch (err) {
-              toast.error("Failed to delete budget. Please try again.");
+              toast.error("Failed to delete event. Please try again.");
               console.error("Failed to delete budget:", err);
             }
           }
         }}
-        title="Delete Budget"
+        title="Delete event"
         message={`Are you sure you want to delete "${budgetToDelete?.name}"? This action cannot be undone.`}
         itemName={budgetToDelete?.name ?? ""}
       />
@@ -925,5 +720,11 @@ const BudgetsPage = () => {
     </div>
   );
 };
+
+const BudgetsPage = () => (
+  <Suspense fallback={null}>
+    <BudgetsPageContent />
+  </Suspense>
+);
 
 export default BudgetsPage;

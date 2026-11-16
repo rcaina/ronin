@@ -69,9 +69,9 @@ const MergeCardsModal = ({
         <p className="text-sm text-gray-500">
           Choose which card survives the merge. The other{" "}
           {cards.length > 1 ? `${cards.length - 1} cards` : "card"} will be
-          merged into it — their budget cards and transactions move over, and
-          the survivor&apos;s name and last four digits replace theirs
-          everywhere. This cannot be undone.
+          merged into it: their budget cards and transactions move over, and the
+          survivor&apos;s name and last four digits replace theirs everywhere.
+          This cannot be undone.
         </p>
       </div>
 

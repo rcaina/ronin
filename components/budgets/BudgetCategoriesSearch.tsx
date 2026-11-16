@@ -41,8 +41,9 @@ export default function BudgetCategoriesSearch({
         />
         {localSearchQuery && (
           <button
+            aria-label="Clear search"
             onClick={clearSearch}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            className="tap-target absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 lg:right-3"
           >
             <X className="h-4 w-4" />
           </button>

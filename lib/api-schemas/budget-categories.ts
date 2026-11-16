@@ -1,10 +1,12 @@
 import { CategoryType } from "@prisma/client";
 import { z } from "zod";
+import { QUICK_FILL_SOURCES } from "@/lib/utils/budget-month";
 
 export const createBudgetCategorySchema = z.object({
   categoryName: z.string().min(1, "Category name is required"),
   group: z.nativeEnum(CategoryType),
   allocatedAmount: z.number().min(0, "Allocated amount must be 0 or greater"),
+  month: z.string().optional(),
 });
 
 export const importBudgetCategoriesSchema = z.object({
@@ -25,4 +27,10 @@ export const updateBudgetCategorySchema = z.object({
     .max(100, "Category name must be less than 100 characters")
     .optional(),
   group: z.nativeEnum(CategoryType).optional(),
+  rollover: z.boolean().optional(),
+  month: z.string().optional(),
+});
+
+export const fillBudgetMonthSchema = z.object({
+  source: z.enum(QUICK_FILL_SOURCES),
 });

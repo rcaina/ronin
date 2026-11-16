@@ -46,6 +46,8 @@ import StatsCard from "@/components/StatsCard";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
+import { useBudgetMonth } from "@/lib/utils/hooks";
+import { formatMonthLabel } from "@/lib/utils/budget-month";
 import { TransactionType, CategoryType } from "@prisma/client";
 import {
   getGroupColor,
@@ -90,18 +92,21 @@ const BudgetTransactionsPageContent = () => {
   const params = useParams();
   const budgetId = params.id as string;
   const searchParams = useSearchParams();
+  const [month] = useBudgetMonth();
 
   const {
     data: transactions = [],
     isLoading: transactionsLoading,
     error: transactionsError,
-  } = useBudgetTransactions(budgetId);
+  } = useBudgetTransactions(budgetId, month);
   const { data: cards = [] } = useCards();
   const {
     data: budget,
     isLoading: budgetLoading,
     error: budgetError,
-  } = useBudget(budgetId);
+  } = useBudget(budgetId, false, month);
+  const monthLabel =
+    budget?.kind === "CONTINUOUS" ? formatMonthLabel(month) : null;
   const deleteTransactionMutation = useDeleteTransaction();
   const createTransactionMutation = useCreateTransaction();
   const { setActions } = useBudgetHeader();
@@ -179,12 +184,14 @@ const BudgetTransactionsPageContent = () => {
       {
         icon: <Plus className="h-4 w-4" />,
         label: "Add transaction",
+        addsTransaction: true,
         onClick: () => setShowAddTransactionModal(true),
         variant: "primary" as const,
       },
       {
         icon: <ScanLine className="h-4 w-4" />,
         label: "Scan receipt",
+        addsTransaction: true,
         onClick: () => setShowReceiptScanModal(true),
         variant: "outline" as const,
       },
@@ -192,9 +199,9 @@ const BudgetTransactionsPageContent = () => {
   }, [setActions, isLocked]);
 
   // Register the mobile header's scan-receipt shortcut; clean up on unmount
-  // so it doesn't leak into other pages. Suppressed while locked.
+  // so it doesn't leak into other pages. Suppressed while locked or not ACTIVE.
   useEffect(() => {
-    if (isLocked) {
+    if (isLocked || budget?.status !== "ACTIVE") {
       setMobileHeaderAction(null);
       return;
     }
@@ -204,7 +211,7 @@ const BudgetTransactionsPageContent = () => {
       onClick: () => setShowReceiptScanModal(true),
     });
     return () => setMobileHeaderAction(null);
-  }, [setMobileHeaderAction, isLocked]);
+  }, [setMobileHeaderAction, isLocked, budget?.status]);
 
   // Filter and sort transactions
   const filteredAndSortedTransactions = useMemo(() => {
@@ -383,6 +390,8 @@ const BudgetTransactionsPageContent = () => {
   // non-default values are written, keeping the URL clean when unfiltered.
   useEffect(() => {
     const params = new URLSearchParams();
+    const month = new URLSearchParams(window.location.search).get("month");
+    if (month) params.set("month", month);
     if (searchTerm) params.set("q", searchTerm);
     if (selectedCategory !== "all") params.set("category", selectedCategory);
     if (selectedCategoryType !== "all")
@@ -508,6 +517,15 @@ const BudgetTransactionsPageContent = () => {
   };
 
   // Bulk selection handlers
+  // Keep only visible rows selected so "Delete selected" never removes hidden ones.
+  useEffect(() => {
+    const visible = new Set(filteredAndSortedTransactions.map((t) => t.id));
+    setSelectedTransactions((prev) => {
+      const next = new Set([...prev].filter((id) => visible.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [filteredAndSortedTransactions]);
+
   const handleSelectAll = () => {
     // Filter out transactions that are being edited
     const selectableTransactions = filteredAndSortedTransactions.filter(
@@ -908,7 +926,7 @@ const BudgetTransactionsPageContent = () => {
                               onClick={() =>
                                 toggleSplitExpanded(transaction.id)
                               }
-                              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
+                              className="tap-target flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
                               aria-label={
                                 isSplitExpanded
                                   ? "Hide split breakdown"
@@ -948,7 +966,7 @@ const BudgetTransactionsPageContent = () => {
                               >
                                 {transaction.transactionType ===
                                 TransactionType.CARD_PAYMENT
-                                  ? "Card Payment"
+                                  ? "Card payment"
                                   : hasSplits
                                     ? getSplitBadgeLabel(
                                         transaction.splits?.length ?? 0,
@@ -958,7 +976,7 @@ const BudgetTransactionsPageContent = () => {
                                         !transaction.category
                                       ? "Income"
                                       : (transaction.category?.name ??
-                                        "No Category")}
+                                        "No category")}
                               </span>
                               {transaction.description && (
                                 <DescriptionTooltip
@@ -984,10 +1002,10 @@ const BudgetTransactionsPageContent = () => {
                           {/* Action Icons - Copy stays visible on mobile;
                             Edit/Delete are desktop-hover only there since
                             mobile exposes them via swipe (SwipeableRow). */}
-                          <div className="flex items-center space-x-1 opacity-100 transition-opacity sm:space-x-2 lg:opacity-0 lg:group-hover:opacity-100">
+                          <div className="flex items-center space-x-1 opacity-100 transition-opacity sm:space-x-2 lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100">
                             <button
                               onClick={() => handleCopyTransaction(transaction)}
-                              className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
+                              className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
                               title="Copy transaction"
                             >
                               <Copy className="h-4 w-4" />
@@ -1082,7 +1100,9 @@ const BudgetTransactionsPageContent = () => {
                     selectedCategoryType !== "all" ||
                     selectedCard !== "all"
                       ? "No matching transactions"
-                      : "No transactions yet"}
+                      : monthLabel
+                        ? `No transactions in ${monthLabel}`
+                        : "No transactions yet"}
                   </h3>
                   <p className="text-sm text-gray-500">
                     {searchTerm ||
@@ -1108,7 +1128,7 @@ const BudgetTransactionsPageContent = () => {
         isOpen={!!transactionToDelete}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        title="Delete Transaction"
+        title="Delete transaction"
         message={
           transactionToDelete?.splits && transactionToDelete.splits.length > 0
             ? `This will delete the transaction '{itemName}' and its ${transactionToDelete.splits.length} category splits. This action cannot be undone.`
@@ -1117,7 +1137,7 @@ const BudgetTransactionsPageContent = () => {
         itemName={transactionToDelete?.name ?? "Unnamed transaction"}
         isLoading={deleteTransactionMutation.isPending}
         loadingText="Deleting..."
-        confirmText="Delete Transaction"
+        confirmText="Delete transaction"
         cancelText="Cancel"
       />
 
@@ -1126,12 +1146,12 @@ const BudgetTransactionsPageContent = () => {
         isOpen={showBulkDeleteModal}
         onClose={handleCancelBulkDelete}
         onConfirm={handleConfirmBulkDelete}
-        title="Delete Multiple Transactions"
+        title="Delete multiple transactions"
         message="Are you sure you want to delete {itemName}? This action cannot be undone."
         itemName={`${selectedTransactions.size} selected transaction${selectedTransactions.size !== 1 ? "s" : ""}`}
         isLoading={deleteTransactionMutation.isPending}
         loadingText="Deleting..."
-        confirmText="Delete Transactions"
+        confirmText="Delete transactions"
         cancelText="Cancel"
       />
     </>

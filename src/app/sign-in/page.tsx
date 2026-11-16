@@ -143,6 +143,7 @@ export default function SignIn() {
                   <input
                     id="email"
                     type="email"
+                    autoComplete="email"
                     {...register("email", {
                       required: "Email is required",
                       pattern: {
@@ -168,6 +169,7 @@ export default function SignIn() {
                     <input
                       id="password"
                       type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
                       {...register("password", {
                         required: "Password is required",
                         minLength: {
@@ -181,7 +183,7 @@ export default function SignIn() {
                     <button
                       type="button"
                       onClick={togglePasswordVisibility}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 transition-colors duration-200 hover:text-gray-600 focus:outline-none"
+                      className="tap-target absolute inset-y-0 right-0 flex items-center text-gray-400 transition-colors duration-200 hover:text-gray-600 focus:outline-none"
                       aria-label={
                         showPassword ? "Hide password" : "Show password"
                       }
@@ -218,7 +220,7 @@ export default function SignIn() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="flex w-full justify-center rounded-xl bg-secondary px-4 py-2.5 text-sm font-semibold text-primary-950 shadow-soft transition-all duration-200 ease-out hover:bg-secondary-600 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex w-full justify-center rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-primary-950 shadow-soft transition-all duration-200 ease-out hover:bg-secondary-600 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isLoading ? "Signing in..." : "Sign in"}
                 </button>
@@ -262,6 +264,7 @@ export default function SignIn() {
                 <input
                   id="code-email"
                   type="email"
+                  autoComplete="email"
                   {...registerCodeEmail("email", {
                     required: "Email is required",
                     pattern: {
@@ -283,7 +286,7 @@ export default function SignIn() {
                 <button
                   type="submit"
                   disabled={isRequesting}
-                  className="flex w-full justify-center rounded-xl bg-secondary px-4 py-2.5 text-sm font-semibold text-primary-950 shadow-soft transition-all duration-200 ease-out hover:bg-secondary-600 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex w-full justify-center rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-primary-950 shadow-soft transition-all duration-200 ease-out hover:bg-secondary-600 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isRequesting ? "Sending..." : "Send code"}
                 </button>
@@ -346,7 +349,7 @@ export default function SignIn() {
                 <button
                   type="submit"
                   disabled={isVerifying}
-                  className="flex w-full justify-center rounded-xl bg-secondary px-4 py-2.5 text-sm font-semibold text-primary-950 shadow-soft transition-all duration-200 ease-out hover:bg-secondary-600 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex w-full justify-center rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-primary-950 shadow-soft transition-all duration-200 ease-out hover:bg-secondary-600 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isVerifying ? "Verifying..." : "Verify & sign in"}
                 </button>

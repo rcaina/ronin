@@ -60,15 +60,16 @@ export default function CreateSavingsModal({
         <div className="flex items-center justify-between border-b p-5">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              Add Savings Account
+              Add savings account
             </h2>
             <p className="text-sm text-gray-500">
               Create a new savings account
             </p>
           </div>
           <button
+            aria-label="Close"
             onClick={onClose}
-            className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            className="tap-target rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
           </button>

@@ -21,6 +21,8 @@ interface AddCategoryFormProps {
   isLoading?: boolean;
   isEditing?: boolean;
   defaultValues?: Partial<CategoryFormData>;
+  /** Rendered inside a Modal, which supplies the title, close button and panel. */
+  inModal?: boolean;
 }
 
 export default function AddCategoryForm({
@@ -29,6 +31,7 @@ export default function AddCategoryForm({
   isLoading = false,
   isEditing = false,
   defaultValues,
+  inModal = false,
 }: AddCategoryFormProps) {
   const {
     register,
@@ -44,19 +47,27 @@ export default function AddCategoryForm({
   });
 
   return (
-    <div className="group relative overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-surface-card p-6 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-500">
-          {isEditing ? "Edit Template" : "New Template"}
-        </span>
-        <button
-          onClick={onCancel}
-          className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-          title="Cancel"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
+    <div
+      className={
+        inModal
+          ? undefined
+          : "group relative overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-surface-card p-6 shadow-sm"
+      }
+    >
+      {!inModal && (
+        <div className="mb-4 flex items-center justify-between">
+          <span className="text-sm font-medium text-gray-500">
+            {isEditing ? "Edit template" : "New template"}
+          </span>
+          <button
+            onClick={onCancel}
+            className="tap-target rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            title="Cancel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       <form
         onSubmit={handleSubmit(onSubmit)}
@@ -74,7 +85,7 @@ export default function AddCategoryForm({
             htmlFor="categoryName"
             className="mb-1 block text-sm font-medium text-gray-700"
           >
-            Category Name
+            Category name
           </label>
           <input
             type="text"
@@ -99,7 +110,7 @@ export default function AddCategoryForm({
             htmlFor="categoryGroup"
             className="mb-1 block text-sm font-medium text-gray-700"
           >
-            Category Group
+            Category group
           </label>
           <select
             id="categoryGroup"

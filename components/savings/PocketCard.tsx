@@ -10,7 +10,7 @@ import {
 import { useState } from "react";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import type { PocketSummary } from "@/lib/types/savings";
-import { roundToCents, formatCurrency } from "@/lib/utils";
+import { roundToCents, formatCurrency, pressable } from "@/lib/utils";
 
 interface PocketCardProps {
   pocket: PocketSummary;
@@ -114,7 +114,7 @@ export default function PocketCard({
     setPocketToDelete(null);
   };
 
-  const handleCardClick = (e: React.MouseEvent) => {
+  const handleCardClick = (e: React.SyntheticEvent<HTMLElement>) => {
     // Don't navigate if clicking on edit/delete buttons or inputs
     const target = e.target as HTMLElement;
     if (
@@ -135,7 +135,7 @@ export default function PocketCard({
   return (
     <>
       <div
-        onClick={handleCardClick}
+        {...pressable(handleCardClick)}
         className={`group relative overflow-hidden p-5 ${
           editingPocketId === pocket.id
             ? "rounded-2xl border border-secondary-200 bg-secondary-50 shadow-card"
@@ -170,14 +170,14 @@ export default function PocketCard({
           )}
           <div className="flex items-center space-x-2">
             {editingPocketId !== pocket.id ? (
-              <div className="flex items-center gap-0.5 opacity-100 transition-opacity duration-200 lg:opacity-0 lg:group-hover:opacity-100">
+              <div className="flex items-center gap-0.5 opacity-100 transition-opacity duration-200 lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100">
                 {!pocket.locked && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleStartEditPocket();
                     }}
-                    className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
+                    className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
                     title="Edit pocket"
                   >
                     <Edit className="h-4 w-4" />
@@ -188,7 +188,7 @@ export default function PocketCard({
                     e.stopPropagation();
                     handleDeletePocket();
                   }}
-                  className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
+                  className="tap-target rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                   title="Delete pocket"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -300,11 +300,11 @@ export default function PocketCard({
         isOpen={!!pocketToDelete}
         onClose={handleCancelDeletePocket}
         onConfirm={handleConfirmDeletePocket}
-        title="Delete Pocket"
+        title="Delete pocket"
         message={`Are you sure you want to remove "${pocketToDelete?.name ?? ""}"? This action cannot be undone.`}
         itemName={pocketToDelete?.name ?? ""}
         isLoading={deletePocketMutation.isPending}
-        confirmText="Delete Pocket"
+        confirmText="Delete pocket"
       />
     </>
   );

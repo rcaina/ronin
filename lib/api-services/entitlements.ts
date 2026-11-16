@@ -94,13 +94,13 @@ export const isBudgetWriteLocked = async (
 
   const budget = await prisma.budget.findFirst({
     where: { id: budgetId, accountId, deleted: null },
-    select: { id: true, status: true, createdAt: true },
+    select: { id: true, status: true, createdAt: true, kind: true },
   });
   if (!budget) return false;
 
   const activeBudgets = await prisma.budget.findMany({
     where: { accountId, deleted: null, status: "ACTIVE" },
-    select: { id: true, createdAt: true },
+    select: { id: true, createdAt: true, kind: true },
   });
 
   return isBudgetLocked(account, budget, activeBudgets);

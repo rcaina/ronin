@@ -12,23 +12,24 @@ import { useState } from "react";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import type { GroupColorFunction } from "@/lib/types/budget";
 import { TransactionType } from "@prisma/client";
-import { formatCurrency, roundToCents } from "@/lib/utils";
-import {
-  calculateCategorySpent,
-  type SpendingCategory,
-  type SpendingTransaction,
-} from "@/lib/utils/spending";
+import { formatCurrency, formatDateUTC, roundToCents } from "@/lib/utils";
+import { getCategoryStatus, getTransactionDate } from "@/lib/utils/spending";
 import Button from "@/components/Button";
+import ToggleRow from "@/components/settings/ToggleRow";
+import { formatMonthLabel, type MonthKey } from "@/lib/utils/budget-month";
 
 interface BudgetCategoryCardProps {
   budgetCategory: BudgetCategoryWithCategory;
   budgetId: string;
+  /** Set on a continuous budget: the planned amount is saved for this month only. */
+  month?: MonthKey;
   getGroupColor: GroupColorFunction;
 }
 
 export default function BudgetCategoryCard({
   budgetCategory,
   budgetId,
+  month,
 }: BudgetCategoryCardProps) {
   const router = useRouter();
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
@@ -36,6 +37,7 @@ export default function BudgetCategoryCard({
   );
   const [editingAmount, setEditingAmount] = useState<string | number>(0);
   const [editingName, setEditingName] = useState<string>("");
+  const [editingRollover, setEditingRollover] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<{
     id: string;
     name: string;
@@ -45,27 +47,20 @@ export default function BudgetCategoryCard({
   const updateBudgetCategoryMutation = useUpdateBudgetCategory();
   const deleteBudgetCategoryMutation = useDeleteBudgetCategory();
 
-  const spendingCategory: SpendingCategory = {
-    transactions: (budgetCategory.transactions ?? []).map(
-      (transaction): SpendingTransaction => ({
-        ...transaction,
-        transactionType: transaction.transactionType as TransactionType,
-      }),
-    ),
-  };
-  const categorySpent = roundToCents(calculateCategorySpent(spendingCategory));
-  const categoryRemaining = roundToCents(
-    (budgetCategory.allocatedAmount ?? 0) - categorySpent,
-  );
+  // Server-computed, so split legs count (their parent has no categoryId).
+  const categorySpent = roundToCents(budgetCategory.spentAmount ?? 0);
+  const carry = budgetCategory.carry ?? 0;
+  const available = (budgetCategory.allocatedAmount ?? 0) + carry;
+  const categoryRemaining = roundToCents(available - categorySpent);
   const categoryPercentage =
-    budgetCategory.allocatedAmount && budgetCategory.allocatedAmount > 0
-      ? roundToCents((categorySpent / budgetCategory.allocatedAmount) * 100)
-      : 0;
+    available > 0 ? roundToCents((categorySpent / available) * 100) : 0;
+  const categoryStatus = getCategoryStatus(categorySpent, available);
 
   const handleStartEditCategory = () => {
     setEditingCategoryId(budgetCategory.id);
     setEditingAmount(budgetCategory.allocatedAmount ?? 0);
     setEditingName(budgetCategory.name);
+    setEditingRollover(budgetCategory.rollover);
   };
 
   const handleCancelEditCategory = () => {
@@ -90,6 +85,8 @@ export default function BudgetCategoryCard({
         data: {
           allocatedAmount: amount,
           name: editingName,
+          month,
+          ...(month && { rollover: editingRollover }),
         },
       });
 
@@ -132,7 +129,7 @@ export default function BudgetCategoryCard({
 
   const handleViewAllTransactions = () => {
     router.push(
-      `/budgets/${budgetId}/transactions?category=${budgetCategory.id}`,
+      `/budgets/${budgetId}/transactions?category=${budgetCategory.id}${month ? `&month=${month}` : ""}`,
     );
   };
 
@@ -170,24 +167,24 @@ export default function BudgetCategoryCard({
               />
             </div>
           ) : (
-            <h3 className="text-base font-semibold text-gray-900">
+            <h3 className="min-w-0 break-words text-base font-semibold text-gray-900">
               {budgetCategory.name}
             </h3>
           )}
           <div className="flex items-center space-x-2">
             {/* Action Icons - Only visible on hover when not editing */}
             {editingCategoryId !== budgetCategory.id && (
-              <div className="flex items-center space-x-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
+              <div className="flex items-center space-x-1 opacity-100 transition-opacity lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100">
                 <button
                   onClick={handleStartEditCategory}
-                  className="rounded-lg p-1.5 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
+                  className="tap-target rounded-lg p-1.5 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
                   title="Edit category"
                 >
                   <Edit className="h-4 w-4" />
                 </button>
                 <button
                   onClick={handleDeleteCategory}
-                  className="rounded-lg p-1.5 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
+                  className="tap-target rounded-lg p-1.5 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                   title="Delete category"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -196,14 +193,16 @@ export default function BudgetCategoryCard({
             )}
             <span
               className={`rounded-full px-2.5 py-0.5 text-xs font-medium tabular-nums ${
-                categoryPercentage === 100
+                categoryStatus === "full"
                   ? "bg-green-50 text-green-700"
-                  : categoryPercentage > 100
+                  : categoryStatus === "over"
                     ? "bg-red-50 text-red-700"
                     : "bg-secondary-100 text-secondary-800"
               }`}
             >
-              {categoryPercentage.toFixed(0)}%
+              {available <= 0 && categoryStatus === "over"
+                ? "Over"
+                : `${categoryPercentage.toFixed(0)}%`}
             </span>
           </div>
         </div>
@@ -211,7 +210,9 @@ export default function BudgetCategoryCard({
         <div className="space-y-2">
           {editingCategoryId === budgetCategory.id ? (
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Allocated</span>
+              <span className="text-gray-500">
+                {month ? `Planned for ${formatMonthLabel(month)}` : "Allocated"}
+              </span>
               <div className="flex items-center space-x-1">
                 <span className="text-sm text-gray-500">$</span>
                 <input
@@ -234,13 +235,23 @@ export default function BudgetCategoryCard({
                 />
               </div>
             </div>
-          ) : (
+          ) : null}
+          {editingCategoryId === budgetCategory.id && month ? (
+            <ToggleRow
+              label="Roll over"
+              description="Carry what's left, or what's overspent, into next month."
+              checked={editingRollover}
+              disabled={updateBudgetCategoryMutation.isPending}
+              onChange={() => setEditingRollover((value) => !value)}
+            />
+          ) : null}
+          {editingCategoryId !== budgetCategory.id && (
             <div className="flex items-baseline justify-between gap-2 text-xs">
               <span className="truncate text-gray-500">
                 <span className="font-medium tabular-nums text-gray-900">
                   {formatCurrency(categorySpent)}
                 </span>{" "}
-                spent of {formatCurrency(budgetCategory.allocatedAmount ?? 0)}
+                spent of {formatCurrency(available)}
               </span>
               <span
                 className={`flex-shrink-0 font-medium tabular-nums ${
@@ -253,18 +264,26 @@ export default function BudgetCategoryCard({
               </span>
             </div>
           )}
+          {carry !== 0 && editingCategoryId !== budgetCategory.id && (
+            <p
+              className={`text-xs tabular-nums ${carry > 0 ? "text-green-600" : "text-red-600"}`}
+            >
+              Carried {carry > 0 ? "+" : "-"}
+              {formatCurrency(Math.abs(carry))}
+            </p>
+          )}
 
           <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
             <div
               className={`h-2 rounded-full transition-all duration-500 ease-out ${
-                categoryPercentage === 100
+                categoryStatus === "full"
                   ? "bg-green-500"
-                  : categoryPercentage > 100
+                  : categoryStatus === "over"
                     ? "bg-red-500"
                     : "bg-secondary"
               }`}
               style={{
-                width: `${categoryPercentage > 100 ? 100 : categoryPercentage}%`,
+                width: `${categoryStatus === "over" ? 100 : Math.min(categoryPercentage, 100)}%`,
               }}
             ></div>
           </div>
@@ -332,15 +351,16 @@ export default function BudgetCategoryCard({
                             {transaction.name ?? "Unnamed transaction"}
                           </p>
                           <p className="text-[10px] text-gray-500">
-                            {new Date(
-                              transaction.createdAt,
-                            ).toLocaleDateString()}
+                            {formatDateUTC(getTransactionDate(transaction))}
                           </p>
                         </div>
                         <span
                           className={`font-medium tabular-nums ${transaction.transactionType === TransactionType.RETURN ? "text-green-600" : "text-gray-900"}`}
                         >
-                          {transaction.amount < 0 ? "-" : ""}
+                          {transaction.transactionType ===
+                          TransactionType.RETURN
+                            ? "+"
+                            : ""}
                           {formatCurrency(Math.abs(transaction.amount))}
                         </span>
                       </div>
@@ -364,11 +384,11 @@ export default function BudgetCategoryCard({
         isOpen={!!categoryToDelete}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        title="Delete Budget Category"
+        title="Delete budget category"
         message={`Are you sure you want to remove "${categoryToDelete?.name ?? ""}" from this budget? This action cannot be undone.`}
         itemName={categoryToDelete?.name ?? ""}
         isLoading={deleteBudgetCategoryMutation.isPending}
-        confirmText="Delete Category"
+        confirmText="Delete category"
       />
     </>
   );

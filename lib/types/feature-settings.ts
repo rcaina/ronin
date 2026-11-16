@@ -106,6 +106,6 @@ export const TOGGLEABLE_MODULES: readonly ToggleableModule[] = [
     key: "notifications",
     label: "Notifications",
     description:
-      "Get alerted about budget thresholds, period endings, and recurring transactions.",
+      "Get alerted about category thresholds, events ending, and recurring transactions.",
   },
 ];

@@ -1,7 +1,6 @@
 import type { BudgetWithRelations, SerializedBudget } from "@/lib/types/budget";
 import type {
   UpdateBudgetData,
-  CreateBudgetData,
   CreateBudgetWithCardsData,
 } from "@/lib/types/budget";
 import type { BudgetStatus } from "@prisma/client";
@@ -30,9 +29,11 @@ export const getBudgets = async (
 export const getBudget = async (
   id: string,
   excludeCardPayments?: boolean,
+  month?: string,
 ): Promise<BudgetWithRelations> => {
   const params = new URLSearchParams();
   if (excludeCardPayments) params.append("excludeCardPayments", "true");
+  if (month) params.append("month", month);
 
   const url = params.toString()
     ? `/api/budgets/${id}?${params.toString()}`
@@ -103,24 +104,14 @@ export const reactivateBudget = async (id: string): Promise<void> => {
   if (!response.ok) return parseErrorResponse(response);
 };
 
-export const createBudget = async (
-  data: CreateBudgetData,
-): Promise<{ message: string; budget: SerializedBudget }> => {
-  const response = await fetch("/api/budgets", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) return parseErrorResponse(response);
-
-  return (await response.json()) as {
-    message: string;
-    budget: SerializedBudget;
+export const getOrCreateContinuousBudget =
+  async (): Promise<SerializedBudget> => {
+    const response = await fetch("/api/budgets/continuous", {
+      method: "POST",
+    });
+    if (!response.ok) return parseErrorResponse(response);
+    return (await response.json()) as SerializedBudget;
   };
-};
 
 export const createBudgetFromScratchWithCards = async (
   data: CreateBudgetWithCardsData,
@@ -147,51 +138,5 @@ export const createBudgetFromScratchWithCards = async (
     failedCards: string[];
     failedIncomes: string[];
     incomesSkipped: boolean;
-  };
-};
-
-export const duplicateBudgetWithCards = async (
-  data: CreateBudgetWithCardsData,
-): Promise<{
-  message: string;
-  budget: SerializedBudget;
-  failedCards: string[];
-  failedIncomes: string[];
-  incomesSkipped: boolean;
-}> => {
-  const response = await fetch("/api/budgets/duplicate", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) return parseErrorResponse(response);
-
-  return (await response.json()) as {
-    message: string;
-    budget: SerializedBudget;
-    failedCards: string[];
-    failedIncomes: string[];
-    incomesSkipped: boolean;
-  };
-};
-
-export const duplicateBudget = async (
-  budgetId: string,
-): Promise<{ message: string; budget: SerializedBudget }> => {
-  const response = await fetch(`/api/budgets/${budgetId}/duplicate`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!response.ok) return parseErrorResponse(response);
-
-  return (await response.json()) as {
-    message: string;
-    budget: SerializedBudget;
   };
 };

@@ -1,11 +1,16 @@
 import {
   CategoryType,
-  PeriodType,
   PrismaClient,
   Role,
   StrategyType,
   CardType,
 } from "@prisma/client";
+import { newContinuousBudgetData } from "@/lib/api-services/budgets";
+import {
+  getMonthWindow,
+  shiftMonth,
+  toMonthKey,
+} from "@/lib/utils/budget-month";
 
 const prisma = new PrismaClient();
 
@@ -91,27 +96,20 @@ async function main() {
     });
   }
 
-  // Create budgets
+  // Each account gets its monthly budget, starting two months back so it has history.
+  const now = new Date();
+  const firstMonth = getMonthWindow(shiftMonth(toMonthKey(now), -2)).start;
   const budgets = [
     {
+      ...newContinuousBudgetData(demoAccount.id),
       id: "1",
-      name: "Demo Budget",
-      createdAt: new Date(),
-      accountId: demoAccount.id,
-      strategy: StrategyType.ZERO_SUM,
-      startAt: new Date("2024-01-01"),
-      endAt: new Date("2024-12-31"),
-      period: PeriodType.MONTHLY,
+      startAt: firstMonth,
     },
     {
+      ...newContinuousBudgetData(startupAccount.id),
       id: "2",
-      name: "Startup Budget",
-      createdAt: new Date(),
-      accountId: startupAccount.id,
       strategy: StrategyType.FIFTY_THIRTY_TWENTY,
-      startAt: new Date("2024-01-01"),
-      endAt: new Date("2024-12-31"),
-      period: PeriodType.MONTHLY,
+      startAt: firstMonth,
     },
   ];
 
@@ -286,7 +284,7 @@ async function main() {
   for (const budgetCategory of budgetCategories) {
     const { txCategoryId, ...categoryData } = budgetCategory;
     const created = await prisma.category.create({
-      data: categoryData,
+      data: { ...categoryData, createdAt: firstMonth },
     });
     categoryIdMap.set(txCategoryId, created.id);
   }
@@ -496,9 +494,16 @@ async function main() {
     userId: string;
     budgetId: string;
   }[];
-  for (const transaction of transactions) {
+  for (const [i, transaction] of transactions.entries()) {
+    const monthsBack = i % 3;
+    const occurredAt =
+      monthsBack === 0
+        ? now
+        : new Date(
+            Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - monthsBack, 10),
+          );
     const created = await prisma.transaction.create({
-      data: transaction,
+      data: { ...transaction, occurredAt },
     });
     createdTransactions.push({
       id: created.id,

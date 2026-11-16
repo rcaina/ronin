@@ -48,6 +48,7 @@ const formatOccurrenceDate = (value: string | Date): string =>
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "UTC",
   });
 
 export default function RecurringTransactionsPage() {
@@ -240,7 +241,7 @@ export default function RecurringTransactionsPage() {
                           <button
                             onClick={() => handleTogglePaused(template)}
                             disabled={toggleMutation.isPending}
-                            className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50"
+                            className="tap-target flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50"
                             title={template.paused ? "Resume" : "Pause"}
                             aria-label={
                               template.paused
@@ -256,7 +257,7 @@ export default function RecurringTransactionsPage() {
                           </button>
                           <button
                             onClick={() => handleEdit(template)}
-                            className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
+                            className="tap-target flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
                             title="Edit"
                             aria-label="Edit recurring transaction"
                           >
@@ -264,7 +265,7 @@ export default function RecurringTransactionsPage() {
                           </button>
                           <button
                             onClick={() => handleDelete(template)}
-                            className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
+                            className="tap-target flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
                             title="Delete"
                             aria-label="Delete recurring transaction"
                           >

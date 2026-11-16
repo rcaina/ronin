@@ -9,12 +9,12 @@
  *
  * What it creates:
  *   - One PREMIUM household account ("The Rivera Household") with two members.
- *   - 6 monthly FIFTY_THIRTY_TWENTY budgets: the current month (ACTIVE) plus
- *     the previous 5 (COMPLETED), each with a full Needs/Wants/Investment
- *     category set, per-budget card copies, income, and ~40 dated transactions.
- *   - Realistic merchants, amounts, and dates anchored to *now*, so the active
- *     budget is the current period and every page/chart looks live. The current
- *     month is intentionally mid-progress (only spending up to today).
+ *   - One FIFTY_THIRTY_TWENTY monthly budget starting 5 months back, with a
+ *     full Needs/Wants/Investment category set, budget card copies, and income
+ *     plus ~40 dated transactions in each of the 6 months.
+ *   - Realistic merchants, amounts, and dates anchored to *now*, so every
+ *     page/chart looks live. The current month is intentionally mid-progress
+ *     (only spending up to today).
  *   - Split transactions, refunds, card payments, recurring templates, a
  *     savings account with pockets + allocations, and in-app notifications.
  *
@@ -29,14 +29,19 @@ import {
   StrategyType,
   CardType,
   TransactionType,
-  BudgetStatus,
   Role,
   Plan,
   SubscriptionStatus,
   NotificationType,
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { newContinuousBudgetData } from "@/lib/api-services/budgets";
 import { roundToCents } from "@/lib/utils";
+import {
+  getMonthWindow,
+  shiftMonth,
+  toMonthKey,
+} from "@/lib/utils/budget-month";
 
 const prisma = new PrismaClient();
 
@@ -64,26 +69,10 @@ const pick = <T>(arr: T[]): T => arr[Math.floor(rand() * arr.length)]!;
 const now = new Date();
 const startOfMonth = (d: Date) =>
   new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0);
-const endOfMonth = (d: Date) =>
-  new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
 const addMonths = (d: Date, n: number) =>
   new Date(d.getFullYear(), d.getMonth() + n, 1);
 const daysInMonth = (d: Date) =>
   new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
 
 /** A date on a given day of `monthAnchor`, at a plausible hour. */
 function dayInMonth(monthAnchor: Date, day: number): Date {
@@ -530,78 +519,73 @@ async function main(): Promise<void> {
 
   // Track most-recent active-budget category/card ids so recurring templates can
   // point at real rows.
-  let activeBudgetCategoryByName = new Map<string, string>();
-  let activeBudgetCardByKey = new Map<CardKey, string>();
-  let activeSamChecking = "";
+  // --- the monthly budget, its categories and cards --------------------------
+  const firstMonth = getMonthWindow(
+    shiftMonth(toMonthKey(now), -(MONTHS_OF_HISTORY - 1)),
+  ).start;
+  const budget = await prisma.budget.create({
+    data: {
+      ...newContinuousBudgetData(account.id),
+      strategy: StrategyType.FIFTY_THIRTY_TWENTY,
+      startAt: firstMonth,
+    },
+  });
 
-  // --- budgets, month by month (oldest -> newest) ----------------------------
+  const budgetCategoryByName = new Map<string, string>();
+  for (const cat of CATEGORIES) {
+    const created = await prisma.category.create({
+      data: {
+        name: cat.name,
+        group: cat.group,
+        allocatedAmount: cat.allocated,
+        budgetId: budget.id,
+        defaultCategoryId: templateCategoryIdByName.get(cat.name)!,
+        createdAt: firstMonth,
+      },
+    });
+    budgetCategoryByName.set(cat.name, created.id);
+  }
+
+  // Budget card copies (both Alex's cards and Sam's checking).
+  const budgetCardByKey = new Map<CardKey, string>();
+  for (const c of CARDS) {
+    const created = await prisma.card.create({
+      data: {
+        name: c.name,
+        lastFourDigits: c.lastFourDigits,
+        cardType: c.cardType,
+        spendingLimit: c.spendingLimit,
+        userId: alex.id,
+        budgetId: budget.id,
+        defaultCardId: templateCardIdByKey.get(c.key)!,
+        amountSpent: 0,
+      },
+    });
+    budgetCardByKey.set(c.key, created.id);
+  }
+  const samBudgetChecking = await prisma.card.create({
+    data: {
+      name: "Sam's Checking",
+      lastFourDigits: "8890",
+      cardType: CardType.DEBIT,
+      spendingLimit: null,
+      userId: sam.id,
+      budgetId: budget.id,
+      defaultCardId: samCheckingTemplate.id,
+      amountSpent: 0,
+    },
+  });
+
+  // --- transactions, month by month (oldest -> newest) -----------------------
   for (let i = MONTHS_OF_HISTORY - 1; i >= 0; i--) {
     const anchor = startOfMonth(addMonths(now, -i));
     const isCurrent = i === 0;
-    const monthLabel = `${MONTH_NAMES[anchor.getMonth()]} ${anchor.getFullYear()}`;
     // For the current month, only generate spending through today.
     const dim = daysInMonth(anchor);
     const lastDay = isCurrent ? now.getDate() : dim;
     const monthProgress = lastDay / dim;
-
-    const budget = await prisma.budget.create({
-      data: {
-        name: monthLabel,
-        strategy: StrategyType.FIFTY_THIRTY_TWENTY,
-        period: PeriodType.MONTHLY,
-        status: isCurrent ? BudgetStatus.ACTIVE : BudgetStatus.COMPLETED,
-        startAt: anchor,
-        endAt: endOfMonth(anchor),
-        accountId: account.id,
-      },
-    });
-
-    // Per-budget category copies.
-    const budgetCategoryByName = new Map<string, string>();
-    for (const cat of CATEGORIES) {
-      const created = await prisma.category.create({
-        data: {
-          name: cat.name,
-          group: cat.group,
-          allocatedAmount: cat.allocated,
-          budgetId: budget.id,
-          defaultCategoryId: templateCategoryIdByName.get(cat.name)!,
-        },
-      });
-      budgetCategoryByName.set(cat.name, created.id);
-    }
-
-    // Per-budget card copies (both Alex's cards and Sam's checking).
-    const budgetCardByKey = new Map<CardKey, string>();
+    // This month's spend per card, for the statement payment.
     const cardSpend = new Map<CardKey, number>();
-    for (const c of CARDS) {
-      const created = await prisma.card.create({
-        data: {
-          name: c.name,
-          lastFourDigits: c.lastFourDigits,
-          cardType: c.cardType,
-          spendingLimit: c.spendingLimit,
-          userId: alex.id,
-          budgetId: budget.id,
-          defaultCardId: templateCardIdByKey.get(c.key)!,
-          amountSpent: 0,
-        },
-      });
-      budgetCardByKey.set(c.key, created.id);
-      cardSpend.set(c.key, 0);
-    }
-    const samBudgetChecking = await prisma.card.create({
-      data: {
-        name: "Sam's Checking",
-        lastFourDigits: "8890",
-        cardType: CardType.DEBIT,
-        spendingLimit: null,
-        userId: sam.id,
-        budgetId: budget.id,
-        defaultCardId: samCheckingTemplate.id,
-        amountSpent: 0,
-      },
-    });
 
     // --- income: two paychecks each for Alex and Sam (1st & 15th) ------------
     const payDays = [1, 15];
@@ -783,20 +767,6 @@ async function main(): Promise<void> {
         });
       }
     }
-
-    // --- persist per-card amountSpent for this budget's cards ----------------
-    for (const c of CARDS) {
-      await prisma.card.update({
-        where: { id: budgetCardByKey.get(c.key)! },
-        data: { amountSpent: roundToCents(Math.max(0, cardSpend.get(c.key) ?? 0)) },
-      });
-    }
-
-    if (isCurrent) {
-      activeBudgetCategoryByName = budgetCategoryByName;
-      activeBudgetCardByKey = budgetCardByKey;
-      activeSamChecking = samBudgetChecking.id;
-    }
   }
 
   // --- recurring transaction templates (premium) -----------------------------
@@ -855,8 +825,8 @@ async function main(): Promise<void> {
           nextMonth.getMonth(),
           r.day,
         ),
-        categoryId: activeBudgetCategoryByName.get(r.category) ?? null,
-        cardId: activeBudgetCardByKey.get(r.card) ?? null,
+        categoryId: budgetCategoryByName.get(r.category) ?? null,
+        cardId: budgetCardByKey.get(r.card) ?? null,
         accountId: account.id,
         userId: alex.id,
       },
@@ -870,7 +840,7 @@ async function main(): Promise<void> {
       transactionType: TransactionType.INCOME,
       frequency: PeriodType.MONTHLY,
       nextRunAt: new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 1),
-      cardId: activeBudgetCardByKey.get("checking") ?? null,
+      cardId: budgetCardByKey.get("checking") ?? null,
       accountId: account.id,
       userId: alex.id,
     },
@@ -882,7 +852,7 @@ async function main(): Promise<void> {
       transactionType: TransactionType.INCOME,
       frequency: PeriodType.MONTHLY,
       nextRunAt: new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 1),
-      cardId: activeSamChecking || null,
+      cardId: samBudgetChecking.id,
       accountId: account.id,
       userId: sam.id,
     },
@@ -985,7 +955,7 @@ async function main(): Promise<void> {
         userId: alex.id,
         type: NotificationType.CATEGORY_OVER_THRESHOLD,
         title: "Dining Out is at 85%",
-        body: "You've used 85% of your Dining Out budget for this period.",
+        body: "You've used 85% of your Dining Out budget this month.",
         dedupeKey: `CATEGORY_OVER_THRESHOLD:dining:${monthTag}`,
         data: { category: "Dining Out", percent: 85 },
         readAt: null,
@@ -999,15 +969,6 @@ async function main(): Promise<void> {
         data: { name: "Rent", amount: 2200 },
         readAt: null,
       },
-      {
-        userId: alex.id,
-        type: NotificationType.BUDGET_PERIOD_ENDING,
-        title: "Budget period ending soon",
-        body: `Your ${MONTH_NAMES[now.getMonth()]} budget ends in a few days. Review your spending.`,
-        dedupeKey: `BUDGET_PERIOD_ENDING:${monthTag}`,
-        data: { month: MONTH_NAMES[now.getMonth()] },
-        readAt: now,
-      },
     ],
   });
 
@@ -1019,7 +980,7 @@ async function main(): Promise<void> {
   console.log(`  Account:      ${ACCOUNT_NAME} (PREMIUM)`);
   console.log(`  Login:        ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
   console.log(
-    `  Budgets:      ${MONTHS_OF_HISTORY} monthly (current = ACTIVE)`,
+    `  Budget:       monthly, ${MONTHS_OF_HISTORY} months of history`,
   );
   console.log(`  Transactions: ${txCount}`);
 }

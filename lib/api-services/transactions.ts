@@ -254,7 +254,85 @@ export const getImportContext = async (
   };
 };
 
+// Transactions may only be added to, or moved into, one of the account's active budgets.
+const assertWritableBudget = async (
+  tx: PrismaClientTx,
+  accountId: string,
+  budgetId: string,
+) => {
+  const budget = await tx.budget.findFirst({
+    where: { id: budgetId, accountId, deleted: null },
+    select: { status: true },
+  });
+  if (!budget) {
+    throw new HttpError("Budget not found", 404);
+  }
+  if (budget.status !== "ACTIVE") {
+    throw new HttpError(
+      "Transactions can only be added to an active budget",
+      400,
+    );
+  }
+};
+
+/** 404 unless the category is in one of the account's budgets (or in `budgetId` when given). */
+export const assertOwnedCategory = async (
+  tx: PrismaClientTx,
+  accountId: string,
+  categoryId: string,
+  budgetId?: string,
+) => {
+  const category = await tx.category.findFirst({
+    where: {
+      id: categoryId,
+      deleted: null,
+      budget: { accountId, deleted: null, ...(budgetId && { id: budgetId }) },
+    },
+    select: { id: true },
+  });
+  if (!category) {
+    throw new HttpError("Category not found", 404);
+  }
+};
+
+/** 404 unless the card is in one of the account's budgets or is a general card of an account member. */
+export const assertOwnedCard = async (
+  tx: PrismaClientTx,
+  accountId: string,
+  cardId: string,
+) => {
+  const card = await tx.card.findFirst({
+    where: {
+      id: cardId,
+      deleted: null,
+      OR: [
+        { budget: { accountId } },
+        {
+          budgetId: null,
+          user: { accountUsers: { some: { accountId } } },
+        },
+      ],
+    },
+    select: { id: true },
+  });
+  if (!card) {
+    throw new HttpError("Card not found", 404);
+  }
+};
+
+const nonEmpty = (value: string | null | undefined): value is string =>
+  !!value && value.trim() !== "";
+
 export const createTransaction = async (
+  tx: PrismaClientTx,
+  data: CreateTransactionSchema,
+  user: User & { accountId: string },
+) => {
+  await assertWritableBudget(tx, user.accountId, data.budgetId);
+  return insertTransaction(tx, data, user);
+};
+
+const insertTransaction = async (
   tx: PrismaClientTx,
   data: CreateTransactionSchema,
   user: User & { accountId: string },
@@ -268,6 +346,16 @@ export const createTransaction = async (
       data.budgetId,
       data.splits!,
     );
+  } else if (nonEmpty(data.categoryId)) {
+    await assertOwnedCategory(
+      tx,
+      user.accountId,
+      data.categoryId,
+      data.budgetId,
+    );
+  }
+  if (nonEmpty(data.cardId)) {
+    await assertOwnedCard(tx, user.accountId, data.cardId);
   }
 
   // Create the transaction first
@@ -312,9 +400,13 @@ export const createTransactionsBatch = async (
 ) => {
   // Sequential within the caller's prisma.$transaction so the whole receipt
   // either lands or doesn't — no half-saved splits.
+  const budgetIds = new Set(data.transactions.map((t) => t.budgetId));
+  for (const budgetId of budgetIds) {
+    await assertWritableBudget(tx, user.accountId, budgetId);
+  }
   const created = [];
   for (const transaction of data.transactions) {
-    created.push(await createTransaction(tx, transaction, user));
+    created.push(await insertTransaction(tx, transaction, user));
   }
   return created;
 };
@@ -325,37 +417,63 @@ export async function updateTransaction(
   data: UpdateTransactionSchema,
   user: User & { accountId: string },
 ) {
+  const current = await tx.transaction.findFirst({
+    where: { id, accountId: user.accountId, deleted: null },
+    select: {
+      amount: true,
+      budgetId: true,
+      categoryId: true,
+      cardId: true,
+      transactionType: true,
+      _count: { select: { splits: true } },
+    },
+  });
+  if (!current) {
+    throw new HttpError(
+      "Transaction does not exist or is not in user's account",
+      404,
+    );
+  }
+
   const hasSplits = !!data.splits && data.splits.length > 0;
-  const clearsSplits =
-    !hasSplits && !!data.categoryId && data.categoryId.trim() !== "";
+  const clearsSplits = !hasSplits && nonEmpty(data.categoryId);
+
+  const finalBudgetId = data.budgetId ?? current.budgetId;
+  const movesBudget = finalBudgetId !== current.budgetId;
+  if (movesBudget) {
+    await assertWritableBudget(tx, user.accountId, finalBudgetId);
+    if (current._count.splits > 0 && !hasSplits && !clearsSplits) {
+      throw new HttpError(
+        "Moving a split transaction to another budget requires new splits or a category",
+        400,
+      );
+    }
+  }
+
+  // A category must sit in the transaction's final budget whenever it is set or the budget changes.
+  const finalCategoryId = data.categoryId ?? current.categoryId;
+  if (
+    !hasSplits &&
+    nonEmpty(finalCategoryId) &&
+    (movesBudget || finalCategoryId !== current.categoryId)
+  ) {
+    await assertOwnedCategory(
+      tx,
+      user.accountId,
+      finalCategoryId,
+      finalBudgetId,
+    );
+  }
+  if (nonEmpty(data.cardId) && data.cardId !== current.cardId) {
+    await assertOwnedCard(tx, user.accountId, data.cardId);
+  }
 
   if (hasSplits) {
     // Re-check §2 invariants against the final state (payload value if
     // provided, otherwise the value already stored on the row).
-    const existing = await tx.transaction.findFirst({
-      where: {
-        id,
-        accountId: user.accountId,
-        deleted: null,
-      },
-      select: {
-        amount: true,
-        budgetId: true,
-        transactionType: true,
-      },
-    });
-
-    if (!existing) {
-      throw new HttpError(
-        "Transaction does not exist or is not in user's account",
-        404,
-      );
-    }
-
-    const finalBudgetId = data.budgetId ?? existing.budgetId;
     const finalTransactionType =
-      data.transactionType ?? existing.transactionType;
-    const finalAmount = data.amount ?? existing.amount;
+      data.transactionType ?? current.transactionType;
+    const finalAmount = data.amount ?? current.amount;
 
     if (
       finalTransactionType !== TransactionType.REGULAR &&
@@ -435,10 +553,17 @@ export async function updateTransaction(
       budgetId: data.budgetId,
       categoryId: hasSplits
         ? null
-        : data.categoryId && data.categoryId.trim() !== ""
-          ? data.categoryId
-          : null,
-      cardId: data.cardId && data.cardId.trim() !== "" ? data.cardId : null,
+        : data.categoryId === undefined
+          ? undefined
+          : nonEmpty(data.categoryId)
+            ? data.categoryId
+            : null,
+      cardId:
+        data.cardId === undefined
+          ? undefined
+          : nonEmpty(data.cardId)
+            ? data.cardId
+            : null,
       createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
       occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
       transactionType: data.transactionType,
@@ -485,6 +610,10 @@ export async function createCardPayment(
   data: CreateCardPaymentSchema,
   user: User & { accountId: string },
 ) {
+  await assertWritableBudget(tx, user.accountId, data.budgetId);
+  await assertOwnedCard(tx, user.accountId, data.fromCardId);
+  await assertOwnedCard(tx, user.accountId, data.toCardId);
+
   // Create two linked transactions, both storing the positive payment amount
   // (enforced by createCardPaymentSchema). Card balance math interprets a
   // CARD_PAYMENT as money out on the source (debit/cash) card and as a

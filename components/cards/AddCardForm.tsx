@@ -55,6 +55,10 @@ interface AddCardFormProps {
   suggestions?: Card[];
   /** Names already present in the budget, excluded from suggestions. */
   existingCardNames?: string[];
+  /** The card belongs to the monthly budget, so its limit resets each month. */
+  monthlyLimit?: boolean;
+  /** Rendered inside a Modal, which supplies the title, close button and panel. */
+  inModal?: boolean;
 }
 
 type ComboboxItem =
@@ -71,6 +75,8 @@ export default function AddCardForm({
   defaultValues,
   suggestions,
   existingCardNames = [],
+  monthlyLimit = false,
+  inModal = false,
 }: AddCardFormProps) {
   const isEditing = !!cardToEdit;
   const showCombobox = !!suggestions && !isEditing;
@@ -220,19 +226,27 @@ export default function AddCardForm({
   };
 
   return (
-    <div className="group relative overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-surface-card p-6 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-500">
-          {isEditing ? "Edit Card" : "New Card"}
-        </span>
-        <button
-          onClick={onCancel}
-          className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-          title="Cancel"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
+    <div
+      className={
+        inModal
+          ? undefined
+          : "group relative overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-surface-card p-6 shadow-sm"
+      }
+    >
+      {!inModal && (
+        <div className="mb-4 flex items-center justify-between">
+          <span className="text-sm font-medium text-gray-500">
+            {isEditing ? "Edit card" : "New card"}
+          </span>
+          <button
+            onClick={onCancel}
+            className="tap-target rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            title="Cancel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       <form
         onSubmit={handleSubmit(guardedSubmit)}
@@ -250,7 +264,7 @@ export default function AddCardForm({
             htmlFor="cardName"
             className="mb-1 block text-sm font-medium text-gray-700"
           >
-            Card Name
+            Card name
           </label>
           <input
             type="text"
@@ -280,7 +294,7 @@ export default function AddCardForm({
                   e.stopPropagation();
                   selectItem(items[highlightedIndex]!);
                 }
-              } else if (e.key === "Escape") {
+              } else if (e.key === "Escape" && dropdownVisible) {
                 e.preventDefault();
                 setIsDropdownOpen(false);
                 setHighlightedIndex(-1);
@@ -433,7 +447,7 @@ export default function AddCardForm({
             htmlFor="cardType"
             className="mb-1 block text-sm font-medium text-gray-700"
           >
-            Card Type
+            Card type
           </label>
           <select
             id="cardType"
@@ -464,7 +478,7 @@ export default function AddCardForm({
             htmlFor="spendingLimit"
             className="mb-1 block text-sm font-medium text-gray-700"
           >
-            Spending Limit (Optional)
+            {monthlyLimit ? "Monthly limit" : "Spending limit"} (Optional)
           </label>
           <div className="relative">
             <span className="absolute left-3 top-2 text-sm text-gray-500">

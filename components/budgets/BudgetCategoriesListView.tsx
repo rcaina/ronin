@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, ChevronRight, Plus, ArrowRight } from "lucide-react";
 import { toast } from "react-hot-toast";
 import AddBudgetCategoryForm from "./AddBudgetCategoryForm";
@@ -18,8 +18,13 @@ import type {
   GroupLabelFunction,
 } from "@/lib/types/budget";
 import { TransactionType, CategoryType } from "@prisma/client";
-import { roundToCents } from "@/lib/utils";
-import { getTransactionDate } from "@/lib/utils/spending";
+import {
+  formatCurrency,
+  formatDateUTC,
+  pressable,
+  roundToCents,
+} from "@/lib/utils";
+import { getCategoryStatus, getTransactionDate } from "@/lib/utils/spending";
 
 interface BudgetCategoriesListViewProps {
   budgetId: string;
@@ -35,6 +40,7 @@ export default function BudgetCategoriesListView({
   budgetCategories: propBudgetCategories,
 }: BudgetCategoriesListViewProps) {
   const router = useRouter();
+  const month = useSearchParams().get("month");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(),
   );
@@ -127,7 +133,9 @@ export default function BudgetCategoriesListView({
   };
 
   const handleViewAllTransactions = (categoryId: string) => {
-    router.push(`/budgets/${budgetId}/transactions?category=${categoryId}`);
+    router.push(
+      `/budgets/${budgetId}/transactions?category=${categoryId}${month ? `&month=${encodeURIComponent(month)}` : ""}`,
+    );
   };
 
   return (
@@ -151,12 +159,10 @@ export default function BudgetCategoriesListView({
                 >
                   <div
                     className="flex flex-1 cursor-pointer items-center space-x-2 sm:cursor-default sm:space-x-3"
-                    onClick={() => {
-                      // Only toggle on mobile
-                      if (isMobile) {
-                        toggleGroupExpanded(groupType);
-                      }
-                    }}
+                    {...(isMobile && {
+                      ...pressable(() => toggleGroupExpanded(groupType)),
+                      "aria-expanded": isGroupExpanded,
+                    })}
                   >
                     {/* Mobile collapse/expand chevron */}
                     <ChevronDown
@@ -178,7 +184,7 @@ export default function BudgetCategoriesListView({
                         e.stopPropagation();
                         handleStartAddCategory(groupType);
                       }}
-                      className="rounded p-1 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+                      className="tap-target rounded p-1 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
                       title="Add category to this group"
                     >
                       <Plus className="h-4 w-4" />
@@ -212,32 +218,26 @@ export default function BudgetCategoriesListView({
                       );
                       const transactions = budgetCategory.transactions ?? [];
                       const spent = roundToCents(
-                        transactions.reduce((sum: number, transaction) => {
-                          if (
-                            transaction.transactionType ===
-                            TransactionType.RETURN
-                          ) {
-                            // Returns reduce spending (positive amount = refund received)
-                            return sum - transaction.amount;
-                          } else {
-                            // Regular transactions: positive = purchases (increase spending)
-                            return sum + transaction.amount;
-                          }
-                        }, 0),
+                        budgetCategory.spentAmount ?? 0,
                       );
+                      const carry = budgetCategory.carry ?? 0;
+                      const available =
+                        (budgetCategory.allocatedAmount ?? 0) + carry;
+                      const remaining = roundToCents(available - spent);
                       const percentage = roundToCents(
-                        budgetCategory.allocatedAmount &&
-                          budgetCategory.allocatedAmount > 0
-                          ? (spent / budgetCategory.allocatedAmount) * 100
-                          : 0,
+                        available > 0 ? (spent / available) * 100 : 0,
                       );
+                      const status = getCategoryStatus(spent, available);
 
                       return (
                         <div key={budgetCategory.id} className="space-y-2">
                           {/* Category Row */}
                           <div
                             className="flex cursor-pointer items-center justify-between rounded-lg bg-gray-50 p-3 transition-colors hover:bg-gray-100 sm:p-4"
-                            onClick={() => toggleExpanded(budgetCategory.id)}
+                            {...pressable(() =>
+                              toggleExpanded(budgetCategory.id),
+                            )}
+                            aria-expanded={isExpanded}
                           >
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center space-x-2 sm:space-x-3">
@@ -248,7 +248,7 @@ export default function BudgetCategoriesListView({
                                 ></div>
                                 <div className="min-w-0 flex-1">
                                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:space-x-2">
-                                    <p className="font-medium text-gray-900">
+                                    <p className="break-words font-medium text-gray-900">
                                       {budgetCategory.name}
                                     </p>
                                     <span className="text-sm text-gray-500">
@@ -258,40 +258,41 @@ export default function BudgetCategoriesListView({
                                   <div className="mt-2 space-y-2">
                                     <div className="flex flex-col gap-1 text-sm text-gray-500 sm:flex-row sm:items-center sm:space-x-4">
                                       <span>
-                                        Allocated: $
-                                        {budgetCategory.allocatedAmount?.toLocaleString()}
+                                        Allocated:{" "}
+                                        {formatCurrency(
+                                          budgetCategory.allocatedAmount ?? 0,
+                                        )}
                                       </span>
                                       <span>
-                                        Spent: ${spent.toLocaleString()}
+                                        Spent: {formatCurrency(spent)}
                                       </span>
+                                      {carry !== 0 && (
+                                        <span>
+                                          Carried: {carry > 0 ? "+" : "-"}
+                                          {formatCurrency(Math.abs(carry))}
+                                        </span>
+                                      )}
                                       <span
                                         className={
-                                          (budgetCategory.allocatedAmount ??
-                                            0) -
-                                            spent >=
-                                          0
+                                          remaining >= 0
                                             ? "text-gray-500"
                                             : "text-red-500"
                                         }
                                       >
-                                        Remaining: $
-                                        {(
-                                          (budgetCategory.allocatedAmount ??
-                                            0) - spent
-                                        ).toLocaleString()}
+                                        Remaining: {formatCurrency(remaining)}
                                       </span>
                                     </div>
                                     <div className="h-2 w-full rounded-full bg-gray-200">
                                       <div
                                         className={`h-2 rounded-full transition-all duration-300 ${
-                                          percentage === 100
+                                          status === "full"
                                             ? "bg-green-500"
-                                            : percentage > 100
+                                            : status === "over"
                                               ? "bg-red-500"
                                               : "bg-secondary"
                                         }`}
                                         style={{
-                                          width: `${percentage > 100 ? 100 : percentage}%`,
+                                          width: `${status === "over" ? 100 : Math.min(percentage, 100)}%`,
                                         }}
                                       ></div>
                                     </div>
@@ -303,17 +304,15 @@ export default function BudgetCategoriesListView({
                               <div className="text-right">
                                 <p
                                   className={`font-medium ${
-                                    spent >
-                                    (budgetCategory.allocatedAmount ?? 0)
+                                    remaining < 0
                                       ? "text-red-600"
                                       : "text-gray-900"
                                   }`}
                                 >
-                                  ${spent.toLocaleString()}
+                                  {formatCurrency(spent)}
                                 </p>
                                 <p className="text-sm text-gray-500">
-                                  of $
-                                  {budgetCategory.allocatedAmount?.toLocaleString()}
+                                  of {formatCurrency(available)}
                                 </p>
                               </div>
                               {transactions.length > 0 && (
@@ -362,9 +361,9 @@ export default function BudgetCategoriesListView({
                                             className="inline-flex items-center gap-1 text-sm text-gray-500"
                                             suppressHydrationWarning
                                           >
-                                            {getTransactionDate(
-                                              transaction,
-                                            ).toLocaleDateString()}
+                                            {formatDateUTC(
+                                              getTransactionDate(transaction),
+                                            )}
                                             {!transaction.occurredAt && (
                                               <MissingDateWarning />
                                             )}
@@ -374,8 +373,13 @@ export default function BudgetCategoriesListView({
                                           <p
                                             className={`font-medium ${transaction.transactionType === TransactionType.RETURN ? "text-green-600" : "text-gray-900"}`}
                                           >
-                                            $
-                                            {transaction.amount.toLocaleString()}
+                                            {transaction.transactionType ===
+                                            TransactionType.RETURN
+                                              ? "+"
+                                              : ""}
+                                            {formatCurrency(
+                                              Math.abs(transaction.amount),
+                                            )}
                                           </p>
                                         </div>
                                       </div>

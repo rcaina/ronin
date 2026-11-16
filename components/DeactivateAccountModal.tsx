@@ -48,13 +48,14 @@ const LeaveAccountModal = ({ isOpen, onClose }: LeaveAccountModalProps) => {
           <div className="flex items-center">
             <AlertTriangle className="mr-3 h-6 w-6 text-red-500" />
             <h3 className="text-lg font-medium text-gray-900">
-              Deactivate Account
+              Deactivate account
             </h3>
           </div>
           <button
+            aria-label="Close"
             onClick={onClose}
             disabled={isLoading}
-            className="text-gray-400 hover:text-gray-600"
+            className="tap-target text-gray-400 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
           </button>
@@ -180,7 +181,7 @@ const LeaveAccountModal = ({ isOpen, onClose }: LeaveAccountModalProps) => {
             ) : (
               <>
                 <LogOut className="mr-2 h-4 w-4" />
-                Deactivate Account
+                Deactivate account
               </>
             )}
           </Button>

@@ -17,7 +17,9 @@ export const getNotificationLink = (
   switch (notification.type) {
     case "CATEGORY_OVER_THRESHOLD": {
       const data = notification.data as CategoryOverThresholdData | null;
-      return data?.budgetId ? `/budgets/${data.budgetId}/categories` : null;
+      if (!data?.budgetId) return null;
+      const query = data.month ? `?month=${data.month}` : "";
+      return `/budgets/${data.budgetId}/categories${query}`;
     }
     case "BUDGET_PERIOD_ENDING": {
       const data = notification.data as BudgetPeriodEndingData | null;
