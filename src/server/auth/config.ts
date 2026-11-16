@@ -6,6 +6,7 @@ import { env } from "@/env";
 import db from "@/lib/prisma";
 import { isEmailAllowed } from "@/lib/utils/auth";
 import { consumeLoginCode } from "@/server/auth/email-tokens";
+import { SESSION_COOKIE_NAME } from "@/lib/constants/auth";
 
 export const runtime = "nodejs";
 
@@ -198,7 +199,7 @@ export const authConfig = {
   },
   cookies: {
     sessionToken: {
-      name: `next-auth.session-token`,
+      name: SESSION_COOKIE_NAME,
       options: {
         httpOnly: true,
         sameSite: "lax",
