@@ -1,0 +1,178 @@
+import { CategoryType } from "@prisma/client";
+import { describe, expect, it } from "vitest";
+import {
+  type MergeCard,
+  type MergeCategory,
+  planContinuousMerge,
+} from "@/lib/utils/continuous-merge";
+
+const category = (
+  id: string,
+  overrides: Partial<MergeCategory> = {},
+): MergeCategory => ({
+  id,
+  name: "Groceries",
+  group: CategoryType.NEEDS,
+  defaultCategoryId: null,
+  allocatedAmount: 100,
+  createdAt: new Date("2026-01-01T00:00:00Z"),
+  ...overrides,
+});
+
+const card = (id: string, overrides: Partial<MergeCard> = {}): MergeCard => ({
+  id,
+  name: "Visa",
+  lastFourDigits: "1234",
+  defaultCardId: null,
+  ...overrides,
+});
+
+const budget = (
+  startAt: string,
+  categories: MergeCategory[],
+  cards: MergeCard[] = [],
+) => ({ startAt: new Date(startAt), categories, cards });
+
+describe("planContinuousMerge categories", () => {
+  it("matches by default id first, then by name and group ignoring case and spaces", () => {
+    const plan = planContinuousMerge(
+      {
+        categories: [
+          category("t-food", { name: "Food", defaultCategoryId: "d-1" }),
+          category("t-rent", { name: "Rent" }),
+        ],
+        cards: [],
+      },
+      [
+        budget("2026-02-01T00:00:00Z", [
+          category("s-1", { name: "Groceries", defaultCategoryId: "d-1" }),
+          category("s-2", { name: " rent " }),
+          category("s-3", { name: "Rent", group: CategoryType.WANTS }),
+        ]),
+      ],
+    );
+
+    expect(
+      plan.categories.map((group) => [group.targetId, group.sourceIds]),
+    ).toEqual([
+      ["t-food", ["s-1"]],
+      ["t-rent", ["s-2"]],
+      [null, ["s-3"]],
+    ]);
+  });
+
+  it("collapses unmatched rows across budgets into one new category from the latest budget", () => {
+    const plan = planContinuousMerge({ categories: [], cards: [] }, [
+      budget("2026-02-01T00:00:00Z", [
+        category("feb", {
+          defaultCategoryId: "d-1",
+          allocatedAmount: 80,
+          createdAt: new Date("2026-02-01T00:00:00Z"),
+        }),
+      ]),
+      budget("2026-03-01T00:00:00Z", [
+        category("mar", {
+          name: "Food",
+          defaultCategoryId: "d-1",
+          allocatedAmount: 120,
+          createdAt: new Date("2026-03-01T00:00:00Z"),
+        }),
+      ]),
+    ]);
+
+    expect(plan.categories).toHaveLength(1);
+    const [group] = plan.categories;
+    expect(group!.targetId).toBeNull();
+    expect(group!.template.id).toBe("mar");
+    expect([...group!.sourceIds].sort()).toEqual(["feb", "mar"]);
+    expect(group!.firstCreatedAt.toISOString()).toBe(
+      "2026-02-01T00:00:00.000Z",
+    );
+  });
+
+  it("plans each budget's amount in its start month, summing budgets that share a month", () => {
+    const plan = planContinuousMerge({ categories: [], cards: [] }, [
+      budget("2026-02-15T00:00:00Z", [
+        category("a", { allocatedAmount: 50.1 }),
+      ]),
+      budget("2026-02-01T00:00:00Z", [
+        category("b", { allocatedAmount: 25.2 }),
+      ]),
+      budget("2026-03-31T23:59:59Z", [
+        category("c", { allocatedAmount: null }),
+      ]),
+    ]);
+
+    expect(Object.fromEntries(plan.categories[0]!.months)).toEqual({
+      "2026-02": 75.3,
+      "2026-03": 0,
+    });
+  });
+
+  it("plans 0 in a merged month for every category that budget did not have", () => {
+    const plan = planContinuousMerge(
+      { categories: [category("t-pets", { name: "Pets" })], cards: [] },
+      [
+        budget("2026-02-01T00:00:00Z", [category("feb-food")]),
+        budget("2026-03-01T00:00:00Z", [
+          category("mar-food", { allocatedAmount: 90 }),
+          category("mar-gym", { name: "Gym", allocatedAmount: 40 }),
+        ]),
+        budget("2026-04-01T00:00:00Z", []),
+      ],
+    );
+
+    expect(
+      plan.categories.map((group) => [
+        group.targetId ?? group.template.id,
+        Object.fromEntries(group.months),
+      ]),
+    ).toEqual([
+      ["t-pets", { "2026-02": 0, "2026-03": 0, "2026-04": 0 }],
+      ["mar-food", { "2026-02": 100, "2026-03": 90, "2026-04": 0 }],
+      ["mar-gym", { "2026-02": 0, "2026-03": 40, "2026-04": 0 }],
+    ]);
+  });
+
+  it("leaves the continuous budget's own rows out of the plan", () => {
+    const plan = planContinuousMerge(
+      { categories: [category("t-1")], cards: [card("t-card")] },
+      [],
+    );
+
+    expect(plan).toEqual({ categories: [], cards: [] });
+  });
+});
+
+describe("planContinuousMerge cards", () => {
+  it("matches by default card id, then name and last four", () => {
+    const plan = planContinuousMerge(
+      {
+        categories: [],
+        cards: [
+          card("t-main", { name: "Main", defaultCardId: "g-1" }),
+          card("t-visa"),
+        ],
+      },
+      [
+        budget(
+          "2026-02-01T00:00:00Z",
+          [],
+          [
+            card("s-1", { name: "Checking", defaultCardId: "g-1" }),
+            card("s-2", { name: "VISA" }),
+            card("s-3", { lastFourDigits: "9999" }),
+          ],
+        ),
+      ],
+    );
+
+    expect(
+      plan.cards.map((group) => [group.targetId, group.sourceIds]),
+    ).toEqual([
+      ["t-main", ["s-1"]],
+      ["t-visa", ["s-2"]],
+      [null, ["s-3"]],
+    ]);
+  });
+});

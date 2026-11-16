@@ -105,7 +105,7 @@ const getMonthCarries = async (
 };
 
 /** Reuses the budget's debit card, or creates one named "Main" linked to its general card. */
-async function ensureMainDebitCard(
+export async function ensureMainDebitCard(
   tx: PrismaClientTx,
   budgetId: string,
   userId: string,
@@ -141,6 +141,16 @@ async function ensureMainDebitCard(
   });
 }
 
+export const newContinuousBudgetData = (accountId: string) => ({
+  name: "Monthly budget",
+  kind: BudgetKind.CONTINUOUS,
+  period: PeriodType.MONTHLY,
+  strategy: StrategyType.ZERO_SUM,
+  startAt: getMonthWindow(toMonthKey(new Date())).start,
+  endAt: null,
+  accountId,
+});
+
 /** The account's continuous budget, created on first use with a "Main" debit card for income. */
 export async function getOrCreateContinuousBudget(
   prisma: PrismaClient,
@@ -158,15 +168,7 @@ export async function getOrCreateContinuousBudget(
       if (existing) return existing;
 
       const budget = await tx.budget.create({
-        data: {
-          name: "Monthly budget",
-          kind: BudgetKind.CONTINUOUS,
-          period: PeriodType.MONTHLY,
-          strategy: StrategyType.ZERO_SUM,
-          startAt: getMonthWindow(toMonthKey(new Date())).start,
-          endAt: null,
-          accountId: user.accountId,
-        },
+        data: newContinuousBudgetData(user.accountId),
       });
       await ensureMainDebitCard(tx, budget.id, user.id);
       return budget;

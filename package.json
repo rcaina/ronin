@@ -8,6 +8,7 @@
     "check": "next lint && tsc --noEmit",
     "comp:grant": "tsx scripts/grant-comp-access.ts",
     "comp:revoke": "tsx scripts/grant-comp-access.ts --revoke",
+    "budgets:merge-continuous": "tsx scripts/migrate-to-continuous-budget.ts",
     "db:generate": "prisma migrate dev",
     "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
