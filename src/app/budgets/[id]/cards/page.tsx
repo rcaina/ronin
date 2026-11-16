@@ -433,7 +433,7 @@ const BudgetCardsPage = () => {
             <StatsCard
               title="Credit limit"
               value={`$${totalLimit.toLocaleString()}`}
-              subtitle="Available credit"
+              subtitle={isContinuous ? "Monthly limit" : "Total limit"}
               icon={<CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />}
             />
 
@@ -500,6 +500,7 @@ const BudgetCardsPage = () => {
                     <AddCardForm
                       key={`edit-${card.id}`}
                       onSubmit={handleSubmitCard}
+                      monthlyLimit={isContinuous}
                       onCancel={handleCancelEdit}
                       isLoading={updateCardMutation.isPending}
                       cardToEdit={{
@@ -547,6 +548,7 @@ const BudgetCardsPage = () => {
                     <AddCardForm
                       key={`edit-${card.id}`}
                       onSubmit={handleSubmitCard}
+                      monthlyLimit={isContinuous}
                       onCancel={handleCancelEdit}
                       isLoading={updateCardMutation.isPending}
                       cardToEdit={{
@@ -594,6 +596,7 @@ const BudgetCardsPage = () => {
                     <AddCardForm
                       key={`edit-${card.id}`}
                       onSubmit={handleSubmitCard}
+                      monthlyLimit={isContinuous}
                       onCancel={handleCancelEdit}
                       isLoading={updateCardMutation.isPending}
                       cardToEdit={{
@@ -667,6 +670,7 @@ const BudgetCardsPage = () => {
           >
             <AddCardForm
               onSubmit={handleSubmitCard}
+              monthlyLimit={isContinuous}
               onCancel={handleCancelAdd}
               isLoading={createCardMutation.isPending}
               users={users}

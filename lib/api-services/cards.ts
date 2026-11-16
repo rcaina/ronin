@@ -17,7 +17,10 @@ import {
   calculateGeneralCardFinancials,
 } from "./card-financials";
 import { splitsInclude } from "./transactions";
-import { resolveMonthWindow } from "../utils/budget-month";
+import {
+  cardTransactionsInWindow,
+  resolveMonthWindow,
+} from "../utils/budget-month";
 import { isWithinWindow } from "../utils/spending";
 
 export async function getCards(
@@ -185,9 +188,7 @@ export async function getCardById(
   const monthWindow = resolveMonthWindow(card.budget.kind, month);
   return calculateCardFinancials({
     ...card,
-    transactions: card.transactions.filter((transaction) =>
-      isWithinWindow(transaction, monthWindow),
-    ),
+    transactions: cardTransactionsInWindow(card.transactions, monthWindow),
   });
 }
 

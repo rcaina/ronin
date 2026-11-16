@@ -2,6 +2,7 @@ import { TransactionType } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import {
   calculateReadyToAssign,
+  cardTransactionsInWindow,
   computeCarry,
   computeQuickFill,
   getMonthWindow,
@@ -36,6 +37,36 @@ describe("getMonthWindow", () => {
     const { start, end } = getMonthWindow("2026-02");
     expect(start.toISOString()).toBe("2026-02-01T00:00:00.000Z");
     expect(end.toISOString()).toBe("2026-02-28T23:59:59.999Z");
+  });
+});
+
+describe("cardTransactionsInWindow", () => {
+  const transactions = [
+    {
+      amount: 50,
+      transactionType: TransactionType.REGULAR,
+      occurredAt: "2026-11-03T12:00:00Z",
+    },
+    {
+      amount: 400,
+      transactionType: TransactionType.CARD_PAYMENT,
+      occurredAt: "2026-11-05T12:00:00Z",
+    },
+    {
+      amount: 20,
+      transactionType: TransactionType.REGULAR,
+      occurredAt: "2026-10-31T23:59:59Z",
+    },
+  ];
+
+  it("keeps the month's purchases and drops card payments", () => {
+    expect(
+      cardTransactionsInWindow(transactions, getMonthWindow("2026-11")),
+    ).toEqual([transactions[0]]);
+  });
+
+  it("keeps everything, payments included, without a window", () => {
+    expect(cardTransactionsInWindow(transactions, null)).toEqual(transactions);
   });
 });
 

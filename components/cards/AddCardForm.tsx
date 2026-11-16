@@ -55,6 +55,8 @@ interface AddCardFormProps {
   suggestions?: Card[];
   /** Names already present in the budget, excluded from suggestions. */
   existingCardNames?: string[];
+  /** The card belongs to the monthly budget, so its limit resets each month. */
+  monthlyLimit?: boolean;
 }
 
 type ComboboxItem =
@@ -71,6 +73,7 @@ export default function AddCardForm({
   defaultValues,
   suggestions,
   existingCardNames = [],
+  monthlyLimit = false,
 }: AddCardFormProps) {
   const isEditing = !!cardToEdit;
   const showCombobox = !!suggestions && !isEditing;
@@ -464,7 +467,7 @@ export default function AddCardForm({
             htmlFor="spendingLimit"
             className="mb-1 block text-sm font-medium text-gray-700"
           >
-            Spending Limit (Optional)
+            {monthlyLimit ? "Monthly limit" : "Spending Limit"} (Optional)
           </label>
           <div className="relative">
             <span className="absolute left-3 top-2 text-sm text-gray-500">

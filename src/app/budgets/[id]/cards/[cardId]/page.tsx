@@ -29,10 +29,12 @@ import {
   useDeleteCard,
   useUpdateCard,
 } from "@/lib/data-hooks/cards/useCards";
-import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useDeleteTransaction } from "@/lib/data-hooks/transactions/useTransactions";
-import { getTransactionDate } from "@/lib/utils/spending";
+import {
+  calculateSpendingPercentage,
+  getTransactionDate,
+} from "@/lib/utils/spending";
 import { useBudgetMonth } from "@/lib/utils/hooks";
 import { formatMonthLabel } from "@/lib/utils/budget-month";
 import { isDebitCard, mapApiCardToCard, type Card } from "@/lib/utils/cards";
@@ -45,7 +47,7 @@ import {
   type HeaderAction,
 } from "../../../../../../components/budgets/BudgetHeaderContext";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
-import { getGroupColor } from "@/lib/utils";
+import { getGroupColor, roundToCents } from "@/lib/utils";
 import { getSplitBadgeLabel } from "@/lib/utils/transactions";
 import LockedBudgetGate from "../../LockedBudgetGate";
 
@@ -212,7 +214,6 @@ const CardDetailsPage = () => {
   } = useCard(cardId, undefined, month);
   const { data: transactions = [], isLoading: transactionsLoading } =
     useCardTransactions(cardId, month);
-  const { data: budgets = [] } = useBudgets();
   const deleteCardMutation = useDeleteCard();
   const updateCardMutation = useUpdateCard();
   const { setActions, setTitle, setDescription } = useBudgetHeader();
@@ -577,15 +578,14 @@ const CardDetailsPage = () => {
     );
   }
 
+  const isDebit = isDebitCard(card);
   const totalSpent = mappedCard.amountSpent;
-  const availableCredit =
-    card.cardType === CardType.CREDIT ||
-    card.cardType === CardType.BUSINESS_CREDIT
-      ? (mappedCard.spendingLimit ?? 0) - totalSpent
-      : (mappedCard.spendingLimit ?? 0) + totalSpent;
-  const utilizationRate = mappedCard.spendingLimit
-    ? (totalSpent / mappedCard.spendingLimit) * 100
-    : 0;
+  // A debit card's limit is the income deposited on it.
+  const available = roundToCents((mappedCard.spendingLimit ?? 0) - totalSpent);
+  const utilizationRate = calculateSpendingPercentage(
+    totalSpent,
+    mappedCard.spendingLimit ?? 0,
+  );
 
   return (
     <>
@@ -607,8 +607,8 @@ const CardDetailsPage = () => {
               {mappedCard.spendingLimit && (
                 <>
                   <StatsCard
-                    title="Available Credit"
-                    value={`$${availableCredit.toLocaleString()}`}
+                    title={isDebit ? "Available funds" : "Available credit"}
+                    value={`$${available.toLocaleString()}`}
                     subtitle={`${utilizationRate.toFixed(1)}% utilized`}
                     icon={
                       <CreditCard className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
@@ -617,9 +617,17 @@ const CardDetailsPage = () => {
                   />
 
                   <StatsCard
-                    title="Credit Limit"
+                    title={isDebit ? "Total income" : "Credit limit"}
                     value={`$${mappedCard.spendingLimit.toLocaleString()}`}
-                    subtitle={periodLabel ? "Monthly limit" : "Total limit"}
+                    subtitle={
+                      isDebit
+                        ? periodLabel
+                          ? `Deposited in ${periodLabel}`
+                          : "Deposited on card"
+                        : periodLabel
+                          ? "Monthly limit"
+                          : "Total limit"
+                    }
                     icon={
                       <CreditCard className="h-4 w-4 text-indigo-500 sm:h-5 sm:w-5" />
                     }
@@ -706,7 +714,7 @@ const CardDetailsPage = () => {
                     </div>
                     <div>
                       <label className="mb-1 block text-sm font-medium text-gray-700">
-                        Spending Limit
+                        {periodLabel ? "Monthly limit" : "Spending Limit"}
                       </label>
                       <input
                         type="number"
@@ -1087,7 +1095,7 @@ const CardDetailsPage = () => {
       {/* Add Transaction Modal */}
       <AddTransactionModal
         isOpen={showAddTransactionModal}
-        budgetId={budgets[0]?.id ?? ""} // Use first budget or empty string
+        budgetId={budgetId}
         cardId={cardId ?? ""}
         onClose={() => setShowAddTransactionModal(false)}
         onSuccess={handleTransactionSuccess}
@@ -1098,7 +1106,7 @@ const CardDetailsPage = () => {
       <AddTransactionModal
         isOpen={!!editingSplitTransaction}
         transaction={editingSplitTransaction ?? undefined}
-        budgetId={budgets[0]?.id ?? ""}
+        budgetId={budgetId}
         cardId={cardId ?? ""}
         onClose={() => setEditingSplitTransaction(null)}
         onSuccess={() => setEditingSplitTransaction(null)}
@@ -1109,6 +1117,7 @@ const CardDetailsPage = () => {
         isOpen={showCardPaymentModal}
         onClose={() => setShowCardPaymentModal(false)}
         currentCardId={cardId ?? ""}
+        budgetId={budgetId}
       />
 
       {/* Delete Transaction Confirmation Modal */}

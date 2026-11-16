@@ -1,4 +1,4 @@
-import { BudgetKind } from "@prisma/client";
+import { BudgetKind, TransactionType } from "@prisma/client";
 import { HttpError } from "@/lib/errors";
 import { roundToCents } from "@/lib/utils";
 import {
@@ -7,6 +7,7 @@ import {
   isWithinWindow,
   type DateWindow,
   type SpendingCategory,
+  type SpendingTransaction,
 } from "@/lib/utils/spending";
 
 /** Month key as used in URLs and the API: "YYYY-MM", in UTC. */
@@ -52,6 +53,19 @@ export const resolveMonthWindow = (
   if (!month) throw new HttpError("Invalid month, expected YYYY-MM", 400);
   return kind === BudgetKind.CONTINUOUS ? getMonthWindow(month) : null;
 };
+
+/** A card's transactions counted in a month window; card payments are money movement, not that month's spending. */
+export const cardTransactionsInWindow = <T extends SpendingTransaction>(
+  transactions: T[],
+  window: DateWindow | null,
+): T[] =>
+  window
+    ? transactions.filter(
+        (transaction) =>
+          transaction.transactionType !== TransactionType.CARD_PAYMENT &&
+          isWithinWindow(transaction, window),
+      )
+    : transactions;
 
 /** New transactions, scans and imports default to the continuous budget when the account has one. */
 export const findContinuousBudgetId = (

@@ -33,6 +33,7 @@ import type {
 } from "../types/budget";
 import type { TransactionSplitWithCategory } from "../types/transaction";
 import {
+  cardTransactionsInWindow,
   computeCarry,
   computeQuickFill,
   getMonthWindow,
@@ -1478,9 +1479,7 @@ export const getBudgetCards = async (
   return cards.map((card) =>
     calculateCardFinancials({
       ...card,
-      transactions: card.transactions.filter((transaction) =>
-        isWithinWindow(transaction, monthWindow),
-      ),
+      transactions: cardTransactionsInWindow(card.transactions, monthWindow),
     }),
   );
 };
