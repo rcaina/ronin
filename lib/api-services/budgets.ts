@@ -39,11 +39,16 @@ import {
   getMonthWindow,
   isCategoryInMonth,
   parseMonthKey,
+  plannedTotalForMonth,
   projectCategoryToMonth,
+  QUICK_FILL_SOURCES,
+  quickFillRefusal,
   resolveMonthWindow,
   shiftMonth,
   toMonthKey,
+  type MonthKey,
   type QuickFillCategory,
+  type QuickFillPreview,
   type QuickFillSource,
 } from "../utils/budget-month";
 import {
@@ -1304,13 +1309,12 @@ export const updateBudgetCategory = async (
   return updatedCategory;
 };
 
-/** Sets the month's planned amount on every category with history, from `source`; 400 if none has any. */
-export const fillBudgetMonth = async (
+/** The continuous budget's categories with their plans up to `monthParam` and all their spending. */
+const loadQuickFillCategories = async (
   tx: PrismaClientTx,
   budgetId: string,
   monthParam: string,
-  source: QuickFillSource,
-): Promise<{ filled: number }> => {
+): Promise<{ month: MonthKey; categories: QuickFillCategory[] }> => {
   const month = parseMonthKey(monthParam);
   if (!month) throw new HttpError("Invalid month, expected YYYY-MM", 400);
 
@@ -1333,7 +1337,7 @@ export const fillBudgetMonth = async (
         where: {
           month: {
             gte: getMonthWindow(shiftMonth(month, -3)).start,
-            lt: window.start,
+            lte: window.start,
           },
         },
         select: { month: true, assigned: true },
@@ -1364,13 +1368,50 @@ export const fillBudgetMonth = async (
     },
   });
 
+  return { month, categories };
+};
+
+/** The month's planned total now, and after each fill source (null where the fill would be refused). */
+export const previewBudgetMonthFill = async (
+  tx: PrismaClientTx,
+  budgetId: string,
+  monthParam: string,
+): Promise<QuickFillPreview> => {
+  const { month, categories } = await loadQuickFillCategories(
+    tx,
+    budgetId,
+    monthParam,
+  );
+  const totals = Object.fromEntries(
+    QUICK_FILL_SOURCES.map((source) => {
+      const fill = computeQuickFill(source, categories, month);
+      return [
+        source,
+        quickFillRefusal(fill)
+          ? null
+          : plannedTotalForMonth(categories, month, fill),
+      ];
+    }),
+  ) as QuickFillPreview["totals"];
+  return { planned: plannedTotalForMonth(categories, month), totals };
+};
+
+/** Sets the month's planned amount on every category with history, from `source`; 400 if none has any. */
+export const fillBudgetMonth = async (
+  tx: PrismaClientTx,
+  budgetId: string,
+  monthParam: string,
+  source: QuickFillSource,
+): Promise<{ filled: number }> => {
+  const { month, categories } = await loadQuickFillCategories(
+    tx,
+    budgetId,
+    monthParam,
+  );
+  const window = getMonthWindow(month);
   const fill = computeQuickFill(source, categories, month);
-  if (fill.size === 0) {
-    throw new HttpError("No earlier months to fill from", 400);
-  }
-  if ([...fill.values()].every((assigned) => assigned === 0)) {
-    throw new HttpError("Nothing to fill: every category came out at $0", 400);
-  }
+  const refusal = quickFillRefusal(fill);
+  if (refusal) throw new HttpError(refusal, 400);
 
   for (const [categoryId, assigned] of fill) {
     await tx.categoryMonth.upsert({

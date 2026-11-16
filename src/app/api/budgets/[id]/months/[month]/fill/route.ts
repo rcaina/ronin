@@ -5,12 +5,36 @@ import type { User } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 import { fillBudgetMonthSchema } from "@/lib/api-schemas/budget-categories";
 import { ensureBudgetOwnership, validateBudgetId } from "@/lib/utils/auth";
-import { fillBudgetMonth } from "@/lib/api-services/budgets";
+import {
+  fillBudgetMonth,
+  previewBudgetMonthFill,
+} from "@/lib/api-services/budgets";
 import {
   BUDGET_LOCKED_REASON,
   isBudgetWriteLocked,
   paymentRequired,
 } from "@/lib/api-services/entitlements";
+
+export const GET = withUser({
+  GET: withUserErrorHandling(
+    async (
+      _req: NextRequest,
+      context: { params: Promise<Record<string, string>> },
+      user: User & { accountId: string },
+    ) => {
+      const { id, month } = await context.params;
+      const budgetId = validateBudgetId(id);
+      await ensureBudgetOwnership(budgetId, user.accountId);
+
+      const preview = await previewBudgetMonthFill(
+        prisma,
+        budgetId,
+        month ?? "",
+      );
+      return NextResponse.json(preview, { status: 200 });
+    },
+  ),
+});
 
 export const POST = withUser({
   POST: withUserErrorHandling(

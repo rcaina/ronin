@@ -12,7 +12,10 @@ import type {
   ImportBudgetCategoriesData,
 } from "@/lib/types/budget";
 import { parseErrorResponse } from "@/lib/data-hooks/services/http";
-import type { QuickFillSource } from "@/lib/utils/budget-month";
+import type {
+  QuickFillPreview,
+  QuickFillSource,
+} from "@/lib/utils/budget-month";
 
 const getBudgetCategories = async (
   budgetId: string,
@@ -235,6 +238,22 @@ export const useDeleteBudgetCategory = () => {
     },
   });
 };
+
+const getQuickFillPreview = async (
+  budgetId: string,
+  month: string,
+): Promise<QuickFillPreview> => {
+  const response = await fetch(`/api/budgets/${budgetId}/months/${month}/fill`);
+  if (!response.ok) return parseErrorResponse(response);
+  return response.json() as Promise<QuickFillPreview>;
+};
+
+export const useQuickFillPreview = (budgetId: string, month: string) =>
+  useQuery({
+    queryKey: ["quickFillPreview", budgetId, month],
+    queryFn: () => getQuickFillPreview(budgetId, month),
+    gcTime: 0,
+  });
 
 const fillBudgetMonth = async (
   budgetId: string,

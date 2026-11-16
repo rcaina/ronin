@@ -12,6 +12,7 @@ import {
   mergeMonthPlans,
   type QuickFillCategory,
   parseMonthKey,
+  plannedTotalForMonth,
   projectCategoryToMonth,
   shiftMonth,
   toMonthKey,
@@ -231,6 +232,48 @@ describe("computeQuickFill", () => {
       expect(fill.has("groceries")).toBe(false);
       expect(fill.has("fuel")).toBe(true);
     }
+  });
+});
+
+describe("plannedTotalForMonth", () => {
+  const category = (
+    overrides: Partial<QuickFillCategory> = {},
+  ): QuickFillCategory => ({
+    id: "groceries",
+    createdAt: new Date("2026-08-01T00:00:00.000Z"),
+    allocatedAmount: 300,
+    months: [],
+    transactions: [],
+    ...overrides,
+  });
+  const planned = category({
+    months: [{ month: new Date("2026-11-01T00:00:00.000Z"), assigned: 450.1 }],
+  });
+  const defaulted = category({ id: "fuel" });
+  const startsNextMonth = category({
+    id: "gifts",
+    createdAt: new Date("2026-12-01T00:00:00.000Z"),
+  });
+
+  it("sums the month's plan or the default over the categories the month shows", () => {
+    expect(
+      plannedTotalForMonth([planned, defaulted, startsNextMonth], "2026-11"),
+    ).toBe(750.1);
+  });
+
+  it("replaces filled plans and counts a filled category the month did not show", () => {
+    const fill = new Map([
+      ["groceries", 200],
+      ["gifts", 25.5],
+    ]);
+
+    expect(
+      plannedTotalForMonth(
+        [planned, defaulted, startsNextMonth],
+        "2026-11",
+        fill,
+      ),
+    ).toBe(525.5);
   });
 });
 

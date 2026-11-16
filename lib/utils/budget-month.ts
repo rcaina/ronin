@@ -202,6 +202,39 @@ export const computeQuickFill = (
   return fill;
 };
 
+/** Why a fill from `computeQuickFill` would be refused, or null when it can be applied. */
+export const quickFillRefusal = (fill: Map<string, number>): string | null => {
+  if (fill.size === 0) return "No earlier months to fill from";
+  if ([...fill.values()].every((assigned) => assigned === 0)) {
+    return "Nothing to fill: every category came out at $0";
+  }
+  return null;
+};
+
+/** The month's planned total over the categories it shows, with `fill` replacing each filled plan. */
+export const plannedTotalForMonth = (
+  categories: QuickFillCategory[],
+  month: MonthKey,
+  fill: Map<string, number> = new Map(),
+): number => {
+  const window = getMonthWindow(month);
+  const total = categories.reduce((sum, category) => {
+    const filled = fill.get(category.id);
+    if (filled !== undefined) return sum + filled;
+    const row = category.months.find(
+      (row) => row.month.getTime() === window.start.getTime(),
+    );
+    if (!isCategoryInMonth(category, window, !!row)) return sum;
+    return sum + (row?.assigned ?? category.allocatedAmount ?? 0);
+  }, 0);
+  return roundToCents(total);
+};
+
+export interface QuickFillPreview {
+  planned: number;
+  totals: Record<QuickFillSource, number | null>;
+}
+
 /**
  * Balance carried into `month` by a rollover category: planned minus spent for every
  * month from its first month up to the one before `month`. Zero when rollover is off.
