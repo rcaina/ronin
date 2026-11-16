@@ -23,6 +23,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const { data: budget } = useBudget(id);
   const [month, setMonth] = useBudgetMonth();
   const showMonthSwitcher = budget?.kind === "CONTINUOUS";
+  const monthSwitcher = showMonthSwitcher && (
+    <MonthSwitcher month={month} onChange={setMonth} />
+  );
   const {
     actions: dynamicActions,
     title: dynamicTitle,
@@ -141,9 +144,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             />
           )}
 
-          <BudgetPageNavigation />
-          {showMonthSwitcher && (
-            <MonthSwitcher month={month} onChange={setMonth} />
+          <BudgetPageNavigation trailing={monthSwitcher} />
+          {monthSwitcher && (
+            <div className="px-4 py-2 sm:px-6 lg:hidden">{monthSwitcher}</div>
           )}
         </>
       )}

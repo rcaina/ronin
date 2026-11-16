@@ -18,7 +18,16 @@ export default function MonthSwitcher({ month, onChange }: MonthSwitcherProps) {
   const currentMonth = toMonthKey(new Date());
 
   return (
-    <div className="mx-auto flex w-full items-center gap-2 px-4 py-2 sm:px-6 lg:px-8">
+    <div className="flex items-center gap-2">
+      {month !== currentMonth && (
+        <Button
+          variant="outline"
+          onClick={() => onChange(currentMonth)}
+          className="min-h-11 shrink-0"
+        >
+          This month
+        </Button>
+      )}
       <div className="card-surface flex flex-1 items-center justify-between gap-1 p-1 sm:flex-none">
         <button
           type="button"
@@ -43,15 +52,6 @@ export default function MonthSwitcher({ month, onChange }: MonthSwitcherProps) {
           <ChevronRight className="h-5 w-5" />
         </button>
       </div>
-      {month !== currentMonth && (
-        <Button
-          variant="outline"
-          onClick={() => onChange(currentMonth)}
-          className="min-h-11 shrink-0"
-        >
-          This month
-        </Button>
-      )}
     </div>
   );
 }

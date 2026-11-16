@@ -17,7 +17,12 @@ interface BudgetNavItem {
   label: string;
 }
 
-export default function BudgetPageNavigation() {
+export default function BudgetPageNavigation({
+  trailing,
+}: {
+  /** Shown at the right end of the desktop tab row. */
+  trailing?: React.ReactNode;
+}) {
   const params = useParams();
   const id = params.id as string;
   const pathname = usePathname();
@@ -62,8 +67,8 @@ export default function BudgetPageNavigation() {
   return (
     <>
       {/* Desktop: in-flow pill row under the page header */}
-      <div className="hidden bg-surface lg:block">
-        <nav className="scrollbar-hide mx-auto w-full overflow-x-auto px-4 py-2 sm:px-6 lg:px-8">
+      <div className="mx-auto hidden w-full items-center justify-between gap-4 bg-surface px-4 py-2 sm:px-6 lg:flex lg:px-8">
+        <nav className="scrollbar-hide min-w-0 overflow-x-auto">
           <div className="inline-flex rounded-full bg-surface-muted p-1">
             {budgetNavItems.map((item) => {
               const isActive = pathname === item.href;
@@ -84,6 +89,7 @@ export default function BudgetPageNavigation() {
             })}
           </div>
         </nav>
+        {trailing}
       </div>
 
       {/* Mobile: floating pill bar docked just above the bottom tab bar so the
