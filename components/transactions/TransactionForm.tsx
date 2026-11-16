@@ -531,12 +531,8 @@ export default function TransactionForm({
         description: data.description ?? undefined,
         amount: Math.abs(parseFloat(data.amount)),
         budgetId: data.budgetId,
-        categoryId: splitsPayload
-          ? undefined
-          : data.categoryId && data.categoryId.trim() !== ""
-            ? data.categoryId
-            : undefined,
-        cardId: data.cardId ?? undefined,
+        categoryId: splitsPayload ? undefined : (data.categoryId ?? ""),
+        cardId: data.cardId ?? "",
         occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
         transactionType: data.transactionType,
         splits: splitsPayload,
@@ -750,11 +746,17 @@ export default function TransactionForm({
                 disabled={isPending}
               >
                 <option value="">Select a budget</option>
-                {budgets.map((budget) => (
-                  <option key={budget.id} value={budget.id}>
-                    {budget.name}
-                  </option>
-                ))}
+                {budgets
+                  .filter(
+                    (budget) =>
+                      budget.status === "ACTIVE" ||
+                      budget.id === transaction?.budgetId,
+                  )
+                  .map((budget) => (
+                    <option key={budget.id} value={budget.id}>
+                      {budget.name}
+                    </option>
+                  ))}
               </select>
               {errors.budgetId && (
                 <p className="mt-1 text-sm text-red-600">

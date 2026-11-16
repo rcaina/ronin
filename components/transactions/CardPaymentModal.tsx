@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { X } from "lucide-react";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import { useBudgetCards } from "@/lib/data-hooks/budgets/useBudgetCards";
-import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { useActiveBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { findContinuousBudgetId } from "@/lib/utils/budget-month";
 import { useCreateCardPayment } from "@/lib/data-hooks/transactions/useTransactions";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
@@ -33,7 +33,7 @@ export function CardPaymentModal({
 }: CardPaymentModalProps) {
   const { data: allCards = [] } = useCards();
   const budgetCardsQuery = useBudgetCards(budgetId ?? "");
-  const { data: budgets = [] } = useBudgets();
+  const { data: budgets = [] } = useActiveBudgets();
   const createCardPaymentMutation = useCreateCardPayment();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({

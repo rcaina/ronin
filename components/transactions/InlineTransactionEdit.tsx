@@ -215,11 +215,17 @@ export default function InlineTransactionEdit({
                 disabled={isUpdating}
               >
                 <option value="">Select a budget</option>
-                {budgets.map((budget) => (
-                  <option key={budget.id} value={budget.id}>
-                    {budget.name}
-                  </option>
-                ))}
+                {budgets
+                  .filter(
+                    (budget) =>
+                      budget.status === "ACTIVE" ||
+                      budget.id === transaction.budgetId,
+                  )
+                  .map((budget) => (
+                    <option key={budget.id} value={budget.id}>
+                      {budget.name}
+                    </option>
+                  ))}
               </select>
               {errors.budgetId && (
                 <p className="mt-1 text-xs text-red-600">

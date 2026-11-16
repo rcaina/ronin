@@ -15,6 +15,7 @@ import {
 } from "../utils/recurring";
 import { evaluateRecurringPosted } from "../utils/notifications";
 import { notifyRecurringPosted } from "./notifications";
+import { assertOwnedCard, assertOwnedCategory } from "./transactions";
 
 const recurringInclude = {
   category: {
@@ -68,11 +69,26 @@ const getOwnedRecurringTransaction = async (
   return template;
 };
 
+const assertOwnedTemplateRefs = async (
+  tx: PrismaClientTx,
+  accountId: string,
+  data: { categoryId?: string; cardId?: string },
+) => {
+  if (data.categoryId?.trim()) {
+    await assertOwnedCategory(tx, accountId, data.categoryId);
+  }
+  if (data.cardId?.trim()) {
+    await assertOwnedCard(tx, accountId, data.cardId);
+  }
+};
+
 export const createRecurringTransaction = async (
   tx: PrismaClientTx,
   data: CreateRecurringTransactionSchema,
   user: User & { accountId: string },
 ) => {
+  await assertOwnedTemplateRefs(tx, user.accountId, data);
+
   return tx.recurringTransaction.create({
     data: {
       name: data.name,
@@ -101,6 +117,7 @@ export const updateRecurringTransaction = async (
   user: User & { accountId: string },
 ) => {
   await getOwnedRecurringTransaction(tx, id, user);
+  await assertOwnedTemplateRefs(tx, user.accountId, data);
 
   return tx.recurringTransaction.update({
     where: { id },

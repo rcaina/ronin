@@ -463,7 +463,11 @@ const CardDetailsPage = () => {
       {/* Add Transaction Modal */}
       <AddTransactionModal
         isOpen={showAddTransactionModal}
-        budgetId={findContinuousBudgetId(budgets) ?? budgets[0]?.id ?? ""}
+        budgetId={
+          findContinuousBudgetId(budgets) ??
+          budgets.find((budget) => budget.status === "ACTIVE")?.id ??
+          ""
+        }
         cardId={id ?? ""}
         onClose={() => setShowAddTransactionModal(false)}
         onSuccess={handleTransactionSuccess}

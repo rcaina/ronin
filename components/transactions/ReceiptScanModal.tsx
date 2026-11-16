@@ -5,7 +5,7 @@ import { Camera, Loader2, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import Button from "../Button";
 import ReceiptReview from "./ReceiptReview";
-import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
+import { useActiveBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { findContinuousBudgetId } from "@/lib/utils/budget-month";
 import { useScanReceipt } from "@/lib/data-hooks/transactions/useReceiptScan";
 import { downscaleImageToBase64 } from "@/lib/utils/image";
@@ -30,7 +30,7 @@ export default function ReceiptScanModal({
   budgetId,
   cardId,
 }: ReceiptScanModalProps) {
-  const { data: budgets = [] } = useBudgets();
+  const { data: budgets = [] } = useActiveBudgets();
   const { mutate: scan, isPending } = useScanReceipt();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
