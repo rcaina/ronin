@@ -9,6 +9,7 @@ import CategoryViewToggle, {
 } from "@/components/categories/CategoryViewToggle";
 import CategoryListView from "@/components/categories/CategoryListView";
 import MergeCategoriesModal from "@/components/categories/MergeCategoriesModal";
+import Modal from "@/components/Modal";
 import MergeSelectionBar from "@/components/MergeSelectionBar";
 import { CategoryType } from "@prisma/client";
 import {
@@ -19,11 +20,7 @@ import {
 import { usePageLoading } from "@/components/ConditionalLayout";
 import { Merge, Plus, AlertCircle, Search, X } from "lucide-react";
 import AddCategoryForm from "@/components/categories/AddCategoryForm";
-import {
-  useDebounce,
-  useLocalStorageState,
-  useLockBodyScroll,
-} from "@/lib/utils/hooks";
+import { useDebounce, useLocalStorageState } from "@/lib/utils/hooks";
 
 const CATEGORIES_VIEW_STORAGE_KEY = "ronin.categoriesView";
 const isCategoryViewType = (value: unknown): value is CategoryViewType =>
@@ -37,7 +34,6 @@ const CategoriesPage = () => {
   );
   const [localSearchQuery, setLocalSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
-  useLockBodyScroll(showAddModal);
   const { data: categories, isLoading, error } = useCategories();
   const createCategoryMutation = useCreateCategory();
   const mergeCategoriesMutation = useMergeCategories();
@@ -330,29 +326,18 @@ const CategoriesPage = () => {
         </div>
       </div>
 
-      {/* Add Category Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm">
-          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md animate-scale-in overflow-y-auto overscroll-contain rounded-2xl bg-surface-card p-6 shadow-lifted">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold tracking-tight text-gray-900">
-                Add category
-              </h2>
-              <button
-                onClick={handleCloseAddModal}
-                className="rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
-              >
-                ✕
-              </button>
-            </div>
-            <AddCategoryForm
-              onSubmit={handleSubmitAddCategory}
-              onCancel={handleCloseAddModal}
-              isLoading={createCategoryMutation.isPending}
-            />
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showAddModal}
+        onClose={handleCloseAddModal}
+        title="Add category"
+      >
+        <AddCategoryForm
+          inModal
+          onSubmit={handleSubmitAddCategory}
+          onCancel={handleCloseAddModal}
+          isLoading={createCategoryMutation.isPending}
+        />
+      </Modal>
 
       {/* Merge Categories Modal */}
       <MergeCategoriesModal

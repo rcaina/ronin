@@ -15,6 +15,7 @@ import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { default as CardComponent } from "@/components/cards/Card";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import Modal from "@/components/Modal";
 import AddCardForm from "@/components/cards/AddCardForm";
 import { CardPaymentModal } from "@/components/transactions/CardPaymentModal";
 import {
@@ -28,7 +29,7 @@ import { usePageLoading } from "@/components/ConditionalLayout";
 import { type CardType } from "@prisma/client";
 import Button from "@/components/Button";
 import { type Card, mapCardType, getCardColor } from "@/lib/utils/cards";
-import { useBudgetMonth, useLockBodyScroll } from "@/lib/utils/hooks";
+import { useBudgetMonth } from "@/lib/utils/hooks";
 import { formatMonthLabel } from "@/lib/utils/budget-month";
 import StatsCard from "@/components/StatsCard";
 import { formatCurrency } from "@/lib/utils";
@@ -83,7 +84,6 @@ const BudgetCardsPage = () => {
   const updateCardMutation = useUpdateCard();
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
-  useLockBodyScroll(showAddCardModal);
   const [cardToEdit, setCardToEdit] = useState<BudgetCard | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -671,34 +671,29 @@ const BudgetCardsPage = () => {
       </div>
 
       {/* Add Card Modal */}
-      {showAddCardModal && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm"
-          onClick={handleCancelAdd}
-        >
-          <div
-            className="max-h-[calc(100dvh-2rem)] w-full max-w-md transform overflow-y-auto overscroll-contain transition-all"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <AddCardForm
-              onSubmit={handleSubmitCard}
-              monthlyLimit={isContinuous}
-              onCancel={handleCancelAdd}
-              isLoading={createCardMutation.isPending}
-              users={users}
-              loadingUsers={loadingUsers}
-              defaultValues={{
-                userId:
-                  users.length === 1
-                    ? (users[0]?.id ?? "")
-                    : (session?.user?.id ?? ""),
-              }}
-              suggestions={generalCards}
-              existingCardNames={existingCardNames}
-            />
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showAddCardModal}
+        onClose={handleCancelAdd}
+        title="Add card"
+      >
+        <AddCardForm
+          inModal
+          onSubmit={handleSubmitCard}
+          monthlyLimit={isContinuous}
+          onCancel={handleCancelAdd}
+          isLoading={createCardMutation.isPending}
+          users={users}
+          loadingUsers={loadingUsers}
+          defaultValues={{
+            userId:
+              users.length === 1
+                ? (users[0]?.id ?? "")
+                : (session?.user?.id ?? ""),
+          }}
+          suggestions={generalCards}
+          existingCardNames={existingCardNames}
+        />
+      </Modal>
 
       {/* Delete Confirmation Modal */}
       {cardToDelete && (

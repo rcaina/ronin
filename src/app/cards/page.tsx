@@ -10,6 +10,7 @@ import FeatureDisabledState from "@/components/FeatureDisabledState";
 import { useIsFeatureEnabled } from "@/lib/data-hooks/accounts/useFeatureSettings";
 import { default as CardComponent } from "@/components/cards/Card";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import Modal from "@/components/Modal";
 import AddCardForm from "@/components/cards/AddCardForm";
 import MergeCardsModal from "@/components/cards/MergeCardsModal";
 import MergeSelectionBar from "@/components/MergeSelectionBar";
@@ -28,7 +29,6 @@ import type { CardType } from "@prisma/client";
 import Button from "@/components/Button";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import { formatCurrency } from "@/lib/utils";
-import { useLockBodyScroll } from "@/lib/utils/hooks";
 import StatsCard from "@/components/StatsCard";
 
 interface User {
@@ -56,7 +56,6 @@ const CardsPage = () => {
   const mergeCardsMutation = useMergeCards();
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
-  useLockBodyScroll(showAddCardModal);
   const [cardToEdit, setCardToEdit] = useState<ApiCard | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -610,31 +609,26 @@ const CardsPage = () => {
       </div>
 
       {/* Add Card Modal */}
-      {showAddCardModal && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm"
-          onClick={handleCancelAdd}
-        >
-          <div
-            className="max-h-[calc(100dvh-2rem)] w-full max-w-md transform animate-scale-in overflow-y-auto overscroll-contain transition-all"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <AddCardForm
-              onSubmit={handleSubmitCard}
-              onCancel={handleCancelAdd}
-              isLoading={createCardMutation.isPending}
-              users={users}
-              loadingUsers={loadingUsers}
-              defaultValues={{
-                userId:
-                  users.length === 1
-                    ? (users[0]?.id ?? "")
-                    : (session?.user?.id ?? ""),
-              }}
-            />
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showAddCardModal}
+        onClose={handleCancelAdd}
+        title="Add card"
+      >
+        <AddCardForm
+          inModal
+          onSubmit={handleSubmitCard}
+          onCancel={handleCancelAdd}
+          isLoading={createCardMutation.isPending}
+          users={users}
+          loadingUsers={loadingUsers}
+          defaultValues={{
+            userId:
+              users.length === 1
+                ? (users[0]?.id ?? "")
+                : (session?.user?.id ?? ""),
+          }}
+        />
+      </Modal>
 
       {/* Delete Confirmation Modal */}
       {cardToDelete && (

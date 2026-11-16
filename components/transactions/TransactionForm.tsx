@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { X, Check, Info, Plus, Trash2, Repeat } from "lucide-react";
+import { Check, Info, Plus, Trash2, Repeat } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   useCreateTransaction,
@@ -639,24 +639,7 @@ export default function TransactionForm({
   };
 
   return (
-    <div className="rounded-xl border bg-surface-card p-6 shadow-sm">
-      <div className="mb-6 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">
-          {isEditing
-            ? "Edit transaction"
-            : isIncome
-              ? "Add new income"
-              : "Add transaction"}
-        </h3>
-        <button
-          aria-label="Close"
-          onClick={onClose}
-          className="tap-target rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-
+    <>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Grid Layout */}
         <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
@@ -1285,6 +1268,6 @@ export default function TransactionForm({
         onClose={() => setUpgradeReason(null)}
         reason={upgradeReason ?? undefined}
       />
-    </div>
+    </>
   );
 }

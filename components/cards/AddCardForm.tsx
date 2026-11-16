@@ -57,6 +57,8 @@ interface AddCardFormProps {
   existingCardNames?: string[];
   /** The card belongs to the monthly budget, so its limit resets each month. */
   monthlyLimit?: boolean;
+  /** Rendered inside a Modal, which supplies the title, close button and panel. */
+  inModal?: boolean;
 }
 
 type ComboboxItem =
@@ -74,6 +76,7 @@ export default function AddCardForm({
   suggestions,
   existingCardNames = [],
   monthlyLimit = false,
+  inModal = false,
 }: AddCardFormProps) {
   const isEditing = !!cardToEdit;
   const showCombobox = !!suggestions && !isEditing;
@@ -223,19 +226,27 @@ export default function AddCardForm({
   };
 
   return (
-    <div className="group relative overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-surface-card p-6 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-500">
-          {isEditing ? "Edit card" : "New card"}
-        </span>
-        <button
-          onClick={onCancel}
-          className="tap-target rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-          title="Cancel"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
+    <div
+      className={
+        inModal
+          ? undefined
+          : "group relative overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-surface-card p-6 shadow-sm"
+      }
+    >
+      {!inModal && (
+        <div className="mb-4 flex items-center justify-between">
+          <span className="text-sm font-medium text-gray-500">
+            {isEditing ? "Edit card" : "New card"}
+          </span>
+          <button
+            onClick={onCancel}
+            className="tap-target rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            title="Cancel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       <form
         onSubmit={handleSubmit(guardedSubmit)}
@@ -283,7 +294,7 @@ export default function AddCardForm({
                   e.stopPropagation();
                   selectItem(items[highlightedIndex]!);
                 }
-              } else if (e.key === "Escape") {
+              } else if (e.key === "Escape" && dropdownVisible) {
                 e.preventDefault();
                 setIsDropdownOpen(false);
                 setHighlightedIndex(-1);
