@@ -31,7 +31,12 @@ import EditBudgetModal from "@/components/budgets/EditBudgetModal";
 import BudgetStrategyIndicator from "@/components/budgets/BudgetStrategyIndicator";
 import LockedBudgetGate from "./LockedBudgetGate";
 import { TransactionType, type Transaction } from "@prisma/client";
-import { formatDateUTC, roundToCents, getGroupColor } from "@/lib/utils";
+import {
+  formatCurrency,
+  formatDateUTC,
+  roundToCents,
+  getGroupColor,
+} from "@/lib/utils";
 import { isDebitCard } from "@/lib/utils/cards";
 import {
   calculateCategorySpent,
@@ -46,6 +51,7 @@ import type {
 import {
   SPLIT_BADGE_CLASSES,
   getSplitBadgeLabel,
+  isMoneyIn,
 } from "@/lib/utils/transactions";
 import { useBudgetDetailStats } from "@/lib/data-hooks/budgets/useBudgetStats";
 import { useBudgetHeader } from "../../../../components/budgets/BudgetHeaderContext";
@@ -59,6 +65,7 @@ import {
   chartTooltipItemStyle,
   chartTooltipLabelStyle,
   chartTooltipStyle,
+  formatChartCurrency,
   formatCompactCurrency,
 } from "@/components/recharts/theme";
 import {
@@ -490,7 +497,7 @@ const BudgetDetailsPage = () => {
                           const percentage =
                             total > 0 ? (value / total) * 100 : 0;
                           return [
-                            `$${value.toLocaleString()} (${percentage.toFixed(1)}%)`,
+                            `${formatChartCurrency(value)} (${percentage.toFixed(1)}%)`,
                             name ?? "",
                           ];
                         }}
@@ -582,7 +589,7 @@ const BudgetDetailsPage = () => {
                           | undefined;
                         const date = payloadData?.payload?.date ?? "";
                         return [
-                          `$${value.toLocaleString()}`,
+                          formatChartCurrency(value),
                           date ? `Avg (${date})` : "Avg spending",
                         ];
                       }}
@@ -652,7 +659,7 @@ const BudgetDetailsPage = () => {
                             }
                           | undefined;
                         return [
-                          `$${value.toLocaleString()}`,
+                          formatChartCurrency(value),
                           payloadData?.fullName ?? name ?? "Category",
                         ];
                       }}
@@ -814,8 +821,8 @@ const BudgetDetailsPage = () => {
                             </div>
                             <div className="text-right">
                               <div className="text-xs font-medium tabular-nums text-gray-900">
-                                ${totalSpent.toLocaleString()} / $
-                                {totalAllocated.toLocaleString()}
+                                {formatCurrency(totalSpent)} /{" "}
+                                {formatCurrency(totalAllocated)}
                               </div>
                               <div className="text-[10px] tabular-nums text-gray-500">
                                 {usagePercentage.toFixed(1)}% used
@@ -856,7 +863,7 @@ const BudgetDetailsPage = () => {
                       </span>
                     </div>
                     <div className="text-sm font-bold tabular-nums tracking-tight text-gray-900 sm:text-base">
-                      ${totalIncome.toLocaleString()}
+                      {formatCurrency(totalIncome)}
                     </div>
                     <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
                       {(() => {
@@ -890,7 +897,7 @@ const BudgetDetailsPage = () => {
                       </span>
                     </div>
                     <div className="text-sm font-bold tabular-nums tracking-tight text-gray-900 sm:text-base">
-                      ${totalSpent.toLocaleString()}
+                      {formatCurrency(totalSpent)}
                     </div>
                     <div className="mt-0.5 text-[9px] tabular-nums text-gray-400 sm:text-[10px]">
                       {spendingPercentage.toFixed(1)}% of budget
@@ -909,7 +916,7 @@ const BudgetDetailsPage = () => {
                         totalRemaining >= 0 ? "text-gray-900" : "text-red-600"
                       }`}
                     >
-                      ${totalRemaining.toLocaleString()}
+                      {formatCurrency(totalRemaining)}
                     </div>
                     <div className="mt-0.5 text-[9px] text-gray-400 sm:text-[10px]">
                       {totalRemaining >= 0 ? "Available" : "Over budget"}
@@ -1187,17 +1194,15 @@ const BudgetDetailsPage = () => {
                             <div className="text-right">
                               <div
                                 className={`text-sm font-semibold tabular-nums ${
-                                  transaction.transactionType ===
-                                  TransactionType.RETURN
+                                  isMoneyIn(transaction.transactionType)
                                     ? "text-green-600"
                                     : ""
                                 }`}
                               >
-                                {transaction.transactionType ===
-                                TransactionType.RETURN
+                                {isMoneyIn(transaction.transactionType)
                                   ? "+"
                                   : ""}
-                                ${Math.abs(transaction.amount).toFixed(2)}
+                                {formatCurrency(Math.abs(transaction.amount))}
                               </div>
                               <div className="text-xs capitalize text-gray-500">
                                 {transaction.transactionType

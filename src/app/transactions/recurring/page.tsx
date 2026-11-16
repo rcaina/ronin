@@ -48,6 +48,7 @@ const formatOccurrenceDate = (value: string | Date): string =>
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "UTC",
   });
 
 export default function RecurringTransactionsPage() {

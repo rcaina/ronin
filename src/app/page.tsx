@@ -30,6 +30,7 @@ import {
   chartTooltipItemStyle,
   chartTooltipLabelStyle,
   chartTooltipStyle,
+  formatChartCurrency,
   formatCompactCurrency,
 } from "@/components/recharts/theme";
 import {
@@ -43,8 +44,8 @@ import {
   Tooltip,
 } from "recharts";
 import { TransactionType, BudgetStatus, PeriodType } from "@prisma/client";
-import { cn, roundToCents } from "@/lib/utils";
-import { SPLIT_BADGE_CLASSES } from "@/lib/utils/transactions";
+import { cn, formatCurrency, formatDateUTC, roundToCents } from "@/lib/utils";
+import { SPLIT_BADGE_CLASSES, isMoneyIn } from "@/lib/utils/transactions";
 import {
   calculateBudgetSpent,
   calculateBudgetSpentInWindow,
@@ -351,7 +352,7 @@ export default function HomePage() {
             <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               <StatsCard
                 title="Total income"
-                value={`$${totalIncome.toLocaleString()}`}
+                value={formatCurrency(totalIncome)}
                 subtitle={`Across ${activeBudgets.length} budget${activeBudgets.length !== 1 ? "s" : ""}`}
                 icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
                 iconColor="text-green-600"
@@ -359,14 +360,14 @@ export default function HomePage() {
               />
               <StatsCard
                 title="Total spent"
-                value={`$${totalSpent.toLocaleString()}`}
+                value={formatCurrency(totalSpent)}
                 subtitle={`${spendingPercentage.toFixed(1)}% of income`}
                 icon={<TrendingDown className="h-4 w-4 sm:h-5 sm:w-5" />}
                 iconColor="text-secondary-600"
               />
               <StatsCard
                 title="Remaining"
-                value={`$${Math.abs(totalRemaining).toLocaleString()}`}
+                value={formatCurrency(Math.abs(totalRemaining))}
                 subtitle={
                   totalRemaining >= 0 ? "Available to spend" : "Over budget"
                 }
@@ -426,7 +427,7 @@ export default function HomePage() {
                           itemStyle={chartTooltipItemStyle}
                           formatter={(value: number | undefined) =>
                             value !== undefined
-                              ? `$${value.toLocaleString()}`
+                              ? formatChartCurrency(value)
                               : ""
                           }
                         />
@@ -490,7 +491,7 @@ export default function HomePage() {
                         itemStyle={chartTooltipItemStyle}
                         formatter={(value: unknown) =>
                           typeof value === "number"
-                            ? `$${value.toLocaleString()}`
+                            ? formatChartCurrency(value)
                             : String(value)
                         }
                       />
@@ -545,7 +546,7 @@ export default function HomePage() {
                         formatter={(value: unknown, name?: string) => {
                           if (name === "spent") {
                             return typeof value === "number"
-                              ? [`$${value.toLocaleString()}`, "Spent"]
+                              ? [formatChartCurrency(value), "Spent"]
                               : [String(value), "Spent"];
                           }
                           if (name === "utilization") {
@@ -611,7 +612,7 @@ export default function HomePage() {
                         formatter={(value: unknown, name?: string) => {
                           if (name === "remaining") {
                             return typeof value === "number"
-                              ? [`$${value.toLocaleString()}`, "Remaining"]
+                              ? [formatChartCurrency(value), "Remaining"]
                               : [String(value), "Remaining"];
                           }
                           if (name === "utilization") {
@@ -702,9 +703,9 @@ export default function HomePage() {
                                   suppressHydrationWarning
                                 >
                                   •{" "}
-                                  {getTransactionDate(
-                                    transaction,
-                                  ).toLocaleDateString()}
+                                  {formatDateUTC(
+                                    getTransactionDate(transaction),
+                                  )}
                                   {!transaction.occurredAt && (
                                     <MissingDateWarning />
                                   )}
@@ -713,8 +714,18 @@ export default function HomePage() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs font-medium tabular-nums text-gray-900 sm:text-sm">
-                              ${Number(transaction.amount).toFixed(2)}
+                            <p
+                              className={cn(
+                                "text-xs font-medium tabular-nums sm:text-sm",
+                                isMoneyIn(transaction.transactionType)
+                                  ? "text-green-600"
+                                  : "text-gray-900",
+                              )}
+                            >
+                              {isMoneyIn(transaction.transactionType)
+                                ? "+"
+                                : ""}
+                              {formatCurrency(Math.abs(transaction.amount))}
                             </p>
                           </div>
                         </div>

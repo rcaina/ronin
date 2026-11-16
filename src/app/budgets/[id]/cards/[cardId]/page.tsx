@@ -47,8 +47,16 @@ import {
   type HeaderAction,
 } from "../../../../../../components/budgets/BudgetHeaderContext";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
-import { getGroupColor, roundToCents } from "@/lib/utils";
-import { getSplitBadgeLabel } from "@/lib/utils/transactions";
+import {
+  formatCurrency,
+  formatDateUTC,
+  getGroupColor,
+  roundToCents,
+} from "@/lib/utils";
+import {
+  getCardTransactionDisplay,
+  getSplitBadgeLabel,
+} from "@/lib/utils/transactions";
 import LockedBudgetGate from "../../LockedBudgetGate";
 
 interface User {
@@ -603,7 +611,7 @@ const CardDetailsPage = () => {
             <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
               <StatsCard
                 title="Total Spent"
-                value={`$${totalSpent.toLocaleString()}`}
+                value={formatCurrency(totalSpent)}
                 subtitle={periodLabel ?? "All time"}
                 icon={
                   <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
@@ -615,7 +623,7 @@ const CardDetailsPage = () => {
                 <>
                   <StatsCard
                     title={isDebit ? "Available funds" : "Available credit"}
-                    value={`$${available.toLocaleString()}`}
+                    value={formatCurrency(available)}
                     subtitle={`${utilizationRate.toFixed(1)}% utilized`}
                     icon={
                       <CreditCard className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
@@ -625,7 +633,7 @@ const CardDetailsPage = () => {
 
                   <StatsCard
                     title={isDebit ? "Total income" : "Credit limit"}
-                    value={`$${mappedCard.spendingLimit.toLocaleString()}`}
+                    value={formatCurrency(mappedCard.spendingLimit)}
                     subtitle={
                       isDebit
                         ? periodLabel
@@ -955,6 +963,11 @@ const CardDetailsPage = () => {
                       );
                     }
 
+                    const amountDisplay = getCardTransactionDisplay(
+                      transaction.transactionType,
+                      card.cardType,
+                    );
+
                     return (
                       <SwipeableRow
                         key={transaction.id}
@@ -1025,51 +1038,20 @@ const CardDetailsPage = () => {
                                 </div>
                                 <div className="text-right">
                                   <p
-                                    className={`font-semibold ${
-                                      transaction.transactionType ===
-                                      TransactionType.INCOME
-                                        ? "text-green-600" // Income transactions are always green
-                                        : transaction.transactionType ===
-                                            TransactionType.CARD_PAYMENT
-                                          ? "text-red-600" // Always red for card payments
-                                          : // For debit (and cash) cards: returns are green, regular transactions are red
-                                            isDebitCard(card) ||
-                                              card.cardType === CardType.CASH
-                                            ? transaction.transactionType ===
-                                              TransactionType.RETURN
-                                              ? "text-green-600" // Returns are green for debit cards
-                                              : "text-red-600" // Regular transactions are red for debit cards
-                                            : transaction.transactionType ===
-                                                TransactionType.RETURN
-                                              ? "text-green-600"
-                                              : "text-red-600"
-                                    }`}
+                                    className={`font-semibold tabular-nums ${amountDisplay.colorClass}`}
                                   >
-                                    {transaction.transactionType ===
-                                    TransactionType.INCOME
-                                      ? "+$" // Income transactions are always positive
-                                      : transaction.transactionType ===
-                                          TransactionType.CARD_PAYMENT
-                                        ? "-$" // Always negative for card payments
-                                        : // For debit (and cash) cards: returns are positive, regular transactions are negative
-                                          isDebitCard(card) ||
-                                            card.cardType === CardType.CASH
-                                          ? transaction.transactionType ===
-                                            TransactionType.RETURN
-                                            ? "+$" // Returns are positive for debit cards
-                                            : "-$" // Regular transactions are negative for debit cards
-                                          : transaction.amount >= 0
-                                            ? "+$"
-                                            : "$"}
-                                    {Math.abs(transaction.amount).toFixed(2)}
+                                    {amountDisplay.prefix}
+                                    {formatCurrency(
+                                      Math.abs(transaction.amount),
+                                    )}
                                   </p>
                                   <p
                                     className="inline-flex items-center gap-1 text-xs text-gray-500"
                                     suppressHydrationWarning
                                   >
-                                    {getTransactionDate(
-                                      transaction,
-                                    ).toLocaleDateString()}
+                                    {formatDateUTC(
+                                      getTransactionDate(transaction),
+                                    )}
                                     {!transaction.occurredAt && (
                                       <MissingDateWarning />
                                     )}

@@ -18,7 +18,7 @@ import type {
   GroupLabelFunction,
 } from "@/lib/types/budget";
 import { TransactionType, CategoryType } from "@prisma/client";
-import { roundToCents } from "@/lib/utils";
+import { formatCurrency, formatDateUTC, roundToCents } from "@/lib/utils";
 import { getCategoryStatus, getTransactionDate } from "@/lib/utils/spending";
 
 interface BudgetCategoriesListViewProps {
@@ -252,16 +252,18 @@ export default function BudgetCategoriesListView({
                                   <div className="mt-2 space-y-2">
                                     <div className="flex flex-col gap-1 text-sm text-gray-500 sm:flex-row sm:items-center sm:space-x-4">
                                       <span>
-                                        Allocated: $
-                                        {budgetCategory.allocatedAmount?.toLocaleString()}
+                                        Allocated:{" "}
+                                        {formatCurrency(
+                                          budgetCategory.allocatedAmount ?? 0,
+                                        )}
                                       </span>
                                       <span>
-                                        Spent: ${spent.toLocaleString()}
+                                        Spent: {formatCurrency(spent)}
                                       </span>
                                       {carry !== 0 && (
                                         <span>
-                                          Carried: {carry > 0 ? "+" : "-"}$
-                                          {Math.abs(carry).toLocaleString()}
+                                          Carried: {carry > 0 ? "+" : "-"}
+                                          {formatCurrency(Math.abs(carry))}
                                         </span>
                                       )}
                                       <span
@@ -271,7 +273,7 @@ export default function BudgetCategoriesListView({
                                             : "text-red-500"
                                         }
                                       >
-                                        Remaining: ${remaining.toLocaleString()}
+                                        Remaining: {formatCurrency(remaining)}
                                       </span>
                                     </div>
                                     <div className="h-2 w-full rounded-full bg-gray-200">
@@ -301,11 +303,13 @@ export default function BudgetCategoriesListView({
                                       : "text-gray-900"
                                   }`}
                                 >
-                                  ${spent.toLocaleString()}
+                                  {formatCurrency(spent)}
                                 </p>
                                 <p className="text-sm text-gray-500">
-                                  of $
-                                  {budgetCategory.allocatedAmount?.toLocaleString()}
+                                  of{" "}
+                                  {formatCurrency(
+                                    budgetCategory.allocatedAmount ?? 0,
+                                  )}
                                 </p>
                               </div>
                               {transactions.length > 0 && (
@@ -354,9 +358,9 @@ export default function BudgetCategoriesListView({
                                             className="inline-flex items-center gap-1 text-sm text-gray-500"
                                             suppressHydrationWarning
                                           >
-                                            {getTransactionDate(
-                                              transaction,
-                                            ).toLocaleDateString()}
+                                            {formatDateUTC(
+                                              getTransactionDate(transaction),
+                                            )}
                                             {!transaction.occurredAt && (
                                               <MissingDateWarning />
                                             )}
@@ -366,8 +370,13 @@ export default function BudgetCategoriesListView({
                                           <p
                                             className={`font-medium ${transaction.transactionType === TransactionType.RETURN ? "text-green-600" : "text-gray-900"}`}
                                           >
-                                            $
-                                            {transaction.amount.toLocaleString()}
+                                            {transaction.transactionType ===
+                                            TransactionType.RETURN
+                                              ? "+"
+                                              : ""}
+                                            {formatCurrency(
+                                              Math.abs(transaction.amount),
+                                            )}
                                           </p>
                                         </div>
                                       </div>

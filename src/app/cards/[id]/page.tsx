@@ -26,7 +26,7 @@ import {
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { findContinuousBudgetId } from "@/lib/utils/budget-month";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
-import { formatCurrency, roundToCents } from "@/lib/utils";
+import { formatCurrency, formatDateUTC, roundToCents } from "@/lib/utils";
 import {
   calculateSpendingPercentage,
   getTransactionDate,
@@ -427,9 +427,7 @@ const CardDetailsPage = () => {
                               {formatCurrency(Math.abs(transaction.amount))}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {getTransactionDate(
-                                transaction,
-                              ).toLocaleDateString()}
+                              {formatDateUTC(getTransactionDate(transaction))}
                             </p>
                           </div>
                         </div>

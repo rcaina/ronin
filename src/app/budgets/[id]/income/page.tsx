@@ -15,7 +15,7 @@ import { toast } from "react-hot-toast";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetMonth } from "@/lib/utils/hooks";
 import { formatMonthLabel } from "@/lib/utils/budget-month";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDateUTC } from "@/lib/utils";
 import { isDebitCard, oldestDebitCard } from "@/lib/utils/cards";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import Button from "@/components/Button";
@@ -253,9 +253,9 @@ export default function IncomePage() {
               {filteredTransactions.length > 0 ? (
                 filteredTransactions.map((transaction) => {
                   const dateLabel = [
-                    transaction.occurredAt
-                      ? new Date(transaction.occurredAt).toLocaleDateString()
-                      : new Date(transaction.createdAt).toLocaleDateString(),
+                    formatDateUTC(
+                      new Date(transaction.occurredAt ?? transaction.createdAt),
+                    ),
                     transaction.card?.name,
                   ]
                     .filter(Boolean)

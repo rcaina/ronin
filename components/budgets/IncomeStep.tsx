@@ -4,6 +4,7 @@ import { Plus, X } from "lucide-react";
 import type { IncomeEntry } from "./types";
 import { useState, useEffect } from "react";
 import Button from "../Button";
+import { formatCurrency } from "@/lib/utils";
 
 interface IncomeStepProps {
   incomeEntries: IncomeEntry[];
@@ -68,7 +69,7 @@ export default function IncomeStep({
                     Total Income:
                   </span>
                   <span className="font-semibold text-secondary-900">
-                    ${totalIncome.toLocaleString()}
+                    {formatCurrency(totalIncome)}
                   </span>
                 </div>
               </div>

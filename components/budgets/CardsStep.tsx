@@ -2,6 +2,7 @@
 
 import { CreditCard, Info, Plus, Trash2 } from "lucide-react";
 import type { CardToInclude } from "./types";
+import { formatCurrency } from "@/lib/utils";
 import { mapCardType } from "@/lib/utils/cards";
 
 interface CardsStepProps {
@@ -68,7 +69,7 @@ export default function CardsStep({
                       <div className="text-right">
                         <p className="text-xs text-gray-500">Limit</p>
                         <p className="text-sm font-semibold text-gray-900">
-                          ${card.spendingLimit.toLocaleString()}
+                          {formatCurrency(card.spendingLimit)}
                         </p>
                       </div>
                     )}

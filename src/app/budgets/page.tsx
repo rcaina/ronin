@@ -566,7 +566,7 @@ const BudgetsPage = () => {
                         </div>
                         <div className="text-left sm:text-right">
                           <div className="text-xl font-bold tabular-nums tracking-tight text-gray-900 sm:text-2xl">
-                            ${totalBudgetIncome.toLocaleString()}
+                            {formatCurrency(totalBudgetIncome)}
                           </div>
                           <div className="text-xs text-gray-500">
                             Total budget
@@ -604,7 +604,7 @@ const BudgetsPage = () => {
                       <div className="grid grid-cols-3 divide-x divide-gray-100 rounded-xl bg-surface px-2 py-3 text-center">
                         <div>
                           <div className="text-base font-bold tabular-nums tracking-tight text-gray-900 sm:text-lg">
-                            ${totalBudgetSpent.toLocaleString()}
+                            {formatCurrency(totalBudgetSpent)}
                           </div>
                           <div className="text-xs text-gray-500">Spent</div>
                         </div>
@@ -616,7 +616,7 @@ const BudgetsPage = () => {
                                 : "text-red-600"
                             }`}
                           >
-                            ${Math.abs(budgetRemaining).toLocaleString()}
+                            {formatCurrency(Math.abs(budgetRemaining))}
                           </div>
                           <div className="text-xs text-gray-500">
                             {budgetRemaining >= 0 ? "Remaining" : "Over budget"}

@@ -53,6 +53,7 @@ import {
   chartTooltipItemStyle,
   chartTooltipLabelStyle,
   chartTooltipStyle,
+  formatChartCurrency,
   formatCompactCurrency,
 } from "@/components/recharts/theme";
 import {
@@ -223,7 +224,7 @@ const BudgetCategoriesPage = () => {
       (sum, cat) => sum + (cat.allocatedAmount ?? 0),
       0,
     ) ?? 0;
-  const allocationDifference = (totalIncome - totalAllocated).toFixed(2);
+  const allocationDifference = roundToCents(totalIncome - totalAllocated);
 
   // Calculate category statistics
   const categoryProgress = (budget?.categories ?? []).map((cat) => {
@@ -268,7 +269,7 @@ const BudgetCategoriesPage = () => {
 
   // Determine allocation status
   const getAllocationStatus = () => {
-    if (totalAllocated.toFixed(2) === totalIncome.toFixed(2)) {
+    if (allocationDifference === 0) {
       return {
         value: "100%",
         subtitle: "allocated",
@@ -276,19 +277,17 @@ const BudgetCategoriesPage = () => {
         iconColor: "text-green-500",
         valueColor: "text-green-600",
       };
-    } else if (parseFloat(allocationDifference) > 0) {
+    } else if (allocationDifference > 0) {
       return {
-        value: `$${allocationDifference}`,
+        value: formatCurrency(allocationDifference),
         subtitle: "left to allocate",
         icon: <HandCoins className="h-4 w-4" />,
         iconColor: "text-secondary-600",
         valueColor: "text-secondary-700",
       };
     } else {
-      // When over allocated, show the amount over allocated
-      const overAllocationAmount = (totalAllocated - totalIncome).toFixed(2);
       return {
-        value: `$${overAllocationAmount}`,
+        value: formatCurrency(-allocationDifference),
         subtitle: "over allocated",
         icon: <AlertCircle className="h-4 w-4" />,
         iconColor: "text-red-500",
@@ -679,7 +678,7 @@ const BudgetCategoriesPage = () => {
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-semibold tabular-nums text-green-600">
-                      ${totalIncome.toLocaleString()}
+                      {formatCurrency(totalIncome)}
                     </div>
                     <div className="text-[10px] text-gray-500">Available</div>
                   </div>
@@ -735,7 +734,7 @@ const BudgetCategoriesPage = () => {
                           const percentage =
                             total > 0 ? (value / total) * 100 : 0;
                           return [
-                            `$${value.toLocaleString()} (${percentage.toFixed(1)}%)`,
+                            `${formatChartCurrency(value)} (${percentage.toFixed(1)}%)`,
                             fullName || "Category",
                           ];
                         }}
@@ -820,10 +819,10 @@ const BudgetCategoriesPage = () => {
                               {groupName}
                             </div>
                             <div style={chartTooltipItemStyle}>
-                              Allocated: ${allocated.toLocaleString()}
+                              Allocated: {formatChartCurrency(allocated)}
                             </div>
                             <div style={chartTooltipItemStyle}>
-                              Spent: ${spent.toLocaleString()}
+                              Spent: {formatChartCurrency(spent)}
                             </div>
                           </div>
                         );
@@ -913,7 +912,7 @@ const BudgetCategoriesPage = () => {
                           const percentage =
                             total > 0 ? (value / total) * 100 : 0;
                           return [
-                            `$${value.toLocaleString()} (${percentage.toFixed(1)}%)`,
+                            `${formatChartCurrency(value)} (${percentage.toFixed(1)}%)`,
                             name ?? "",
                           ];
                         }}

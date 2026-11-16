@@ -12,8 +12,8 @@ import { useState } from "react";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import type { GroupColorFunction } from "@/lib/types/budget";
 import { TransactionType } from "@prisma/client";
-import { formatCurrency, roundToCents } from "@/lib/utils";
-import { getCategoryStatus } from "@/lib/utils/spending";
+import { formatCurrency, formatDateUTC, roundToCents } from "@/lib/utils";
+import { getCategoryStatus, getTransactionDate } from "@/lib/utils/spending";
 import Button from "@/components/Button";
 import ToggleRow from "@/components/settings/ToggleRow";
 import { formatMonthLabel, type MonthKey } from "@/lib/utils/budget-month";
@@ -351,15 +351,16 @@ export default function BudgetCategoryCard({
                             {transaction.name ?? "Unnamed transaction"}
                           </p>
                           <p className="text-[10px] text-gray-500">
-                            {new Date(
-                              transaction.createdAt,
-                            ).toLocaleDateString()}
+                            {formatDateUTC(getTransactionDate(transaction))}
                           </p>
                         </div>
                         <span
                           className={`font-medium tabular-nums ${transaction.transactionType === TransactionType.RETURN ? "text-green-600" : "text-gray-900"}`}
                         >
-                          {transaction.amount < 0 ? "-" : ""}
+                          {transaction.transactionType ===
+                          TransactionType.RETURN
+                            ? "+"
+                            : ""}
                           {formatCurrency(Math.abs(transaction.amount))}
                         </span>
                       </div>

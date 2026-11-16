@@ -31,6 +31,7 @@ import { type Card, mapCardType, getCardColor } from "@/lib/utils/cards";
 import { useBudgetMonth, useLockBodyScroll } from "@/lib/utils/hooks";
 import { formatMonthLabel } from "@/lib/utils/budget-month";
 import StatsCard from "@/components/StatsCard";
+import { formatCurrency } from "@/lib/utils";
 import type { Card as PrismaCard } from "@prisma/client";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
@@ -433,7 +434,7 @@ const BudgetCardsPage = () => {
           <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
             <StatsCard
               title="Total spent"
-              value={`$${totalSpent.toLocaleString()}`}
+              value={formatCurrency(totalSpent)}
               subtitle={
                 isContinuous ? formatMonthLabel(month) : "Across budget cards"
               }
@@ -443,7 +444,7 @@ const BudgetCardsPage = () => {
 
             <StatsCard
               title="Credit limit"
-              value={`$${totalLimit.toLocaleString()}`}
+              value={formatCurrency(totalLimit)}
               subtitle={isContinuous ? "Monthly limit" : "Total limit"}
               icon={<CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />}
             />

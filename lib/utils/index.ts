@@ -190,8 +190,9 @@ export function parseLocalDate(
   return new Date(year, month - 1, day);
 }
 
-export function formatDateUTC(dateString: string): string {
-  if (!dateString) return "";
+export function formatDateUTC(date: string | Date): string {
+  if (!date) return "";
+  const dateString = typeof date === "string" ? date : date.toISOString();
 
   // Handle both ISO date strings and simple date strings
   let year: number, month: number, day: number;

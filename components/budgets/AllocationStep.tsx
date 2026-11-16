@@ -5,6 +5,7 @@ import { CategoryType, type PeriodType } from "@prisma/client";
 import type { CategoryAllocation } from "./types";
 import {
   calculateAdjustedIncome,
+  formatCurrency,
   getCategoryBadgeColor,
   sumMonetaryValues,
 } from "@/lib/utils";
@@ -121,7 +122,7 @@ export default function AllocationStep({
             Total Income ({budgetPeriod.toLowerCase()}):
           </span>
           <span className="font-semibold text-gray-900">
-            ${totalIncome.toLocaleString()}
+            {formatCurrency(totalIncome)}
           </span>
         </div>
         <div className="mt-2 flex items-center justify-between text-sm">
@@ -131,7 +132,7 @@ export default function AllocationStep({
               totalAllocated > totalIncome ? "text-red-600" : "text-gray-900"
             }`}
           >
-            ${totalAllocated.toLocaleString()}
+            {formatCurrency(totalAllocated)}
           </span>
         </div>
         <div className="mt-2 flex items-center justify-between text-sm">
@@ -141,7 +142,7 @@ export default function AllocationStep({
               allocationRemaining >= 0 ? "text-green-600" : "text-red-600"
             }`}
           >
-            ${allocationRemaining.toLocaleString()}
+            {formatCurrency(allocationRemaining)}
           </span>
         </div>
       </div>

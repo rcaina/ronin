@@ -177,7 +177,7 @@ const SavingsCategoriesPage = () => {
         <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:gap-4 lg:grid-cols-4 lg:gap-6">
           <StatsCard
             title="Total saved"
-            value={`$${totalSaved.toFixed(2).toLocaleString()}`}
+            value={formatCurrency(totalSaved)}
             subtitle="Across all pockets"
             icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
             iconColor="text-green-600"
@@ -210,7 +210,7 @@ const SavingsCategoriesPage = () => {
           {totalGoalAmount > 0 && (
             <StatsCard
               title="Total goal"
-              value={`$${totalGoalAmount.toFixed(2).toLocaleString()}`}
+              value={formatCurrency(totalGoalAmount)}
               subtitle="Combined goal amount"
               icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
               iconColor="text-gray-500"
