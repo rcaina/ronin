@@ -1,6 +1,8 @@
 "use client";
 
 import BudgetPageNavigation from "@/components/budgets/BudgetPageNavigation";
+import MonthSwitcher from "@/components/budgets/MonthSwitcher";
+import { useBudgetMonth } from "@/lib/utils/hooks";
 import PageHeader from "@/components/PageHeader";
 import { useParams, usePathname } from "next/navigation";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
@@ -19,6 +21,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const pageLoading = usePageIsLoading();
 
   const { data: budget } = useBudget(id);
+  const [month, setMonth] = useBudgetMonth();
+  // Cards stay all-time until they get monthly limits.
+  const showMonthSwitcher =
+    budget?.kind === "CONTINUOUS" && !pathname?.includes("/cards");
   const {
     actions: dynamicActions,
     title: dynamicTitle,
@@ -34,9 +40,11 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       return {
         eyebrow: undefined as string | undefined,
         title: budgetName,
-        description: budget
-          ? `${budget.period.replace("_", " ")} Budget • ${new Date(budget.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`
-          : "Loading...",
+        description: !budget
+          ? "Loading..."
+          : budget.kind === "CONTINUOUS"
+            ? "Plan and track one month at a time"
+            : `${budget.period.replace("_", " ")} Budget • ${new Date(budget.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`,
         showBackButton: true,
         backTo: `/budgets`,
       };
@@ -132,6 +140,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           )}
 
           <BudgetPageNavigation />
+          {showMonthSwitcher && (
+            <MonthSwitcher month={month} onChange={setMonth} />
+          )}
         </>
       )}
 

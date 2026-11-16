@@ -16,6 +16,7 @@ import { parseErrorResponse } from "@/lib/data-hooks/services/http";
 const getBudgetCategories = async (
   budgetId: string,
   searchQuery?: string,
+  month?: string,
 ): Promise<BudgetCategoryWithCategory[]> => {
   const url = new URL(
     `/api/budgets/${budgetId}/categories`,
@@ -24,6 +25,7 @@ const getBudgetCategories = async (
   if (searchQuery?.trim()) {
     url.searchParams.set("search", searchQuery.trim());
   }
+  if (month) url.searchParams.set("month", month);
 
   const response = await fetch(url.toString());
   if (!response.ok) {
@@ -34,12 +36,16 @@ const getBudgetCategories = async (
   return response.json() as Promise<BudgetCategoryWithCategory[]>;
 };
 
-export const useBudgetCategories = (budgetId: string, searchQuery?: string) => {
+export const useBudgetCategories = (
+  budgetId: string,
+  searchQuery?: string,
+  month?: string,
+) => {
   const { data: session } = useSession();
 
   const query = useQuery<BudgetCategoryWithCategory[]>({
-    queryKey: ["budgetCategories", budgetId, searchQuery],
-    queryFn: () => getBudgetCategories(budgetId, searchQuery),
+    queryKey: ["budgetCategories", budgetId, searchQuery, month],
+    queryFn: () => getBudgetCategories(budgetId, searchQuery, month),
     placeholderData: keepPreviousData,
     enabled: !!session && !!budgetId,
     staleTime: 2 * 60 * 1000,

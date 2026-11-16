@@ -121,9 +121,10 @@ model Budget {
   strategy     StrategyType
   period       PeriodType
   status       BudgetStatus  @default(ACTIVE)
+  kind         BudgetKind    @default(EVENT)
   deleted      DateTime?
   startAt      DateTime
-  endAt        DateTime
+  endAt        DateTime?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   accountId    String
@@ -440,6 +441,11 @@ enum TransactionType {
   RETURN
   CARD_PAYMENT
   INCOME
+}
+
+enum BudgetKind {
+  CONTINUOUS
+  EVENT
 }
 
 enum BudgetStatus {

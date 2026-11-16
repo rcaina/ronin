@@ -1,4 +1,4 @@
-import type { Account, BudgetStatus } from "@prisma/client";
+import type { Account, BudgetKind, BudgetStatus } from "@prisma/client";
 
 /**
  * Minimal account shape needed for entitlement checks. Compatible
@@ -305,19 +305,29 @@ export const lockedIds = <T extends LockableItem>(
  * Only `ACTIVE` budgets can lock — non-active budgets don't count against the
  * active-budget limit and are never locked. An active budget locks when there
  * are at least `FREE_LIMITS.maxActiveBudgets` OTHER active budgets newer than
- * it. Premium (or comped) accounts never lock.
+ * it. Premium (or comped) accounts never lock. The continuous budget never
+ * locks and doesn't count against the limit.
  */
 export const isBudgetLocked = (
   account: AccountEntitlementFields,
-  budget: { id: string; status: BudgetStatus; createdAt: Date },
-  allActiveBudgets: readonly LockableItem[],
+  budget: {
+    id: string;
+    status: BudgetStatus;
+    createdAt: Date;
+    kind?: BudgetKind;
+  },
+  allActiveBudgets: readonly (LockableItem & { kind?: BudgetKind })[],
   now: Date = new Date(),
 ): boolean => {
   if (isPremium(account, now)) return false;
   if (budget.status !== "ACTIVE") return false;
+  if (budget.kind === "CONTINUOUS") return false;
 
   const newerCount = allActiveBudgets.filter(
-    (other) => other.id !== budget.id && byNewestFirst(other, budget) < 0,
+    (other) =>
+      other.kind !== "CONTINUOUS" &&
+      other.id !== budget.id &&
+      byNewestFirst(other, budget) < 0,
   ).length;
 
   return newerCount >= FREE_LIMITS.maxActiveBudgets;

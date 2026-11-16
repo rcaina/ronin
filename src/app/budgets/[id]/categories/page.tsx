@@ -37,7 +37,7 @@ import {
   type SpendingTransaction,
 } from "@/lib/utils/spending";
 import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
-import { useLocalStorageState } from "@/lib/utils/hooks";
+import { useBudgetMonth, useLocalStorageState } from "@/lib/utils/hooks";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import ReceiptScanModal from "@/components/transactions/ReceiptScanModal";
@@ -112,11 +112,12 @@ const isBudgetCategoriesViewType = (
 const BudgetCategoriesPage = () => {
   const { id } = useParams();
   const budgetId = id as string;
+  const [month] = useBudgetMonth();
   const {
     data: budget,
     isLoading: budgetLoading,
     error: budgetError,
-  } = useBudget(budgetId);
+  } = useBudget(budgetId, false, month);
   const [view, setView] = useLocalStorageState<BudgetCategoriesViewType>(
     BUDGET_CATEGORIES_VIEW_STORAGE_KEY,
     "grid",
@@ -173,7 +174,7 @@ const BudgetCategoriesPage = () => {
     data: budgetCategories,
     isLoading: categoriesLoading,
     error: categoriesError,
-  } = useBudgetCategories(budgetId, searchQuery);
+  } = useBudgetCategories(budgetId, searchQuery, month);
 
   // Calculate allocation statistics
   // Calculate total income from INCOME transactions on debit cards

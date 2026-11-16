@@ -10,6 +10,9 @@ import {
   type Card,
   CardType,
   PeriodType,
+  BudgetKind,
+  Prisma,
+  StrategyType,
 } from "@prisma/client";
 import { HttpError } from "../errors";
 import { calculateEndDate } from "../utils";
@@ -30,6 +33,109 @@ import type {
   UpdateBudgetCategoryData,
 } from "../types/budget";
 import type { TransactionSplitWithCategory } from "../types/transaction";
+import {
+  getMonthWindow,
+  parseMonthKey,
+  projectCategoryToMonth,
+  toMonthKey,
+} from "../utils/budget-month";
+import { isWithinWindow, type DateWindow } from "../utils/spending";
+
+/** Month window for a `?month=` read: null when absent or the budget isn't continuous. */
+const resolveMonthWindow = (
+  kind: BudgetKind,
+  monthParam: string | null | undefined,
+): DateWindow | null => {
+  if (!monthParam) return null;
+  const month = parseMonthKey(monthParam);
+  if (!month) throw new HttpError("Invalid month, expected YYYY-MM", 400);
+  return kind === BudgetKind.CONTINUOUS ? getMonthWindow(month) : null;
+};
+
+const resolveBudgetMonthWindow = async (
+  tx: PrismaClientTx,
+  budgetId: string,
+  monthParam: string | null | undefined,
+): Promise<DateWindow | null> => {
+  if (!monthParam) return null;
+  const budget = await tx.budget.findFirstOrThrow({
+    where: { id: budgetId },
+    select: { kind: true },
+  });
+  return resolveMonthWindow(budget.kind, monthParam);
+};
+
+/** Reuses the budget's debit card, or creates one named "Main" linked to its general card. */
+async function ensureMainDebitCard(
+  tx: PrismaClientTx,
+  budgetId: string,
+  userId: string,
+): Promise<Card> {
+  const existing = await tx.card.findFirst({
+    where: {
+      budgetId,
+      cardType: {
+        in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
+      },
+      deleted: null,
+    },
+  });
+  if (existing) return existing;
+
+  const defaultCard = await resolveDefaultCard(tx, {
+    name: "Main",
+    lastFourDigits: null,
+    cardType: CardType.DEBIT,
+    spendingLimit: null,
+    userId,
+  });
+
+  return tx.card.create({
+    data: {
+      name: defaultCard.name,
+      cardType: CardType.DEBIT,
+      userId,
+      budgetId,
+      amountSpent: 0,
+      defaultCardId: defaultCard.id,
+    },
+  });
+}
+
+/** The account's continuous budget, created on first use with a "Main" debit card for income. */
+export async function getOrCreateContinuousBudget(
+  prisma: PrismaClient,
+  user: User & { accountId: string },
+): Promise<Budget> {
+  return prisma.$transaction(
+    async (tx) => {
+      const existing = await tx.budget.findFirst({
+        where: {
+          accountId: user.accountId,
+          kind: BudgetKind.CONTINUOUS,
+          deleted: null,
+        },
+      });
+      if (existing) return existing;
+
+      const budget = await tx.budget.create({
+        data: {
+          name: "Monthly budget",
+          kind: BudgetKind.CONTINUOUS,
+          period: PeriodType.MONTHLY,
+          strategy: StrategyType.ZERO_SUM,
+          startAt: getMonthWindow(toMonthKey(new Date())).start,
+          endAt: null,
+          accountId: user.accountId,
+        },
+      });
+      await ensureMainDebitCard(tx, budget.id, user.id);
+      return budget;
+    },
+    // Serializable so two concurrent first visits can't both create one.
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
+}
 
 export async function getBudgetById(
   tx: PrismaClient,
@@ -119,15 +225,28 @@ export async function getBudgetById(
     throw new HttpError("Budget not found", 404);
   }
 
+  const monthWindow = resolveMonthWindow(budget.kind, params.get("month"));
+  const scoped = monthWindow
+    ? {
+        ...budget,
+        categories: budget.categories.map((category) =>
+          projectCategoryToMonth(category, monthWindow),
+        ),
+        transactions: budget.transactions.filter((transaction) =>
+          isWithinWindow(transaction, monthWindow),
+        ),
+      }
+    : budget;
+
   // Compute the downgrade lock flag against the account's active budgets.
   const account = await getAccountEntitlements(tx, budget.accountId);
   const activeBudgets = await tx.budget.findMany({
     where: { accountId: budget.accountId, deleted: null, status: "ACTIVE" },
-    select: { id: true, createdAt: true },
+    select: { id: true, createdAt: true, kind: true },
   });
 
   return {
-    ...formatBudget(budget),
+    ...formatBudget(scoped),
     locked: isBudgetLocked(account, budget, activeBudgets),
   };
 }
@@ -157,38 +276,7 @@ export async function createBudget(
   let mainDebitCard: Card | null = null;
 
   if (shouldCreateDefaultDebitCard) {
-    // Ensure this budget has a default debit card named "Main".
-    // (If cards were already created for this budget elsewhere, reuse them.)
-    mainDebitCard = await tx.card.findFirst({
-      where: {
-        budgetId: budget.id,
-        cardType: {
-          in: [CardType.DEBIT, CardType.BUSINESS_DEBIT],
-        },
-        deleted: null,
-      },
-    });
-
-    if (!mainDebitCard) {
-      const defaultCard = await resolveDefaultCard(tx, {
-        name: "Main",
-        lastFourDigits: null,
-        cardType: CardType.DEBIT,
-        spendingLimit: null,
-        userId: user.id,
-      });
-
-      mainDebitCard = await tx.card.create({
-        data: {
-          name: defaultCard.name,
-          cardType: CardType.DEBIT,
-          userId: user.id,
-          budgetId: budget.id,
-          amountSpent: 0,
-          defaultCardId: defaultCard.id,
-        },
-      });
-    }
+    mainDebitCard = await ensureMainDebitCard(tx, budget.id, user.id);
   }
 
   // Create income transactions only when we can link them to a debit card.
@@ -599,10 +687,10 @@ export async function getBudgets(
   const account = await getAccountEntitlements(tx, accountId);
   const activeBudgets =
     status === "ACTIVE"
-      ? budgets.map((b) => ({ id: b.id, createdAt: b.createdAt }))
+      ? budgets.map((b) => ({ id: b.id, createdAt: b.createdAt, kind: b.kind }))
       : await tx.budget.findMany({
           where: { accountId, deleted: null, status: "ACTIVE" },
-          select: { id: true, createdAt: true },
+          select: { id: true, createdAt: true, kind: true },
         });
 
   return budgets.map((budget) => ({
@@ -713,6 +801,9 @@ export async function duplicateBudget(
 
   if (!originalBudget) {
     throw new Error("Budget not found");
+  }
+  if (!originalBudget.endAt) {
+    throw new HttpError("The monthly budget can't be duplicated", 400);
   }
 
   // The copy starts today and ends where its own period lands, so a monthly
@@ -838,7 +929,9 @@ export const getBudgetCategories = async (
   tx: PrismaClientTx,
   budgetId: string,
   searchQuery?: string,
+  month?: string | null,
 ): Promise<BudgetCategories> => {
+  const monthWindow = await resolveBudgetMonthWindow(tx, budgetId, month);
   const categories = await tx.category.findMany({
     where: {
       budgetId: budgetId,
@@ -925,6 +1018,8 @@ export const getBudgetCategories = async (
             select: {
               transactionType: true,
               amount: true,
+              createdAt: true,
+              occurredAt: true,
             },
           },
         },
@@ -935,7 +1030,13 @@ export const getBudgetCategories = async (
     },
   });
 
-  const formattedCategories = formatBudgetCategories(categories);
+  const formattedCategories = formatBudgetCategories(
+    monthWindow
+      ? categories.map((category) =>
+          projectCategoryToMonth(category, monthWindow),
+        )
+      : categories,
+  );
 
   // Sort categories: incomplete first, completed last, then alphabetically within each group
   return formattedCategories.sort((a, b) => {
@@ -1300,6 +1401,7 @@ export const deleteBudgetCategory = async (
 export const getBudgetTransactions = async (
   tx: PrismaClient,
   budgetId: string,
+  month?: string | null,
 ): Promise<
   (Transaction & {
     category: Category | null;
@@ -1307,7 +1409,8 @@ export const getBudgetTransactions = async (
     splits: TransactionSplitWithCategory[];
   })[]
 > => {
-  return await tx.transaction.findMany({
+  const monthWindow = await resolveBudgetMonthWindow(tx, budgetId, month);
+  const transactions = await tx.transaction.findMany({
     where: { budgetId: budgetId, deleted: null },
     include: {
       category: true,
@@ -1328,6 +1431,11 @@ export const getBudgetTransactions = async (
       { createdAt: "desc" as const },
     ],
   });
+  return monthWindow
+    ? transactions.filter((transaction) =>
+        isWithinWindow(transaction, monthWindow),
+      )
+    : transactions;
 };
 
 export const getBudgetCards = async (

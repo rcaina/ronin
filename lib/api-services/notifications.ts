@@ -312,12 +312,14 @@ export const evaluateBudgetNotificationsForAccount = async (
   const periodEndingCandidates: NotificationCandidate[] = [];
 
   for (const budget of budgets) {
-    const periodEnding = evaluateBudgetPeriodEnding({
-      budgetId: budget.id,
-      budgetName: budget.name,
-      endAt: budget.endAt,
-      now,
-    });
+    const periodEnding =
+      budget.endAt &&
+      evaluateBudgetPeriodEnding({
+        budgetId: budget.id,
+        budgetName: budget.name,
+        endAt: budget.endAt,
+        now,
+      });
     if (periodEnding) periodEndingCandidates.push(periodEnding);
 
     for (const category of budget.categories) {

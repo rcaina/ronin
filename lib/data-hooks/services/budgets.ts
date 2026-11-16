@@ -30,9 +30,11 @@ export const getBudgets = async (
 export const getBudget = async (
   id: string,
   excludeCardPayments?: boolean,
+  month?: string,
 ): Promise<BudgetWithRelations> => {
   const params = new URLSearchParams();
   if (excludeCardPayments) params.append("excludeCardPayments", "true");
+  if (month) params.append("month", month);
 
   const url = params.toString()
     ? `/api/budgets/${id}?${params.toString()}`
@@ -102,6 +104,15 @@ export const reactivateBudget = async (id: string): Promise<void> => {
 
   if (!response.ok) return parseErrorResponse(response);
 };
+
+export const getOrCreateContinuousBudget =
+  async (): Promise<SerializedBudget> => {
+    const response = await fetch("/api/budgets/continuous", {
+      method: "POST",
+    });
+    if (!response.ok) return parseErrorResponse(response);
+    return (await response.json()) as SerializedBudget;
+  };
 
 export const createBudget = async (
   data: CreateBudgetData,

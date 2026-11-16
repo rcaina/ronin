@@ -1,5 +1,6 @@
 "use client";
 
+import { getMonthWindow, toMonthKey } from "@/lib/utils/budget-month";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -188,7 +189,9 @@ export default function HomePage() {
   const periodSpendingData = activeBudgets
     .map((budget) => {
       const periodStart = new Date(budget.startAt);
-      const periodEnd = new Date(budget.endAt);
+      const periodEnd = budget.endAt
+        ? new Date(budget.endAt)
+        : getMonthWindow(toMonthKey(new Date())).end;
 
       const budgetIncome = calculateTotalIncome(budget);
       const periodSpent = sumSpendingInPeriod(budget, periodStart, periodEnd);
@@ -226,7 +229,9 @@ export default function HomePage() {
   const budgetUtilizationData = activeBudgets
     .map((budget) => {
       const periodStart = new Date(budget.startAt);
-      const periodEnd = new Date(budget.endAt);
+      const periodEnd = budget.endAt
+        ? new Date(budget.endAt)
+        : getMonthWindow(toMonthKey(new Date())).end;
       const now = new Date();
 
       const budgetIncome = calculateTotalIncome(budget);

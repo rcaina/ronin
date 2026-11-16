@@ -144,7 +144,7 @@ export interface BudgetWindow {
   id: string;
   status: BudgetStatus;
   startAt: Date;
-  endAt: Date;
+  endAt: Date | null;
 }
 
 /**
@@ -161,6 +161,8 @@ export const findBudgetForOccurrence = <B extends BudgetWindow>(
   const candidates = budgets.filter(
     (b) =>
       b.status === "ACTIVE" &&
+      // Open-ended (continuous) budgets aren't recurring targets until entry points move to them.
+      b.endAt !== null &&
       b.startAt.getTime() <= occurrenceDate.getTime() &&
       occurrenceDate.getTime() <= b.endAt.getTime(),
   );

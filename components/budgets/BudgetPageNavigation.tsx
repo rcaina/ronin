@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useParams } from "next/navigation";
+import { usePathname, useParams, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 import {
   Target,
@@ -21,6 +21,8 @@ export default function BudgetPageNavigation() {
   const params = useParams();
   const id = params.id as string;
   const pathname = usePathname();
+  const month = useSearchParams().get("month");
+  const query = month ? `?month=${encodeURIComponent(month)}` : "";
   const activeRef = useRef<HTMLAnchorElement>(null);
 
   const budgetNavItems: BudgetNavItem[] = [
@@ -68,7 +70,7 @@ export default function BudgetPageNavigation() {
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={`${item.href}${query}`}
                   className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
                     isActive
                       ? "bg-surface-card text-gray-900 shadow-soft"
@@ -97,7 +99,7 @@ export default function BudgetPageNavigation() {
               <Link
                 key={item.href}
                 ref={isActive ? activeRef : undefined}
-                href={item.href}
+                href={`${item.href}${query}`}
                 className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-all duration-200 ease-out ${
                   isActive
                     ? "bg-secondary/15 text-gray-900"

@@ -438,6 +438,26 @@ describe("isBudgetLocked", () => {
     expect(isBudgetLocked(account(), newBudget, activeBudgets)).toBe(false);
   });
 
+  it("never locks the continuous budget, and it doesn't count against the limit", () => {
+    const continuous = {
+      id: "continuous",
+      status: "ACTIVE" as const,
+      kind: "CONTINUOUS" as const,
+      createdAt: new Date(2025, 0, 1),
+    };
+    const newerEvent = activeBudgets[1]!;
+    expect(
+      isBudgetLocked(account(), continuous, [continuous, newerEvent]),
+    ).toBe(false);
+    const withContinuous = [
+      ...activeBudgets,
+      { ...continuous, createdAt: new Date(2026, 0, 3) },
+    ];
+    expect(isBudgetLocked(account(), activeBudgets[1]!, withContinuous)).toBe(
+      false,
+    );
+  });
+
   it("does not lock when exactly at the limit (single active budget)", () => {
     const only = activeBudgets[1]!;
     expect(isBudgetLocked(account(), only, [only])).toBe(false);

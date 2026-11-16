@@ -46,6 +46,7 @@ import StatsCard from "@/components/StatsCard";
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
+import { useBudgetMonth } from "@/lib/utils/hooks";
 import { TransactionType, CategoryType } from "@prisma/client";
 import {
   getGroupColor,
@@ -90,18 +91,19 @@ const BudgetTransactionsPageContent = () => {
   const params = useParams();
   const budgetId = params.id as string;
   const searchParams = useSearchParams();
+  const [month] = useBudgetMonth();
 
   const {
     data: transactions = [],
     isLoading: transactionsLoading,
     error: transactionsError,
-  } = useBudgetTransactions(budgetId);
+  } = useBudgetTransactions(budgetId, month);
   const { data: cards = [] } = useCards();
   const {
     data: budget,
     isLoading: budgetLoading,
     error: budgetError,
-  } = useBudget(budgetId);
+  } = useBudget(budgetId, false, month);
   const deleteTransactionMutation = useDeleteTransaction();
   const createTransactionMutation = useCreateTransaction();
   const { setActions } = useBudgetHeader();

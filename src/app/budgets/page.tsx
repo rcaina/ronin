@@ -14,6 +14,7 @@ import {
   TrendingUp,
   CheckCircle,
   Lock,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
@@ -24,6 +25,7 @@ import {
   useMarkBudgetArchived,
   useReactivateBudget,
   useDuplicateBudget,
+  useGetOrCreateContinuousBudget,
 } from "@/lib/data-hooks/budgets/useBudgets";
 import { useDeleteBudget } from "@/lib/data-hooks/budgets/useBudgets";
 import type { BudgetWithRelations } from "@/lib/types/budget";
@@ -94,9 +96,17 @@ const BudgetsPage = () => {
     useArchivedBudgets(true);
 
   // Ensure budgets are always arrays (memoized to avoid unnecessary re-renders)
-  const activeBudgets = useMemo(
+  const allActiveBudgets = useMemo(
     () => (Array.isArray(activeBudgetsData) ? activeBudgetsData : []),
     [activeBudgetsData],
+  );
+  // The monthly budget is pinned above the tabs, so the tabs list the rest.
+  const continuousBudget = allActiveBudgets.find(
+    (budget) => budget.kind === "CONTINUOUS",
+  );
+  const activeBudgets = useMemo(
+    () => allActiveBudgets.filter((budget) => budget.kind !== "CONTINUOUS"),
+    [allActiveBudgets],
   );
   const completedBudgets = useMemo(
     () => (Array.isArray(completedBudgetsData) ? completedBudgetsData : []),
@@ -113,6 +123,17 @@ const BudgetsPage = () => {
   const markArchivedMutation = useMarkBudgetArchived();
   const reactivateMutation = useReactivateBudget();
   const duplicateBudgetMutation = useDuplicateBudget();
+  const continuousBudgetMutation = useGetOrCreateContinuousBudget();
+
+  const handleOpenMonthlyBudget = async () => {
+    try {
+      const budget = await continuousBudgetMutation.mutateAsync();
+      router.push(`/budgets/${budget.id}`);
+    } catch (error) {
+      console.error("Failed to start monthly budget:", error);
+      toast.error("Couldn't start your monthly budget. Please try again.");
+    }
+  };
 
   // Get current budgets based on active tab, sorted by which budget ends soonest (completed: newest period first)
   const currentBudgets = useMemo(() => {
@@ -134,12 +155,13 @@ const BudgetsPage = () => {
       return [...budgets].sort(
         (a, b) =>
           new Date(b.startAt).getTime() - new Date(a.startAt).getTime() ||
-          new Date(b.endAt).getTime() - new Date(a.endAt).getTime(),
+          new Date(b.endAt ?? 0).getTime() - new Date(a.endAt ?? 0).getTime(),
       );
     }
 
     return [...budgets].sort(
-      (a, b) => new Date(a.endAt).getTime() - new Date(b.endAt).getTime(),
+      (a, b) =>
+        new Date(a.endAt ?? 0).getTime() - new Date(b.endAt ?? 0).getTime(),
     );
   }, [activeTab, activeBudgets, completedBudgets, archivedBudgets]);
 
@@ -559,6 +581,51 @@ const BudgetsPage = () => {
             </div>
           </div>
 
+          <div className="mb-3">
+            {continuousBudget ? (
+              <button
+                type="button"
+                onClick={() => router.push(`/budgets/${continuousBudget.id}`)}
+                className="card-interactive flex min-h-11 w-full items-center gap-3 p-4 text-left sm:p-5"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-secondary-700">
+                  <Calendar className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-gray-900">
+                    {continuousBudget.name}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Plan and track one month at a time
+                  </p>
+                </div>
+                <ChevronRight className="h-5 w-5 shrink-0 text-gray-400" />
+              </button>
+            ) : (
+              <div className="card-surface flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:p-5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-muted text-gray-500">
+                  <Calendar className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-gray-900">
+                    Start your monthly budget
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    One budget that carries on month to month, so you never
+                    duplicate it again.
+                  </p>
+                </div>
+                <Button
+                  onClick={handleOpenMonthlyBudget}
+                  isLoading={continuousBudgetMutation.isPending}
+                  className="min-h-11"
+                >
+                  Start monthly budget
+                </Button>
+              </div>
+            )}
+          </div>
+
           {/* Status tabs — segmented control */}
           <div className="mb-1 flex-shrink-0">
             <div className="inline-flex rounded-full bg-surface-muted p-1">
@@ -625,7 +692,7 @@ const BudgetsPage = () => {
 
                   // Calculate days remaining in budget period
                   const now = new Date();
-                  const endDate = new Date(budget.endAt);
+                  const endDate = new Date(budget.endAt ?? 0);
                   const daysRemaining = Math.ceil(
                     (endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
                   );

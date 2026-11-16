@@ -53,11 +53,16 @@ export default function EditBudgetModal({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // The monthly budget has no period or dates to edit.
+  const isContinuous = budget?.kind === "CONTINUOUS";
+
   // Initialize form data when budget changes
   useEffect(() => {
     if (budget) {
       const startDate = new Date(budget.startAt).toISOString().slice(0, 10);
-      const endDate = new Date(budget.endAt).toISOString().slice(0, 10);
+      const endDate = budget.endAt
+        ? new Date(budget.endAt).toISOString().slice(0, 10)
+        : "";
 
       setFormData({
         name: budget.name,
@@ -103,13 +108,15 @@ export default function EditBudgetModal({
     try {
       await updateBudgetMutation.mutateAsync({
         id: budget.id,
-        data: {
-          name: formData.name,
-          strategy: formData.strategy,
-          period: formData.period,
-          startAt: formData.startAt,
-          endAt: formData.endAt,
-        },
+        data: isContinuous
+          ? { name: formData.name, strategy: formData.strategy }
+          : {
+              name: formData.name,
+              strategy: formData.strategy,
+              period: formData.period,
+              startAt: formData.startAt,
+              endAt: formData.endAt,
+            },
       });
 
       toast.success("Budget updated successfully!");
@@ -233,87 +240,95 @@ export default function EditBudgetModal({
           </div>
 
           {/* Period */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Period
-            </label>
-            <div className="mt-1 grid grid-cols-2 gap-2">
-              {Object.values(PeriodType).map((period) => (
-                <label
-                  key={period}
-                  className="flex cursor-pointer items-center rounded-md border border-gray-200 p-3 hover:bg-gray-50"
-                >
-                  <input
-                    type="radio"
-                    name="period"
-                    value={period}
-                    checked={formData.period === period}
-                    onChange={(e) =>
-                      handleInputChange("period", e.target.value)
-                    }
-                    className="mr-3 h-4 w-4 text-secondary-600 focus:ring-secondary"
-                  />
-                  <span className="text-sm font-medium text-gray-900">
-                    {getPeriodLabel(period)}
-                  </span>
+          {!isContinuous && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Period
                 </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Date Range */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="startAt"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Start Date
-              </label>
-              <div className="relative mt-1">
-                <DateInput
-                  id="startAt"
-                  value={formData.startAt}
-                  onChange={(e) => handleInputChange("startAt", e.target.value)}
-                  className="cursor-pointer"
-                  required
-                  min="1900-01-01"
-                  max="2100-12-31"
-                />
+                <div className="mt-1 grid grid-cols-2 gap-2">
+                  {Object.values(PeriodType).map((period) => (
+                    <label
+                      key={period}
+                      className="flex cursor-pointer items-center rounded-md border border-gray-200 p-3 hover:bg-gray-50"
+                    >
+                      <input
+                        type="radio"
+                        name="period"
+                        value={period}
+                        checked={formData.period === period}
+                        onChange={(e) =>
+                          handleInputChange("period", e.target.value)
+                        }
+                        className="mr-3 h-4 w-4 text-secondary-600 focus:ring-secondary"
+                      />
+                      <span className="text-sm font-medium text-gray-900">
+                        {getPeriodLabel(period)}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label
-                htmlFor="endAt"
-                className="block text-sm font-medium text-gray-700"
-              >
-                End Date
-                {isEndDateLocked && (
-                  <span className="ml-1 text-xs text-gray-500">
-                    (set by period)
-                  </span>
-                )}
-              </label>
-              <div className="relative mt-1">
-                <DateInput
-                  id="endAt"
-                  value={formData.endAt}
-                  onChange={(e) => handleInputChange("endAt", e.target.value)}
-                  readOnly={isEndDateLocked}
-                  aria-readonly={isEndDateLocked}
-                  className={
-                    isEndDateLocked
-                      ? "cursor-not-allowed bg-gray-50 text-gray-600"
-                      : "cursor-pointer"
-                  }
-                  required
-                  min="1900-01-01"
-                  max="2100-12-31"
-                />
+              {/* Date Range */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="startAt"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Start Date
+                  </label>
+                  <div className="relative mt-1">
+                    <DateInput
+                      id="startAt"
+                      value={formData.startAt}
+                      onChange={(e) =>
+                        handleInputChange("startAt", e.target.value)
+                      }
+                      className="cursor-pointer"
+                      required
+                      min="1900-01-01"
+                      max="2100-12-31"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="endAt"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    End Date
+                    {isEndDateLocked && (
+                      <span className="ml-1 text-xs text-gray-500">
+                        (set by period)
+                      </span>
+                    )}
+                  </label>
+                  <div className="relative mt-1">
+                    <DateInput
+                      id="endAt"
+                      value={formData.endAt}
+                      onChange={(e) =>
+                        handleInputChange("endAt", e.target.value)
+                      }
+                      readOnly={isEndDateLocked}
+                      aria-readonly={isEndDateLocked}
+                      className={
+                        isEndDateLocked
+                          ? "cursor-not-allowed bg-gray-50 text-gray-600"
+                          : "cursor-pointer"
+                      }
+                      required
+                      min="1900-01-01"
+                      max="2100-12-31"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end space-x-3 pt-4">

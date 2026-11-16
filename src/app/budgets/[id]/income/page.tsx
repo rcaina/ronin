@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
+import { useBudgetMonth } from "@/lib/utils/hooks";
 import { formatCurrency } from "@/lib/utils";
 import { isDebitCard, oldestDebitCard } from "@/lib/utils/cards";
 import { usePageLoading } from "@/components/ConditionalLayout";
@@ -51,7 +52,12 @@ export default function IncomePage() {
   const [transactionToEdit, setTransactionToEdit] =
     useState<TransactionWithRelations | null>(null);
 
-  const { data: budget, isLoading, refetch } = useBudget(budgetId);
+  const [month] = useBudgetMonth();
+  const {
+    data: budget,
+    isLoading,
+    refetch,
+  } = useBudget(budgetId, false, month);
   const { setActions } = useBudgetHeader();
 
   // Register header actions

@@ -367,4 +367,15 @@ describe("deriveWindowFromBudgets", () => {
     );
     expect(days).toBe(10);
   });
+
+  it("runs an open-ended budget to now", () => {
+    const before = Date.now();
+    const window = deriveWindowFromBudgets([
+      { startAt: new Date("2026-01-01"), endAt: new Date("2026-01-31") },
+      { startAt: new Date("2025-01-01"), endAt: null },
+    ]);
+
+    expect(window.start).toEqual(new Date("2025-01-01"));
+    expect(window.end.getTime()).toBeGreaterThanOrEqual(before);
+  });
 });

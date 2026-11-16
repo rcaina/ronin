@@ -11,8 +11,11 @@ type BudgetTransaction = Transaction & {
 
 const getBudgetTransactions = async (
   budgetId: string,
+  month?: string,
 ): Promise<BudgetTransaction[]> => {
-  const response = await fetch(`/api/budgets/${budgetId}/transactions`);
+  const response = await fetch(
+    `/api/budgets/${budgetId}/transactions${month ? `?month=${month}` : ""}`,
+  );
   if (!response.ok) {
     throw new Error(
       `Failed to fetch budget transactions: ${response.statusText}`,
@@ -21,12 +24,12 @@ const getBudgetTransactions = async (
   return response.json() as Promise<BudgetTransaction[]>;
 };
 
-export const useBudgetTransactions = (budgetId: string) => {
+export const useBudgetTransactions = (budgetId: string, month?: string) => {
   const { data: session } = useSession();
 
   const query = useQuery<BudgetTransaction[]>({
-    queryKey: ["budgetTransactions", budgetId],
-    queryFn: () => getBudgetTransactions(budgetId),
+    queryKey: ["budgetTransactions", budgetId, month],
+    queryFn: () => getBudgetTransactions(budgetId, month),
     placeholderData: keepPreviousData,
     enabled: !!session && !!budgetId,
     staleTime: 2 * 60 * 1000,

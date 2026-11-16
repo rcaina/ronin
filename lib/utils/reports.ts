@@ -31,7 +31,7 @@ export interface ReportCategory extends SpendingCategory {
 export interface ReportBudget extends IncomeBudget {
   id: string;
   startAt: Date;
-  endAt: Date;
+  endAt: Date | null;
   categories?: ReportCategory[] | null;
 }
 
@@ -161,7 +161,7 @@ export const generateReportBuckets = (
  * render an empty state against.
  */
 export const deriveWindowFromBudgets = (
-  budgets: ReadonlyArray<{ startAt: Date; endAt: Date }>,
+  budgets: ReadonlyArray<{ startAt: Date; endAt: Date | null }>,
   fallbackDays = 30,
 ): DateWindow => {
   if (budgets.length === 0) {
@@ -173,10 +173,12 @@ export const deriveWindowFromBudgets = (
     (min, budget) => (budget.startAt < min ? budget.startAt : min),
     budgets[0]!.startAt,
   );
-  const end = budgets.reduce(
-    (max, budget) => (budget.endAt > max ? budget.endAt : max),
-    budgets[0]!.endAt,
-  );
+  // An open-ended (continuous) budget runs to now.
+  const now = new Date();
+  const end = budgets.reduce((max, budget) => {
+    const budgetEnd = budget.endAt ?? now;
+    return budgetEnd > max ? budgetEnd : max;
+  }, budgets[0]!.endAt ?? now);
   return { start, end };
 };
 

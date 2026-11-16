@@ -1,6 +1,7 @@
 "use client";
 
 import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
+import { useBudgetMonth } from "@/lib/utils/hooks";
 import { useParams, useRouter } from "next/navigation";
 import {
   TrendingUp,
@@ -103,7 +104,12 @@ const BudgetDetailsPage = () => {
     useState<TransactionWithRelations | null>(null);
   const [transactionToDelete, setTransactionToDelete] =
     useState<TransactionWithRelations | null>(null);
-  const { data: budget, isLoading, error } = useBudget(id as string, true); // Exclude card payments for calculations
+  const [month] = useBudgetMonth();
+  const {
+    data: budget,
+    isLoading,
+    error,
+  } = useBudget(id as string, true, month); // Exclude card payments for calculations
   const { setActions } = useBudgetHeader();
   const { setMobileHeaderAction } = useMobileHeaderAction();
   const deleteTransactionMutation = useDeleteTransaction();
@@ -715,7 +721,9 @@ const BudgetDetailsPage = () => {
                       End date
                     </span>
                     <p className="text-xs font-medium tabular-nums sm:text-sm">
-                      {formatDateUTC(new Date(budget.endAt).toISOString())}
+                      {budget.endAt
+                        ? formatDateUTC(new Date(budget.endAt).toISOString())
+                        : "Ongoing"}
                     </p>
                   </div>
                 </div>

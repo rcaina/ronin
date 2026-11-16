@@ -25,7 +25,7 @@ export type SerializedBudget = Omit<
 > & {
   // API responses serialize Date fields to ISO strings via JSON.stringify/NextResponse.json.
   startAt: string;
-  endAt: string;
+  endAt: string | null;
   deleted: string | null;
   createdAt: string;
   updatedAt: string;

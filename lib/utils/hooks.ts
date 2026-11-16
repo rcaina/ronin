@@ -1,6 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  parseMonthKey,
+  toMonthKey,
+  type MonthKey,
+} from "@/lib/utils/budget-month";
 
 /**
  * `useState` that persists its value to `localStorage`, read back on next
@@ -111,4 +117,27 @@ export const useLockBodyScroll = (locked: boolean): void => {
       }
     };
   }, [locked]);
+};
+
+/**
+ * The budget page's `?month=` (current UTC month when absent or malformed)
+ * and a setter that replaces it in the URL.
+ */
+export const useBudgetMonth = (): [MonthKey, (month: MonthKey) => void] => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const month =
+    parseMonthKey(searchParams.get("month")) ?? toMonthKey(new Date());
+
+  const setMonth = useCallback(
+    (next: MonthKey) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("month", next);
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
+  return [month, setMonth];
 };
