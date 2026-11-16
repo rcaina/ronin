@@ -14,9 +14,11 @@ import { useBudgetCategories } from "@/lib/data-hooks/budgets/useBudgetCategorie
 import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import {
+  defaultDateInMonth,
   findContinuousBudgetId,
   monthOfDateInput,
 } from "@/lib/utils/budget-month";
+import { useBudgetMonth } from "@/lib/utils/hooks";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import { useBillingStatus } from "@/lib/data-hooks/billing/useBilling";
 import { useCreateRecurringTransaction } from "@/lib/data-hooks/recurring/useRecurring";
@@ -131,6 +133,10 @@ export default function TransactionForm({
   const { data: cards = [] } = useCards(undefined, budgetId);
   const { data: billingStatus } = useBillingStatus();
   const isPremium = billingStatus?.isPremium ?? false;
+  const [viewedMonth] = useBudgetMonth();
+  const defaultOccurredAt = transaction
+    ? undefined
+    : defaultDateInMonth(viewedMonth, new Date());
 
   // Income transactions can only be deposited to a debit-type card.
   const debitCards = useMemo(() => cards.filter(isDebitCardType), [cards]);
@@ -207,7 +213,7 @@ export default function TransactionForm({
       budgetId: budgetId ?? "",
       categoryId: "",
       cardId: "",
-      occurredAt: undefined,
+      occurredAt: defaultOccurredAt,
       transactionType: isIncome
         ? TransactionType.INCOME
         : TransactionType.REGULAR,
@@ -617,7 +623,7 @@ export default function TransactionForm({
             budgetId: budgetId ?? "",
             categoryId: "",
             cardId: cardId ?? "",
-            occurredAt: undefined,
+            occurredAt: defaultOccurredAt,
             transactionType: isIncome
               ? TransactionType.INCOME
               : TransactionType.REGULAR,

@@ -51,7 +51,11 @@ export const getRecurringTransactions = async (
     needsBudget:
       !template.paused &&
       template.nextRunAt.getTime() <= now.getTime() &&
-      findBudgetForOccurrence(template.nextRunAt, activeBudgets) === null,
+      findBudgetForOccurrence(
+        template.nextRunAt,
+        activeBudgets,
+        template.category?.budgetId,
+      ) === null,
   }));
 };
 
@@ -200,11 +204,22 @@ export const postDueOccurrencesForTemplate = async (
     select: { id: true, status: true, startAt: true, endAt: true },
   });
 
+  const category = template.categoryId
+    ? await tx.category.findUnique({
+        where: { id: template.categoryId },
+        select: { budgetId: true },
+      })
+    : null;
+
   let posted = 0;
 
   for (let i = 0; i < occurrences.length; i++) {
     const occurrenceDate = occurrences[i]!;
-    const budget = findBudgetForOccurrence(occurrenceDate, activeBudgets);
+    const budget = findBudgetForOccurrence(
+      occurrenceDate,
+      activeBudgets,
+      category?.budgetId,
+    );
 
     if (!budget) {
       // Hold: no budget covers this occurrence yet. Park the pointer here —

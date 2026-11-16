@@ -40,6 +40,16 @@ export const getMonthWindow = (month: MonthKey): DateWindow => {
 export const daysLeftInWindow = (window: DateWindow, now: Date): number =>
   Math.max(0, Math.ceil((window.end.getTime() - now.getTime()) / 86_400_000));
 
+/** Date input default for adding into `month`: blank in the current month (the server uses now), else its day nearest today. */
+export const defaultDateInMonth = (
+  month: MonthKey,
+  now: Date,
+): string | undefined => {
+  const { start, end } = getMonthWindow(month);
+  if (now >= start && now <= end) return undefined;
+  return (now < start ? start : end).toISOString().slice(0, 10);
+};
+
 export const shiftMonth = (month: MonthKey, delta: number): MonthKey => {
   const start = monthStart(month);
   return toMonthKey(

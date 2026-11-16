@@ -6,6 +6,7 @@ import {
   computeCarry,
   computeQuickFill,
   daysLeftInWindow,
+  defaultDateInMonth,
   getMonthWindow,
   isCategoryInMonth,
   mergeMonthPlans,
@@ -398,5 +399,27 @@ describe("daysLeftInWindow", () => {
     expect(daysLeftInWindow(november, new Date("2026-12-01T00:00:00Z"))).toBe(
       0,
     );
+  });
+});
+
+describe("defaultDateInMonth", () => {
+  const now = new Date("2026-11-16T15:00:00Z");
+
+  it("stays blank in the current month, so the server uses now", () => {
+    expect(defaultDateInMonth("2026-11", now)).toBeUndefined();
+  });
+
+  it("uses the last day of a past month", () => {
+    expect(defaultDateInMonth("2026-10", now)).toBe("2026-10-31");
+  });
+
+  it("uses the first day of a future month", () => {
+    expect(defaultDateInMonth("2026-12", now)).toBe("2026-12-01");
+  });
+
+  it("treats the first instant of a month as inside it", () => {
+    const first = new Date("2026-12-01T00:00:00Z");
+    expect(defaultDateInMonth("2026-12", first)).toBeUndefined();
+    expect(defaultDateInMonth("2026-11", first)).toBe("2026-11-30");
   });
 });

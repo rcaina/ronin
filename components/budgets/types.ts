@@ -24,7 +24,6 @@ export interface CardToInclude {
 export interface CreateBudgetFormData {
   name: string;
   strategy: StrategyType;
-  period: PeriodType;
   startAt: string;
   endAt: string;
 }

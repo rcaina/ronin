@@ -263,4 +263,33 @@ describe("findBudgetForOccurrence", () => {
       "monthly",
     );
   });
+
+  describe("with the template's category in an event", () => {
+    const budgets = [
+      { ...budget("monthly", "2026-01-01", "2026-01-01"), endAt: null },
+      budget("trip", "2026-07-01", "2026-07-31"),
+    ];
+
+    it("posts into that event while its range covers the date", () => {
+      expect(
+        findBudgetForOccurrence(d("2026-07-31"), budgets, "trip")?.id,
+      ).toBe("trip");
+    });
+
+    it("falls back to the monthly budget outside the event's range", () => {
+      expect(
+        findBudgetForOccurrence(d("2026-08-01"), budgets, "trip")?.id,
+      ).toBe("monthly");
+    });
+
+    it("ignores the event once it is no longer active", () => {
+      const done = [
+        budgets[0]!,
+        { ...budgets[1]!, status: "COMPLETED" as const },
+      ];
+      expect(findBudgetForOccurrence(d("2026-07-10"), done, "trip")?.id).toBe(
+        "monthly",
+      );
+    });
+  });
 });

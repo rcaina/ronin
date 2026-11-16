@@ -8,11 +8,7 @@ import {
 } from "lucide-react";
 import { CategoryType, type PeriodType } from "@prisma/client";
 import type { CategoryAllocation } from "./types";
-import {
-  calculateAdjustedIncome,
-  formatCurrency,
-  sumMonetaryValues,
-} from "@/lib/utils";
+import { formatCurrency, sumMonetaryValues } from "@/lib/utils";
 
 interface IncomeEntry {
   id: string;
@@ -26,7 +22,6 @@ interface IncomeEntry {
 interface PercentageAllocationStepProps {
   selectedCategories: CategoryAllocation[];
   incomeEntries: IncomeEntry[];
-  budgetPeriod: PeriodType;
   onAllocationChange: (categoryId: string, amount: number) => void;
 }
 
@@ -40,18 +35,11 @@ const PERCENTAGE_RULE = {
 export default function PercentageAllocationStep({
   selectedCategories,
   incomeEntries,
-  budgetPeriod,
   onAllocationChange,
 }: PercentageAllocationStepProps) {
-  // Calculate total adjusted income based on frequency and budget period
-  const totalIncome = incomeEntries.reduce((sum, entry) => {
-    const adjustedAmount = calculateAdjustedIncome(
-      entry.amount,
-      entry.frequency,
-      budgetPeriod,
-    );
-    return sum + adjustedAmount;
-  }, 0);
+  const totalIncome = sumMonetaryValues(
+    incomeEntries.map((entry) => entry.amount),
+  );
 
   // Group categories by type
   const categoriesByGroup = selectedCategories.reduce(
@@ -242,9 +230,7 @@ export default function PercentageAllocationStep({
       {/* Summary */}
       <div className="rounded-lg bg-gray-50 p-4">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-medium text-gray-700">
-            Total Income ({budgetPeriod.toLowerCase()}):
-          </span>
+          <span className="font-medium text-gray-700">Total income:</span>
           <span className="font-semibold text-gray-900">
             {formatCurrency(totalIncome)}
           </span>

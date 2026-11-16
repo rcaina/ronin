@@ -88,7 +88,7 @@ export default function ReportsPage() {
   const effectiveCompare = canCompare && compare;
   const priorLabel = range === "ytd" ? "last year" : "last period";
 
-  const { data, isLoading, error } = useReports({
+  const { data, isLoading, isPlaceholderData, error } = useReports({
     range,
     compare: effectiveCompare,
   });
@@ -144,6 +144,11 @@ export default function ReportsPage() {
   const categoryBreakdown = data?.categoryBreakdown.slice(0, 8) ?? [];
   const groupSplitOverTime = data?.groupSplitOverTime ?? [];
   const incomeVsSpendingOverTime = data?.incomeVsSpendingOverTime ?? [];
+
+  const rangeLoadingClass = cn(
+    "transition-opacity duration-200",
+    isPlaceholderData && "opacity-60",
+  );
 
   const hasSpendingOverTime = spendingOverTime.some((p) => p.spending > 0);
   const hasGroupSplit = groupSplitOverTime.some(
@@ -231,7 +236,13 @@ export default function ReportsPage() {
             )}
 
             {/* Stat row */}
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <div
+              aria-busy={isPlaceholderData}
+              className={cn(
+                "mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4",
+                rangeLoadingClass,
+              )}
+            >
               <StatsCard
                 title="Income"
                 value={formatCurrency(summary.income)}
@@ -275,7 +286,13 @@ export default function ReportsPage() {
             </div>
 
             {/* Charts */}
-            <div className="grid grid-cols-1 gap-3 sm:gap-4 xl:grid-cols-2">
+            <div
+              aria-busy={isPlaceholderData}
+              className={cn(
+                "grid grid-cols-1 gap-3 sm:gap-4 xl:grid-cols-2",
+                rangeLoadingClass,
+              )}
+            >
               {/* Spending over time */}
               <div className="card-surface p-4 sm:p-5">
                 <h3 className="mb-3 text-sm font-semibold text-gray-900">

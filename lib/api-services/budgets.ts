@@ -326,7 +326,7 @@ export async function createBudget(
     data: {
       name: data.name,
       strategy: data.strategy,
-      period: data.period,
+      period: PeriodType.ONE_TIME,
       startAt: new Date(data.startAt),
       endAt: new Date(data.endAt),
       accountId: user.accountId,
@@ -413,7 +413,7 @@ async function createBudgetWithCardsAndIncomes(
     data: {
       name: data.name,
       strategy: data.strategy,
-      period: data.period,
+      period: PeriodType.ONE_TIME,
       startAt: new Date(data.startAt),
       endAt: new Date(data.endAt),
       accountId: user.accountId,
@@ -568,7 +568,7 @@ export async function updateBudget(
   data: UpdateBudgetData,
   user: User & { accountId: string },
 ) {
-  if (data.period || data.startAt || data.endAt || data.categoryAllocations) {
+  if (data.startAt || data.endAt || data.categoryAllocations) {
     await assertNotContinuous(tx, id, user.accountId);
   }
 
@@ -582,7 +582,6 @@ export async function updateBudget(
     data: {
       name: data.name,
       strategy: data.strategy,
-      period: data.period,
       startAt: data.startAt ? new Date(data.startAt) : undefined,
       endAt: data.endAt ? new Date(data.endAt) : undefined,
     },

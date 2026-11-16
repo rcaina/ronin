@@ -13,11 +13,7 @@ import {
   CategoryType,
   type CardType,
 } from "@prisma/client";
-import {
-  calculateAdjustedIncome,
-  calculateEndDate,
-  roundToCents,
-} from "@/lib/utils";
+import { calculateEndDate, roundToCents, sumMonetaryValues } from "@/lib/utils";
 
 // Import components
 import BudgetStepsSidebar from "./BudgetStepsSidebar";
@@ -45,7 +41,6 @@ const createBudgetSchema = z
   .object({
     name: z.string().min(1, "Event name is required"),
     strategy: z.nativeEnum(StrategyType),
-    period: z.nativeEnum(PeriodType),
     startAt: z.string().min(1, "Start date is required"),
     endAt: z.string().min(1, "End date is required"),
   })
@@ -79,52 +74,6 @@ const createBudgetSchema = z
     },
     {
       message: "End date must be on or after start date",
-      path: ["endAt"],
-    },
-  )
-  .refine(
-    (data) => {
-      // For One Time budgets, allow manual end date
-      if (data.period === PeriodType.ONE_TIME) {
-        return true;
-      }
-
-      // For recurring periods, validate that end date matches the calculated end date
-      const startParts = data.startAt.split("-").map(Number);
-      const endParts = data.endAt.split("-").map(Number);
-
-      if (startParts.length !== 3 || endParts.length !== 3) {
-        return false;
-      }
-
-      const [startYear, startMonth, startDay] = startParts;
-      const [endYear, endMonth, endDay] = endParts;
-
-      if (
-        !startYear ||
-        !startMonth ||
-        !startDay ||
-        !endYear ||
-        !endMonth ||
-        !endDay
-      ) {
-        return false;
-      }
-
-      const startDate = new Date(startYear, startMonth - 1, startDay);
-      const calculatedEndDate = calculateEndDate(startDate, data.period);
-      const userEndDate = new Date(endYear, endMonth - 1, endDay);
-
-      // Allow some tolerance for timezone differences (1 day)
-      const diffTime = Math.abs(
-        calculatedEndDate.getTime() - userEndDate.getTime(),
-      );
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      return diffDays <= 1;
-    },
-    {
-      message: "End date should match the selected period",
       path: ["endAt"],
     },
   );
@@ -191,7 +140,6 @@ export default function CreateBudgetModal({
     defaultValues: {
       name: "",
       strategy: StrategyType.ZERO_SUM,
-      period: PeriodType.MONTHLY,
       startAt: formatDateForInput(new Date()),
       endAt: formatDateForInput(
         calculateEndDate(new Date(), PeriodType.MONTHLY),
@@ -238,7 +186,6 @@ export default function CreateBudgetModal({
   const watchedName = watch("name");
   const watchedStartAt = watch("startAt");
   const watchedEndAt = watch("endAt");
-  const watchedPeriod = watch("period");
   const watchedStrategy = watch("strategy");
 
   // 50/30/20 budgets get an express path: Basics → Income → Create. We
@@ -251,60 +198,6 @@ export default function CreateBudgetModal({
   const isLastStep = isExpress
     ? currentStep === "income"
     : currentStep === "allocation";
-
-  // Auto-calculate end date when period or start date changes
-  useEffect(() => {
-    if (watchedStartAt && watchedPeriod) {
-      // Parse the date string more explicitly to avoid timezone issues
-      const parts = watchedStartAt.split("-").map(Number);
-      if (parts.length === 3) {
-        const year = parts[0]!;
-        const month = parts[1]!;
-        const day = parts[2]!;
-        const startDate = new Date(year, month - 1, day); // month is 0-indexed
-        const endDate = calculateEndDate(startDate, watchedPeriod);
-        setValue("endAt", formatDateForInput(endDate));
-      }
-    }
-  }, [watchedStartAt, watchedPeriod, setValue]);
-
-  // Handle period change
-  const handlePeriodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newPeriod = e.target.value as PeriodType;
-    setValue("period", newPeriod);
-
-    // Recalculate end date
-    if (watchedStartAt) {
-      const parts = watchedStartAt.split("-").map(Number);
-      if (parts.length === 3) {
-        const year = parts[0]!;
-        const month = parts[1]!;
-        const day = parts[2]!;
-        const startDate = new Date(year, month - 1, day);
-        const endDate = calculateEndDate(startDate, newPeriod);
-        setValue("endAt", formatDateForInput(endDate));
-      }
-    }
-  };
-
-  // Handle start date change
-  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newStartDate = e.target.value;
-    setValue("startAt", newStartDate);
-
-    // Recalculate end date
-    if (newStartDate && watchedPeriod) {
-      const parts = newStartDate.split("-").map(Number);
-      if (parts.length === 3) {
-        const year = parts[0]!;
-        const month = parts[1]!;
-        const day = parts[2]!;
-        const startDate = new Date(year, month - 1, day);
-        const endDate = calculateEndDate(startDate, watchedPeriod);
-        setValue("endAt", formatDateForInput(endDate));
-      }
-    }
-  };
 
   // Start with no categories selected (run once on mount)
   useEffect(() => {
@@ -480,15 +373,12 @@ export default function CreateBudgetModal({
         allocatedAmount: number;
       }>;
       if (isExpress && !quickCreate) {
-        const adjustedIncome = incomeEntries.reduce(
-          (sum, entry) =>
-            sum +
-            calculateAdjustedIncome(entry.amount, entry.frequency, data.period),
-          0,
+        const totalIncome = sumMonetaryValues(
+          incomeEntries.map((entry) => entry.amount),
         );
-        const needs = roundToCents(adjustedIncome * 0.5);
-        const wants = roundToCents(adjustedIncome * 0.3);
-        const investments = roundToCents(adjustedIncome - needs - wants);
+        const needs = roundToCents(totalIncome * 0.5);
+        const wants = roundToCents(totalIncome * 0.3);
+        const investments = roundToCents(totalIncome - needs - wants);
         categoryAllocations = [
           { name: "Needs", group: CategoryType.NEEDS, allocatedAmount: needs },
           { name: "Wants", group: CategoryType.WANTS, allocatedAmount: wants },
@@ -609,17 +499,11 @@ export default function CreateBudgetModal({
       0,
     );
 
-    // Calculate adjusted total income
-    const adjustedTotalIncome = incomeEntries.reduce((sum, entry) => {
-      const adjustedAmount = calculateAdjustedIncome(
-        entry.amount,
-        entry.frequency,
-        watch("period"),
-      );
-      return sum + adjustedAmount;
-    }, 0);
+    const totalIncome = sumMonetaryValues(
+      incomeEntries.map((entry) => entry.amount),
+    );
 
-    return adjustedTotalIncome - totalAllocated >= 0;
+    return totalIncome - totalAllocated >= 0;
   };
 
   const isIncomeStepValid = () => {
@@ -698,11 +582,8 @@ export default function CreateBudgetModal({
                 {currentStep === "basic" && (
                   <BasicBudgetStep
                     register={register}
-                    watch={watch}
                     setValue={setValue}
                     errors={errors}
-                    onPeriodChange={handlePeriodChange}
-                    onStartDateChange={handleStartDateChange}
                   />
                 )}
 
@@ -736,14 +617,12 @@ export default function CreateBudgetModal({
                     <PercentageAllocationStep
                       selectedCategories={selectedCategories}
                       incomeEntries={incomeEntries}
-                      budgetPeriod={watch("period")}
                       onAllocationChange={handleAllocationChange}
                     />
                   ) : (
                     <AllocationStep
                       selectedCategories={selectedCategories}
                       incomeEntries={incomeEntries}
-                      budgetPeriod={watch("period")}
                       onAllocationChange={handleAllocationChange}
                     />
                   ))}

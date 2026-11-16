@@ -5,7 +5,6 @@ import {
   CardType,
 } from "@prisma/client";
 import { z } from "zod";
-import { calculateEndDate } from "@/lib/utils";
 
 const parseBudgetDate = (value: string): Date | null => {
   const datePart = value.includes("T") ? (value.split("T")[0] ?? "") : value;
@@ -26,7 +25,7 @@ const parseBudgetDate = (value: string): Date | null => {
 };
 
 const budgetDateInvariantRefine = (
-  data: { startAt: string; endAt: string; period: PeriodType },
+  data: { startAt: string; endAt: string },
   ctx: z.RefinementCtx,
 ) => {
   const startDate = parseBudgetDate(data.startAt);
@@ -42,36 +41,12 @@ const budgetDateInvariantRefine = (
       path: ["endAt"],
       message: "End date must be on or after start date",
     });
-    return;
-  }
-
-  if (data.period === PeriodType.ONE_TIME) {
-    return;
-  }
-
-  const calculatedEndDate = calculateEndDate(startDate, data.period);
-  const diffTime = Math.abs(calculatedEndDate.getTime() - endDate.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays > 1) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["endAt"],
-      message: "End date should match the selected period",
-    });
   }
 };
 
 const createBudgetBaseSchema = z.object({
   name: z.string().min(1, "Budget name is required"),
   strategy: z.enum([StrategyType.ZERO_SUM, StrategyType.FIFTY_THIRTY_TWENTY]),
-  period: z.enum([
-    PeriodType.WEEKLY,
-    PeriodType.MONTHLY,
-    PeriodType.QUARTERLY,
-    PeriodType.YEARLY,
-    PeriodType.ONE_TIME,
-  ]),
   startAt: z
     .string()
     .transform((val) => {
@@ -146,13 +121,6 @@ export const createBudgetWithCardsSchema = z
   .object({
     name: z.string().min(1, "Budget name is required"),
     strategy: z.enum([StrategyType.ZERO_SUM, StrategyType.FIFTY_THIRTY_TWENTY]),
-    period: z.enum([
-      PeriodType.WEEKLY,
-      PeriodType.MONTHLY,
-      PeriodType.QUARTERLY,
-      PeriodType.YEARLY,
-      PeriodType.ONE_TIME,
-    ]),
     startAt: z
       .string()
       .transform((val) => {

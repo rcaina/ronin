@@ -74,7 +74,6 @@ export type GroupLabelFunction = (group: CategoryType) => string;
 export interface CreateBudgetData {
   name: string;
   strategy: StrategyType;
-  period: PeriodType;
   startAt: string;
   endAt: string;
   // If false, we skip auto-creating the default "Main" debit card because
@@ -105,7 +104,6 @@ export interface CardToIncludeData {
 export interface CreateBudgetWithCardsData {
   name: string;
   strategy: StrategyType;
-  period: PeriodType;
   startAt: string;
   endAt: string;
   categoryAllocations?: Array<{
@@ -126,7 +124,6 @@ export interface CreateBudgetWithCardsData {
 export interface UpdateBudgetData {
   name?: string;
   strategy?: StrategyType;
-  period?: PeriodType;
   startAt?: string;
   endAt?: string;
   categoryAllocations?: Array<{

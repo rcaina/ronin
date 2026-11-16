@@ -5,8 +5,7 @@ import { X, Target, TrendingUp } from "lucide-react";
 import { useUpdateBudget } from "@/lib/data-hooks/budgets/useBudgets";
 import { toast } from "react-hot-toast";
 import type { BudgetWithRelations } from "@/lib/types/budget";
-import { PeriodType, StrategyType } from "@prisma/client";
-import { calculateEndDate } from "@/lib/utils";
+import { StrategyType } from "@prisma/client";
 import { useLockBodyScroll } from "@/lib/utils/hooks";
 import Button from "../Button";
 import DateInput from "../DateInput";
@@ -17,23 +16,9 @@ interface EditBudgetModalProps {
   onClose: () => void;
 }
 
-const formatDateForInput = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
-const parseInputDate = (value: string): Date | null => {
-  const [year, month, day] = value.split("-").map(Number);
-  if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day);
-};
-
 interface EditBudgetFormData {
   name: string;
   strategy: StrategyType;
-  period: PeriodType;
   startAt: string;
   endAt: string;
 }
@@ -47,13 +32,12 @@ export default function EditBudgetModal({
   const [formData, setFormData] = useState<EditBudgetFormData>({
     name: "",
     strategy: StrategyType.ZERO_SUM,
-    period: PeriodType.MONTHLY,
     startAt: "",
     endAt: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // The monthly budget has no period or dates to edit.
+  // The monthly budget has no dates to edit.
   const isContinuous = budget?.kind === "CONTINUOUS";
 
   // Initialize form data when budget changes
@@ -67,7 +51,6 @@ export default function EditBudgetModal({
       setFormData({
         name: budget.name,
         strategy: budget.strategy,
-        period: budget.period,
         startAt: startDate,
         endAt: endDate,
       });
@@ -78,26 +61,7 @@ export default function EditBudgetModal({
     field: keyof EditBudgetFormData,
     value: string,
   ) => {
-    setFormData((prev) => {
-      const next = { ...prev, [field]: value };
-
-      // Keep the end date in lockstep with the period (one-time stays
-      // free-form). This is what prevents period/date drift on edit — e.g.
-      // a "Monthly" budget that somehow spans a single week.
-      if (field === "period" || field === "startAt") {
-        const period = field === "period" ? (value as PeriodType) : prev.period;
-        if (period !== PeriodType.ONE_TIME) {
-          const startDate = parseInputDate(next.startAt);
-          if (startDate) {
-            next.endAt = formatDateForInput(
-              calculateEndDate(startDate, period),
-            );
-          }
-        }
-      }
-
-      return next;
-    });
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,7 +77,6 @@ export default function EditBudgetModal({
           : {
               name: formData.name,
               strategy: formData.strategy,
-              period: formData.period,
               startAt: formData.startAt,
               endAt: formData.endAt,
             },
@@ -150,25 +113,6 @@ export default function EditBudgetModal({
         return strategy;
     }
   };
-
-  const getPeriodLabel = (period: string) => {
-    switch (period) {
-      case PeriodType.WEEKLY:
-        return "Weekly";
-      case PeriodType.MONTHLY:
-        return "Monthly";
-      case PeriodType.QUARTERLY:
-        return "Quarterly";
-      case PeriodType.YEARLY:
-        return "Yearly";
-      case PeriodType.ONE_TIME:
-        return "One time";
-      default:
-        return period;
-    }
-  };
-
-  const isEndDateLocked = formData.period !== PeriodType.ONE_TIME;
 
   useLockBodyScroll(isOpen);
 
@@ -240,95 +184,50 @@ export default function EditBudgetModal({
             </div>
           </div>
 
-          {/* Period */}
           {!isContinuous && (
-            <>
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Period
+                <label
+                  htmlFor="startAt"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Start date
                 </label>
-                <div className="mt-1 grid grid-cols-2 gap-2">
-                  {Object.values(PeriodType).map((period) => (
-                    <label
-                      key={period}
-                      className="flex cursor-pointer items-center rounded-md border border-gray-200 p-3 hover:bg-gray-50"
-                    >
-                      <input
-                        type="radio"
-                        name="period"
-                        value={period}
-                        checked={formData.period === period}
-                        onChange={(e) =>
-                          handleInputChange("period", e.target.value)
-                        }
-                        className="mr-3 h-4 w-4 text-secondary-600 focus:ring-secondary"
-                      />
-                      <span className="text-sm font-medium text-gray-900">
-                        {getPeriodLabel(period)}
-                      </span>
-                    </label>
-                  ))}
+                <div className="relative mt-1">
+                  <DateInput
+                    id="startAt"
+                    value={formData.startAt}
+                    onChange={(e) =>
+                      handleInputChange("startAt", e.target.value)
+                    }
+                    className="cursor-pointer"
+                    required
+                    min="1900-01-01"
+                    max="2100-12-31"
+                  />
                 </div>
               </div>
 
-              {/* Date Range */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="startAt"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Start date
-                  </label>
-                  <div className="relative mt-1">
-                    <DateInput
-                      id="startAt"
-                      value={formData.startAt}
-                      onChange={(e) =>
-                        handleInputChange("startAt", e.target.value)
-                      }
-                      className="cursor-pointer"
-                      required
-                      min="1900-01-01"
-                      max="2100-12-31"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="endAt"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    End date
-                    {isEndDateLocked && (
-                      <span className="ml-1 text-xs text-gray-500">
-                        (set by period)
-                      </span>
-                    )}
-                  </label>
-                  <div className="relative mt-1">
-                    <DateInput
-                      id="endAt"
-                      value={formData.endAt}
-                      onChange={(e) =>
-                        handleInputChange("endAt", e.target.value)
-                      }
-                      readOnly={isEndDateLocked}
-                      aria-readonly={isEndDateLocked}
-                      className={
-                        isEndDateLocked
-                          ? "cursor-not-allowed bg-gray-50 text-gray-600"
-                          : "cursor-pointer"
-                      }
-                      required
-                      min="1900-01-01"
-                      max="2100-12-31"
-                    />
-                  </div>
+              <div>
+                <label
+                  htmlFor="endAt"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  End date
+                </label>
+                <div className="relative mt-1">
+                  <DateInput
+                    id="endAt"
+                    value={formData.endAt}
+                    onChange={(e) => handleInputChange("endAt", e.target.value)}
+                    className="cursor-pointer"
+                    required
+                    min="1900-01-01"
+                    max="2100-12-31"
+                  />
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           {/* Action Buttons */}
