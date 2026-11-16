@@ -22,6 +22,8 @@ export interface NotificationListResponse {
 export interface CategoryOverThresholdData {
   categoryId: string;
   budgetId: string;
+  /** Continuous budgets: the month the alert is about. */
+  month?: string;
 }
 
 export interface BudgetPeriodEndingData {

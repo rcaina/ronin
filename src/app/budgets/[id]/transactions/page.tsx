@@ -387,6 +387,8 @@ const BudgetTransactionsPageContent = () => {
   // non-default values are written, keeping the URL clean when unfiltered.
   useEffect(() => {
     const params = new URLSearchParams();
+    const month = new URLSearchParams(window.location.search).get("month");
+    if (month) params.set("month", month);
     if (searchTerm) params.set("q", searchTerm);
     if (selectedCategory !== "all") params.set("category", selectedCategory);
     if (selectedCategoryType !== "all")

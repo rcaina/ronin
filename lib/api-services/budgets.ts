@@ -529,12 +529,31 @@ export async function createBudgetFromScratchWithCards(
   return createBudgetWithCardsAndIncomes(tx, data, user);
 }
 
+// The monthly budget is permanent: only its name and strategy can change.
+async function assertNotContinuous(
+  tx: PrismaClientTx,
+  id: string,
+  accountId: string,
+) {
+  const budget = await tx.budget.findFirst({
+    where: { id, accountId, deleted: null },
+    select: { kind: true },
+  });
+  if (budget?.kind === BudgetKind.CONTINUOUS) {
+    throw new HttpError("This isn't available for the monthly budget", 400);
+  }
+}
+
 export async function updateBudget(
   tx: PrismaClientTx,
   id: string,
   data: UpdateBudgetData,
   user: User & { accountId: string },
 ) {
+  if (data.period || data.startAt || data.endAt || data.categoryAllocations) {
+    await assertNotContinuous(tx, id, user.accountId);
+  }
+
   // Update the budget
   const budget = await tx.budget.update({
     where: {
@@ -608,6 +627,8 @@ export async function deleteBudget(
   id: string,
   user: User & { accountId: string },
 ) {
+  await assertNotContinuous(tx, id, user.accountId);
+
   // Soft delete the budget
   await tx.budget.update({
     where: {
@@ -743,6 +764,8 @@ export async function markBudgetCompleted(
   budgetId: string,
   user: User & { accountId: string },
 ) {
+  await assertNotContinuous(tx, budgetId, user.accountId);
+
   return await tx.budget.update({
     where: {
       id: budgetId,
@@ -760,6 +783,8 @@ export async function markBudgetArchived(
   budgetId: string,
   user: User & { accountId: string },
 ) {
+  await assertNotContinuous(tx, budgetId, user.accountId);
+
   return await tx.budget.update({
     where: {
       id: budgetId,
@@ -777,6 +802,8 @@ export async function reactivateBudget(
   budgetId: string,
   user: User & { accountId: string },
 ) {
+  await assertNotContinuous(tx, budgetId, user.accountId);
+
   return await tx.budget.update({
     where: {
       id: budgetId,

@@ -127,6 +127,9 @@ export default function HomePage() {
   const activeBudgets = budgets.filter(
     (budget) => !budget.deleted && budget.status !== BudgetStatus.ARCHIVED,
   );
+  const inProgressBudgets = activeBudgets.filter(
+    (budget) => budget.status === BudgetStatus.ACTIVE,
+  );
 
   // Calculate financial metrics within the selected time window
   const totalIncome = roundToCents(
@@ -189,7 +192,7 @@ export default function HomePage() {
   const thisMonth = getMonthWindow(toMonthKey(new Date()));
 
   // Prepare data for spending by budget period
-  const periodSpendingData = activeBudgets
+  const periodSpendingData = inProgressBudgets
     .map((budget) => {
       const periodStart = budget.endAt
         ? new Date(budget.startAt)
@@ -231,7 +234,7 @@ export default function HomePage() {
     .slice(0, 8); // Top 8 budgets by spending
 
   // Prepare data for budget utilization & time remaining
-  const budgetUtilizationData = activeBudgets
+  const budgetUtilizationData = inProgressBudgets
     .map((budget) => {
       const periodStart = budget.endAt
         ? new Date(budget.startAt)
@@ -303,10 +306,12 @@ export default function HomePage() {
     )
     .slice(0, 5);
 
-  // Get the most recent budget for the quick action
-  const mostRecentBudget = activeBudgets.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  )[0];
+  const currentBudget =
+    inProgressBudgets.find((budget) => budget.kind === "CONTINUOUS") ??
+    [...inProgressBudgets].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )[0];
 
   return (
     <div className="flex flex-col bg-surface lg:h-screen">
@@ -360,7 +365,7 @@ export default function HomePage() {
               <StatsCard
                 title="Total income"
                 value={`$${totalIncome.toLocaleString()}`}
-                subtitle={`Across ${activeBudgets.length} active budget${activeBudgets.length !== 1 ? "s" : ""}`}
+                subtitle={`Across ${activeBudgets.length} budget${activeBudgets.length !== 1 ? "s" : ""}`}
                 icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
                 iconColor="text-green-600"
                 valueColor="text-green-600"
@@ -388,7 +393,7 @@ export default function HomePage() {
               />
               <StatsCard
                 title="Active budgets"
-                value={activeBudgets.length}
+                value={inProgressBudgets.length}
                 subtitle="In progress"
                 icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
                 iconColor="text-secondary-600"
@@ -752,10 +757,10 @@ export default function HomePage() {
                     Quick actions
                   </h2>
                   <div className="space-y-2">
-                    {mostRecentBudget && (
+                    {currentBudget && (
                       <button
                         onClick={() =>
-                          router.push(`/budgets/${mostRecentBudget.id}`)
+                          router.push(`/budgets/${currentBudget.id}`)
                         }
                         className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10 active:scale-[0.98]"
                       >
@@ -767,7 +772,7 @@ export default function HomePage() {
                             Current budget
                           </p>
                           <p className="text-xs text-gray-500">
-                            {mostRecentBudget.name}
+                            {currentBudget.name}
                           </p>
                         </div>
                       </button>
@@ -782,10 +787,10 @@ export default function HomePage() {
                       </div>
                       <div>
                         <p className="text-xs font-medium text-gray-900 sm:text-sm">
-                          Create budget
+                          New event
                         </p>
                         <p className="text-xs text-gray-500">
-                          Set up a new budget plan
+                          Budget a trip or one-off expense
                         </p>
                       </div>
                     </button>

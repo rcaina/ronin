@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, ChevronRight, Plus, ArrowRight } from "lucide-react";
 import { toast } from "react-hot-toast";
 import AddBudgetCategoryForm from "./AddBudgetCategoryForm";
@@ -35,6 +35,7 @@ export default function BudgetCategoriesListView({
   budgetCategories: propBudgetCategories,
 }: BudgetCategoriesListViewProps) {
   const router = useRouter();
+  const month = useSearchParams().get("month");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(),
   );
@@ -127,7 +128,9 @@ export default function BudgetCategoriesListView({
   };
 
   const handleViewAllTransactions = (categoryId: string) => {
-    router.push(`/budgets/${budgetId}/transactions?category=${categoryId}`);
+    router.push(
+      `/budgets/${budgetId}/transactions?category=${categoryId}${month ? `&month=${encodeURIComponent(month)}` : ""}`,
+    );
   };
 
   return (

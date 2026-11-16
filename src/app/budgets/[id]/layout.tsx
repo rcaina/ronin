@@ -23,6 +23,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const { data: budget } = useBudget(id);
   const [month, setMonth] = useBudgetMonth();
   const showMonthSwitcher = budget?.kind === "CONTINUOUS";
+  const monthQuery = showMonthSwitcher ? `?month=${month}` : "";
   const monthSwitcher = showMonthSwitcher && (
     <MonthSwitcher month={month} onChange={setMonth} />
   );
@@ -55,7 +56,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         title: "Income",
         description: "Manage your income sources",
         showBackButton: true,
-        backTo: `/budgets/${id}`,
+        backTo: `/budgets/${id}${monthQuery}`,
       };
     } else if (pathname?.endsWith("/categories")) {
       return {
@@ -63,7 +64,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         title: "Categories",
         description: "Manage your budget categories",
         showBackButton: true,
-        backTo: `/budgets/${id}`,
+        backTo: `/budgets/${id}${monthQuery}`,
       };
     } else if (pathname?.endsWith("/transactions")) {
       return {
@@ -71,7 +72,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         title: "Transactions",
         description: "Track and manage transactions for this budget",
         showBackButton: true,
-        backTo: `/budgets/${id}`,
+        backTo: `/budgets/${id}${monthQuery}`,
       };
     } else if (
       pathname?.includes("/cards") &&
@@ -83,7 +84,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         title: "Cards",
         description: "View and manage cards for this budget",
         showBackButton: true,
-        backTo: `/budgets/${id}`,
+        backTo: `/budgets/${id}${monthQuery}`,
       };
     } else if (
       pathname?.includes("/cards/") &&
@@ -95,12 +96,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         title: "Card details",
         description: "View and manage card transactions",
         showBackButton: true,
-        backTo: `/budgets/${id}/cards${showMonthSwitcher ? `?month=${month}` : ""}`,
+        backTo: `/budgets/${id}/cards${monthQuery}`,
       };
     }
 
     return null;
-  }, [pathname, id, budget, showMonthSwitcher, month]);
+  }, [pathname, id, budget, monthQuery]);
 
   // Scoped history: back returns to the previous page within this budget
   // (e.g. Categories -> Cards -> back = Categories), falling back to this

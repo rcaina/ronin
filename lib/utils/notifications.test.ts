@@ -73,6 +73,15 @@ describe("evaluateCategoryThreshold", () => {
     expect(december?.dedupeKey).toBe("CATEGORY_OVER_THRESHOLD:cat_1:2026-12");
   });
 
+  it("records the month so the alert opens that month", () => {
+    const result = evaluateCategoryThreshold({
+      ...base,
+      spent: 95,
+      month: "2026-10",
+    });
+    expect(result?.data).toMatchObject({ month: "2026-10" });
+  });
+
   it("is idempotent — evaluating the same input twice yields the same key", () => {
     const first = evaluateCategoryThreshold({ ...base, spent: 95 });
     const second = evaluateCategoryThreshold({ ...base, spent: 95 });

@@ -139,7 +139,7 @@ export default function BudgetCategoryCard({
 
   const handleViewAllTransactions = () => {
     router.push(
-      `/budgets/${budgetId}/transactions?category=${budgetCategory.id}`,
+      `/budgets/${budgetId}/transactions?category=${budgetCategory.id}${month ? `&month=${month}` : ""}`,
     );
   };
 

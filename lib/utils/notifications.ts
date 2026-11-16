@@ -74,7 +74,11 @@ export const evaluateCategoryThreshold = (
     type: "CATEGORY_OVER_THRESHOLD",
     title: `${input.categoryName} is nearing its budget`,
     body: `You've used ${percent}% of the ${formatCurrency(allocated)} allocated to ${input.categoryName}.`,
-    data: { categoryId: input.categoryId, budgetId: input.budgetId },
+    data: {
+      categoryId: input.categoryId,
+      budgetId: input.budgetId,
+      ...(input.month && { month: input.month }),
+    },
     dedupeKey: buildDedupeKey(
       "CATEGORY_OVER_THRESHOLD",
       input.categoryId,

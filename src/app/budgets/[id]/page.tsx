@@ -110,6 +110,7 @@ const BudgetDetailsPage = () => {
     isLoading,
     error,
   } = useBudget(id as string, true, month); // Exclude card payments for calculations
+  const monthQuery = budget?.kind === "CONTINUOUS" ? `?month=${month}` : "";
   const { setActions } = useBudgetHeader();
   const { setMobileHeaderAction } = useMobileHeaderAction();
   const deleteTransactionMutation = useDeleteTransaction();
@@ -740,7 +741,9 @@ const BudgetDetailsPage = () => {
                   </h3>
                   <button
                     onClick={() =>
-                      router.push(`/budgets/${String(id)}/categories`)
+                      router.push(
+                        `/budgets/${String(id)}/categories${monthQuery}`,
+                      )
                     }
                     className="text-[10px] font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800 sm:text-xs"
                   >
@@ -950,7 +953,9 @@ const BudgetDetailsPage = () => {
                 </h3>
                 <button
                   onClick={() =>
-                    router.push(`/budgets/${String(id)}/transactions`)
+                    router.push(
+                      `/budgets/${String(id)}/transactions${monthQuery}`,
+                    )
                   }
                   className="text-xs font-medium text-secondary-700 transition-colors duration-200 hover:text-secondary-800 sm:text-sm"
                 >
