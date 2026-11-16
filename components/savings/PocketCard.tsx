@@ -300,11 +300,11 @@ export default function PocketCard({
         isOpen={!!pocketToDelete}
         onClose={handleCancelDeletePocket}
         onConfirm={handleConfirmDeletePocket}
-        title="Delete Pocket"
+        title="Delete pocket"
         message={`Are you sure you want to remove "${pocketToDelete?.name ?? ""}"? This action cannot be undone.`}
         itemName={pocketToDelete?.name ?? ""}
         isLoading={deletePocketMutation.isPending}
-        confirmText="Delete Pocket"
+        confirmText="Delete pocket"
       />
     </>
   );

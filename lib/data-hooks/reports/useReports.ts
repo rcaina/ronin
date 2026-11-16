@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { getReports } from "../services/reports";
 import type { ReportsRequestQuery } from "@/lib/types/reports";
@@ -23,5 +23,6 @@ export const useReports = (query: ReportsRequestQuery = {}) => {
     enabled: !!session,
     staleTime: 60 * 1000,
     retry: false,
+    placeholderData: keepPreviousData,
   });
 };

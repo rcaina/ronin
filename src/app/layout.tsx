@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     default: "Ronin",
     template: "%s | Ronin",
   },
-  description: "Household budgeting — budgets, transactions, and savings.",
+  description: "Household budgeting: budgets, transactions, and savings.",
   applicationName: "Ronin",
   manifest: "/site.webmanifest",
   appleWebApp: {

@@ -1266,7 +1266,7 @@ const BudgetDetailsPage = () => {
         isOpen={!!transactionToDelete}
         onClose={() => setTransactionToDelete(null)}
         onConfirm={handleConfirmDelete}
-        title="Delete Transaction"
+        title="Delete transaction"
         message={
           transactionToDelete?.splits && transactionToDelete.splits.length > 0
             ? `This will delete the transaction '{itemName}' and its ${transactionToDelete.splits.length} category splits. This action cannot be undone.`
@@ -1275,7 +1275,7 @@ const BudgetDetailsPage = () => {
         itemName={transactionToDelete?.name ?? "Unnamed transaction"}
         isLoading={deleteTransactionMutation.isPending}
         loadingText="Deleting..."
-        confirmText="Delete Transaction"
+        confirmText="Delete transaction"
         cancelText="Cancel"
       />
     </>

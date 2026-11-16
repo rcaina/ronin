@@ -642,11 +642,11 @@ const CardsPage = () => {
           isOpen={!!cardToDelete}
           onClose={handleCancelDelete}
           onConfirm={handleConfirmDelete}
-          title="Delete Card"
+          title="Delete card"
           message={`Are you sure you want to delete "${cardToDelete?.name ?? ""}"? This action cannot be undone.`}
           itemName={cardToDelete?.name ?? ""}
           isLoading={deleteCardMutation.isPending}
-          confirmText="Delete Card"
+          confirmText="Delete card"
         />
       )}
 

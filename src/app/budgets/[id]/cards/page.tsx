@@ -142,7 +142,7 @@ const BudgetCardsPage = () => {
       amountSpent: prismaCard.amountSpent ?? 0,
       spendingLimit: prismaCard.spendingLimit ?? undefined,
       userId: prismaCard.userId,
-      user: prismaCard.user?.name ?? "Unknown User",
+      user: prismaCard.user?.name ?? "Unknown user",
       isActive: !prismaCard.deleted,
       color: getCardColor(prismaCard.userId, ownerIds),
     }));
@@ -706,11 +706,11 @@ const BudgetCardsPage = () => {
           isOpen={!!cardToDelete}
           onClose={handleCancelDelete}
           onConfirm={handleConfirmDelete}
-          title="Delete Card"
+          title="Delete card"
           message={`Are you sure you want to delete "${cardToDelete?.name ?? ""}"? This action cannot be undone.`}
           itemName={cardToDelete?.name ?? ""}
           isLoading={deleteCardMutation.isPending}
-          confirmText="Delete Card"
+          confirmText="Delete card"
         />
       )}
 

@@ -114,7 +114,7 @@ shadow-soft` translating via `translate-x-6` / `translate-x-1`. Disabled
 ## 8. Voice & content
 
 - Sentence case everywhere ("Create budget", not "Create Budget").
-- Empty states encourage: "No transactions yet — add your first one."
+- Empty states encourage: "No transactions yet. Add your first one."
 - Destructive actions always confirm via `DeleteConfirmationModal`.
 
 ## 9. Adding a new page (checklist)

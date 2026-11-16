@@ -294,7 +294,7 @@ export default function ImportTransactionsModal({
                 Choose a CSV file
               </span>
               <span className="text-xs text-gray-500">
-                We&apos;ll never store your file — it&apos;s parsed in your
+                We&apos;ll never store your file. It&apos;s parsed in your
                 browser.
               </span>
             </button>

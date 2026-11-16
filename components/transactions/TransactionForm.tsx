@@ -134,7 +134,7 @@ export default function TransactionForm({
 
   // Income transactions can only be deposited to a debit-type card.
   const debitCards = useMemo(() => cards.filter(isDebitCardType), [cards]);
-  // The list of cards to show in the "Payment Method" select.
+  // The list of cards to show in the "Payment method" select.
   const cardOptions = isIncome ? debitCards : cards;
 
   const [selectedBudgetId, setSelectedBudgetId] = useState<string>("");
@@ -643,10 +643,10 @@ export default function TransactionForm({
       <div className="mb-6 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">
           {isEditing
-            ? "Edit Transaction"
+            ? "Edit transaction"
             : isIncome
-              ? "Add New Income"
-              : "Add Transaction"}
+              ? "Add new income"
+              : "Add transaction"}
         </h3>
         <button
           aria-label="Close"
@@ -1273,8 +1273,8 @@ export default function TransactionForm({
             {isRecurring && canMakeRecurring
               ? "Create recurring transaction"
               : isEditing
-                ? "Update Transaction"
-                : "Add Transaction"}
+                ? "Update transaction"
+                : "Add transaction"}
           </Button>
         </div>
       </form>

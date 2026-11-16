@@ -158,7 +158,7 @@ export function CardPaymentModal({
       <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-xl border bg-surface-card p-6 shadow-sm">
         <div className="mb-6 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">
-            {editingTransaction ? "Edit Card Payment" : "Pay Credit Card"}
+            {editingTransaction ? "Edit card payment" : "Pay credit card"}
           </h3>
           <button
             aria-label="Close"
@@ -295,7 +295,7 @@ export function CardPaymentModal({
               }
               className="flex-1"
             >
-              {editingTransaction ? "Update Payment" : "Create Payment"}
+              {editingTransaction ? "Update payment" : "Create payment"}
             </Button>
           </div>
         </form>

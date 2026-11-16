@@ -226,7 +226,7 @@ export default function AddCardForm({
     <div className="group relative overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-surface-card p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <span className="text-sm font-medium text-gray-500">
-          {isEditing ? "Edit Card" : "New Card"}
+          {isEditing ? "Edit card" : "New card"}
         </span>
         <button
           onClick={onCancel}
@@ -253,7 +253,7 @@ export default function AddCardForm({
             htmlFor="cardName"
             className="mb-1 block text-sm font-medium text-gray-700"
           >
-            Card Name
+            Card name
           </label>
           <input
             type="text"
@@ -436,7 +436,7 @@ export default function AddCardForm({
             htmlFor="cardType"
             className="mb-1 block text-sm font-medium text-gray-700"
           >
-            Card Type
+            Card type
           </label>
           <select
             id="cardType"
@@ -467,7 +467,7 @@ export default function AddCardForm({
             htmlFor="spendingLimit"
             className="mb-1 block text-sm font-medium text-gray-700"
           >
-            {monthlyLimit ? "Monthly limit" : "Spending Limit"} (Optional)
+            {monthlyLimit ? "Monthly limit" : "Spending limit"} (Optional)
           </label>
           <div className="relative">
             <span className="absolute left-3 top-2 text-sm text-gray-500">

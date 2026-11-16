@@ -384,11 +384,11 @@ export default function BudgetCategoryCard({
         isOpen={!!categoryToDelete}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        title="Delete Budget Category"
+        title="Delete budget category"
         message={`Are you sure you want to remove "${categoryToDelete?.name ?? ""}" from this budget? This action cannot be undone.`}
         itemName={categoryToDelete?.name ?? ""}
         isLoading={deleteBudgetCategoryMutation.isPending}
-        confirmText="Delete Category"
+        confirmText="Delete category"
       />
     </>
   );

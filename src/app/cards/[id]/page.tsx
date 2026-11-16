@@ -406,7 +406,7 @@ const CardDetailsPage = () => {
                         <div className="flex items-center gap-3">
                           <div className="flex-1">
                             <p className="font-medium text-gray-900">
-                              {transaction.name ?? "Unnamed Transaction"}
+                              {transaction.name ?? "Unnamed transaction"}
                             </p>
                             {transaction.transactionType ===
                             TransactionType.INCOME ? (
@@ -460,11 +460,11 @@ const CardDetailsPage = () => {
         isOpen={!!cardToDelete}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        title="Delete Card"
+        title="Delete card"
         message={`Are you sure you want to delete "${cardToDelete?.name ?? ""}"? This action cannot be undone.`}
         itemName={cardToDelete?.name ?? ""}
         isLoading={deleteCardMutation.isPending}
-        confirmText="Delete Card"
+        confirmText="Delete card"
       />
 
       {/* Add Transaction Modal */}

@@ -82,7 +82,7 @@ export default function IncomeStep({
             className="flex items-center gap-2"
           >
             <Plus className="h-5 w-5" />
-            <span>Income Source</span>
+            <span>Income source</span>
           </Button>
         </div>
 
@@ -107,7 +107,7 @@ export default function IncomeStep({
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Income Amount
+                  Income amount
                 </label>
                 <div className="relative mt-1">
                   <span className="absolute left-3 top-2 text-gray-500">$</span>
@@ -126,7 +126,7 @@ export default function IncomeStep({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Income Source
+                  Income source
                 </label>
                 <input
                   type="text"

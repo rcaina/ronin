@@ -87,7 +87,7 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
         <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md animate-scale-in overflow-y-auto overscroll-contain rounded-2xl bg-surface-card p-6 shadow-lifted">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-medium text-gray-900">
-              Create New User
+              Create new user
             </h3>
             <button
               aria-label="Close"
@@ -102,7 +102,7 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  First Name
+                  First name
                 </label>
                 <input
                   type="text"
@@ -120,7 +120,7 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Last Name
+                  Last name
                 </label>
                 <input
                   type="text"
@@ -226,7 +226,7 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
                 disabled={isCreatingUser}
                 className="w-full"
               >
-                {isCreatingUser ? "Creating..." : "Create User"}
+                {isCreatingUser ? "Creating..." : "Create user"}
               </Button>
             </div>
           </form>
@@ -242,7 +242,7 @@ const CreateUserModal = ({ isOpen, onClose }: CreateUserModalProps) => {
                 <UserIcon className="h-5 w-5 text-green-600" />
               </div>
               <h3 className="text-lg font-medium text-gray-900">
-                User Created Successfully
+                User created successfully
               </h3>
             </div>
 

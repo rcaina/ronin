@@ -195,7 +195,7 @@ export default function PlanComparison({
         {/* Price / status block */}
         {complimentaryAccess ? (
           <p className="mt-4 text-sm text-gray-600">
-            Your account has complimentary Premium access — every feature is
+            Your account has complimentary Premium access. Every feature is
             unlocked and no billing is required.
           </p>
         ) : isPremium ? (

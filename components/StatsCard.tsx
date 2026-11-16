@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
  * @example
  * ```tsx
  * <StatsCard
- *   title="Total Income"
+ *   title="Total income"
  *   value="$5,000"
  *   subtitle="Across 3 active budgets"
  *   icon={<DollarSign className="h-4 w-4" />}

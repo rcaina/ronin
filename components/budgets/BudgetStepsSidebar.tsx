@@ -19,7 +19,7 @@ const allSteps = [
   {
     step: "basic" as StepType,
     label: "Basic",
-    description: "Budget basics",
+    description: "Event basics",
   },
   {
     step: "income" as StepType,
@@ -29,7 +29,7 @@ const allSteps = [
   {
     step: "cards" as StepType,
     label: "Cards",
-    description: "Review budget cards",
+    description: "Review event cards",
   },
   {
     step: "categories" as StepType,

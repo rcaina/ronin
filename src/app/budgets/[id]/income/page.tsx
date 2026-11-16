@@ -230,7 +230,7 @@ export default function IncomePage() {
                 </p>
               </div>
               <span className="flex-shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium capitalize text-white sm:px-4 sm:py-2 sm:text-sm">
-                {budget.period.replace("_", " ").toLowerCase()}
+                {monthLabel ?? budget.period.replace("_", " ").toLowerCase()}
               </span>
             </div>
           </div>
@@ -394,7 +394,7 @@ export default function IncomePage() {
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
-        title="Delete Income Transaction"
+        title="Delete income transaction"
         message={`Are you sure you want to delete "${transactionToDelete?.name}"? This action cannot be undone.`}
         onConfirm={confirmDeleteIncome}
         onClose={() => {

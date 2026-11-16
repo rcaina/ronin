@@ -164,7 +164,7 @@ export default function BudgetStrategyIndicator({
           />
         </div>
         <p className="mt-2 text-xs text-gray-500">
-          Zero-based budgeting works when income minus allocations equals zero —
+          Zero-based budgeting works when income minus allocations equals zero:
           give every dollar a job.
         </p>
       </div>

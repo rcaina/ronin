@@ -966,7 +966,7 @@ const BudgetTransactionsPageContent = () => {
                               >
                                 {transaction.transactionType ===
                                 TransactionType.CARD_PAYMENT
-                                  ? "Card Payment"
+                                  ? "Card payment"
                                   : hasSplits
                                     ? getSplitBadgeLabel(
                                         transaction.splits?.length ?? 0,
@@ -976,7 +976,7 @@ const BudgetTransactionsPageContent = () => {
                                         !transaction.category
                                       ? "Income"
                                       : (transaction.category?.name ??
-                                        "No Category")}
+                                        "No category")}
                               </span>
                               {transaction.description && (
                                 <DescriptionTooltip
@@ -1128,7 +1128,7 @@ const BudgetTransactionsPageContent = () => {
         isOpen={!!transactionToDelete}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        title="Delete Transaction"
+        title="Delete transaction"
         message={
           transactionToDelete?.splits && transactionToDelete.splits.length > 0
             ? `This will delete the transaction '{itemName}' and its ${transactionToDelete.splits.length} category splits. This action cannot be undone.`
@@ -1137,7 +1137,7 @@ const BudgetTransactionsPageContent = () => {
         itemName={transactionToDelete?.name ?? "Unnamed transaction"}
         isLoading={deleteTransactionMutation.isPending}
         loadingText="Deleting..."
-        confirmText="Delete Transaction"
+        confirmText="Delete transaction"
         cancelText="Cancel"
       />
 
@@ -1146,12 +1146,12 @@ const BudgetTransactionsPageContent = () => {
         isOpen={showBulkDeleteModal}
         onClose={handleCancelBulkDelete}
         onConfirm={handleConfirmBulkDelete}
-        title="Delete Multiple Transactions"
+        title="Delete multiple transactions"
         message="Are you sure you want to delete {itemName}? This action cannot be undone."
         itemName={`${selectedTransactions.size} selected transaction${selectedTransactions.size !== 1 ? "s" : ""}`}
         isLoading={deleteTransactionMutation.isPending}
         loadingText="Deleting..."
-        confirmText="Delete Transactions"
+        confirmText="Delete transactions"
         cancelText="Cancel"
       />
     </>

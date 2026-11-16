@@ -128,6 +128,10 @@ export default function ReportsPage() {
     return null;
   }
 
+  if (error && !data && !(error instanceof UpgradeRequiredError)) {
+    return <div className="p-6 text-red-600">Failed to load reports</div>;
+  }
+
   const summary = data?.summary ?? {
     income: 0,
     spending: 0,

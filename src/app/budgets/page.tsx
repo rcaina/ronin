@@ -71,7 +71,7 @@ const BudgetsPage = () => {
     (budget) => budget.kind === "CONTINUOUS",
   );
   const thisMonth = toMonthKey(new Date());
-  const { data: monthBudget } = useBudget(
+  const { data: monthBudget, isLoading: monthLoading } = useBudget(
     continuousBudget?.id ?? "",
     true,
     thisMonth,
@@ -136,7 +136,8 @@ const BudgetsPage = () => {
     );
   }, [activeTab, activeBudgets, completedBudgets, archivedBudgets]);
 
-  const isLoading = activeLoading || completedLoading || archivedLoading;
+  const isLoading =
+    activeLoading || completedLoading || archivedLoading || monthLoading;
 
   const monthPlanned = roundToCents(
     (monthBudget?.categories ?? []).reduce(
@@ -204,9 +205,9 @@ const BudgetsPage = () => {
   const handleMarkCompleted = async (budget: BudgetWithRelations) => {
     try {
       await markCompletedMutation.mutateAsync(budget.id);
-      toast.success("Budget marked as completed!");
+      toast.success("Event marked as completed");
     } catch (err) {
-      toast.error("Failed to mark budget as completed. Please try again.");
+      toast.error("Failed to mark event as completed. Please try again.");
       console.error("Failed to mark budget as completed:", err);
     }
   };
@@ -214,9 +215,9 @@ const BudgetsPage = () => {
   const handleMarkArchived = async (budget: BudgetWithRelations) => {
     try {
       await markArchivedMutation.mutateAsync(budget.id);
-      toast.success("Budget archived!");
+      toast.success("Event archived");
     } catch (err) {
-      toast.error("Failed to archive budget. Please try again.");
+      toast.error("Failed to archive event. Please try again.");
       console.error("Failed to archive budget:", err);
     }
   };
@@ -224,13 +225,13 @@ const BudgetsPage = () => {
   const handleReactivate = async (budget: BudgetWithRelations) => {
     try {
       await reactivateMutation.mutateAsync(budget.id);
-      toast.success("Budget reactivated!");
+      toast.success("Event reactivated");
     } catch (err) {
       if (err instanceof UpgradeRequiredError) {
         setUpgradeReason(err.message);
         return;
       }
-      toast.error("Failed to reactivate budget. Please try again.");
+      toast.error("Failed to reactivate event. Please try again.");
       console.error("Failed to reactivate budget:", err);
     }
   };
@@ -661,15 +662,15 @@ const BudgetsPage = () => {
           if (budgetToDelete) {
             try {
               await deleteBudgetMutation.mutateAsync(budgetToDelete.id);
-              toast.success("Budget deleted successfully!");
+              toast.success("Event deleted");
               setBudgetToDelete(null);
             } catch (err) {
-              toast.error("Failed to delete budget. Please try again.");
+              toast.error("Failed to delete event. Please try again.");
               console.error("Failed to delete budget:", err);
             }
           }
         }}
-        title="Delete Budget"
+        title="Delete event"
         message={`Are you sure you want to delete "${budgetToDelete?.name}"? This action cannot be undone.`}
         itemName={budgetToDelete?.name ?? ""}
       />

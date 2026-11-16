@@ -1367,6 +1367,9 @@ export const fillBudgetMonth = async (
   if (fill.size === 0) {
     throw new HttpError("No earlier months to fill from", 400);
   }
+  if ([...fill.values()].every((assigned) => assigned === 0)) {
+    throw new HttpError("Nothing to fill: every category came out at $0", 400);
+  }
 
   for (const [categoryId, assigned] of fill) {
     await tx.categoryMonth.upsert({

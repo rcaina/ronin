@@ -43,7 +43,7 @@ import UpgradeModal from "../UpgradeModal";
 // Validation schema
 const createBudgetSchema = z
   .object({
-    name: z.string().min(1, "Budget name is required"),
+    name: z.string().min(1, "Event name is required"),
     strategy: z.nativeEnum(StrategyType),
     period: z.nativeEnum(PeriodType),
     startAt: z.string().min(1, "Start date is required"),
@@ -542,7 +542,7 @@ export default function CreateBudgetModal({
 
       if (created.failedCards.length > 0) {
         toast.error(
-          `Budget created, but ${created.failedCards.length} card(s) could not be added: ${created.failedCards.join(", ")}`,
+          `Event created, but ${created.failedCards.length} card(s) could not be added: ${created.failedCards.join(", ")}`,
         );
       }
 
@@ -554,21 +554,21 @@ export default function CreateBudgetModal({
 
       if (created.failedIncomes.length > 0) {
         toast.error(
-          `Budget created, but ${created.failedIncomes.length} income transaction(s) could not be created: ${created.failedIncomes.join(", ")}`,
+          `Event created, but ${created.failedIncomes.length} income transaction(s) could not be created: ${created.failedIncomes.join(", ")}`,
         );
       }
 
       resetModal();
       onSuccess?.({ budgetId: created.budget.id, quickCreate });
       onClose();
-      toast.success("Budget created successfully!");
+      toast.success("Event created");
     } catch (error) {
       if (error instanceof UpgradeRequiredError) {
         setUpgradeReason(error.message);
         return;
       }
       console.error("Failed to create budget:", error);
-      toast.error("Failed to create budget. Please try again.");
+      toast.error("Failed to create event. Please try again.");
     }
   };
 
@@ -646,13 +646,13 @@ export default function CreateBudgetModal({
             </h2>
             <p className="text-sm text-gray-500">
               {currentStep === "basic" &&
-                "Set up your budget basics, or create it now and add income, cards and categories later"}
+                "Set up your event basics, or create it now and add income, cards and categories later"}
               {currentStep === "income" &&
                 (isExpress
-                  ? "Set up your income — we'll auto-create Needs, Wants, and Investments at 50/30/20"
+                  ? "Set up your income. We'll auto-create Needs, Wants and Investments at 50/30/20"
                   : "Set up your income")}
               {currentStep === "cards" &&
-                "Optionally review the cards that will be associated with this budget. You can always adjust cards later from the Cards page."}
+                "Optionally review the cards that will be associated with this event. You can always adjust cards later from the Cards page."}
               {currentStep === "categories" &&
                 "Create your own spending categories (optional). You can organize them by needs, wants, or investments."}
               {currentStep === "allocation" &&
@@ -796,7 +796,7 @@ export default function CreateBudgetModal({
                   }
                   onClick={handleSubmit(onSubmit)}
                 >
-                  {isCreating ? "Creating..." : "Create Budget"}
+                  {isCreating ? "Creating..." : "Create event"}
                 </Button>
               ) : (
                 <Button

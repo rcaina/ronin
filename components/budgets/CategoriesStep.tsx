@@ -150,7 +150,7 @@ export default function CategoriesStep({
       {/* Header */}
       <div>
         <h3 className="text-lg font-semibold text-gray-900">
-          Budget Categories
+          Budget categories
         </h3>
         <p className="text-sm text-gray-500">
           Select from default categories or create custom ones to track in your
@@ -169,7 +169,7 @@ export default function CategoriesStep({
           <div className="space-y-4">
             <div>
               <h4 className="mb-3 text-sm font-semibold text-gray-700">
-                Default Categories
+                Default categories
               </h4>
               <p className="mb-4 text-xs text-gray-500">
                 Click on a category to add it to your budget
@@ -238,7 +238,7 @@ export default function CategoriesStep({
         ) && (
           <div className="border-t border-gray-200 pt-6">
             <h4 className="mb-3 text-sm font-semibold text-gray-700">
-              Selected Categories
+              Selected categories
             </h4>
             <p className="mb-4 text-xs text-gray-500">
               Categories you&apos;ve added to your budget

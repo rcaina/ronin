@@ -575,7 +575,6 @@ const CardDetailsPage = () => {
   }
 
   if (cardError || !card || !mappedCard) {
-    console.error("CardDetailsPage error:", { cardError, card, mappedCard });
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
@@ -584,10 +583,6 @@ const CardDetailsPage = () => {
               ? cardError.message
               : "Failed to load card"}
           </span>
-          <div className="mt-2 text-sm text-gray-500">Card ID: {cardId}</div>
-          <div className="mt-2 text-sm text-gray-500">
-            Session: {session ? "Authenticated" : "Not authenticated"}
-          </div>
         </div>
       </div>
     );
@@ -610,7 +605,7 @@ const CardDetailsPage = () => {
             {/* Card Stats */}
             <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
               <StatsCard
-                title="Total Spent"
+                title="Total spent"
                 value={formatCurrency(totalSpent)}
                 subtitle={periodLabel ?? "All time"}
                 icon={
@@ -666,7 +661,7 @@ const CardDetailsPage = () => {
             <div className="mb-6 rounded-xl border bg-surface-card p-4 shadow-sm">
               <h3 className="mb-4 flex items-center justify-between">
                 <span className="text-lg font-semibold text-gray-900">
-                  Card Information
+                  Card information
                 </span>
                 {isCardOwner && (
                   <button
@@ -687,7 +682,7 @@ const CardDetailsPage = () => {
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <label className="mb-1 block text-sm font-medium text-gray-700">
-                        Card Name
+                        Card name
                       </label>
                       <input
                         type="text"
@@ -704,7 +699,7 @@ const CardDetailsPage = () => {
                     </div>
                     <div>
                       <label className="mb-1 block text-sm font-medium text-gray-700">
-                        Card Type
+                        Card type
                       </label>
                       <select
                         value={editFormData.cardType}
@@ -720,16 +715,16 @@ const CardDetailsPage = () => {
                         <option value={CardType.DEBIT}>Debit</option>
                         <option value={CardType.CREDIT}>Credit</option>
                         <option value={CardType.BUSINESS_DEBIT}>
-                          Business Debit
+                          Business debit
                         </option>
                         <option value={CardType.BUSINESS_CREDIT}>
-                          Business Credit
+                          Business credit
                         </option>
                       </select>
                     </div>
                     <div>
                       <label className="mb-1 block text-sm font-medium text-gray-700">
-                        {periodLabel ? "Monthly limit" : "Spending Limit"}
+                        {periodLabel ? "Monthly limit" : "Spending limit"}
                       </label>
                       <input
                         type="number"
@@ -783,7 +778,7 @@ const CardDetailsPage = () => {
                       size="sm"
                       isLoading={updateCardMutation.isPending}
                     >
-                      Save Changes
+                      Save changes
                     </Button>
                   </div>
                 </div>
@@ -931,7 +926,7 @@ const CardDetailsPage = () => {
                       variant="primary"
                     >
                       <Plus className="h-4 w-4" />
-                      Add Transaction
+                      Add transaction
                     </Button>
                   )}
                 </div>
@@ -992,7 +987,7 @@ const CardDetailsPage = () => {
                             <div className="flex items-center gap-3">
                               <div className="flex-1">
                                 <p className="font-medium text-gray-900">
-                                  {transaction.name ?? "Unnamed Transaction"}
+                                  {transaction.name ?? "Unnamed transaction"}
                                 </p>
                                 {transaction.transactionType ===
                                 TransactionType.INCOME ? (
@@ -1076,11 +1071,11 @@ const CardDetailsPage = () => {
         isOpen={!!cardToDelete}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        title="Delete Card"
+        title="Delete card"
         message={`Are you sure you want to delete "${cardToDelete?.name ?? ""}"? This action cannot be undone.`}
         itemName={cardToDelete?.name ?? ""}
         isLoading={deleteCardMutation.isPending}
-        confirmText="Delete Card"
+        confirmText="Delete card"
       />
 
       {/* Add Transaction Modal */}
@@ -1116,7 +1111,7 @@ const CardDetailsPage = () => {
         isOpen={!!transactionToDelete}
         onClose={handleCancelDeleteTransaction}
         onConfirm={handleConfirmDeleteTransaction}
-        title="Delete Transaction"
+        title="Delete transaction"
         message={
           transactionToDelete?.splits && transactionToDelete.splits.length > 0
             ? `This will delete the transaction '{itemName}' and its ${transactionToDelete.splits.length} category splits. This action cannot be undone.`
@@ -1125,7 +1120,7 @@ const CardDetailsPage = () => {
         itemName={transactionToDelete?.name ?? "Unnamed transaction"}
         isLoading={deleteTransactionMutation.isPending}
         loadingText="Deleting..."
-        confirmText="Delete Transaction"
+        confirmText="Delete transaction"
         cancelText="Cancel"
       />
 

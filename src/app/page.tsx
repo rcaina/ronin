@@ -821,11 +821,15 @@ export default function HomePage() {
                     </h3>
                   </div>
                   <p className="text-xs text-gray-600">
-                    {spendingPercentage > 90
-                      ? "You're over budget! Consider reviewing your spending habits and cutting back on non-essential expenses."
-                      : spendingPercentage > 75
-                        ? "You're approaching your budget limit. Keep an eye on your spending to stay on track."
-                        : "Great job staying within your budget! You're on track to meet your financial goals."}
+                    {totalIncome <= 0
+                      ? totalSpent > 0
+                        ? "You have spending but no income recorded for this period. Add your income to see what's left."
+                        : "Add your income and spending to see how this period is going."
+                      : spendingPercentage > 100
+                        ? "You've spent more than you earned this period. Look for non-essential spending to cut back."
+                        : spendingPercentage > 75
+                          ? "You've spent most of this period's income. Keep an eye on spending to stay on track."
+                          : "Your spending is within your income. Keep it up."}
                   </p>
                 </div>
               </div>

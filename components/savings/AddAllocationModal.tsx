@@ -76,7 +76,7 @@ export default function AddAllocationModal({
         <div className="flex items-center justify-between border-b p-5">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              Add New Allocation
+              Add new allocation
             </h2>
             <p className="text-sm text-gray-500">
               {withdrawal
@@ -181,7 +181,7 @@ export default function AddAllocationModal({
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading || !amount}>
-              {isLoading ? "Adding..." : "Add Allocation"}
+              {isLoading ? "Adding..." : "Add allocation"}
             </Button>
           </div>
         </form>

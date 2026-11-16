@@ -32,13 +32,13 @@ export default function BasicBudgetStep({
     <div className="space-y-6">
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Budget Name
+          Event name
         </label>
         <input
           type="text"
           {...register("name")}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
-          placeholder="e.g., Monthly Budget 2024"
+          placeholder="e.g., Summer trip"
         />
         {errors.name && (
           <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
@@ -48,20 +48,20 @@ export default function BasicBudgetStep({
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Budget Strategy
+            Budget strategy
           </label>
           <select
             {...register("strategy")}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary"
           >
-            <option value={StrategyType.ZERO_SUM}>Zero Sum Budget</option>
+            <option value={StrategyType.ZERO_SUM}>Zero-sum budget</option>
             <option value={StrategyType.FIFTY_THIRTY_TWENTY}>50/30/20</option>
           </select>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Budget Period
+            Budget period
           </label>
           <select
             {...register("period")}
@@ -72,7 +72,7 @@ export default function BasicBudgetStep({
             <option value={PeriodType.MONTHLY}>Monthly</option>
             <option value={PeriodType.QUARTERLY}>Quarterly</option>
             <option value={PeriodType.YEARLY}>Yearly</option>
-            <option value={PeriodType.ONE_TIME}>One Time</option>
+            <option value={PeriodType.ONE_TIME}>One time</option>
           </select>
         </div>
       </div>
@@ -80,7 +80,7 @@ export default function BasicBudgetStep({
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Start Date
+            Start date
           </label>
           <DateInput
             {...register("startAt")}
@@ -96,7 +96,7 @@ export default function BasicBudgetStep({
 
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            End Date
+            End date
             {isEndDateLocked && (
               <span className="ml-1 text-xs text-gray-500">
                 (set by period)

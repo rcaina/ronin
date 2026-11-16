@@ -47,7 +47,7 @@ export default function AddCategoryForm({
     <div className="group relative overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-surface-card p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <span className="text-sm font-medium text-gray-500">
-          {isEditing ? "Edit Template" : "New Template"}
+          {isEditing ? "Edit template" : "New template"}
         </span>
         <button
           onClick={onCancel}
@@ -74,7 +74,7 @@ export default function AddCategoryForm({
             htmlFor="categoryName"
             className="mb-1 block text-sm font-medium text-gray-700"
           >
-            Category Name
+            Category name
           </label>
           <input
             type="text"
@@ -99,7 +99,7 @@ export default function AddCategoryForm({
             htmlFor="categoryGroup"
             className="mb-1 block text-sm font-medium text-gray-700"
           >
-            Category Group
+            Category group
           </label>
           <select
             id="categoryGroup"

@@ -143,7 +143,7 @@ export default function EditBudgetModal({
   const getStrategyLabel = (strategy: string) => {
     switch (strategy) {
       case StrategyType.ZERO_SUM:
-        return "Zero Sum Budget";
+        return "Zero-sum budget";
       case StrategyType.FIFTY_THIRTY_TWENTY:
         return "50/30/20";
       default:
@@ -162,7 +162,7 @@ export default function EditBudgetModal({
       case PeriodType.YEARLY:
         return "Yearly";
       case PeriodType.ONE_TIME:
-        return "One Time";
+        return "One time";
       default:
         return period;
     }
@@ -195,7 +195,7 @@ export default function EditBudgetModal({
               htmlFor="name"
               className="block text-sm font-medium text-gray-700"
             >
-              Budget Name
+              Budget name
             </label>
             <input
               type="text"
@@ -278,7 +278,7 @@ export default function EditBudgetModal({
                     htmlFor="startAt"
                     className="block text-sm font-medium text-gray-700"
                   >
-                    Start Date
+                    Start date
                   </label>
                   <div className="relative mt-1">
                     <DateInput
@@ -300,7 +300,7 @@ export default function EditBudgetModal({
                     htmlFor="endAt"
                     className="block text-sm font-medium text-gray-700"
                   >
-                    End Date
+                    End date
                     {isEndDateLocked && (
                       <span className="ml-1 text-xs text-gray-500">
                         (set by period)
@@ -342,7 +342,7 @@ export default function EditBudgetModal({
               disabled={isSubmitting}
               className="rounded-md bg-secondary px-4 py-2 text-sm font-medium text-black/90 shadow-sm hover:bg-accent focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 disabled:opacity-50"
             >
-              Save Changes
+              Save changes
             </Button>
           </div>
         </form>

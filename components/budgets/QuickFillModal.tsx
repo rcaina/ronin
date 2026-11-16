@@ -42,7 +42,7 @@ export default function QuickFillModal({
     },
     {
       value: "average-3",
-      label: "3-month average spent",
+      label: "3-month average spending",
       description: "Average of what you spent over the last 3 months.",
     },
     {
@@ -93,7 +93,8 @@ export default function QuickFillModal({
       }
     >
       <p className="mb-3 text-sm text-gray-500">
-        Replaces the planned amount of every category for {monthLabel}.
+        Replaces {monthLabel}&apos;s planned amount on every category with
+        history in those months.
       </p>
       <div className="space-y-2">
         {options.map((option) => (
