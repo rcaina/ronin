@@ -1,4 +1,4 @@
-import type { CategoryType } from "@prisma/client";
+import { BudgetStatus, type CategoryType } from "@prisma/client";
 import { roundToCents } from "@/lib/utils";
 import { toMonthKey, type MonthKey } from "@/lib/utils/budget-month";
 
@@ -20,6 +20,7 @@ export interface MergeCard {
 
 export interface MergeSourceBudget<C, D> {
   startAt: Date;
+  status: BudgetStatus;
   categories: C[];
   cards: D[];
 }
@@ -36,7 +37,7 @@ export interface MergeGroup<T> {
 export interface CategoryMergeGroup<C> extends MergeGroup<C> {
   /** Earliest createdAt among the merged rows, for a category that must be created. */
   firstCreatedAt: Date;
-  /** Planned amount per merged month: the merged budgets' allocatedAmount in their start month, summed, else 0. */
+  /** Planned amount per merged month from the month's plan budget, else 0 from the category's first month on. */
   months: Map<MonthKey, number>;
 }
 
@@ -117,8 +118,24 @@ export const planContinuousMerge = <
   const latestFirst = [...sources].sort(
     (a, b) => b.startAt.getTime() - a.startAt.getTime(),
   );
+  // Budgets sharing a start month replaced one another: plan from the latest one not archived.
+  const planBudgets = new Map<MonthKey, MergeSourceBudget<C, D>>();
   for (const source of latestFirst) {
     const month = toMonthKey(source.startAt);
+    const current = planBudgets.get(month);
+    if (
+      !current ||
+      (current.status === BudgetStatus.ARCHIVED &&
+        source.status !== BudgetStatus.ARCHIVED)
+    ) {
+      planBudgets.set(month, source);
+    }
+  }
+
+  const firstSourceMonth = new Map<CategoryGroup, MonthKey>();
+  for (const source of latestFirst) {
+    const month = toMonthKey(source.startAt);
+    const plansMonth = planBudgets.get(month) === source;
     for (const row of source.categories) {
       const group = addToGroup(
         categories,
@@ -134,6 +151,9 @@ export const planContinuousMerge = <
       if (row.createdAt < group.firstCreatedAt) {
         group.firstCreatedAt = row.createdAt;
       }
+      const seen = firstSourceMonth.get(group);
+      if (!seen || month < seen) firstSourceMonth.set(group, month);
+      if (!plansMonth) continue;
       group.months.set(
         month,
         roundToCents(
@@ -146,17 +166,25 @@ export const planContinuousMerge = <
     }
   }
 
-  // A merged month plans 0 for categories its budget didn't have, not the default.
-  const mergedMonths = sources.map((source) => toMonthKey(source.startAt));
+  // A merged month plans 0 for categories its budget didn't have, not the default; months before a category existed (created or in a merged budget) get no row so it stays hidden there.
+  const mergedMonths = [...planBudgets.keys()];
   for (const group of categories) {
+    const createdMonth = toMonthKey(group.firstCreatedAt);
+    const sourceMonth = firstSourceMonth.get(group);
+    const firstMonth =
+      sourceMonth && sourceMonth < createdMonth ? sourceMonth : createdMonth;
     for (const month of mergedMonths) {
-      if (!group.months.has(month)) group.months.set(month, 0);
+      if (month >= firstMonth && !group.months.has(month)) {
+        group.months.set(month, 0);
+      }
     }
   }
 
   return {
     categories: withoutMatchFields(
-      categories.filter((group) => group.months.size > 0),
+      categories.filter(
+        (group) => group.sourceIds.length > 0 || group.months.size > 0,
+      ),
     ),
     cards: withoutMatchFields(
       cards.filter((group) => group.sourceIds.length > 0),

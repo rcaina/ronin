@@ -1,4 +1,4 @@
-import { CategoryType } from "@prisma/client";
+import { BudgetStatus, CategoryType } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import {
   type MergeCard,
@@ -31,7 +31,8 @@ const budget = (
   startAt: string,
   categories: MergeCategory[],
   cards: MergeCard[] = [],
-) => ({ startAt: new Date(startAt), categories, cards });
+  status: BudgetStatus = BudgetStatus.COMPLETED,
+) => ({ startAt: new Date(startAt), status, categories, cards });
 
 describe("planContinuousMerge categories", () => {
   it("matches by default id first, then by name and group ignoring case and spaces", () => {
@@ -90,7 +91,7 @@ describe("planContinuousMerge categories", () => {
     );
   });
 
-  it("plans each budget's amount in its start month, summing budgets that share a month", () => {
+  it("plans each budget's amount in its start month, from the latest budget when two share a month", () => {
     const plan = planContinuousMerge({ categories: [], cards: [] }, [
       budget("2026-02-15T00:00:00Z", [
         category("a", { allocatedAmount: 50.1 }),
@@ -103,10 +104,116 @@ describe("planContinuousMerge categories", () => {
       ]),
     ]);
 
+    expect(plan.categories[0]!.sourceIds).toEqual(["c", "a", "b"]);
     expect(Object.fromEntries(plan.categories[0]!.months)).toEqual({
-      "2026-02": 75.3,
+      "2026-02": 50.1,
       "2026-03": 0,
     });
+  });
+
+  it("plans a shared month from the budget that was not archived, even if it started earlier", () => {
+    const plan = planContinuousMerge({ categories: [], cards: [] }, [
+      budget("2026-05-01T00:00:00Z", [
+        category("kept", { allocatedAmount: 300 }),
+      ]),
+      budget(
+        "2026-05-20T00:00:00Z",
+        [
+          category("archived", { allocatedAmount: 280 }),
+          category("archived-only", { name: "Gifts", allocatedAmount: 50 }),
+        ],
+        [],
+        BudgetStatus.ARCHIVED,
+      ),
+    ]);
+
+    expect(
+      plan.categories.map((group) => [
+        group.sourceIds,
+        Object.fromEntries(group.months),
+      ]),
+    ).toEqual([
+      [["archived", "kept"], { "2026-05": 300 }],
+      [["archived-only"], { "2026-05": 0 }],
+    ]);
+  });
+
+  it("plans a shared month from the earlier budget when the later one is archived, and pins its other categories to 0 from that month", () => {
+    const plan = planContinuousMerge({ categories: [], cards: [] }, [
+      budget("2025-09-01T00:00:00Z", [
+        category("sep-food", { allocatedAmount: 400 }),
+      ]),
+      budget(
+        "2025-09-22T00:00:00Z",
+        [
+          category("archived-food", { allocatedAmount: 380 }),
+          category("archived-gas", {
+            name: "Gas",
+            allocatedAmount: 200,
+            createdAt: new Date("2025-10-05T00:00:00Z"),
+          }),
+        ],
+        [],
+        BudgetStatus.ARCHIVED,
+      ),
+      budget("2025-10-01T00:00:00Z", [
+        category("oct-food", { allocatedAmount: 410 }),
+      ]),
+    ]);
+
+    expect(
+      plan.categories.map((group) => [
+        group.sourceIds,
+        Object.fromEntries(group.months),
+      ]),
+    ).toEqual([
+      [
+        ["oct-food", "archived-food", "sep-food"],
+        { "2025-10": 410, "2025-09": 400 },
+      ],
+      [["archived-gas"], { "2025-09": 0, "2025-10": 0 }],
+    ]);
+  });
+
+  it("plans a month shared by two archived budgets from the later one", () => {
+    const plan = planContinuousMerge({ categories: [], cards: [] }, [
+      budget(
+        "2026-05-01T00:00:00Z",
+        [category("early")],
+        [],
+        BudgetStatus.ARCHIVED,
+      ),
+      budget(
+        "2026-05-20T00:00:00Z",
+        [category("late", { allocatedAmount: 250 })],
+        [],
+        BudgetStatus.ARCHIVED,
+      ),
+    ]);
+
+    expect(Object.fromEntries(plan.categories[0]!.months)).toEqual({
+      "2026-05": 250,
+    });
+  });
+
+  it("writes no row for merged months before a category existed", () => {
+    const plan = planContinuousMerge({ categories: [], cards: [] }, [
+      budget("2026-02-01T00:00:00Z", [category("feb-food")]),
+      budget("2026-03-01T00:00:00Z", [
+        category("mar-gym", {
+          name: "Gym",
+          allocatedAmount: 40,
+          createdAt: new Date("2026-03-01T00:00:00Z"),
+        }),
+      ]),
+    ]);
+
+    expect(
+      Object.fromEntries(
+        plan.categories.find((group) => group.template.id === "mar-gym")!
+          .months,
+      ),
+    ).toEqual({ "2026-03": 40 });
   });
 
   it("plans 0 in a merged month for every category that budget did not have", () => {
