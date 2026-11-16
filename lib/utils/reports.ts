@@ -212,6 +212,29 @@ export const previousWindow = (window: DateWindow): DateWindow => {
   return { start, end };
 };
 
+/** Jan 1 (UTC) of `now`'s year through `now`. */
+export const yearToDateWindow = (now: Date = new Date()): DateWindow => ({
+  start: new Date(Date.UTC(now.getUTCFullYear(), 0, 1)),
+  end: now,
+});
+
+const oneYearEarlier = (date: Date): Date => {
+  const result = new Date(date);
+  result.setUTCFullYear(date.getUTCFullYear() - 1);
+  // Feb 29 rolls over to Mar 1 in a non-leap year; step back to Feb 28.
+  if (result.getUTCMonth() !== date.getUTCMonth()) result.setUTCDate(0);
+  return result;
+};
+
+/**
+ * `window` moved back one calendar year (UTC), so YTD compares with the same
+ * span last year. Feb 29 lands on Feb 28.
+ */
+export const sameSpanLastYear = (window: DateWindow): DateWindow => ({
+  start: oneYearEarlier(window.start),
+  end: oneYearEarlier(window.end),
+});
+
 // ---------------------------------------------------------------------------
 // Aggregations
 // ---------------------------------------------------------------------------

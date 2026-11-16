@@ -12,6 +12,8 @@ import {
   generateReportBuckets,
   pickGranularity,
   previousWindow,
+  sameSpanLastYear,
+  yearToDateWindow,
   type ReportBudget,
   type ReportCategory,
 } from "@/lib/utils/reports";
@@ -405,5 +407,44 @@ describe("deriveCurrentReportWindow", () => {
 
     expect(window.start).toEqual(new Date("2026-10-15"));
     expect(window.end).toEqual(new Date("2026-12-15"));
+  });
+});
+
+describe("yearToDateWindow", () => {
+  it("spans Jan 1 UTC through now", () => {
+    const now = new Date("2026-11-16T12:00:00Z");
+    const window = yearToDateWindow(now);
+
+    expect(window.start).toEqual(new Date("2026-01-01T00:00:00.000Z"));
+    expect(window.end).toEqual(now);
+  });
+
+  it("starts the same day on Jan 1", () => {
+    const now = new Date("2027-01-01T00:30:00Z");
+
+    expect(yearToDateWindow(now).start).toEqual(
+      new Date("2027-01-01T00:00:00.000Z"),
+    );
+  });
+});
+
+describe("sameSpanLastYear", () => {
+  it("moves both ends back one year", () => {
+    const prior = sameSpanLastYear({
+      start: new Date("2026-01-01T00:00:00.000Z"),
+      end: new Date("2026-11-16T12:00:00.000Z"),
+    });
+
+    expect(prior.start).toEqual(new Date("2025-01-01T00:00:00.000Z"));
+    expect(prior.end).toEqual(new Date("2025-11-16T12:00:00.000Z"));
+  });
+
+  it("lands Feb 29 on Feb 28", () => {
+    const prior = sameSpanLastYear({
+      start: new Date("2028-01-01T00:00:00.000Z"),
+      end: new Date("2028-02-29T12:00:00.000Z"),
+    });
+
+    expect(prior.end).toEqual(new Date("2027-02-28T12:00:00.000Z"));
   });
 });

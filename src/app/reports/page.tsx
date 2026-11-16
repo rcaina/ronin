@@ -58,6 +58,7 @@ const RANGE_OPTIONS: RangeOption[] = [
   { value: "3m", label: "3M", premium: true },
   { value: "6m", label: "6M", premium: true },
   { value: "1y", label: "1Y", premium: true },
+  { value: "ytd", label: "YTD", premium: true },
   { value: "all", label: "All", premium: true },
 ];
 
@@ -85,6 +86,7 @@ export default function ReportsPage() {
   // "current" and "all" don't have a natural "previous period".
   const canCompare = isPremium && range !== "current" && range !== "all";
   const effectiveCompare = canCompare && compare;
+  const priorLabel = range === "ytd" ? "last year" : "last period";
 
   const { data, isLoading, error } = useReports({
     range,
@@ -203,7 +205,7 @@ export default function ReportsPage() {
                   !isPremium
                     ? "Premium feature"
                     : !canCompare
-                      ? "Pick a 1M/3M/6M/1Y range to compare periods"
+                      ? "Pick a 1M/3M/6M/1Y/YTD range to compare periods"
                       : "Compare to the previous period"
                 }
               >
@@ -231,7 +233,7 @@ export default function ReportsPage() {
                 value={formatCurrency(summary.income)}
                 subtitle={
                   incomeChangePct != null
-                    ? `${formatPercent(incomeChangePct)} vs last period`
+                    ? `${formatPercent(incomeChangePct)} vs ${priorLabel}`
                     : "This period"
                 }
                 icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
@@ -243,7 +245,7 @@ export default function ReportsPage() {
                 value={formatCurrency(summary.spending)}
                 subtitle={
                   spendingChangePct != null
-                    ? `${formatPercent(spendingChangePct)} vs last period`
+                    ? `${formatPercent(spendingChangePct)} vs ${priorLabel}`
                     : "This period"
                 }
                 icon={<TrendingDown className="h-4 w-4 sm:h-5 sm:w-5" />}

@@ -27,6 +27,8 @@ import {
   deriveWindowFromBudgets,
   pickGranularity,
   previousWindow,
+  sameSpanLastYear,
+  yearToDateWindow,
   type ReportBudget,
 } from "@/lib/utils/reports";
 import type { DateWindow } from "@/lib/utils/spending";
@@ -87,6 +89,13 @@ export const GET = withUser({
           null,
         );
         window = deriveWindowFromBudgets(budgets);
+      } else if (range === "ytd") {
+        window = yearToDateWindow();
+        budgets = await getHistoricalReportBudgets(
+          prisma,
+          user.accountId,
+          window,
+        );
       } else {
         const end = new Date();
         const start = new Date();
@@ -107,7 +116,8 @@ export const GET = withUser({
       // extra to fetch there.
       let comparison = null;
       if (compare && range !== "all") {
-        const priorWindow = previousWindow(window);
+        const priorWindow =
+          range === "ytd" ? sameSpanLastYear(window) : previousWindow(window);
         const comparisonBudgets = await getHistoricalReportBudgets(
           prisma,
           user.accountId,
