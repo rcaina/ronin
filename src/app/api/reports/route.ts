@@ -23,6 +23,7 @@ import {
   calculateReportComparison,
   calculateReportSummary,
   calculateSpendingOverTime,
+  deriveCurrentReportWindow,
   deriveWindowFromBudgets,
   pickGranularity,
   previousWindow,
@@ -78,7 +79,7 @@ export const GET = withUser({
 
       if (range === "current") {
         budgets = await getCurrentReportBudgets(prisma, user.accountId);
-        window = deriveWindowFromBudgets(budgets);
+        window = deriveCurrentReportWindow(budgets);
       } else if (range === "all") {
         budgets = await getHistoricalReportBudgets(
           prisma,

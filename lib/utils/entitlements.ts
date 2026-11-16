@@ -88,7 +88,7 @@ export const isPremium = (
 /**
  * Whether the account may create another active budget. Free accounts are
  * capped at `FREE_LIMITS.maxActiveBudgets`; premium (or comped) accounts are
- * unlimited.
+ * unlimited. Callers count active EVENT budgets: the continuous one is free.
  */
 export const canCreateBudget = (
   account: AccountEntitlementFields,

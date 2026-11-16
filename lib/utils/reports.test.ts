@@ -7,6 +7,7 @@ import {
   calculateReportComparison,
   calculateReportSummary,
   calculateSpendingOverTime,
+  deriveCurrentReportWindow,
   deriveWindowFromBudgets,
   generateReportBuckets,
   pickGranularity,
@@ -377,5 +378,32 @@ describe("deriveWindowFromBudgets", () => {
 
     expect(window.start).toEqual(new Date("2025-01-01"));
     expect(window.end.getTime()).toBeGreaterThanOrEqual(before);
+  });
+});
+
+describe("deriveCurrentReportWindow", () => {
+  const now = new Date("2026-11-16T12:00:00Z");
+
+  it("spans the current month for the continuous budget", () => {
+    const window = deriveCurrentReportWindow(
+      [{ startAt: new Date("2025-01-01"), endAt: null }],
+      now,
+    );
+
+    expect(window.start).toEqual(new Date("2026-11-01T00:00:00.000Z"));
+    expect(window.end).toEqual(new Date("2026-11-30T23:59:59.999Z"));
+  });
+
+  it("widens to cover an active event budget", () => {
+    const window = deriveCurrentReportWindow(
+      [
+        { startAt: new Date("2025-01-01"), endAt: null },
+        { startAt: new Date("2026-10-15"), endAt: new Date("2026-12-15") },
+      ],
+      now,
+    );
+
+    expect(window.start).toEqual(new Date("2026-10-15"));
+    expect(window.end).toEqual(new Date("2026-12-15"));
   });
 });

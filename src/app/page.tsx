@@ -185,15 +185,20 @@ export default function HomePage() {
     .sort((a, b) => b.value - a.value)
     .slice(0, 8); // Top 8 categories
 
+  // The continuous budget's period is the current month.
+  const thisMonth = getMonthWindow(toMonthKey(new Date()));
+
   // Prepare data for spending by budget period
   const periodSpendingData = activeBudgets
     .map((budget) => {
-      const periodStart = new Date(budget.startAt);
-      const periodEnd = budget.endAt
-        ? new Date(budget.endAt)
-        : getMonthWindow(toMonthKey(new Date())).end;
+      const periodStart = budget.endAt
+        ? new Date(budget.startAt)
+        : thisMonth.start;
+      const periodEnd = budget.endAt ? new Date(budget.endAt) : thisMonth.end;
 
-      const budgetIncome = calculateTotalIncome(budget);
+      const budgetIncome = budget.endAt
+        ? calculateTotalIncome(budget)
+        : calculateTotalIncomeInWindow(budget, thisMonth);
       const periodSpent = sumSpendingInPeriod(budget, periodStart, periodEnd);
 
       // Format period label
@@ -228,14 +233,18 @@ export default function HomePage() {
   // Prepare data for budget utilization & time remaining
   const budgetUtilizationData = activeBudgets
     .map((budget) => {
-      const periodStart = new Date(budget.startAt);
-      const periodEnd = budget.endAt
-        ? new Date(budget.endAt)
-        : getMonthWindow(toMonthKey(new Date())).end;
+      const periodStart = budget.endAt
+        ? new Date(budget.startAt)
+        : thisMonth.start;
+      const periodEnd = budget.endAt ? new Date(budget.endAt) : thisMonth.end;
       const now = new Date();
 
-      const budgetIncome = calculateTotalIncome(budget);
-      const budgetSpent = calculateBudgetSpent(budget);
+      const budgetIncome = budget.endAt
+        ? calculateTotalIncome(budget)
+        : calculateTotalIncomeInWindow(budget, thisMonth);
+      const budgetSpent = budget.endAt
+        ? calculateBudgetSpent(budget)
+        : calculateBudgetSpentInWindow(budget, thisMonth);
 
       // Calculate time remaining
       const daysTotal = Math.ceil(

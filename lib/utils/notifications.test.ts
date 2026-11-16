@@ -58,6 +58,21 @@ describe("evaluateCategoryThreshold", () => {
     expect(result?.dedupeKey).toBe("CATEGORY_OVER_THRESHOLD:cat_1");
   });
 
+  it("scopes the dedupe key to the month for a continuous budget", () => {
+    const november = evaluateCategoryThreshold({
+      ...base,
+      spent: 95,
+      month: "2026-11",
+    });
+    const december = evaluateCategoryThreshold({
+      ...base,
+      spent: 95,
+      month: "2026-12",
+    });
+    expect(november?.dedupeKey).toBe("CATEGORY_OVER_THRESHOLD:cat_1:2026-11");
+    expect(december?.dedupeKey).toBe("CATEGORY_OVER_THRESHOLD:cat_1:2026-12");
+  });
+
   it("is idempotent — evaluating the same input twice yields the same key", () => {
     const first = evaluateCategoryThreshold({ ...base, spent: 95 });
     const second = evaluateCategoryThreshold({ ...base, spent: 95 });

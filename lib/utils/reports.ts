@@ -1,5 +1,6 @@
 import { type CategoryType } from "@prisma/client";
 import { roundToCents } from "@/lib/utils";
+import { getMonthWindow, toMonthKey } from "@/lib/utils/budget-month";
 import {
   calculateBudgetSpentInWindow,
   calculateCategorySpentInWindow,
@@ -180,6 +181,24 @@ export const deriveWindowFromBudgets = (
     return budgetEnd > max ? budgetEnd : max;
   }, budgets[0]!.endAt ?? now);
   return { start, end };
+};
+
+/**
+ * The "current" report window: event budgets span their own dates and the
+ * open-ended (continuous) budget spans the month containing `now`.
+ */
+export const deriveCurrentReportWindow = (
+  budgets: ReadonlyArray<{ startAt: Date; endAt: Date | null }>,
+  now: Date = new Date(),
+): DateWindow => {
+  const thisMonth = getMonthWindow(toMonthKey(now));
+  return deriveWindowFromBudgets(
+    budgets.map((budget) =>
+      budget.endAt
+        ? budget
+        : { startAt: thisMonth.start, endAt: thisMonth.end },
+    ),
+  );
 };
 
 /**

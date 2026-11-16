@@ -3,6 +3,11 @@ import type { PrismaClientTx } from "../prisma";
 import { HttpError } from "../errors";
 import { calculateCategorySpent } from "../utils/spending";
 import {
+  getMonthWindow,
+  projectCategoryToMonth,
+  toMonthKey,
+} from "../utils/budget-month";
+import {
   dedupeNotificationTargets,
   evaluateBudgetPeriodEnding,
   evaluateCategoryThreshold,
@@ -239,8 +244,9 @@ const getNotifiableMembers = async (
 };
 
 /**
- * Evaluates triggers (a) "category >= 90% of its allocation" and (b)
- * "budget period ends within 3 days" for every ACTIVE budget on the account,
+ * Evaluates triggers (a) "category >= 90% of its allocation" (this month's
+ * plan and spend for the continuous budget) and (b) "budget period ends
+ * within 3 days" (event budgets only) for every ACTIVE budget on the account,
  * fans matching candidates out to every member with that trigger enabled,
  * and persists (deduped) + pushes (premium) the result.
  *
@@ -266,11 +272,15 @@ export const evaluateBudgetNotificationsForAccount = async (
   const members = await getNotifiableMembers(tx, accountId);
   if (members.length === 0) return [];
 
+  const month = toMonthKey(now);
+  const monthWindow = getMonthWindow(month);
+
   const budgets = await tx.budget.findMany({
     where: { accountId, deleted: null, status: "ACTIVE" },
     select: {
       id: true,
       name: true,
+      kind: true,
       endAt: true,
       categories: {
         where: { deleted: null },
@@ -278,6 +288,10 @@ export const evaluateBudgetNotificationsForAccount = async (
           id: true,
           name: true,
           allocatedAmount: true,
+          months: {
+            where: { month: monthWindow.start },
+            select: { assigned: true },
+          },
           transactions: {
             where: { deleted: null },
             select: {
@@ -322,14 +336,22 @@ export const evaluateBudgetNotificationsForAccount = async (
       });
     if (periodEnding) periodEndingCandidates.push(periodEnding);
 
-    for (const category of budget.categories) {
-      const spent = calculateCategorySpent(category);
+    const isContinuous = budget.kind === "CONTINUOUS";
+    for (const stored of budget.categories) {
+      const category = isContinuous
+        ? projectCategoryToMonth(
+            stored,
+            monthWindow,
+            stored.months[0]?.assigned,
+          )
+        : stored;
       const thresholdCandidate = evaluateCategoryThreshold({
         categoryId: category.id,
         categoryName: category.name,
         budgetId: budget.id,
         allocatedAmount: category.allocatedAmount,
-        spent,
+        spent: calculateCategorySpent(category),
+        ...(isContinuous && { month }),
       });
       if (thresholdCandidate) {
         categoryThresholdCandidates.push(thresholdCandidate);
