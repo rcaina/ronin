@@ -30,9 +30,12 @@ import {
   SlidersHorizontal,
   CalendarRange,
 } from "lucide-react";
-import { roundToCents } from "@/lib/utils";
+import { formatCurrency, roundToCents } from "@/lib/utils";
 import { isDebitCard } from "@/lib/utils/cards";
-import { calculateCategorySpent } from "@/lib/utils/spending";
+import {
+  calculateCategorySpent,
+  getCategoryStatus,
+} from "@/lib/utils/spending";
 import type { BudgetCategoryWithCategory } from "@/lib/types/budget";
 import { useBudgetMonth, useLocalStorageState } from "@/lib/utils/hooks";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
@@ -223,28 +226,25 @@ const BudgetCategoriesPage = () => {
   const allocationDifference = (totalIncome - totalAllocated).toFixed(2);
 
   // Calculate category statistics
-  const totalCategories = budget?.categories?.length ?? 0;
-  const completedCategories =
-    budget?.categories?.filter((cat) => {
-      const totalSpent = roundToCents(calculateCategorySpent(cat));
-      return totalSpent >= (cat.allocatedAmount ?? 0);
-    }).length ?? 0;
-
-  // Calculate categories over budget and total amount over
-  const overBudgetCategories =
-    budget?.categories?.filter((cat) => {
-      const totalSpent = roundToCents(calculateCategorySpent(cat));
-      return totalSpent > (cat.allocatedAmount ?? 0);
-    }) ?? [];
-
+  const categoryProgress = (budget?.categories ?? []).map((cat) => {
+    const spent = roundToCents(calculateCategorySpent(cat));
+    const available = (cat.allocatedAmount ?? 0) + (cat.carry ?? 0);
+    return {
+      name: cat.name,
+      over: roundToCents(spent - available),
+      status: getCategoryStatus(spent, available),
+    };
+  });
+  const totalCategories = categoryProgress.length;
+  const completedCategories = categoryProgress.filter(
+    (cat) => cat.status !== "open",
+  ).length;
+  const overBudgetCategories = categoryProgress.filter(
+    (cat) => cat.status === "over",
+  );
   const categoriesOverBudget = overBudgetCategories.length;
-
   const totalOverBudget = roundToCents(
-    budget?.categories?.reduce((sum, cat) => {
-      const totalSpent = roundToCents(calculateCategorySpent(cat));
-      const overAmount = Math.max(0, totalSpent - (cat.allocatedAmount ?? 0));
-      return sum + overAmount;
-    }, 0) ?? 0,
+    overBudgetCategories.reduce((sum, cat) => sum + cat.over, 0),
   );
 
   // Format category names for over budget display
@@ -255,19 +255,14 @@ const BudgetCategoriesPage = () => {
 
     if (categoriesOverBudget === 1) {
       return {
-        text: `$${totalOverBudget.toFixed(2)} over - ${overBudgetCategories[0]?.name}`,
+        text: `${formatCurrency(totalOverBudget)} over - ${overBudgetCategories[0]?.name}`,
         tooltip: null,
       };
     }
 
-    const othersCount = categoriesOverBudget - 1;
     return {
-      text: `$${totalOverBudget.toFixed(2)} over ${othersCount} categories`,
-      tooltip: overBudgetCategories.map((cat) => ({
-        name: cat.name,
-        amount: roundToCents(calculateCategorySpent(cat)),
-        allocated: cat.allocatedAmount,
-      })),
+      text: `${formatCurrency(totalOverBudget)} over in ${categoriesOverBudget} categories`,
+      tooltip: overBudgetCategories,
     };
   };
 
@@ -430,18 +425,16 @@ const BudgetCategoriesPage = () => {
       }
 
       if (filters.status !== "all") {
-        const spent = getCategorySpent(category);
-        const allocated = roundToCents(category.allocatedAmount ?? 0);
-
-        if (filters.status === "inProgress" && !(spent < allocated)) {
-          return false;
-        }
-        if (filters.status === "completed" && spent !== allocated) {
-          return false;
-        }
-        if (filters.status === "overBudget" && !(spent > allocated)) {
-          return false;
-        }
+        const status = getCategoryStatus(
+          getCategorySpent(category),
+          (category.allocatedAmount ?? 0) + (category.carry ?? 0),
+        );
+        const wanted = {
+          inProgress: "open",
+          completed: "full",
+          overBudget: "over",
+        }[filters.status];
+        if (status !== wanted) return false;
       }
 
       return true;
@@ -450,8 +443,8 @@ const BudgetCategoriesPage = () => {
     return [...filtered].sort((a, b) => {
       switch (filters.sort) {
         case "percentSpent": {
-          const aAllocated = a.allocatedAmount ?? 0;
-          const bAllocated = b.allocatedAmount ?? 0;
+          const aAllocated = (a.allocatedAmount ?? 0) + (a.carry ?? 0);
+          const bAllocated = (b.allocatedAmount ?? 0) + (b.carry ?? 0);
           const aPercent =
             aAllocated > 0 ? getCategorySpent(a) / aAllocated : 0;
           const bPercent =
@@ -459,8 +452,10 @@ const BudgetCategoriesPage = () => {
           return bPercent - aPercent;
         }
         case "remaining": {
-          const aRemaining = (a.allocatedAmount ?? 0) - getCategorySpent(a);
-          const bRemaining = (b.allocatedAmount ?? 0) - getCategorySpent(b);
+          const aRemaining =
+            (a.allocatedAmount ?? 0) + (a.carry ?? 0) - getCategorySpent(a);
+          const bRemaining =
+            (b.allocatedAmount ?? 0) + (b.carry ?? 0) - getCategorySpent(b);
           return aRemaining - bRemaining;
         }
         case "allocated":
@@ -664,8 +659,7 @@ const BudgetCategoriesPage = () => {
                           >
                             <span className="text-gray-200">{cat.name}</span>
                             <span className="tabular-nums text-red-300">
-                              ${(cat.amount - (cat.allocated ?? 0)).toFixed(2)}{" "}
-                              over
+                              {formatCurrency(cat.over)} over
                             </span>
                           </div>
                         ))}

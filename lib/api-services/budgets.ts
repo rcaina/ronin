@@ -46,7 +46,11 @@ import {
   type QuickFillCategory,
   type QuickFillSource,
 } from "../utils/budget-month";
-import { isWithinWindow, type DateWindow } from "../utils/spending";
+import {
+  getCategoryStatus,
+  isWithinWindow,
+  type DateWindow,
+} from "../utils/spending";
 
 const resolveBudgetMonthWindow = async (
   tx: PrismaClientTx,
@@ -271,6 +275,9 @@ export async function getBudgetById(
   const assignments = monthWindow
     ? await getMonthAssignments(tx, budget.id, monthWindow)
     : null;
+  const carries = monthWindow
+    ? await getMonthCarries(tx, budget.categories, monthWindow)
+    : null;
   const scoped = monthWindow
     ? {
         ...budget,
@@ -282,13 +289,14 @@ export async function getBudgetById(
               !!assignments?.has(category.id),
             ),
           )
-          .map((category) =>
-            projectCategoryToMonth(
+          .map((category) => ({
+            ...projectCategoryToMonth(
               category,
               monthWindow,
               assignments?.get(category.id),
             ),
-          ),
+            carry: carries?.get(category.id) ?? 0,
+          })),
         transactions: budget.transactions.filter((transaction) =>
           isWithinWindow(transaction, monthWindow),
         ),
@@ -962,8 +970,13 @@ export const getBudgetCategories = async (
 
   // Sort categories: incomplete first, completed last, then alphabetically within each group
   return formattedCategories.sort((a, b) => {
-    const aIsCompleted = a.spentAmount >= (a.allocatedAmount ?? 0);
-    const bIsCompleted = b.spentAmount >= (b.allocatedAmount ?? 0);
+    const isCompleted = (category: (typeof formattedCategories)[number]) =>
+      getCategoryStatus(
+        category.spentAmount,
+        (category.allocatedAmount ?? 0) + (carries?.get(category.id) ?? 0),
+      ) !== "open";
+    const aIsCompleted = isCompleted(a);
+    const bIsCompleted = isCompleted(b);
 
     // If completion status is different, incomplete comes first
     if (aIsCompleted !== bIsCompleted) {
@@ -982,6 +995,7 @@ export const createBudgetCategory = async (
     categoryName: string;
     group: CategoryType;
     allocatedAmount: number;
+    month?: string;
   },
   user: User & { accountId: string },
 ): Promise<Category> => {
@@ -998,6 +1012,7 @@ export const createBudgetCategory = async (
     throw new HttpError("Budget not found", 404);
   }
 
+  const monthWindow = resolveMonthWindow(budget.kind, data.month);
   const trimmedName = data.categoryName.trim();
 
   // Find matching default category if it exists, ignoring casing differences
@@ -1030,6 +1045,9 @@ export const createBudgetCategory = async (
       group: data.group,
       allocatedAmount: data.allocatedAmount,
       defaultCategoryId: defaultCategory.id,
+      // Added while viewing a past month: start it there so that month shows it.
+      ...(monthWindow &&
+        monthWindow.end < new Date() && { createdAt: monthWindow.start }),
     },
   });
 

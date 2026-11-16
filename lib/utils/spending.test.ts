@@ -6,6 +6,7 @@ import {
   calculateSpendingPercentage,
   calculateTotalIncome,
   flattenBudgetTransactions,
+  getCategoryStatus,
   getSplitSpending,
   getTransactionSpending,
   isWithinWindow,
@@ -130,6 +131,28 @@ describe("calculateSpendingPercentage", () => {
 
   it("guards against divide-by-zero", () => {
     expect(calculateSpendingPercentage(50, 0)).toBe(0);
+  });
+});
+
+describe("getCategoryStatus", () => {
+  it("is open while money is left", () => {
+    expect(getCategoryStatus(40, 50)).toBe("open");
+  });
+
+  it("is full when spending lands exactly on what was available", () => {
+    expect(getCategoryStatus(50, 50)).toBe("full");
+  });
+
+  it("is over once spending passes planned plus carry", () => {
+    expect(getCategoryStatus(50.01, 50)).toBe("over");
+  });
+
+  it("is open, not full, with nothing planned and nothing spent", () => {
+    expect(getCategoryStatus(0, 0)).toBe("open");
+  });
+
+  it("is over when a $0 plan has spending", () => {
+    expect(getCategoryStatus(12, 0)).toBe("over");
   });
 });
 

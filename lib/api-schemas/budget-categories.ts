@@ -6,6 +6,7 @@ export const createBudgetCategorySchema = z.object({
   categoryName: z.string().min(1, "Category name is required"),
   group: z.nativeEnum(CategoryType),
   allocatedAmount: z.number().min(0, "Allocated amount must be 0 or greater"),
+  month: z.string().optional(),
 });
 
 export const importBudgetCategoriesSchema = z.object({

@@ -35,6 +35,7 @@ import { formatDateUTC, roundToCents, getGroupColor } from "@/lib/utils";
 import { isDebitCard } from "@/lib/utils/cards";
 import {
   calculateCategorySpent,
+  getCategoryStatus,
   getTransactionDate,
 } from "@/lib/utils/spending";
 import { useDeleteTransaction } from "@/lib/data-hooks/transactions/useTransactions";
@@ -782,18 +783,17 @@ const BudgetDetailsPage = () => {
                           : 0,
                       );
 
-                      // Count categories that are 100% used
-                      const fullyUsedCount = categories.filter((cat) => {
-                        const categorySpent = roundToCents(
-                          calculateCategorySpent(cat),
-                        );
-                        const categoryPercentage = roundToCents(
-                          cat.allocatedAmount && cat.allocatedAmount > 0
-                            ? (categorySpent / cat.allocatedAmount) * 100
-                            : 0,
-                        );
-                        return categoryPercentage >= 100;
-                      }).length;
+                      const groupStatus = getCategoryStatus(
+                        totalSpent,
+                        totalAllocated,
+                      );
+                      const fullyUsedCount = categories.filter(
+                        (cat) =>
+                          getCategoryStatus(
+                            roundToCents(calculateCategorySpent(cat)),
+                            (cat.allocatedAmount ?? 0) + (cat.carry ?? 0),
+                          ) !== "open",
+                      ).length;
 
                       return (
                         <div key={group} className="space-y-1">
@@ -825,14 +825,14 @@ const BudgetDetailsPage = () => {
                           <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
                             <div
                               className={`h-1.5 rounded-full transition-all duration-500 ease-out ${
-                                usagePercentage === 100
+                                groupStatus === "full"
                                   ? "bg-green-500"
-                                  : usagePercentage > 100
+                                  : groupStatus === "over"
                                     ? "bg-red-500"
                                     : "bg-secondary"
                               }`}
                               style={{
-                                width: `${usagePercentage > 100 ? 100 : usagePercentage}%`,
+                                width: `${groupStatus === "over" ? 100 : Math.min(usagePercentage, 100)}%`,
                               }}
                             ></div>
                           </div>

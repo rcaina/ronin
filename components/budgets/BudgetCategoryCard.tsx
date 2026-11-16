@@ -13,6 +13,7 @@ import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import type { GroupColorFunction } from "@/lib/types/budget";
 import { TransactionType } from "@prisma/client";
 import { formatCurrency, roundToCents } from "@/lib/utils";
+import { getCategoryStatus } from "@/lib/utils/spending";
 import Button from "@/components/Button";
 import ToggleRow from "@/components/settings/ToggleRow";
 import { formatMonthLabel, type MonthKey } from "@/lib/utils/budget-month";
@@ -53,6 +54,7 @@ export default function BudgetCategoryCard({
   const categoryRemaining = roundToCents(available - categorySpent);
   const categoryPercentage =
     available > 0 ? roundToCents((categorySpent / available) * 100) : 0;
+  const categoryStatus = getCategoryStatus(categorySpent, available);
 
   const handleStartEditCategory = () => {
     setEditingCategoryId(budgetCategory.id);
@@ -191,14 +193,16 @@ export default function BudgetCategoryCard({
             )}
             <span
               className={`rounded-full px-2.5 py-0.5 text-xs font-medium tabular-nums ${
-                categoryPercentage === 100
+                categoryStatus === "full"
                   ? "bg-green-50 text-green-700"
-                  : categoryPercentage > 100
+                  : categoryStatus === "over"
                     ? "bg-red-50 text-red-700"
                     : "bg-secondary-100 text-secondary-800"
               }`}
             >
-              {categoryPercentage.toFixed(0)}%
+              {available <= 0 && categoryStatus === "over"
+                ? "Over"
+                : `${categoryPercentage.toFixed(0)}%`}
             </span>
           </div>
         </div>
@@ -272,14 +276,14 @@ export default function BudgetCategoryCard({
           <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
             <div
               className={`h-2 rounded-full transition-all duration-500 ease-out ${
-                categoryPercentage === 100
+                categoryStatus === "full"
                   ? "bg-green-500"
-                  : categoryPercentage > 100
+                  : categoryStatus === "over"
                     ? "bg-red-500"
                     : "bg-secondary"
               }`}
               style={{
-                width: `${categoryPercentage > 100 ? 100 : categoryPercentage}%`,
+                width: `${categoryStatus === "over" ? 100 : Math.min(categoryPercentage, 100)}%`,
               }}
             ></div>
           </div>

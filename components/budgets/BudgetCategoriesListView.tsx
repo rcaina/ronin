@@ -19,7 +19,7 @@ import type {
 } from "@/lib/types/budget";
 import { TransactionType, CategoryType } from "@prisma/client";
 import { roundToCents } from "@/lib/utils";
-import { getTransactionDate } from "@/lib/utils/spending";
+import { getCategoryStatus, getTransactionDate } from "@/lib/utils/spending";
 
 interface BudgetCategoriesListViewProps {
   budgetId: string;
@@ -224,6 +224,7 @@ export default function BudgetCategoriesListView({
                       const percentage = roundToCents(
                         available > 0 ? (spent / available) * 100 : 0,
                       );
+                      const status = getCategoryStatus(spent, available);
 
                       return (
                         <div key={budgetCategory.id} className="space-y-2">
@@ -276,14 +277,14 @@ export default function BudgetCategoriesListView({
                                     <div className="h-2 w-full rounded-full bg-gray-200">
                                       <div
                                         className={`h-2 rounded-full transition-all duration-300 ${
-                                          percentage === 100
+                                          status === "full"
                                             ? "bg-green-500"
-                                            : percentage > 100
+                                            : status === "over"
                                               ? "bg-red-500"
                                               : "bg-secondary"
                                         }`}
                                         style={{
-                                          width: `${percentage > 100 ? 100 : percentage}%`,
+                                          width: `${status === "over" ? 100 : Math.min(percentage, 100)}%`,
                                         }}
                                       ></div>
                                     </div>

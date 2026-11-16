@@ -147,6 +147,7 @@ export default function BudgetCategoriesGridView({
           categoryName: data.categoryName,
           group: activeGroup!,
           allocatedAmount: data.allocatedAmount,
+          month,
         },
       });
 

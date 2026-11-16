@@ -35,6 +35,8 @@ export type BudgetWithRelations = SerializedBudget & {
   categories: (Category & {
     transactions: Transaction[];
     transactionSplits?: CategoryTransactionSplit[];
+    /** Month view of a continuous budget: balance rolled in from earlier months. */
+    carry?: number;
   })[];
   transactions: Transaction[];
   cards?: (Card & {
@@ -177,6 +179,8 @@ export interface CreateBudgetCategoryData {
   categoryName: string;
   group: CategoryType;
   allocatedAmount: number;
+  /** Month viewed when adding, on a continuous budget. */
+  month?: string;
 }
 
 export interface UpdateBudgetCategoryData {

@@ -27,7 +27,10 @@ import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { findContinuousBudgetId } from "@/lib/utils/budget-month";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import { formatCurrency, roundToCents } from "@/lib/utils";
-import { calculateSpendingPercentage } from "@/lib/utils/spending";
+import {
+  calculateSpendingPercentage,
+  getTransactionDate,
+} from "@/lib/utils/spending";
 import { useBackNavigation } from "@/lib/utils/navigation-history";
 import { getCardTransactionDisplay } from "@/lib/utils/transactions";
 import { usePageLoading } from "@/components/ConditionalLayout";
@@ -424,8 +427,8 @@ const CardDetailsPage = () => {
                               {formatCurrency(Math.abs(transaction.amount))}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {new Date(
-                                transaction.createdAt,
+                              {getTransactionDate(
+                                transaction,
                               ).toLocaleDateString()}
                             </p>
                           </div>

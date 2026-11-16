@@ -53,9 +53,7 @@ import {
   calculateTotalIncome,
   calculateTotalIncomeInWindow,
   getTransactionDate,
-  getTransactionSpending,
   type DateWindow,
-  type SpendingBudget,
 } from "@/lib/utils/spending";
 
 type Timeframe = "1m" | "3m" | "6m" | "1y" | "all";
@@ -72,20 +70,6 @@ const TIMEFRAMES: {
   { value: "1y", shortLabel: "1Y", label: "past year", months: 12 },
   { value: "all", shortLabel: "All", label: "all time", months: null },
 ];
-
-// Spending within a budget limited to transactions inside a date window.
-const sumSpendingInPeriod = (budget: SpendingBudget, start: Date, end: Date) =>
-  (budget.categories ?? []).reduce(
-    (sum, category) =>
-      sum +
-      (category.transactions ?? []).reduce((transactionSum, transaction) => {
-        const date = getTransactionDate(transaction);
-        return date >= start && date <= end
-          ? transactionSum + getTransactionSpending(transaction)
-          : transactionSum;
-      }, 0),
-    0,
-  );
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -202,7 +186,10 @@ export default function HomePage() {
       const budgetIncome = budget.endAt
         ? calculateTotalIncome(budget)
         : calculateTotalIncomeInWindow(budget, thisMonth);
-      const periodSpent = sumSpendingInPeriod(budget, periodStart, periodEnd);
+      const periodSpent = calculateBudgetSpentInWindow(budget, {
+        start: periodStart,
+        end: periodEnd,
+      });
 
       // Format period label
       const periodLabel =
