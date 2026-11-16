@@ -36,6 +36,7 @@ import { useBudget } from "@/lib/data-hooks/budgets/useBudget";
 import { useBudgetHeader } from "../../../../../components/budgets/BudgetHeaderContext";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import ImportCardsModal from "@/components/cards/ImportCardsModal";
+import LockedBudgetGate from "../LockedBudgetGate";
 
 // Interface for budget cards with user information
 interface BudgetCard extends PrismaCard {
@@ -69,6 +70,7 @@ const BudgetCardsPage = () => {
   } = useBudget(budgetId);
   const [month] = useBudgetMonth();
   const isContinuous = budget?.kind === "CONTINUOUS";
+  const isLocked = budget?.locked ?? false;
   const {
     data: apiCards,
     isLoading: cardsLoading,
@@ -90,8 +92,12 @@ const BudgetCardsPage = () => {
   const [showImportCardsModal, setShowImportCardsModal] = useState(false);
   const { setActions } = useBudgetHeader();
 
-  // Register header actions
+  // Register header actions; a locked budget shows only the gate, so none.
   useEffect(() => {
+    if (isLocked) {
+      setActions([]);
+      return;
+    }
     setActions([
       {
         icon: <Plus className="h-4 w-4" />,
@@ -120,7 +126,7 @@ const BudgetCardsPage = () => {
         variant: "outline" as const,
       },
     ]);
-  }, [setActions]);
+  }, [setActions, isLocked]);
 
   // Map Prisma cards to component cards
   const cards: Card[] = useMemo(() => {
@@ -413,6 +419,10 @@ const BudgetCardsPage = () => {
         </div>
       </div>
     );
+  }
+
+  if (budget.locked) {
+    return <LockedBudgetGate />;
   }
 
   return (

@@ -517,6 +517,15 @@ const BudgetTransactionsPageContent = () => {
   };
 
   // Bulk selection handlers
+  // Keep only visible rows selected so "Delete selected" never removes hidden ones.
+  useEffect(() => {
+    const visible = new Set(filteredAndSortedTransactions.map((t) => t.id));
+    setSelectedTransactions((prev) => {
+      const next = new Set([...prev].filter((id) => visible.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [filteredAndSortedTransactions]);
+
   const handleSelectAll = () => {
     // Filter out transactions that are being edited
     const selectableTransactions = filteredAndSortedTransactions.filter(

@@ -256,6 +256,7 @@ const CardDetailsPage = () => {
                 loadingUsers={loadingUsers}
                 defaultValues={{
                   name: card.name,
+                  lastFourDigits: card.lastFourDigits ?? "",
                   cardType: card.cardType,
                   spendingLimit: card.spendingLimit?.toString() ?? "",
                   userId: card.userId,

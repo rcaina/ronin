@@ -60,6 +60,14 @@ const toDateInputValue = (value: Date | string): string => {
   return date.toISOString().split("T")[0]!;
 };
 
+// The user's calendar date today; toISOString would give tomorrow on US evenings.
+const todayInputValue = (): string => {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+};
+
 export default function RecurringTransactionForm({
   isOpen,
   onClose,
@@ -95,7 +103,7 @@ export default function RecurringTransactionForm({
       amount: "",
       transactionType: TransactionType.REGULAR,
       frequency: PeriodType.MONTHLY,
-      nextRunAt: new Date().toISOString().split("T")[0],
+      nextRunAt: todayInputValue(),
       endAt: "",
       categoryId: "",
       cardId: "",
@@ -124,7 +132,7 @@ export default function RecurringTransactionForm({
         amount: "",
         transactionType: TransactionType.REGULAR,
         frequency: PeriodType.MONTHLY,
-        nextRunAt: new Date().toISOString().split("T")[0],
+        nextRunAt: todayInputValue(),
         endAt: "",
         categoryId: "",
         cardId: "",
@@ -185,7 +193,8 @@ export default function RecurringTransactionForm({
 
     if (isEditing && template) {
       updateRecurring(
-        { id: template.id, data: payload },
+        // null clears an end date; undefined would leave it unchanged.
+        { id: template.id, data: { ...payload, endAt: payload.endAt ?? null } },
         {
           onSuccess: () => {
             toast.success("Recurring transaction updated!");

@@ -382,14 +382,16 @@ const CardDetailsPage = () => {
       );
       return;
     }
-    // Split transactions aren't safe to edit inline (it could corrupt the
-    // per-category breakdown) — route to the full form modal instead.
-    if (transaction.splits && transaction.splits.length > 0) {
+    // Splits and income can't be saved by the inline editor (it requires a
+    // category and only writes REGULAR or RETURN), so they use the full form.
+    if (
+      (transaction.splits && transaction.splits.length > 0) ||
+      transaction.transactionType === TransactionType.INCOME
+    ) {
       setEditingSplitTransaction(transaction);
       return;
-    } else {
-      setEditingTransactionId(transaction.id);
     }
+    setEditingTransactionId(transaction.id);
   };
 
   const handleDeleteTransaction = (transaction: TransactionWithRelations) => {

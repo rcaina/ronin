@@ -195,6 +195,7 @@ export default function TransactionForm({
     reset,
     formState: { errors },
     setValue,
+    setError,
     watch,
     getValues,
   } = useForm<TransactionFormData>({
@@ -466,6 +467,12 @@ export default function TransactionForm({
   }, [categoryOptions, categoryIdToSelect, setValue]);
 
   const onSubmit = (data: TransactionFormData) => {
+    // Spending is summed per category, so a purchase without one never counts.
+    if (!isIncomeTransaction && !isSplitMode && !data.categoryId?.trim()) {
+      setError("categoryId", { message: "Category is required" });
+      return;
+    }
+
     // "Make recurring" creates a RecurringTransaction template instead of a
     // one-off Transaction — the budget doesn't apply (occurrences resolve
     // their own budget by date at post time), but everything else about the
