@@ -25,4 +25,5 @@ export const updateBudgetCategorySchema = z.object({
     .max(100, "Category name must be less than 100 characters")
     .optional(),
   group: z.nativeEnum(CategoryType).optional(),
+  month: z.string().optional(),
 });

@@ -19,16 +19,20 @@ import {
   type SpendingTransaction,
 } from "@/lib/utils/spending";
 import Button from "@/components/Button";
+import { formatMonthLabel, type MonthKey } from "@/lib/utils/budget-month";
 
 interface BudgetCategoryCardProps {
   budgetCategory: BudgetCategoryWithCategory;
   budgetId: string;
+  /** Set on a continuous budget: the planned amount is saved for this month only. */
+  month?: MonthKey;
   getGroupColor: GroupColorFunction;
 }
 
 export default function BudgetCategoryCard({
   budgetCategory,
   budgetId,
+  month,
 }: BudgetCategoryCardProps) {
   const router = useRouter();
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
@@ -90,6 +94,7 @@ export default function BudgetCategoryCard({
         data: {
           allocatedAmount: amount,
           name: editingName,
+          month,
         },
       });
 
@@ -211,7 +216,9 @@ export default function BudgetCategoryCard({
         <div className="space-y-2">
           {editingCategoryId === budgetCategory.id ? (
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Allocated</span>
+              <span className="text-gray-500">
+                {month ? `Planned for ${formatMonthLabel(month)}` : "Allocated"}
+              </span>
               <div className="flex items-center space-x-1">
                 <span className="text-sm text-gray-500">$</span>
                 <input

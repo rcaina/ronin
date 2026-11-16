@@ -180,6 +180,8 @@ export interface UpdateBudgetCategoryData {
   allocatedAmount?: number;
   name?: string;
   group?: CategoryType;
+  /** On a continuous budget, `allocatedAmount` is planned for this month only. */
+  month?: string;
 }
 
 export interface ImportBudgetCategoriesData {

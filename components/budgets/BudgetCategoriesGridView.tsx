@@ -18,16 +18,20 @@ import type {
   GroupLabelFunction,
 } from "@/lib/types/budget";
 import { CategoryType } from "@prisma/client";
+import type { MonthKey } from "@/lib/utils/budget-month";
 
 interface BudgetCategoriesGridViewProps {
   budgetId: string;
   getGroupColor: GroupColorFunction;
   getGroupLabel: GroupLabelFunction;
   budgetCategories?: BudgetCategoryWithCategory[];
+  /** Set on a continuous budget: planned edits apply to this month. */
+  month?: MonthKey;
 }
 
 export default function BudgetCategoriesGridView({
   budgetId,
+  month,
   getGroupColor,
   getGroupLabel,
   budgetCategories: propBudgetCategories,
@@ -299,6 +303,7 @@ export default function BudgetCategoriesGridView({
                           key={budgetCategory.id}
                           budgetCategory={budgetCategory}
                           budgetId={budgetId}
+                          month={month}
                           getGroupColor={getGroupColor}
                         />
                       );

@@ -1044,6 +1044,7 @@ const BudgetCategoriesPage = () => {
             ) : view === "grid" ? (
               <BudgetCategoriesGridView
                 budgetId={budgetId}
+                month={budget?.kind === "CONTINUOUS" ? month : undefined}
                 getGroupColor={getGroupColor}
                 getGroupLabel={getGroupLabel}
                 budgetCategories={filteredBudgetCategories}

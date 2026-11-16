@@ -72,3 +72,24 @@ describe("projectCategoryToMonth", () => {
     expect(projected.transactionSplits).toHaveLength(1);
   });
 });
+
+describe("projectCategoryToMonth planned amount", () => {
+  const window = getMonthWindow("2026-11");
+
+  it("uses the month's assigned amount, including zero", () => {
+    expect(
+      projectCategoryToMonth({ allocatedAmount: 300 }, window, 450)
+        .allocatedAmount,
+    ).toBe(450);
+    expect(
+      projectCategoryToMonth({ allocatedAmount: 300 }, window, 0)
+        .allocatedAmount,
+    ).toBe(0);
+  });
+
+  it("falls back to the category default when the month has no row", () => {
+    expect(
+      projectCategoryToMonth({ allocatedAmount: 300 }, window).allocatedAmount,
+    ).toBe(300);
+  });
+});

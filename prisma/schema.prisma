@@ -155,6 +155,7 @@ model Category {
   transactions          Transaction[]
   transactionSplits     TransactionSplit[]
   recurringTransactions RecurringTransaction[]
+  months                CategoryMonth[]
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   deleted               DateTime?
@@ -164,6 +165,19 @@ model Category {
   @@index([defaultCategoryId])
   @@index([deleted])
   @@map("category")
+}
+
+model CategoryMonth {
+  id         String   @id @default(cuid())
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  month      DateTime @db.Date
+  assigned   Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([categoryId, month])
+  @@map("category_month")
 }
 
 model Card {

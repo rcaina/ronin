@@ -44,12 +44,19 @@ export const formatMonthLabel = (month: MonthKey): string =>
     timeZone: "UTC",
   });
 
-/** The category with only the transactions and split legs dated inside `window`. */
-export const projectCategoryToMonth = <C extends SpendingCategory>(
+/**
+ * The category as seen in one month: only transactions and split legs dated inside
+ * `window`, and the month's `assigned` amount as planned when it has one.
+ */
+export const projectCategoryToMonth = <
+  C extends SpendingCategory & { allocatedAmount?: number | null },
+>(
   category: C,
   window: DateWindow,
+  assigned?: number,
 ): C => ({
   ...category,
+  allocatedAmount: assigned ?? category.allocatedAmount,
   transactions: category.transactions?.filter((transaction) =>
     isWithinWindow(transaction, window),
   ),

@@ -65,6 +65,19 @@ const resolveBudgetMonthWindow = async (
   return resolveMonthWindow(budget.kind, monthParam);
 };
 
+/** Each category's assigned amount for the month that starts `window.start`. */
+const getMonthAssignments = async (
+  tx: PrismaClientTx,
+  budgetId: string,
+  window: DateWindow,
+): Promise<Map<string, number>> => {
+  const rows = await tx.categoryMonth.findMany({
+    where: { month: window.start, category: { budgetId } },
+    select: { categoryId: true, assigned: true },
+  });
+  return new Map(rows.map((row) => [row.categoryId, row.assigned]));
+};
+
 /** Reuses the budget's debit card, or creates one named "Main" linked to its general card. */
 async function ensureMainDebitCard(
   tx: PrismaClientTx,
@@ -226,11 +239,18 @@ export async function getBudgetById(
   }
 
   const monthWindow = resolveMonthWindow(budget.kind, params.get("month"));
+  const assignments = monthWindow
+    ? await getMonthAssignments(tx, budget.id, monthWindow)
+    : null;
   const scoped = monthWindow
     ? {
         ...budget,
         categories: budget.categories.map((category) =>
-          projectCategoryToMonth(category, monthWindow),
+          projectCategoryToMonth(
+            category,
+            monthWindow,
+            assignments?.get(category.id),
+          ),
         ),
         transactions: budget.transactions.filter((transaction) =>
           isWithinWindow(transaction, monthWindow),
@@ -1030,10 +1050,17 @@ export const getBudgetCategories = async (
     },
   });
 
+  const assignments = monthWindow
+    ? await getMonthAssignments(tx, budgetId, monthWindow)
+    : null;
   const formattedCategories = formatBudgetCategories(
     monthWindow
       ? categories.map((category) =>
-          projectCategoryToMonth(category, monthWindow),
+          projectCategoryToMonth(
+            category,
+            monthWindow,
+            assignments?.get(category.id),
+          ),
         )
       : categories,
   );
@@ -1328,7 +1355,18 @@ export const updateBudgetCategory = async (
     group?: CategoryType;
   } = {};
 
-  if (data.allocatedAmount !== undefined) {
+  const monthWindow = resolveMonthWindow(budget.kind, data.month);
+  if (data.allocatedAmount !== undefined && monthWindow) {
+    await tx.categoryMonth.upsert({
+      where: { categoryId_month: { categoryId, month: monthWindow.start } },
+      create: {
+        categoryId,
+        month: monthWindow.start,
+        assigned: data.allocatedAmount,
+      },
+      update: { assigned: data.allocatedAmount },
+    });
+  } else if (data.allocatedAmount !== undefined) {
     updateData.allocatedAmount = data.allocatedAmount;
   }
   if (data.name) {
