@@ -76,12 +76,28 @@ export async function createCategory(
   });
 }
 
-export async function deleteCategory(tx: PrismaClientTx, id: string) {
+const assertAccountTemplate = async (
+  tx: PrismaClientTx,
+  id: string,
+  accountId: string,
+) => {
+  const category = await tx.category.findFirst({
+    where: { id, ...accountTemplates(accountId) },
+    select: { id: true },
+  });
+  if (!category) {
+    throw new HttpError("Category not found", 404);
+  }
+};
+
+export async function deleteCategory(
+  tx: PrismaClientTx,
+  id: string,
+  accountId: string,
+) {
+  await assertAccountTemplate(tx, id, accountId);
   return await tx.category.update({
-    where: {
-      id,
-      deleted: null,
-    },
+    where: { id },
     data: {
       deleted: new Date(),
     },
@@ -92,12 +108,11 @@ export async function updateCategory(
   tx: PrismaClientTx,
   id: string,
   data: UpdateCategoryRequest,
+  accountId: string,
 ) {
+  await assertAccountTemplate(tx, id, accountId);
   return await tx.category.update({
-    where: {
-      id,
-      deleted: null,
-    },
+    where: { id },
     data: {
       name: data.name,
       group: data.group,
@@ -119,13 +134,12 @@ export async function updateCategory(
 export async function mergeCategories(
   tx: PrismaClientTx,
   { sourceIds, targetId }: MergeCategoriesRequest,
+  accountId: string,
 ) {
   const candidates = await tx.category.findMany({
     where: {
       id: { in: [targetId, ...sourceIds] },
-      budgetId: null,
-      defaultCategoryId: null,
-      deleted: null,
+      ...accountTemplates(accountId),
     },
   });
 
@@ -159,7 +173,7 @@ export async function mergeCategories(
   // unchanged.
   const budgetCopies = await tx.category.findMany({
     where: {
-      budgetId: { not: null },
+      budget: { accountId },
       defaultCategoryId: { in: [targetId, ...sourceIds] },
       deleted: null,
     },
@@ -222,7 +236,11 @@ export async function mergeCategories(
 
   // Repoint budget copies that reference the source templates to the survivor.
   await tx.category.updateMany({
-    where: { defaultCategoryId: { in: sourceIds }, deleted: null },
+    where: {
+      defaultCategoryId: { in: sourceIds },
+      deleted: null,
+      budget: { accountId },
+    },
     data: { defaultCategoryId: targetId },
   });
 
