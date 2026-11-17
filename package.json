@@ -11,6 +11,7 @@
     "budgets:merge-continuous": "tsx scripts/migrate-to-continuous-budget.ts",
     "accounts:delete-orphaned": "tsx scripts/delete-orphaned-accounts.ts",
     "categories:scope-templates": "tsx scripts/scope-template-categories.ts",
+    "cards:repoint-transactions": "tsx scripts/repoint-off-budget-card-transactions.ts",
     "db:generate": "prisma migrate dev",
     "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
