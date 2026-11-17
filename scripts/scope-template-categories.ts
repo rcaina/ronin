@@ -49,59 +49,62 @@ async function main() {
 
   const summary = [];
   for (const [accountId, accountCopies] of copiesByAccount) {
-    const counts = await prisma.$transaction(async (tx) => {
-      const templateIdByKey = new Map(
-        (
-          await tx.category.findMany({ where: accountTemplates(accountId) })
-        ).map((template) => [
-          keyOf(template.group, template.name),
-          template.id,
-        ]),
-      );
-      const legacyTemplates = new Map(
-        accountCopies.map((copy) => [
-          copy.defaultCategory!.id,
-          copy.defaultCategory!,
-        ]),
-      );
+    const counts = await prisma.$transaction(
+      async (tx) => {
+        const templateIdByKey = new Map(
+          (
+            await tx.category.findMany({ where: accountTemplates(accountId) })
+          ).map((template) => [
+            keyOf(template.group, template.name),
+            template.id,
+          ]),
+        );
+        const legacyTemplates = new Map(
+          accountCopies.map((copy) => [
+            copy.defaultCategory!.id,
+            copy.defaultCategory!,
+          ]),
+        );
 
-      let created = 0;
-      for (const legacy of legacyTemplates.values()) {
-        const key = keyOf(legacy.group, legacy.name);
-        let templateId = templateIdByKey.get(key);
-        if (!templateId) {
-          created++;
-          templateId = dryRun
-            ? key
-            : (
-                await tx.category.create({
-                  data: { name: legacy.name, group: legacy.group, accountId },
-                })
-              ).id;
-          templateIdByKey.set(key, templateId);
-        }
-        if (!dryRun) {
-          await tx.category.updateMany({
-            where: {
-              id: {
-                in: accountCopies
-                  .filter((copy) => copy.defaultCategory!.id === legacy.id)
-                  .map((copy) => copy.id),
+        let created = 0;
+        for (const legacy of legacyTemplates.values()) {
+          const key = keyOf(legacy.group, legacy.name);
+          let templateId = templateIdByKey.get(key);
+          if (!templateId) {
+            created++;
+            templateId = dryRun
+              ? key
+              : (
+                  await tx.category.create({
+                    data: { name: legacy.name, group: legacy.group, accountId },
+                  })
+                ).id;
+            templateIdByKey.set(key, templateId);
+          }
+          if (!dryRun) {
+            await tx.category.updateMany({
+              where: {
+                id: {
+                  in: accountCopies
+                    .filter((copy) => copy.defaultCategory!.id === legacy.id)
+                    .map((copy) => copy.id),
+                },
               },
-            },
-            data: { defaultCategoryId: templateId },
-          });
+              data: { defaultCategoryId: templateId },
+            });
+          }
         }
-      }
 
-      return {
-        account: accountId,
-        legacyLinked: legacyTemplates.size,
-        reused: legacyTemplates.size - created,
-        created,
-        repointed: accountCopies.length,
-      };
-    });
+        return {
+          account: accountId,
+          legacyLinked: legacyTemplates.size,
+          reused: legacyTemplates.size - created,
+          created,
+          repointed: accountCopies.length,
+        };
+      },
+      { timeout: 120_000 },
+    );
     summary.push(counts);
   }
 

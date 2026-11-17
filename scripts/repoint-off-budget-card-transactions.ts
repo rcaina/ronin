@@ -36,7 +36,7 @@ async function main() {
 
         for (const { cardId, budgetId } of groups) {
           const target = await resolveBudgetCard(tx, cardId, budgetId);
-          if (target.cardId === cardId) {
+          if (target.cardId === null || target.cardId === cardId) {
             summary.skipped += 1;
             continue;
           }

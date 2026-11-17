@@ -76,10 +76,30 @@ async function main() {
 
   for (const { id } of deletable) {
     try {
-      await prisma.$transaction((tx) => deleteAccountData(tx, id, null), {
-        timeout: 120_000,
-      });
-      console.log(`Deleted ${id}`);
+      const liveStatus = await prisma.$transaction(
+        async (tx) => {
+          // Re-read under lock: a webhook may have started a subscription since the scan.
+          await tx.$queryRaw`SELECT id FROM accounts WHERE id = ${id} FOR UPDATE`;
+          const { subscriptionStatus } = await tx.account.findUniqueOrThrow({
+            where: { id },
+            select: { subscriptionStatus: true },
+          });
+          if (
+            subscriptionStatus &&
+            LIVE_SUBSCRIPTION.includes(subscriptionStatus)
+          ) {
+            return subscriptionStatus;
+          }
+          await deleteAccountData(tx, id, null);
+          return null;
+        },
+        { timeout: 120_000 },
+      );
+      console.log(
+        liveStatus
+          ? `Skipping ${id}: subscription is now ${liveStatus}; cancel it in Stripe first.`
+          : `Deleted ${id}`,
+      );
     } catch (error) {
       process.exitCode = 1;
       console.error(`Account ${id} failed, left unchanged:`, error);
