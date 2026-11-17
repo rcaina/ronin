@@ -156,8 +156,10 @@ export async function deleteUserAccount(
     await deleteAccountData(tx, user.accountId, user.id);
   } else {
     // Never leave the account without an admin: promote the longest-standing member.
+    const lockedRole = account.users.find((au) => au.userId === user.id)?.user
+      .role;
     if (
-      user.role === Role.ADMIN &&
+      lockedRole === Role.ADMIN &&
       !otherMembers.some((member) => member.role === Role.ADMIN)
     ) {
       const [successor] = otherMembers.sort(
