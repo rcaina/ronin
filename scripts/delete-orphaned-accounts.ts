@@ -10,16 +10,10 @@
  *   pnpm accounts:delete-orphaned --dry-run   (prints the accounts, changes nothing)
  *   pnpm accounts:delete-orphaned
  */
-import { PrismaClient, SubscriptionStatus } from "@prisma/client";
-import { deleteAccountData } from "@/lib/api-services/users";
+import { PrismaClient } from "@prisma/client";
+import { deleteAccountData, LIVE_SUBSCRIPTION } from "@/lib/api-services/users";
 
 const prisma = new PrismaClient();
-
-const LIVE_SUBSCRIPTION: SubscriptionStatus[] = [
-  SubscriptionStatus.TRIALING,
-  SubscriptionStatus.ACTIVE,
-  SubscriptionStatus.PAST_DUE,
-];
 
 async function main() {
   const dryRun = process.argv.includes("--dry-run");

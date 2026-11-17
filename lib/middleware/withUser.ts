@@ -31,21 +31,28 @@ export function withUser(handlers: MethodHandlers) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Make sure user exists in DB
-    const user = await prisma.user.findUnique({
+    const { accountId } = session.user;
+    if (!accountId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // The session outlives a deactivation, so require a live user still in the account.
+    const user = await prisma.user.findFirst({
       where: {
         id: session.user.id,
+        deleted: null,
+        accountUsers: { some: { accountId } },
       },
     });
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Add accountId from session to user object
     const userWithAccountId = {
       ...user,
-      accountId: session.user.accountId,
+      accountId,
     };
 
     const method = req.method as keyof MethodHandlers;
