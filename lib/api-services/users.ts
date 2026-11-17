@@ -6,7 +6,6 @@ import type {
   createUserSchema,
   updateProfileSchema,
 } from "../api-schemas/users";
-import { NextResponse } from "next/server";
 import { HttpError } from "../errors";
 
 export async function createUser(
@@ -14,19 +13,15 @@ export async function createUser(
   data: z.infer<typeof createUserSchema>,
   user: User & { accountId: string },
 ) {
-  // Check if user is admin
   if (user.role !== Role.ADMIN) {
-    return NextResponse.json(
-      { message: "Only administrators can create users" },
-      { status: 403 },
-    );
+    throw new HttpError("Only administrators can create users", 403);
   }
 
   // Check if user already exists
   const existingUser = await findUserByEmail(tx, data.email);
 
   if (existingUser) {
-    throw new Error("User with this email already exists");
+    throw new HttpError("User with this email already exists", 409);
   }
 
   // Hash password
@@ -42,12 +37,12 @@ export async function createUser(
       password: hashedPassword,
       role: data.role as Role,
     },
+    omit: { password: true },
   });
 
-  // Link user to the account
   await tx.accountUser.create({
     data: {
-      userId: user.id,
+      userId: createdUser.id,
       accountId: user.accountId,
     },
   });
