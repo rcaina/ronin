@@ -1,4 +1,9 @@
-import { Role, type PrismaClient, type User } from "@prisma/client";
+import {
+  Role,
+  SubscriptionStatus,
+  type PrismaClient,
+  type User,
+} from "@prisma/client";
 import bcrypt from "bcryptjs";
 import type { PrismaClientTx } from "../prisma";
 import type { z } from "zod";
@@ -91,12 +96,21 @@ export async function findUserByEmail(
   });
 }
 
+/** Statuses Stripe still bills for; an account in one must not be deleted. */
+export const LIVE_SUBSCRIPTION: SubscriptionStatus[] = [
+  SubscriptionStatus.TRIALING,
+  SubscriptionStatus.ACTIVE,
+  SubscriptionStatus.PAST_DUE,
+];
+
 export async function deleteUserAccount(
   tx: PrismaClientTx,
   user: User & { accountId: string },
   password: string,
 ) {
-  // Get the account to check if user is the only user
+  // Serializes concurrent deletes so two last members can't both just deactivate.
+  await tx.$queryRaw`SELECT id FROM accounts WHERE id = ${user.accountId} FOR UPDATE`;
+
   const account = await tx.account.findUnique({
     where: { id: user.accountId },
     include: {
@@ -130,6 +144,15 @@ export async function deleteUserAccount(
   const deletesEntireAccount = otherMembers.length === 0;
 
   if (deletesEntireAccount) {
+    if (
+      account.subscriptionStatus &&
+      LIVE_SUBSCRIPTION.includes(account.subscriptionStatus)
+    ) {
+      throw new HttpError(
+        "Cancel your subscription in Settings, under Billing, before deleting your account.",
+        409,
+      );
+    }
     await deleteAccountData(tx, user.accountId, user.id);
   } else {
     // Never leave the account without an admin: promote the longest-standing member.

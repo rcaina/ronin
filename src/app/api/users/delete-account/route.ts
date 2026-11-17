@@ -22,11 +22,14 @@ export const DELETE = withUser({
         );
       }
 
-      return await prisma.$transaction(async (tx) => {
-        const result = await deleteUserAccount(tx, user, password);
+      return await prisma.$transaction(
+        async (tx) => {
+          const result = await deleteUserAccount(tx, user, password);
 
-        return NextResponse.json(result, { status: 200 });
-      });
+          return NextResponse.json(result, { status: 200 });
+        },
+        { timeout: 120_000 },
+      );
     },
   ),
 });

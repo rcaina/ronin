@@ -59,6 +59,8 @@ export function CardPaymentModal({
     return currentCard?.cardType;
   }, [currentCard?.cardType]);
 
+  const currentCardBudgetId = currentCard?.budgetId ?? undefined;
+
   // Initialize form data when editing
   useEffect(() => {
     if (editingTransaction) {
@@ -79,12 +81,18 @@ export function CardPaymentModal({
         name: "",
         description: "",
         amount: "",
-        budgetId: budgetId ?? "",
+        budgetId: budgetId ?? currentCardBudgetId ?? "",
         fromCardId: isCredit ? "" : (currentCardId ?? ""),
         toCardId: isCredit ? (currentCardId ?? "") : "",
       });
     }
-  }, [editingTransaction, currentCardId, currentCardType, budgetId]);
+  }, [
+    editingTransaction,
+    currentCardId,
+    currentCardType,
+    currentCardBudgetId,
+    budgetId,
+  ]);
 
   // Set default budget when budgets are loaded and no budgetId is provided
   useEffect(() => {
@@ -217,13 +225,13 @@ export function CardPaymentModal({
               <select
                 value={formData.budgetId}
                 onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  budgetId: e.target.value,
-                  fromCardId: "",
-                  toCardId: "",
-                }))
-              }
+                  setFormData((prev) => ({
+                    ...prev,
+                    budgetId: e.target.value,
+                    fromCardId: "",
+                    toCardId: "",
+                  }))
+                }
                 required
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               >
