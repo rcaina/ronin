@@ -25,6 +25,7 @@ model Account {
   transactions          Transaction[]
   savings               Savings[]
   recurringTransactions RecurringTransaction[]
+  categories            Category[]
   plan                  Plan                   @default(FREE)
   complimentaryAccess   Boolean                @default(false)
   stripeCustomerId      String?                @unique
@@ -149,6 +150,9 @@ model Category {
   defaultCategoryId     String?
   defaultCategory       Category?              @relation("DefaultCategory", fields: [defaultCategoryId], references: [id])
   budgetCategories      Category[]             @relation("DefaultCategory")
+  // Set on templates only (budgetId and defaultCategoryId null): the account that owns it.
+  accountId             String?
+  account               Account?               @relation(fields: [accountId], references: [id], onDelete: Restrict)
   name                  String
   group                 CategoryType
   allocatedAmount       Float?
@@ -164,6 +168,7 @@ model Category {
   @@index([id])
   @@index([budgetId])
   @@index([defaultCategoryId])
+  @@index([accountId])
   @@index([deleted])
   @@map("category")
 }

@@ -11,15 +11,20 @@ import type {
   UpdateCategoryRequest,
 } from "../types/category";
 
+/** Where clause for an account's live template categories. */
+export const accountTemplates = (accountId: string) => ({
+  accountId,
+  budgetId: null,
+  defaultCategoryId: null,
+  deleted: null,
+});
+
 export async function getCategories(
   tx: PrismaClientTx,
+  accountId: string,
 ): Promise<GroupedCategories> {
   const categories = await tx.category.findMany({
-    where: {
-      deleted: null,
-      budgetId: null, // Only get default/template categories
-      defaultCategoryId: null,
-    },
+    where: accountTemplates(accountId),
     orderBy: {
       name: "asc",
     },
@@ -60,12 +65,13 @@ export async function getCategories(
 export async function createCategory(
   tx: PrismaClientTx,
   data: z.infer<typeof createCategorySchema>,
+  accountId: string,
 ) {
   return await tx.category.create({
     data: {
       name: data.name,
       group: data.group as CategoryType,
-      budgetId: null, // Default categories have no budgetId
+      accountId,
     },
   });
 }

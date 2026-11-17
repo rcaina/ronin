@@ -189,7 +189,9 @@ export async function deleteAccountData(
   await tx.transaction.deleteMany({
     where: { OR: [{ accountId }, { Budget: { accountId } }] },
   });
-  await tx.category.deleteMany({ where: accountBudget });
+  await tx.category.deleteMany({
+    where: { OR: [accountBudget, { accountId }] },
+  });
   await tx.card.deleteMany({
     where: {
       OR: [accountBudget, ...(userId ? [{ userId, budgetId: null }] : [])],
