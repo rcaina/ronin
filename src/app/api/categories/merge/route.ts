@@ -12,7 +12,7 @@ export const POST = withUser({
     async (
       req: NextRequest,
       _context: { params: Promise<Record<string, string>> },
-      _user: User & { accountId: string },
+      user: User & { accountId: string },
     ) => {
       const body = (await req.json()) as unknown;
       const validationResult = mergeCategoriesSchema.safeParse(body);
@@ -22,7 +22,11 @@ export const POST = withUser({
       }
 
       return await prisma.$transaction(async (tx) => {
-        const category = await mergeCategories(tx, validationResult.data);
+        const category = await mergeCategories(
+          tx,
+          validationResult.data,
+          user.accountId,
+        );
 
         return NextResponse.json(category, { status: 200 });
       });

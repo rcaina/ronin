@@ -130,7 +130,7 @@ export default function TransactionForm({
     useCreateRecurringTransaction();
   const queryClient = useQueryClient();
   const { data: budgets = [] } = useBudgets();
-  const { data: cards = [] } = useCards(undefined, budgetId);
+  const { data: fetchedCards = [] } = useCards(undefined, budgetId);
   const { data: billingStatus } = useBillingStatus();
   const isPremium = billingStatus?.isPremium ?? false;
   const [viewedMonth] = useBudgetMonth();
@@ -138,12 +138,17 @@ export default function TransactionForm({
     ? undefined
     : defaultDateInMonth(viewedMonth, new Date());
 
+  const [selectedBudgetId, setSelectedBudgetId] = useState<string>("");
+  // The API refuses a card from another budget.
+  const cards = useMemo(
+    () => fetchedCards.filter((card) => card.budgetId === selectedBudgetId),
+    [fetchedCards, selectedBudgetId],
+  );
   // Income transactions can only be deposited to a debit-type card.
   const debitCards = useMemo(() => cards.filter(isDebitCardType), [cards]);
   // The list of cards to show in the "Payment method" select.
   const cardOptions = isIncome ? debitCards : cards;
 
-  const [selectedBudgetId, setSelectedBudgetId] = useState<string>("");
   const isEditing = !!transaction;
 
   // Inline category creation. `newCategoryTarget` records which select opened
@@ -226,6 +231,7 @@ export default function TransactionForm({
   const budgetIdField = register("budgetId", {
     onChange: () => {
       setValue("categoryId", "");
+      setValue("cardId", "");
       setSplitRows((rows) => rows.map((row) => ({ ...row, categoryId: "" })));
     },
   });

@@ -12,10 +12,10 @@ export const GET = withUser({
     async (
       _req: NextRequest,
       _context: { params: Promise<Record<string, string>> },
-      _user: User & { accountId: string },
+      user: User & { accountId: string },
     ) => {
       return await prisma.$transaction(async (tx) => {
-        const categories = await getCategories(tx);
+        const categories = await getCategories(tx, user.accountId);
 
         // Ensure all category groups are present as arrays, even if empty
         const response = {
@@ -35,7 +35,7 @@ export const POST = withUser({
     async (
       req: NextRequest,
       _context: { params: Promise<Record<string, string>> },
-      _user: User & { accountId: string },
+      user: User & { accountId: string },
     ) => {
       const body = (await req.json()) as unknown;
       const validationResult = createCategorySchema.safeParse(body);
@@ -45,7 +45,11 @@ export const POST = withUser({
       }
 
       return await prisma.$transaction(async (tx) => {
-        const category = await createCategory(tx, validationResult.data);
+        const category = await createCategory(
+          tx,
+          validationResult.data,
+          user.accountId,
+        );
 
         return NextResponse.json(category, { status: 201 });
       });

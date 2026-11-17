@@ -3,6 +3,7 @@ import type { PrismaClientTx } from "../prisma";
 import bcrypt from "bcryptjs";
 import { isEmailAllowed } from "../utils/auth";
 import { ensureMainDebitCard, newContinuousBudgetData } from "./budgets";
+import { STARTER_CATEGORIES } from "../constants/categories";
 import type { z } from "zod";
 import type { signUpSchema } from "../api-schemas/auth";
 
@@ -55,6 +56,12 @@ export async function createUserWithAccount(
     data: newContinuousBudgetData(account.id),
   });
   await ensureMainDebitCard(tx, budget.id, user.id);
+  await tx.category.createMany({
+    data: STARTER_CATEGORIES.map((category) => ({
+      ...category,
+      accountId: account.id,
+    })),
+  });
 
   return { ...user, password: undefined };
 }

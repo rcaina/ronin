@@ -6,6 +6,7 @@ import {
   CardType,
 } from "@prisma/client";
 import { newContinuousBudgetData } from "@/lib/api-services/budgets";
+import { STARTER_CATEGORIES } from "@/lib/constants/categories";
 import {
   getMonthWindow,
   shiftMonth,
@@ -119,62 +120,15 @@ async function main() {
     });
   }
 
-  // Create categories
-  const categories = [
-    {
-      id: "1",
-      name: "Housing",
-      createdAt: new Date(),
-      group: CategoryType.NEEDS,
-    },
-    {
-      id: "2",
-      name: "Food & Groceries",
-      createdAt: new Date(),
-      group: CategoryType.NEEDS,
-    },
-    {
-      id: "3",
-      name: "Transportation",
-      createdAt: new Date(),
-      group: CategoryType.NEEDS,
-    },
-    {
-      id: "4",
-      name: "Entertainment",
-      createdAt: new Date(),
-      group: CategoryType.WANTS,
-    },
-    {
-      id: "5",
-      name: "Shopping",
-      createdAt: new Date(),
-      group: CategoryType.WANTS,
-    },
-    {
-      id: "6",
-      name: "Investments",
-      createdAt: new Date(),
-      group: CategoryType.INVESTMENT,
-    },
-    {
-      id: "7",
-      name: "Emergency Fund",
-      createdAt: new Date(),
-      group: CategoryType.INVESTMENT,
-    },
-  ];
-
-  // Create default/template categories (no budgetId)
-  for (const category of categories) {
-    await prisma.category.create({
-      data: {
+  // Each account gets the starter template categories (no budgetId)
+  await prisma.category.createMany({
+    data: [demoAccount, startupAccount].flatMap((account) =>
+      STARTER_CATEGORIES.map((category) => ({
         ...category,
-        budgetId: null, // Template categories have no budgetId
-        allocatedAmount: null, // Template categories have no allocated amount
-      },
-    });
-  }
+        accountId: account.id,
+      })),
+    ),
+  });
 
   // Create budget-specific categories (with budgetId) and store their IDs
   const budgetCategories = [

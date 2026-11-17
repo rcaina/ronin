@@ -24,6 +24,7 @@ import type {
   createBudgetSchema,
   createBudgetWithCardsSchema,
 } from "../api-schemas/budgets";
+import { accountTemplates } from "./categories";
 import { createCard as createCardService, resolveDefaultCard } from "./cards";
 import { calculateCardFinancials } from "./card-financials";
 import type {
@@ -375,11 +376,7 @@ export async function createBudget(
   if (data.categoryAllocations && data.categoryAllocations.length > 0) {
     // Fetch all default categories to match against
     const defaultCategories = await tx.category.findMany({
-      where: {
-        budgetId: null,
-        defaultCategoryId: null,
-        deleted: null,
-      },
+      where: accountTemplates(user.accountId),
     });
 
     // Create a map of (name, group) -> defaultCategoryId for quick lookup
@@ -475,11 +472,7 @@ async function createBudgetWithCardsAndIncomes(
   if (data.categoryAllocations && data.categoryAllocations.length > 0) {
     // Fetch all default categories to match against (same behavior as `createBudget`)
     const defaultCategories = await tx.category.findMany({
-      where: {
-        budgetId: null,
-        defaultCategoryId: null,
-        deleted: null,
-      },
+      where: accountTemplates(user.accountId),
     });
 
     const defaultCategoryMap = new Map<string, string>();
@@ -613,11 +606,7 @@ export async function updateBudget(
     if (data.categoryAllocations.length > 0) {
       // Fetch all default categories to match against
       const defaultCategories = await tx.category.findMany({
-        where: {
-          budgetId: null,
-          defaultCategoryId: null,
-          deleted: null,
-        },
+        where: accountTemplates(user.accountId),
       });
 
       // Create a map of (name, group) -> defaultCategoryId for quick lookup
@@ -1026,11 +1015,9 @@ export const createBudgetCategory = async (
   // Find matching default category if it exists, ignoring casing differences
   let defaultCategory = await tx.category.findFirst({
     where: {
-      budgetId: null,
-      defaultCategoryId: null,
+      ...accountTemplates(user.accountId),
       name: { equals: trimmedName, mode: "insensitive" },
       group: data.group,
-      deleted: null,
     },
   });
 
@@ -1038,7 +1025,7 @@ export const createBudgetCategory = async (
   // categories with this name can link back to it too
   defaultCategory ??= await tx.category.create({
     data: {
-      budgetId: null,
+      accountId: user.accountId,
       name: trimmedName,
       group: data.group,
     },
@@ -1111,7 +1098,7 @@ export const importBudgetCategories = async (
 
   // Default category templates, for linking copied categories to their template.
   const defaultCategories = await tx.category.findMany({
-    where: { budgetId: null, defaultCategoryId: null, deleted: null },
+    where: accountTemplates(user.accountId),
     select: { id: true, name: true, group: true },
   });
   const defaultIdByKey = new Map(

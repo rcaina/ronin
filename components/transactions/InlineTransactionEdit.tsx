@@ -54,7 +54,6 @@ export default function InlineTransactionEdit({
 }: InlineTransactionEditProps) {
   const { mutate: updateTransaction, isPending: isUpdating } =
     useUpdateTransaction();
-  const { data: cards = [] } = useCards(undefined, transaction.budgetId);
   const { data: budgets = [] } = useBudgets();
 
   const {
@@ -82,6 +81,10 @@ export default function InlineTransactionEdit({
   });
 
   const selectedBudgetId = watch("budgetId");
+  const { data: cards = [] } = useCards(
+    undefined,
+    selectedBudgetId || transaction.budgetId,
+  );
   const { data: budgetCategories = [] } = useBudgetCategories(
     selectedBudgetId || transaction.budgetId,
     undefined,
@@ -211,7 +214,10 @@ export default function InlineTransactionEdit({
               <div className="text-xs text-gray-500">Budget</div>
               <select
                 {...register("budgetId", {
-                  onChange: () => setValue("categoryId", ""),
+                  onChange: () => {
+                    setValue("categoryId", "");
+                    setValue("cardId", "");
+                  },
                 })}
                 className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
                   errors.budgetId

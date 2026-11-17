@@ -16,7 +16,7 @@ import {
   calculateCardFinancials,
   calculateGeneralCardFinancials,
 } from "./card-financials";
-import { splitsInclude } from "./transactions";
+import { assertOwnedBudget, splitsInclude } from "./transactions";
 import {
   cardTransactionsInWindow,
   resolveMonthWindow,
@@ -301,6 +301,8 @@ export async function createCard(
     });
   }
 
+  await assertOwnedBudget(tx, user.accountId, data.budgetId);
+
   // Creating a budget card — link it to (and lazily create) its general card
   const defaultCard = await resolveDefaultCard(tx, {
     name: data.name,
@@ -340,6 +342,10 @@ export async function updateCard(
     if (!accountUser) {
       throw new HttpError("User not found in account", 400);
     }
+  }
+
+  if (data.budgetId) {
+    await assertOwnedBudget(tx, user.accountId, data.budgetId);
   }
 
   // Find the card first to get its current userId/budgetId for the where clause
