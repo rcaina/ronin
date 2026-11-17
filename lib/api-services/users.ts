@@ -7,6 +7,7 @@ import type {
   updateProfileSchema,
 } from "../api-schemas/users";
 import { NextResponse } from "next/server";
+import { HttpError } from "../errors";
 
 export async function createUser(
   tx: PrismaClientTx,
@@ -113,58 +114,43 @@ export async function deleteUserAccount(
   });
 
   if (!account) {
-    throw new Error("Account not found");
+    throw new HttpError("Account not found", 404);
   }
 
   // Verify user password
   const verifiedUser = await bcrypt.compare(password, user.password ?? "");
 
   if (!verifiedUser) {
-    throw new Error("Invalid password");
+    throw new HttpError("Invalid password", 400);
   }
 
-  // Check if this is the only active user in the account
-  const isAdmin = user.role === Role.ADMIN;
-  const activeUsersCount = account.users.filter(
-    (au) => au.user.deleted === null,
-  ).length;
+  // Distinct by user: an account can hold duplicate account_user rows for one user.
+  const otherMembers = [
+    ...new Map(
+      account.users
+        .filter((au) => au.user.deleted === null && au.userId !== user.id)
+        .map((au) => [au.userId, au.user]),
+    ).values(),
+  ];
+  const deletesEntireAccount = otherMembers.length === 0;
 
-  if (isAdmin && activeUsersCount === 1) {
-    // If this is the only active user and they're admin, delete the entire account and all related data
-    await tx.transaction.deleteMany({
-      where: { accountId: user.accountId },
-    });
-
-    await tx.category.deleteMany({
-      where: {
-        budget: {
-          accountId: user.accountId,
-        },
-      },
-    });
-
-    await tx.budget.deleteMany({
-      where: { accountId: user.accountId },
-    });
-
-    await tx.card.deleteMany({
-      where: { userId: user.id },
-    });
-
-    await tx.accountUser.deleteMany({
-      where: { accountId: user.accountId },
-    });
-
-    await tx.account.delete({
-      where: { id: user.accountId },
-    });
-
-    await tx.user.delete({
-      where: { id: user.id },
-    });
+  if (deletesEntireAccount) {
+    await deleteAccountData(tx, user.accountId, user.id);
   } else {
-    // If there are other users or this is not an admin, deactivate the user but preserve their data
-    // Remove user from account
+    // Never leave the account without an admin: promote the longest-standing member.
+    if (
+      user.role === Role.ADMIN &&
+      !otherMembers.some((member) => member.role === Role.ADMIN)
+    ) {
+      const [successor] = otherMembers.sort(
+        (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+      );
+      await tx.user.update({
+        where: { id: successor!.id },
+        data: { role: Role.ADMIN },
+      });
+    }
+
     await tx.accountUser.deleteMany({
       where: {
         accountId: user.accountId,
@@ -184,12 +170,45 @@ export async function deleteUserAccount(
   }
 
   return {
-    message:
-      isAdmin && activeUsersCount === 1
-        ? "Account deleted successfully"
-        : "User deactivated successfully",
-    deletedEntireAccount: isAdmin && activeUsersCount === 1,
+    message: deletesEntireAccount
+      ? "Account deleted successfully"
+      : "User deactivated successfully",
+    deletedEntireAccount: deletesEntireAccount,
   };
+}
+
+/** Hard-deletes an account and everything in it, children before parents (most FKs are RESTRICT), then `userId`'s own rows and user. */
+export async function deleteAccountData(
+  tx: PrismaClientTx,
+  accountId: string,
+  userId: string | null,
+) {
+  const accountBudget = { budget: { accountId } };
+
+  await tx.recurringTransaction.deleteMany({ where: { accountId } });
+  await tx.allocation.deleteMany({
+    where: { pocket: { savings: { accountId } } },
+  });
+  await tx.pocket.deleteMany({ where: { savings: { accountId } } });
+  await tx.savings.deleteMany({ where: { accountId } });
+  await tx.transaction.deleteMany({
+    where: { OR: [{ accountId }, { Budget: { accountId } }] },
+  });
+  await tx.category.deleteMany({ where: accountBudget });
+  await tx.card.deleteMany({
+    where: {
+      OR: [accountBudget, ...(userId ? [{ userId, budgetId: null }] : [])],
+    },
+  });
+  await tx.budget.deleteMany({ where: { accountId } });
+  await tx.accountUser.deleteMany({ where: { accountId } });
+  await tx.account.delete({ where: { id: accountId } });
+
+  if (userId) {
+    await tx.notification.deleteMany({ where: { userId } });
+    await tx.pushSubscription.deleteMany({ where: { userId } });
+    await tx.user.delete({ where: { id: userId } });
+  }
 }
 
 export async function updateUserProfile(
