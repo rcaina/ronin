@@ -1,9 +1,10 @@
 /**
  * Moves every live transaction whose card is not on its budget (a general
  * card, or another budget's card) onto that budget's copy of the same card,
- * creating the copy when the budget has none. Transactions on deleted budgets
- * are left alone. Runs in one database transaction; a dry run does the same
- * work and rolls it back, so its counts are exact. A second run finds nothing.
+ * creating the copy when the budget has none. Transactions on deleted budgets,
+ * or whose general card was deleted or merged away, are left alone. Runs in one
+ * database transaction; a dry run does the same work and rolls it back, so its
+ * counts are exact. A second run moves nothing.
  *
  * Usage:
  *   pnpm cards:repoint-transactions --dry-run   (prints the counts, changes nothing)
@@ -18,7 +19,7 @@ class DryRunRollback extends Error {}
 
 async function main() {
   const dryRun = process.argv.includes("--dry-run");
-  const summary = { groups: 0, transactions: 0, copiesCreated: 0 };
+  const summary = { groups: 0, transactions: 0, copiesCreated: 0, skipped: 0 };
 
   try {
     await prisma.$transaction(
@@ -35,6 +36,10 @@ async function main() {
 
         for (const { cardId, budgetId } of groups) {
           const target = await resolveBudgetCard(tx, cardId, budgetId);
+          if (target.cardId === cardId) {
+            summary.skipped += 1;
+            continue;
+          }
           const { count } = await tx.transaction.updateMany({
             where: { cardId, budgetId, deleted: null },
             data: { cardId: target.cardId },
@@ -56,13 +61,18 @@ async function main() {
     where: { deleted: null, card: { budgetId: null } },
   });
 
-  if (summary.groups === 0) {
+  if (summary.groups === 0 && summary.skipped === 0) {
     console.log(
       "Nothing to do: every live transaction's card is on its budget.",
     );
   } else {
     console.log(
       `${dryRun ? "Dry run: would move" : "Moved"} ${summary.transactions} transaction(s) in ${summary.groups} card/budget group(s); ${summary.copiesCreated} budget card copy(ies) ${dryRun ? "would be " : ""}created.${dryRun ? " Nothing was changed." : ""}`,
+    );
+  }
+  if (summary.skipped > 0) {
+    console.log(
+      `Left alone: ${summary.skipped} card/budget group(s) whose general card was deleted or merged away.`,
     );
   }
   console.log(

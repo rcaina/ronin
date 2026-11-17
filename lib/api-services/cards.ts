@@ -262,6 +262,8 @@ export async function resolveBudgetCard(
       : card.defaultCardId
         ? await tx.card.findUniqueOrThrow({ where: { id: card.defaultCardId } })
         : await resolveDefaultCard(tx, card);
+  // Never revive a card the user deleted or merged away.
+  if (general.deleted) return { cardId, created: false };
 
   const copy = await tx.card.findFirst({
     where: { budgetId, defaultCardId: general.id, deleted: null },
