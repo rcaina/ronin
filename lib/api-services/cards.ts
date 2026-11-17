@@ -247,6 +247,45 @@ export async function resolveDefaultCard(
   return generalCard;
 }
 
+/** The card to use on `budgetId` for `cardId`: itself, the budget's copy of its general card, or a new copy. */
+export async function resolveBudgetCard(
+  tx: PrismaClientTx,
+  cardId: string,
+  budgetId: string,
+): Promise<{ cardId: string; created: boolean }> {
+  const card = await tx.card.findUniqueOrThrow({ where: { id: cardId } });
+  if (card.budgetId === budgetId) return { cardId, created: false };
+
+  const general =
+    card.budgetId === null
+      ? card
+      : card.defaultCardId
+        ? await tx.card.findUniqueOrThrow({ where: { id: card.defaultCardId } })
+        : await resolveDefaultCard(tx, card);
+
+  const copy = await tx.card.findFirst({
+    where: { budgetId, defaultCardId: general.id, deleted: null },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+  if (copy) return { cardId: copy.id, created: false };
+
+  const { id } = await tx.card.create({
+    data: {
+      budgetId,
+      defaultCardId: general.id,
+      name: general.name,
+      lastFourDigits: general.lastFourDigits,
+      cardType: general.cardType,
+      spendingLimit: general.spendingLimit,
+      userId: general.userId,
+      amountSpent: 0,
+    },
+    select: { id: true },
+  });
+  return { cardId: id, created: true };
+}
+
 export async function createCard(
   tx: PrismaClientTx,
   data: z.infer<typeof createCardSchema>,
