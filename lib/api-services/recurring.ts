@@ -16,6 +16,7 @@ import {
 import { evaluateRecurringPosted } from "../utils/notifications";
 import { notifyRecurringPosted } from "./notifications";
 import { assertOwnedCard, assertOwnedCategory } from "./transactions";
+import { resolveBudgetCard } from "./cards";
 
 const recurringInclude = {
   category: {
@@ -249,7 +250,9 @@ export const postDueOccurrencesForTemplate = async (
           amount: template.amount,
           budgetId: budget.id,
           categoryId: template.categoryId,
-          cardId: template.cardId,
+          cardId: template.cardId
+            ? (await resolveBudgetCard(tx, template.cardId, budget.id)).cardId
+            : null,
           accountId: template.accountId,
           userId: template.userId,
           transactionType: template.transactionType,
