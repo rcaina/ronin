@@ -247,12 +247,12 @@ export async function resolveDefaultCard(
   return generalCard;
 }
 
-/** The card to use on `budgetId` for `cardId`: itself, the budget's copy of its general card, or a new copy. */
+/** The card to use on `budgetId` for `cardId`: itself, the budget's copy of its general card, a new copy, or null when its general card was deleted. */
 export async function resolveBudgetCard(
   tx: PrismaClientTx,
   cardId: string,
   budgetId: string,
-): Promise<{ cardId: string; created: boolean }> {
+): Promise<{ cardId: string | null; created: boolean }> {
   const card = await tx.card.findUniqueOrThrow({ where: { id: cardId } });
   if (card.budgetId === budgetId) return { cardId, created: false };
 
@@ -263,8 +263,10 @@ export async function resolveBudgetCard(
         ? await tx.card.findUniqueOrThrow({ where: { id: card.defaultCardId } })
         : await resolveDefaultCard(tx, card);
   // Never revive a card the user deleted or merged away.
-  if (general.deleted) return { cardId, created: false };
+  if (general.deleted) return { cardId: null, created: false };
 
+  // Serializes concurrent posts so they can't each create a copy for this budget.
+  await tx.$queryRaw`SELECT id FROM budgets WHERE id = ${budgetId} FOR NO KEY UPDATE`;
   const copy = await tx.card.findFirst({
     where: { budgetId, defaultCardId: general.id, deleted: null },
     orderBy: { createdAt: "asc" },

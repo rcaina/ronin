@@ -81,12 +81,12 @@ export default function InlineTransactionEdit({
   });
 
   const selectedBudgetId = watch("budgetId");
-  const { data: cards = [] } = useCards(
-    undefined,
-    selectedBudgetId || transaction.budgetId,
-  );
+  const cardsBudgetId = selectedBudgetId || transaction.budgetId;
+  const { data: allCards = [] } = useCards(undefined, cardsBudgetId);
+  // keepPreviousData holds the last budget's cards while the new list loads.
+  const cards = allCards.filter((card) => card.budgetId === cardsBudgetId);
   const { data: budgetCategories = [] } = useBudgetCategories(
-    selectedBudgetId || transaction.budgetId,
+    cardsBudgetId,
     undefined,
     monthOfDateInput(watch("occurredAt"), new Date(transaction.createdAt)),
   );
