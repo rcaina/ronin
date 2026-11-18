@@ -76,7 +76,8 @@ async function hideAccountGaps(
     where: {
       budgetId,
       deleted: null,
-      months: { some: { createdAt: { lte: mergedAt } } },
+      // The merge stamps `deleted` before writing month rows, so filter on the category: ones it created keep their old createdAt.
+      createdAt: { lte: mergedAt },
     },
     select: {
       id: true,
