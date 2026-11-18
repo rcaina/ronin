@@ -9,7 +9,12 @@ import {
   defaultDateInMonth,
   getMonthWindow,
   isCategoryInMonth,
+  isHiddenInMonth,
+  mergeHiddenFrom,
   mergeMonthPlans,
+  monthPresence,
+  monthsKeptHidden,
+  plannedForMonth,
   type QuickFillCategory,
   parseMonthKey,
   plannedTotalForMonth,
@@ -26,6 +31,8 @@ describe("parseMonthKey", () => {
   it("rejects malformed or out-of-range keys", () => {
     expect(parseMonthKey("2026-13")).toBeNull();
     expect(parseMonthKey("2026-1")).toBeNull();
+    expect(parseMonthKey("0100-01")).toBeNull();
+    expect(parseMonthKey("9999-12")).toBeNull();
     expect(parseMonthKey(null)).toBeNull();
   });
 });
@@ -397,7 +404,7 @@ describe("mergeMonthPlans", () => {
   const october = new Date("2026-10-01T00:00:00Z");
   const november = new Date("2026-11-01T00:00:00Z");
 
-  it("sums each copy's plan per month, falling back to its default", () => {
+  it("sums each copy's plan per month, carrying its last plan forward, else its default", () => {
     const merged = mergeMonthPlans([
       { allocatedAmount: 100, months: [{ month: november, assigned: 50 }] },
       { allocatedAmount: null, months: [{ month: october, assigned: 10.1 }] },
@@ -409,8 +416,73 @@ describe("mergeMonthPlans", () => {
         .sort(([a], [b]) => String(a).localeCompare(String(b))),
     ).toEqual([
       [october.toISOString(), 140.3],
-      [november.toISOString(), 80.2],
+      [november.toISOString(), 90.3],
     ]);
+  });
+
+  it("drops hidden copies from the sum and adds a row where a copy starts hiding", () => {
+    const merged = mergeMonthPlans([
+      {
+        allocatedAmount: 100,
+        hiddenFrom: november,
+        months: [{ month: october, assigned: 60 }],
+      },
+      { allocatedAmount: 40, months: [{ month: october, assigned: 20 }] },
+    ]);
+    expect(
+      merged.find((row) => row.month.getTime() === november.getTime()),
+    ).toEqual({ month: november, assigned: 20, hidden: false });
+  });
+
+  it("keeps the plans on a month every copy hid, so unhiding restores them", () => {
+    expect(
+      mergeMonthPlans([
+        {
+          allocatedAmount: 100,
+          months: [{ month: november, assigned: 70, hidden: true }],
+        },
+        { allocatedAmount: 30, hiddenFrom: october, months: [] },
+      ]),
+    ).toEqual(
+      expect.arrayContaining([
+        { month: november, assigned: 100, hidden: true },
+        { month: october, assigned: 100, hidden: false },
+      ]),
+    );
+  });
+
+  it("adds the month after a one-month hide so the hidden copy's plan comes back", () => {
+    const december = new Date("2026-12-01T00:00:00Z");
+    expect(
+      mergeMonthPlans([
+        {
+          allocatedAmount: 100,
+          months: [{ month: november, assigned: 100, hidden: true }],
+        },
+        { allocatedAmount: 50, months: [] },
+      ]),
+    ).toEqual(
+      expect.arrayContaining([
+        { month: november, assigned: 50, hidden: false },
+        { month: december, assigned: 150, hidden: false },
+      ]),
+    );
+  });
+});
+
+describe("mergeHiddenFrom", () => {
+  it("is the latest hide when every copy hides, else null", () => {
+    const october = new Date("2026-10-01T00:00:00Z");
+    const november = new Date("2026-11-01T00:00:00Z");
+    expect(
+      mergeHiddenFrom([
+        { hiddenFrom: october, months: [] },
+        { hiddenFrom: november, months: [] },
+      ]),
+    ).toEqual(november);
+    expect(
+      mergeHiddenFrom([{ hiddenFrom: october, months: [] }, { months: [] }]),
+    ).toBeNull();
   });
 
   it("adds no rows when no copy planned a month", () => {
@@ -464,5 +536,129 @@ describe("defaultDateInMonth", () => {
     const first = new Date("2026-12-01T00:00:00Z");
     expect(defaultDateInMonth("2026-12", first)).toBeUndefined();
     expect(defaultDateInMonth("2026-11", first)).toBe("2026-11-30");
+  });
+});
+
+describe("plannedForMonth", () => {
+  const groceries = {
+    allocatedAmount: 300,
+    months: [
+      { month: new Date("2026-09-01T00:00:00Z"), assigned: 250 },
+      { month: new Date("2026-11-01T00:00:00Z"), assigned: 400, hidden: true },
+    ],
+  };
+
+  it("uses the month's own plan", () => {
+    expect(plannedForMonth(groceries, "2026-09")).toBe(250);
+  });
+
+  it("carries the latest earlier plan into months without one, hidden or not", () => {
+    expect(plannedForMonth(groceries, "2026-10")).toBe(250);
+    expect(plannedForMonth(groceries, "2027-02")).toBe(400);
+  });
+
+  it("falls back to the default before the first plan", () => {
+    expect(plannedForMonth(groceries, "2026-08")).toBe(300);
+    expect(
+      plannedForMonth({ allocatedAmount: null, months: [] }, "2026-08"),
+    ).toBe(0);
+  });
+});
+
+describe("isHiddenInMonth", () => {
+  const november = new Date("2026-11-01T00:00:00Z");
+
+  it("hides from hiddenFrom on, not before", () => {
+    const category = { hiddenFrom: november, months: [] };
+    expect(isHiddenInMonth(category, "2026-10")).toBe(false);
+    expect(isHiddenInMonth(category, "2026-11")).toBe(true);
+    expect(isHiddenInMonth(category, "2027-03")).toBe(true);
+  });
+
+  it("hides a single month by its row", () => {
+    const category = {
+      months: [{ month: november, assigned: 10, hidden: true }],
+    };
+    expect(isHiddenInMonth(category, "2026-11")).toBe(true);
+    expect(isHiddenInMonth(category, "2026-12")).toBe(false);
+  });
+});
+
+describe("monthPresence", () => {
+  const spend = (date: string) => ({
+    transactionType: TransactionType.REGULAR,
+    amount: 20,
+    occurredAt: date,
+    createdAt: date,
+  });
+  const base = {
+    createdAt: new Date("2026-09-01T00:00:00Z"),
+    allocatedAmount: 100,
+    hiddenFrom: new Date("2026-11-01T00:00:00Z"),
+    months: [],
+    transactions: [spend("2026-12-05T00:00:00Z")],
+  };
+
+  it("is absent before the category exists", () => {
+    expect(monthPresence(base, "2026-08")).toBe("absent");
+  });
+
+  it("is shown before the hide and hidden after it", () => {
+    expect(monthPresence(base, "2026-10")).toBe("shown");
+    expect(monthPresence(base, "2026-11")).toBe("hidden");
+  });
+
+  it("keeps a hidden month with transactions in view", () => {
+    expect(monthPresence(base, "2026-12")).toBe("shown-hidden");
+  });
+});
+
+describe("monthsKeptHidden", () => {
+  it("keeps each month from hiddenFrom up to the unhidden one hidden, with its plan", () => {
+    const category = {
+      allocatedAmount: 50,
+      hiddenFrom: new Date("2026-11-01T00:00:00Z"),
+      months: [{ month: new Date("2026-12-01T00:00:00Z"), assigned: 80 }],
+    };
+    expect(monthsKeptHidden(category, "2027-02")).toEqual([
+      { month: new Date("2026-11-01T00:00:00Z"), assigned: 50 },
+      { month: new Date("2026-12-01T00:00:00Z"), assigned: 80 },
+      { month: new Date("2027-01-01T00:00:00Z"), assigned: 80 },
+    ]);
+  });
+
+  it("keeps nothing when unhiding the first hidden month or before it", () => {
+    const category = {
+      hiddenFrom: new Date("2026-11-01T00:00:00Z"),
+      months: [],
+    };
+    expect(monthsKeptHidden(category, "2026-11")).toEqual([]);
+    expect(monthsKeptHidden(category, "2026-10")).toEqual([]);
+  });
+});
+
+describe("hidden categories in month math", () => {
+  const hiddenNovember = {
+    id: "gifts",
+    createdAt: new Date("2026-08-01T00:00:00Z"),
+    allocatedAmount: 200,
+    rollover: true,
+    months: [
+      { month: new Date("2026-10-01T00:00:00Z"), assigned: 120, hidden: true },
+    ],
+    hiddenFrom: new Date("2026-11-01T00:00:00Z"),
+    transactions: [],
+  };
+
+  it("leaves hidden categories out of quick-fill and the planned total", () => {
+    expect(
+      computeQuickFill("last-month", [hiddenNovember], "2026-11").size,
+    ).toBe(0);
+    expect(plannedTotalForMonth([hiddenNovember], "2026-11")).toBe(0);
+  });
+
+  it("counts a hidden month as nothing planned in the rollover carry", () => {
+    // Aug 200 + Sep 200, Oct hidden.
+    expect(computeCarry(hiddenNovember, "2026-11")).toBe(400);
   });
 });

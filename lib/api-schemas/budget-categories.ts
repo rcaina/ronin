@@ -1,6 +1,9 @@
 import { CategoryType } from "@prisma/client";
 import { z } from "zod";
-import { QUICK_FILL_SOURCES } from "@/lib/utils/budget-month";
+import {
+  CATEGORY_VISIBILITY_CHANGES,
+  QUICK_FILL_SOURCES,
+} from "@/lib/utils/budget-month";
 
 export const createBudgetCategorySchema = z.object({
   categoryName: z.string().min(1, "Category name is required"),
@@ -16,20 +19,26 @@ export const importBudgetCategoriesSchema = z.object({
     .min(1, "Select at least one category to import"),
 });
 
-export const updateBudgetCategorySchema = z.object({
-  allocatedAmount: z
-    .number()
-    .min(0, "Allocated amount must be 0 or greater")
-    .optional(),
-  name: z
-    .string()
-    .min(1, "Category name is required")
-    .max(100, "Category name must be less than 100 characters")
-    .optional(),
-  group: z.nativeEnum(CategoryType).optional(),
-  rollover: z.boolean().optional(),
-  month: z.string().optional(),
-});
+export const updateBudgetCategorySchema = z
+  .object({
+    allocatedAmount: z
+      .number()
+      .min(0, "Allocated amount must be 0 or greater")
+      .optional(),
+    name: z
+      .string()
+      .min(1, "Category name is required")
+      .max(100, "Category name must be less than 100 characters")
+      .optional(),
+    group: z.nativeEnum(CategoryType).optional(),
+    rollover: z.boolean().optional(),
+    visibility: z.enum(CATEGORY_VISIBILITY_CHANGES).optional(),
+    month: z.string().optional(),
+  })
+  .refine((data) => !data.visibility || data.month, {
+    message: "Hiding needs a month",
+    path: ["month"],
+  });
 
 export const fillBudgetMonthSchema = z.object({
   source: z.enum(QUICK_FILL_SOURCES),

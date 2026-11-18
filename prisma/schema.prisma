@@ -157,6 +157,8 @@ model Category {
   group                 CategoryType
   allocatedAmount       Float?
   rollover              Boolean                @default(false)
+  // Continuous budgets: hidden in this month and every later one until unhidden.
+  hiddenFrom            DateTime?              @db.Date
   transactions          Transaction[]
   transactionSplits     TransactionSplit[]
   recurringTransactions RecurringTransaction[]
@@ -179,6 +181,7 @@ model CategoryMonth {
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   month      DateTime @db.Date
   assigned   Float
+  hidden     Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

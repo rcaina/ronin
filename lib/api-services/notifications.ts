@@ -3,6 +3,7 @@ import type { PrismaClientTx } from "../prisma";
 import { HttpError } from "../errors";
 import { calculateCategorySpent } from "../utils/spending";
 import {
+  effectivePlanned,
   getMonthWindow,
   projectCategoryToMonth,
   toMonthKey,
@@ -288,9 +289,10 @@ export const evaluateBudgetNotificationsForAccount = async (
           id: true,
           name: true,
           allocatedAmount: true,
+          hiddenFrom: true,
           months: {
-            where: { month: monthWindow.start },
-            select: { assigned: true },
+            where: { month: { lte: monthWindow.start } },
+            select: { month: true, assigned: true, hidden: true },
           },
           transactions: {
             where: { deleted: null },
@@ -342,7 +344,7 @@ export const evaluateBudgetNotificationsForAccount = async (
         ? projectCategoryToMonth(
             stored,
             monthWindow,
-            stored.months[0]?.assigned,
+            effectivePlanned(stored, month),
           )
         : stored;
       const thresholdCandidate = evaluateCategoryThreshold({

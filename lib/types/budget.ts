@@ -10,6 +10,10 @@ import type {
   StrategyType,
   TransactionType,
 } from "@prisma/client";
+import type {
+  CategoryVisibilityChange,
+  MonthVisibility,
+} from "@/lib/utils/budget-month";
 
 // A category's share of a split parent transaction, as returned by queries
 // that `include: { transactionSplits: { include: { transaction: true } } }`
@@ -37,6 +41,8 @@ export type BudgetWithRelations = SerializedBudget & {
     transactionSplits?: CategoryTransactionSplit[];
     /** Month view of a continuous budget: balance rolled in from earlier months. */
     carry?: number;
+    /** Month view of a continuous budget; never `hidden` here. */
+    visibility?: MonthVisibility;
   })[];
   transactions: Transaction[];
   cards?: (Card & {
@@ -158,6 +164,10 @@ export type BudgetCategoryWithCategory = {
   rollover: boolean;
   /** Month view of a continuous budget: balance rolled in from earlier months. */
   carry?: number;
+  /** Month view of a continuous budget: `hidden` ones are left out of the month's list. */
+  visibility?: MonthVisibility;
+  /** First month of an open-ended hide. */
+  hiddenFrom: Date | null;
   createdAt: Date;
   updatedAt: Date;
   deleted: Date | null;
@@ -185,6 +195,8 @@ export interface UpdateBudgetCategoryData {
   name?: string;
   group?: CategoryType;
   rollover?: boolean;
+  /** Needs `month`: hide that month only, hide it and every later month, or show it again. */
+  visibility?: CategoryVisibilityChange;
   /** On a continuous budget, `allocatedAmount` is planned for this month only. */
   month?: string;
 }

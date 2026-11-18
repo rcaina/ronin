@@ -17,6 +17,7 @@ import { getCategoryStatus, getTransactionDate } from "@/lib/utils/spending";
 import Button from "@/components/Button";
 import ToggleRow from "@/components/settings/ToggleRow";
 import { formatMonthLabel, type MonthKey } from "@/lib/utils/budget-month";
+import HideCategoryButton from "./HideCategoryButton";
 
 interface BudgetCategoryCardProps {
   budgetCategory: BudgetCategoryWithCategory;
@@ -169,6 +170,11 @@ export default function BudgetCategoryCard({
           ) : (
             <h3 className="min-w-0 break-words text-base font-semibold text-gray-900">
               {budgetCategory.name}
+              {budgetCategory.visibility === "shown-hidden" && (
+                <span className="mt-1 block w-fit rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                  Hidden
+                </span>
+              )}
             </h3>
           )}
           <div className="flex items-center space-x-2">
@@ -182,6 +188,13 @@ export default function BudgetCategoryCard({
                 >
                   <Edit className="h-4 w-4" />
                 </button>
+                {month && (
+                  <HideCategoryButton
+                    budgetId={budgetId}
+                    category={budgetCategory}
+                    month={month}
+                  />
+                )}
                 <button
                   onClick={handleDeleteCategory}
                   className="tap-target rounded-lg p-1.5 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"

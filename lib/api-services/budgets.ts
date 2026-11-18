@@ -37,17 +37,21 @@ import {
   cardTransactionsInWindow,
   computeCarry,
   computeQuickFill,
+  effectivePlanned,
   getMonthWindow,
-  isCategoryInMonth,
+  monthPresence,
+  monthsKeptHidden,
   parseMonthKey,
+  plannedForMonth,
   plannedTotalForMonth,
   projectCategoryToMonth,
   QUICK_FILL_SOURCES,
   quickFillRefusal,
   resolveMonthWindow,
-  shiftMonth,
   toMonthKey,
   type MonthKey,
+  type MonthVisibility,
+  type CategoryVisibilityChange,
   type QuickFillCategory,
   type QuickFillPreview,
   type QuickFillSource,
@@ -71,48 +75,53 @@ const resolveBudgetMonthWindow = async (
   return resolveMonthWindow(budget.kind, monthParam);
 };
 
-/** Each category's assigned amount for the month that starts `window.start`. */
-const getMonthAssignments = async (
+/**
+ * The month view of each category present in the month starting `window.start`:
+ * projected to the month, with its carry and `visibility` (`hidden` ones plan nothing
+ * and have no transactions that month, so callers listing the month leave them out).
+ */
+const scopeCategoriesToMonth = async <
+  C extends Omit<QuickFillCategory, "months"> & {
+    rollover: boolean;
+    hiddenFrom: Date | null;
+  },
+>(
   tx: PrismaClientTx,
   budgetId: string,
+  categories: C[],
   window: DateWindow,
-): Promise<Map<string, number>> => {
+) => {
   const rows = await tx.categoryMonth.findMany({
-    where: { month: window.start, category: { budgetId } },
-    select: { categoryId: true, assigned: true },
+    where: { month: { lte: window.start }, category: { budgetId } },
+    select: { categoryId: true, month: true, assigned: true, hidden: true },
   });
-  return new Map(rows.map((row) => [row.categoryId, row.assigned]));
-};
-
-/** Balance carried into the month that starts `window.start`, per rollover category. */
-const getMonthCarries = async (
-  tx: PrismaClientTx,
-  categories: Array<Omit<QuickFillCategory, "months"> & { rollover: boolean }>,
-  window: DateWindow,
-): Promise<Map<string, number>> => {
-  const rollover = categories.filter((category) => category.rollover);
-  if (rollover.length === 0) return new Map();
-
-  const rows = await tx.categoryMonth.findMany({
-    where: {
-      categoryId: { in: rollover.map((category) => category.id) },
-      month: { lt: window.start },
-    },
-    select: { categoryId: true, month: true, assigned: true },
-  });
+  const rowsByCategory = new Map<string, typeof rows>();
+  for (const row of rows) {
+    rowsByCategory.set(row.categoryId, [
+      ...(rowsByCategory.get(row.categoryId) ?? []),
+      row,
+    ]);
+  }
   const month = toMonthKey(window.start);
-  return new Map(
-    rollover.map((category) => [
-      category.id,
-      computeCarry(
-        {
-          ...category,
-          months: rows.filter((row) => row.categoryId === category.id),
-        },
-        month,
-      ),
-    ]),
-  );
+  return categories.flatMap((category) => {
+    const planned = {
+      ...category,
+      months: rowsByCategory.get(category.id) ?? [],
+    };
+    const presence = monthPresence(planned, month);
+    if (presence === "absent") return [];
+    return [
+      {
+        ...projectCategoryToMonth(
+          category,
+          window,
+          effectivePlanned(planned, month),
+        ),
+        carry: computeCarry(planned, month),
+        visibility: presence as MonthVisibility,
+      },
+    ];
+  });
 };
 
 /** Reuses the budget's debit card, or creates one named "Main" linked to its general card. */
@@ -278,31 +287,17 @@ export async function getBudgetById(
   }
 
   const monthWindow = resolveMonthWindow(budget.kind, params.get("month"));
-  const assignments = monthWindow
-    ? await getMonthAssignments(tx, budget.id, monthWindow)
-    : null;
-  const carries = monthWindow
-    ? await getMonthCarries(tx, budget.categories, monthWindow)
-    : null;
   const scoped = monthWindow
     ? {
         ...budget,
-        categories: budget.categories
-          .filter((category) =>
-            isCategoryInMonth(
-              category,
-              monthWindow,
-              !!assignments?.has(category.id),
-            ),
+        categories: (
+          await scopeCategoriesToMonth(
+            tx,
+            budget.id,
+            budget.categories,
+            monthWindow,
           )
-          .map((category) => ({
-            ...projectCategoryToMonth(
-              category,
-              monthWindow,
-              assignments?.get(category.id),
-            ),
-            carry: carries?.get(category.id) ?? 0,
-          })),
+        ).filter((category) => category.visibility !== "hidden"),
         transactions: budget.transactions.filter((transaction) =>
           isWithinWindow(transaction, monthWindow),
         ),
@@ -938,39 +933,23 @@ export const getBudgetCategories = async (
     },
   });
 
-  const assignments = monthWindow
-    ? await getMonthAssignments(tx, budgetId, monthWindow)
-    : null;
-  const carries = monthWindow
-    ? await getMonthCarries(tx, categories, monthWindow)
-    : null;
-  const formattedCategories = formatBudgetCategories(
-    monthWindow
-      ? categories
-          .filter((category) =>
-            isCategoryInMonth(
-              category,
-              monthWindow,
-              !!assignments?.has(category.id),
-            ),
-          )
-          .map((category) => ({
-            ...projectCategoryToMonth(
-              category,
-              monthWindow,
-              assignments?.get(category.id),
-            ),
-            carry: carries?.get(category.id) ?? 0,
-          }))
-      : categories,
-  );
+  const scoped: Array<
+    (typeof categories)[number] & {
+      carry?: number;
+      visibility?: MonthVisibility;
+    }
+  > = monthWindow
+    ? await scopeCategoriesToMonth(tx, budgetId, categories, monthWindow)
+    : categories;
+  const formattedCategories = formatBudgetCategories(scoped);
+  const carries = new Map(scoped.map((c) => [c.id, c.carry ?? 0]));
 
   // Sort categories: incomplete first, completed last, then alphabetically within each group
   return formattedCategories.sort((a, b) => {
     const isCompleted = (category: (typeof formattedCategories)[number]) =>
       getCategoryStatus(
         category.spentAmount,
-        (category.allocatedAmount ?? 0) + (carries?.get(category.id) ?? 0),
+        (category.allocatedAmount ?? 0) + (carries.get(category.id) ?? 0),
       ) !== "open";
     const aIsCompleted = isCompleted(a);
     const bIsCompleted = isCompleted(b);
@@ -1264,9 +1243,22 @@ export const updateBudgetCategory = async (
     name?: string;
     group?: CategoryType;
     rollover?: boolean;
+    hiddenFrom?: Date | null;
   } = {};
 
   const monthWindow = resolveMonthWindow(budget.kind, data.month);
+  if (data.visibility) {
+    if (!monthWindow) {
+      throw new HttpError("Hiding needs a month of the monthly budget", 400);
+    }
+    const hiddenFrom = await setMonthVisibility(
+      tx,
+      category,
+      toMonthKey(monthWindow.start),
+      data.visibility,
+    );
+    if (hiddenFrom !== undefined) updateData.hiddenFrom = hiddenFrom;
+  }
   if (data.allocatedAmount !== undefined && monthWindow) {
     await tx.categoryMonth.upsert({
       where: { categoryId_month: { categoryId, month: monthWindow.start } },
@@ -1300,6 +1292,71 @@ export const updateBudgetCategory = async (
   return updatedCategory;
 };
 
+/**
+ * Hides `month` only, hides it and every later month, or shows `month` again (an
+ * open-ended hide that began earlier keeps those earlier months hidden). Returns the
+ * category's new `hiddenFrom`, or undefined when it doesn't change.
+ */
+const setMonthVisibility = async (
+  tx: PrismaClientTx,
+  category: Category,
+  month: MonthKey,
+  visibility: CategoryVisibilityChange,
+): Promise<Date | null | undefined> => {
+  const start = getMonthWindow(month).start;
+  const hiddenOnward = !!category.hiddenFrom && category.hiddenFrom <= start;
+  const planned = {
+    ...category,
+    months: await tx.categoryMonth.findMany({
+      where: { categoryId: category.id, month: { lte: start } },
+      select: { month: true, assigned: true, hidden: true },
+    }),
+  };
+  const hideMonth = (row: { month: Date; assigned: number }) =>
+    tx.categoryMonth.upsert({
+      where: {
+        categoryId_month: { categoryId: category.id, month: row.month },
+      },
+      create: { categoryId: category.id, ...row, hidden: true },
+      update: { hidden: true },
+    });
+
+  if (visibility === "hide-onward") {
+    return hiddenOnward ? undefined : start;
+  }
+  if (visibility === "hide-month") {
+    await hideMonth({
+      month: start,
+      assigned: plannedForMonth(planned, month),
+    });
+    return undefined;
+  }
+
+  const kept = monthsKeptHidden(planned, month);
+  if (kept.length > 0) {
+    await tx.categoryMonth.updateMany({
+      where: {
+        categoryId: category.id,
+        month: { gte: kept[0]!.month, lt: start },
+      },
+      data: { hidden: true },
+    });
+    await tx.categoryMonth.createMany({
+      data: kept.map((row) => ({
+        categoryId: category.id,
+        ...row,
+        hidden: true,
+      })),
+      skipDuplicates: true,
+    });
+  }
+  await tx.categoryMonth.updateMany({
+    where: { categoryId: category.id, month: start },
+    data: { hidden: false },
+  });
+  return hiddenOnward ? null : undefined;
+};
+
 /** The continuous budget's categories with their plans up to `monthParam` and all their spending. */
 const loadQuickFillCategories = async (
   tx: PrismaClientTx,
@@ -1324,14 +1381,10 @@ const loadQuickFillCategories = async (
       id: true,
       createdAt: true,
       allocatedAmount: true,
+      hiddenFrom: true,
       months: {
-        where: {
-          month: {
-            gte: getMonthWindow(shiftMonth(month, -3)).start,
-            lte: window.start,
-          },
-        },
-        select: { month: true, assigned: true },
+        where: { month: { lte: window.start } },
+        select: { month: true, assigned: true, hidden: true },
       },
       transactions: {
         where: { deleted: null },
