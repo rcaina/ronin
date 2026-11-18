@@ -1,6 +1,15 @@
 import { BudgetStatus, type CategoryType } from "@prisma/client";
 import { roundToCents } from "@/lib/utils";
-import { toMonthKey, type MonthKey } from "@/lib/utils/budget-month";
+import {
+  shiftMonth,
+  toMonthKey,
+  type MonthPlan,
+  type MonthKey,
+} from "@/lib/utils/budget-month";
+import {
+  getTransactionDate,
+  type SpendingCategory,
+} from "@/lib/utils/spending";
 
 export interface MergeCategory {
   id: string;
@@ -189,5 +198,64 @@ export const planContinuousMerge = <
     cards: withoutMatchFields(
       cards.filter((group) => group.sourceIds.length > 0),
     ),
+  };
+};
+
+export interface GapHidePlan {
+  /** Months to hide one at a time. */
+  hideMonths: MonthKey[];
+  /** First month of an open-ended hide, or null to leave `hiddenFrom` as it is. */
+  hiddenFrom: MonthKey | null;
+}
+
+/**
+ * Hides the months the backfill made a category show in without it being in that
+ * month's monthly budget. The backfill planned those months at 0, so a month counts as
+ * used only with a nonzero plan or transactions (a month really planned at 0 with no
+ * spending is hidden too). From its first month to `lastLegacyMonth`, unused months are
+ * hidden one at a time; when the last monthly budgets left it out, it stays hidden from
+ * the month after it was last used (from its first month if never used), until
+ * unhidden. A category already hidden anywhere was handled (by a run or by hand) and
+ * is left alone.
+ */
+export const planBackfillGapHides = (
+  category: SpendingCategory & {
+    createdAt: Date;
+    hiddenFrom: Date | null;
+    months: MonthPlan[];
+  },
+  lastLegacyMonth: MonthKey,
+): GapHidePlan => {
+  if (category.hiddenFrom || category.months.some((row) => row.hidden)) {
+    return { hideMonths: [], hiddenFrom: null };
+  }
+  const used = new Set([
+    ...category.months
+      .filter((row) => row.assigned !== 0)
+      .map((row) => toMonthKey(row.month)),
+    ...(category.transactions ?? []).map((transaction) =>
+      toMonthKey(getTransactionDate(transaction)),
+    ),
+    ...(category.transactionSplits ?? []).map((split) =>
+      toMonthKey(getTransactionDate(split.transaction)),
+    ),
+  ]);
+  const first = [
+    toMonthKey(category.createdAt),
+    ...category.months.map((row) => toMonthKey(row.month)),
+    ...used,
+  ].sort()[0]!;
+  const lastUsed = [...used].sort().at(-1);
+  if (!lastUsed) return { hideMonths: [], hiddenFrom: first };
+
+  const end = lastUsed < lastLegacyMonth ? lastUsed : lastLegacyMonth;
+  const hideMonths: MonthKey[] = [];
+  for (let month = first; month <= end; month = shiftMonth(month, 1)) {
+    if (!used.has(month)) hideMonths.push(month);
+  }
+
+  return {
+    hideMonths,
+    hiddenFrom: lastUsed < lastLegacyMonth ? shiftMonth(lastUsed, 1) : null,
   };
 };

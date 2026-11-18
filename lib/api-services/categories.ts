@@ -4,7 +4,7 @@ import type { z } from "zod";
 import type { createCategorySchema } from "../api-schemas/categories";
 import { HttpError } from "../errors";
 import { roundToCents } from "../utils";
-import { mergeMonthPlans } from "../utils/budget-month";
+import { mergeHiddenFrom, mergeMonthPlans } from "../utils/budget-month";
 import type {
   GroupedCategories,
   MergeCategoriesRequest,
@@ -177,7 +177,9 @@ export async function mergeCategories(
       defaultCategoryId: { in: [targetId, ...sourceIds] },
       deleted: null,
     },
-    include: { months: { select: { month: true, assigned: true } } },
+    include: {
+      months: { select: { month: true, assigned: true, hidden: true } },
+    },
     orderBy: { createdAt: "asc" },
   });
 
@@ -220,6 +222,7 @@ export async function mergeCategories(
       where: { id: survivor.id },
       data: {
         rollover: copies.some((copy) => copy.rollover),
+        hiddenFrom: mergeHiddenFrom(copies),
         ...(hasAllocation && {
           allocatedAmount: roundToCents(
             copies.reduce((sum, copy) => sum + (copy.allocatedAmount ?? 0), 0),

@@ -7,6 +7,7 @@ import BudgetCategoriesViewToggle, {
   type BudgetCategoriesViewType,
 } from "@/components/budgets/BudgetCategoriesViewToggle";
 import BudgetCategoriesListView from "@/components/budgets/BudgetCategoriesListView";
+import HiddenCategoriesList from "@/components/budgets/HiddenCategoriesList";
 import BudgetCategoriesSearch from "@/components/budgets/BudgetCategoriesSearch";
 import BudgetCategoryFiltersModal, {
   DEFAULT_BUDGET_CATEGORY_FILTERS,
@@ -411,8 +412,18 @@ const BudgetCategoriesPage = () => {
   // Apply client-side filtering + sorting on top of the (already
   // server-searched) category list. Both the grid and list views render
   // whatever comes out of this so filters apply consistently in either view.
+  const hiddenCategories = useMemo(
+    () =>
+      (budgetCategories ?? []).filter(
+        (category) => category.visibility === "hidden",
+      ),
+    [budgetCategories],
+  );
+
   const filteredBudgetCategories = useMemo(() => {
-    const list = budgetCategories ?? [];
+    const list = (budgetCategories ?? []).filter(
+      (category) => category.visibility !== "hidden",
+    );
 
     const filtered = list.filter((category) => {
       if (filters.group !== "all" && category.group !== filters.group) {
@@ -971,46 +982,56 @@ const BudgetCategoriesPage = () => {
             </div>
           </div>
 
-          <div className="lg:min-h-0 lg:flex-1">
-            {/* Only stand in for the views when a search/filter hid everything.
+          <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
+            <div className="lg:min-h-0 lg:flex-1">
+              {/* Only stand in for the views when a search/filter hid everything.
                 A budget with no categories at all still renders the views so
                 their per-group "+" buttons are reachable. */}
-            {filteredBudgetCategories.length === 0 &&
-            (restrictiveFilterCount > 0 || searchQuery.trim() !== "") ? (
-              <div className="card-surface flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
-                  <SlidersHorizontal className="h-7 w-7" strokeWidth={1.5} />
+              {filteredBudgetCategories.length === 0 &&
+              (restrictiveFilterCount > 0 || searchQuery.trim() !== "") ? (
+                <div className="card-surface flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+                    <SlidersHorizontal className="h-7 w-7" strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <p className="text-base font-semibold text-gray-900">
+                      No categories match
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {restrictiveFilterCount > 0
+                        ? "Try adjusting or clearing your filters."
+                        : "Try a different search, or clear it to see all categories."}
+                    </p>
+                  </div>
+                  {activeFilterCount > 0 && (
+                    <Button variant="outline" onClick={handleClearFilters}>
+                      Clear filters
+                    </Button>
+                  )}
                 </div>
-                <div>
-                  <p className="text-base font-semibold text-gray-900">
-                    No categories match
-                  </p>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {restrictiveFilterCount > 0
-                      ? "Try adjusting or clearing your filters."
-                      : "Try a different search, or clear it to see all categories."}
-                  </p>
-                </div>
-                {activeFilterCount > 0 && (
-                  <Button variant="outline" onClick={handleClearFilters}>
-                    Clear filters
-                  </Button>
-                )}
-              </div>
-            ) : view === "grid" ? (
-              <BudgetCategoriesGridView
+              ) : view === "grid" ? (
+                <BudgetCategoriesGridView
+                  budgetId={budgetId}
+                  month={isContinuous ? month : undefined}
+                  getGroupColor={getGroupColor}
+                  getGroupLabel={getGroupLabel}
+                  budgetCategories={filteredBudgetCategories}
+                />
+              ) : (
+                <BudgetCategoriesListView
+                  budgetId={budgetId}
+                  month={isContinuous ? month : undefined}
+                  getGroupColor={getGroupColor}
+                  getGroupLabel={getGroupLabel}
+                  budgetCategories={filteredBudgetCategories}
+                />
+              )}
+            </div>
+            {isContinuous && (
+              <HiddenCategoriesList
                 budgetId={budgetId}
-                month={isContinuous ? month : undefined}
-                getGroupColor={getGroupColor}
-                getGroupLabel={getGroupLabel}
-                budgetCategories={filteredBudgetCategories}
-              />
-            ) : (
-              <BudgetCategoriesListView
-                budgetId={budgetId}
-                getGroupColor={getGroupColor}
-                getGroupLabel={getGroupLabel}
-                budgetCategories={filteredBudgetCategories}
+                month={month}
+                categories={hiddenCategories}
               />
             )}
           </div>

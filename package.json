@@ -12,6 +12,7 @@
     "accounts:delete-orphaned": "tsx scripts/delete-orphaned-accounts.ts",
     "categories:scope-templates": "tsx scripts/scope-template-categories.ts",
     "cards:repoint-transactions": "tsx scripts/repoint-off-budget-card-transactions.ts",
+    "categories:hide-backfill-gaps": "tsx scripts/hide-backfill-gap-months.ts",
     "db:generate": "prisma migrate dev",
     "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",

@@ -13,7 +13,7 @@ import {
 /** Month key as used in URLs and the API: "YYYY-MM", in UTC. */
 export type MonthKey = string;
 
-const MONTH_KEY = /^(\d{4})-(0[1-9]|1[0-2])$/;
+const MONTH_KEY = /^(20\d{2})-(0[1-9]|1[0-2])$/;
 
 export const toMonthKey = (date: Date): MonthKey =>
   `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
@@ -128,12 +128,105 @@ export const QUICK_FILL_SOURCES = [
 ] as const;
 export type QuickFillSource = (typeof QUICK_FILL_SOURCES)[number];
 
-export interface QuickFillCategory extends SpendingCategory {
+export const CATEGORY_VISIBILITY_CHANGES = [
+  "hide-month",
+  "hide-onward",
+  "show",
+] as const;
+export type CategoryVisibilityChange =
+  (typeof CATEGORY_VISIBILITY_CHANGES)[number];
+
+/** A category in a month view: shown, hidden but shown for its transactions, or hidden. */
+export type MonthVisibility = "shown" | "shown-hidden" | "hidden";
+
+/** A `CategoryMonth` row: the month's plan, and whether the category is hidden that month. */
+export interface MonthPlan {
+  month: Date;
+  assigned: number;
+  hidden?: boolean;
+}
+
+export interface MonthPlanned {
+  allocatedAmount?: number | null;
+  /** First hidden month of an open-ended hide, until unhidden. */
+  hiddenFrom?: Date | null;
+  months: MonthPlan[];
+}
+
+export interface QuickFillCategory extends SpendingCategory, MonthPlanned {
   id: string;
   createdAt: Date;
   allocatedAmount: number | null;
-  months: Array<{ month: Date; assigned: number }>;
 }
+
+const rowFor = (category: MonthPlanned, window: DateWindow) =>
+  category.months.find((row) => row.month.getTime() === window.start.getTime());
+
+/** Planned for `month` before hiding: its own plan, else the latest earlier month's, else the category default. */
+export const plannedForMonth = (
+  category: MonthPlanned,
+  month: MonthKey,
+): number => {
+  const start = monthStart(month).getTime();
+  let latest: MonthPlan | undefined;
+  for (const row of category.months) {
+    const time = row.month.getTime();
+    if (time <= start && (!latest || time > latest.month.getTime())) {
+      latest = row;
+    }
+  }
+  return latest?.assigned ?? category.allocatedAmount ?? 0;
+};
+
+/** Hidden in `month`: on or after `hiddenFrom`, or by that month's own row. */
+export const isHiddenInMonth = (
+  category: MonthPlanned,
+  month: MonthKey,
+): boolean => {
+  const window = getMonthWindow(month);
+  return (
+    (!!category.hiddenFrom && category.hiddenFrom <= window.start) ||
+    !!rowFor(category, window)?.hidden
+  );
+};
+
+/**
+ * Unhiding `month` of an open-ended hide that began earlier keeps those earlier months
+ * hidden: one hidden row each, holding its plan. Empty when the hide starts later.
+ */
+export const monthsKeptHidden = (
+  category: MonthPlanned,
+  month: MonthKey,
+): Array<{ month: Date; assigned: number }> => {
+  if (!category.hiddenFrom) return [];
+  const kept = [];
+  for (
+    let current = toMonthKey(category.hiddenFrom);
+    current < month;
+    current = shiftMonth(current, 1)
+  ) {
+    kept.push({
+      month: monthStart(current),
+      assigned: plannedForMonth(category, current),
+    });
+  }
+  return kept;
+};
+
+/** What the month counts as planned: nothing while hidden. */
+export const effectivePlanned = (
+  category: MonthPlanned,
+  month: MonthKey,
+): number =>
+  isHiddenInMonth(category, month) ? 0 : plannedForMonth(category, month);
+
+const hasActivityIn = (category: SpendingCategory, window: DateWindow) =>
+  !!category.transactions?.some((transaction) =>
+    isWithinWindow(transaction, window),
+  ) ||
+  !!category.transactionSplits?.some((split) =>
+    isWithinWindow(split.transaction, window),
+  );
 
 /** A month view shows a category created by the month's end, or planned or spent in that month. */
 export const isCategoryInMonth = (
@@ -143,29 +236,36 @@ export const isCategoryInMonth = (
 ): boolean =>
   category.createdAt <= window.end ||
   plannedInMonth ||
-  !!category.transactions?.some((transaction) =>
-    isWithinWindow(transaction, window),
-  ) ||
-  !!category.transactionSplits?.some((split) =>
-    isWithinWindow(split.transaction, window),
-  );
+  hasActivityIn(category, window);
+
+/**
+ * How a month view lists a category: `shown`, `shown-hidden` (hidden but it has
+ * transactions that month, so they stay visible), `hidden`, or `absent`.
+ */
+export const monthPresence = (
+  category: SpendingCategory & MonthPlanned & { createdAt: Date },
+  month: MonthKey,
+): "shown" | "shown-hidden" | "hidden" | "absent" => {
+  const window = getMonthWindow(month);
+  if (!isCategoryInMonth(category, window, !!rowFor(category, window))) {
+    return "absent";
+  }
+  if (!isHiddenInMonth(category, month)) return "shown";
+  return hasActivityIn(category, window) ? "shown-hidden" : "hidden";
+};
 
 const hasHistoryIn = (
   category: QuickFillCategory,
   window: DateWindow,
-): boolean =>
-  isCategoryInMonth(
-    category,
-    window,
-    category.months.some(
-      (row) => row.month.getTime() === window.start.getTime(),
-    ),
-  );
+): boolean => {
+  const presence = monthPresence(category, toMonthKey(window.start));
+  return presence === "shown" || presence === "shown-hidden";
+};
 
 /**
  * Planned amount per category id for `month`, from the months before it: last month's
  * plan, the average spent over the last 3 months, or last month's spent. Categories
- * with no history in those months are left out.
+ * hidden in `month` or with no history in those months are left out.
  */
 export const computeQuickFill = (
   source: QuickFillSource,
@@ -179,16 +279,17 @@ export const computeQuickFill = (
   const fill = new Map<string, number>();
 
   for (const category of categories) {
+    if (isHiddenInMonth(category, month)) continue;
     const history = sourceWindows.filter((window) =>
       hasHistoryIn(category, window),
     );
     if (history.length === 0) continue;
 
     if (source === "last-month") {
-      const row = category.months.find(
-        (row) => row.month.getTime() === history[0]!.start.getTime(),
+      fill.set(
+        category.id,
+        effectivePlanned(category, toMonthKey(history[0]!.start)),
       );
-      fill.set(category.id, row?.assigned ?? category.allocatedAmount ?? 0);
       continue;
     }
 
@@ -217,15 +318,11 @@ export const plannedTotalForMonth = (
   month: MonthKey,
   fill: Map<string, number> = new Map(),
 ): number => {
-  const window = getMonthWindow(month);
   const total = categories.reduce((sum, category) => {
     const filled = fill.get(category.id);
     if (filled !== undefined) return sum + filled;
-    const row = category.months.find(
-      (row) => row.month.getTime() === window.start.getTime(),
-    );
-    if (!isCategoryInMonth(category, window, !!row)) return sum;
-    return sum + (row?.assigned ?? category.allocatedAmount ?? 0);
+    if (monthPresence(category, month) === "absent") return sum;
+    return sum + effectivePlanned(category, month);
   }, 0);
   return roundToCents(total);
 };
@@ -264,13 +361,9 @@ export const computeCarry = (
     current < month;
     current = shiftMonth(current, 1)
   ) {
-    const window = getMonthWindow(current);
-    const row = category.months.find(
-      (row) => row.month.getTime() === window.start.getTime(),
-    );
     carry +=
-      (row?.assigned ?? category.allocatedAmount ?? 0) -
-      calculateCategorySpentInWindow(category, window);
+      effectivePlanned(category, current) -
+      calculateCategorySpentInWindow(category, getMonthWindow(current));
   }
   return roundToCents(carry);
 };
@@ -288,32 +381,48 @@ export const calculateReadyToAssign = (
       ),
   );
 
-interface MonthPlan {
-  month: Date;
-  assigned: number;
-}
-
 /**
- * Month rows for categories merged into one: every month any copy planned gets the sum
- * of each copy's plan for it, falling back to that copy's default.
+ * Month rows for categories merged into one: every month any copy planned, started
+ * hiding or ended a one-month hide gets the sum of the visible copies' plans, hidden
+ * when every copy is (then keeping their plans, so unhiding restores them).
  */
 export const mergeMonthPlans = (
-  copies: Array<{ allocatedAmount: number | null; months: MonthPlan[] }>,
-): MonthPlan[] => {
+  copies: Array<MonthPlanned & { allocatedAmount: number | null }>,
+): Required<MonthPlan>[] => {
   const months = new Set(
-    copies.flatMap((copy) => copy.months.map((row) => row.month.getTime())),
+    copies.flatMap((copy) => [
+      ...copy.months.map((row) => row.month.getTime()),
+      // A one-month hide ends the month after, which changes that month's sum too.
+      ...copy.months
+        .filter((row) => row.hidden)
+        .map((row) =>
+          monthStart(shiftMonth(toMonthKey(row.month), 1)).getTime(),
+        ),
+      ...(copy.hiddenFrom ? [copy.hiddenFrom.getTime()] : []),
+    ]),
   );
-  return [...months].map((time) => ({
-    month: new Date(time),
-    assigned: roundToCents(
-      copies.reduce(
-        (sum, copy) =>
-          sum +
-          (copy.months.find((row) => row.month.getTime() === time)?.assigned ??
-            copy.allocatedAmount ??
-            0),
-        0,
+  return [...months].map((time) => {
+    const month = toMonthKey(new Date(time));
+    const hidden = copies.every((copy) => isHiddenInMonth(copy, month));
+    return {
+      month: new Date(time),
+      assigned: roundToCents(
+        copies.reduce(
+          (sum, copy) =>
+            sum +
+            (hidden
+              ? plannedForMonth(copy, month)
+              : effectivePlanned(copy, month)),
+          0,
+        ),
       ),
-    ),
-  }));
+      hidden,
+    };
+  });
 };
+
+/** A merged category's open-ended hide: only when every copy has one, from the latest. */
+export const mergeHiddenFrom = (copies: MonthPlanned[]): Date | null =>
+  copies.every((copy) => copy.hiddenFrom)
+    ? new Date(Math.max(...copies.map((copy) => copy.hiddenFrom!.getTime())))
+    : null;
