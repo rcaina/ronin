@@ -12,7 +12,7 @@ export const PUT = withUser({
     async (
       req: NextRequest,
       context: { params: Promise<Record<string, string>> },
-      _user: User & { accountId: string },
+      user: User & { accountId: string },
     ) => {
       const { id } = await context.params;
       const categoryId = validateCategoryId(id);
@@ -21,10 +21,15 @@ export const PUT = withUser({
       const validatedData = updateCategorySchema.parse(body);
 
       return await prisma.$transaction(async (tx) => {
-        const updatedCategory = await updateCategory(tx, categoryId, {
-          name: validatedData.name,
-          group: validatedData.group as CategoryType,
-        });
+        const updatedCategory = await updateCategory(
+          tx,
+          categoryId,
+          {
+            name: validatedData.name,
+            group: validatedData.group as CategoryType,
+          },
+          user.accountId,
+        );
 
         return NextResponse.json(updatedCategory, { status: 200 });
       });
@@ -37,13 +42,13 @@ export const DELETE = withUser({
     async (
       _req: NextRequest,
       context: { params: Promise<Record<string, string>> },
-      _user: User & { accountId: string },
+      user: User & { accountId: string },
     ) => {
       const { id } = await context.params;
       const categoryId = validateCategoryId(id);
 
       return await prisma.$transaction(async (tx) => {
-        await deleteCategory(tx, categoryId);
+        await deleteCategory(tx, categoryId, user.accountId);
 
         return NextResponse.json(
           { message: "Category deleted" },

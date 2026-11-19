@@ -54,7 +54,6 @@ export default function InlineTransactionEdit({
 }: InlineTransactionEditProps) {
   const { mutate: updateTransaction, isPending: isUpdating } =
     useUpdateTransaction();
-  const { data: cards = [] } = useCards(undefined, transaction.budgetId);
   const { data: budgets = [] } = useBudgets();
 
   const {
@@ -82,8 +81,12 @@ export default function InlineTransactionEdit({
   });
 
   const selectedBudgetId = watch("budgetId");
+  const cardsBudgetId = selectedBudgetId || transaction.budgetId;
+  const { data: allCards = [] } = useCards(undefined, cardsBudgetId);
+  // keepPreviousData holds the last budget's cards while the new list loads.
+  const cards = allCards.filter((card) => card.budgetId === cardsBudgetId);
   const { data: budgetCategories = [] } = useBudgetCategories(
-    selectedBudgetId || transaction.budgetId,
+    cardsBudgetId,
     undefined,
     monthOfDateInput(watch("occurredAt"), new Date(transaction.createdAt)),
   );
@@ -131,7 +134,7 @@ export default function InlineTransactionEdit({
     return (
       <div className="flex items-center justify-between gap-3 bg-secondary-50 px-3 py-3 sm:px-6 sm:py-4">
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <div className="h-3 w-3 flex-shrink-0 rounded-full bg-accent" />
+          <div className="h-3 w-3 flex-shrink-0 rounded-full bg-accent-400" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-gray-900">
               {transaction.name ?? "Unnamed transaction"}
@@ -211,7 +214,10 @@ export default function InlineTransactionEdit({
               <div className="text-xs text-gray-500">Budget</div>
               <select
                 {...register("budgetId", {
-                  onChange: () => setValue("categoryId", ""),
+                  onChange: () => {
+                    setValue("categoryId", "");
+                    setValue("cardId", "");
+                  },
                 })}
                 className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
                   errors.budgetId

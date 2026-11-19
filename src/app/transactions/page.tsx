@@ -765,7 +765,7 @@ const TransactionsPageContent = () => {
                 >
                   <SlidersHorizontal className="h-5 w-5" />
                   {activeModalFilterCount > 0 && (
-                    <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-semibold text-primary-950">
+                    <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-semibold text-secondary-foreground">
                       {activeModalFilterCount}
                     </span>
                   )}

@@ -72,7 +72,7 @@ const CategoriesPage = () => {
       case CategoryType.NEEDS:
         return "bg-[#5b7a9d]";
       case CategoryType.WANTS:
-        return "bg-[#b9a15e]";
+        return "bg-accent-500";
       case CategoryType.INVESTMENT:
         return "bg-[#6c9a8b]";
       default:

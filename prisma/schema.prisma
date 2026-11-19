@@ -25,6 +25,7 @@ model Account {
   transactions          Transaction[]
   savings               Savings[]
   recurringTransactions RecurringTransaction[]
+  categories            Category[]
   plan                  Plan                   @default(FREE)
   complimentaryAccess   Boolean                @default(false)
   stripeCustomerId      String?                @unique
@@ -149,10 +150,15 @@ model Category {
   defaultCategoryId     String?
   defaultCategory       Category?              @relation("DefaultCategory", fields: [defaultCategoryId], references: [id])
   budgetCategories      Category[]             @relation("DefaultCategory")
+  // Set on templates only (budgetId and defaultCategoryId null): the account that owns it.
+  accountId             String?
+  account               Account?               @relation(fields: [accountId], references: [id], onDelete: Restrict)
   name                  String
   group                 CategoryType
   allocatedAmount       Float?
   rollover              Boolean                @default(false)
+  // Continuous budgets: hidden in this month and every later one until unhidden.
+  hiddenFrom            DateTime?              @db.Date
   transactions          Transaction[]
   transactionSplits     TransactionSplit[]
   recurringTransactions RecurringTransaction[]
@@ -164,6 +170,7 @@ model Category {
   @@index([id])
   @@index([budgetId])
   @@index([defaultCategoryId])
+  @@index([accountId])
   @@index([deleted])
   @@map("category")
 }
@@ -174,6 +181,7 @@ model CategoryMonth {
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   month      DateTime @db.Date
   assigned   Float
+  hidden     Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

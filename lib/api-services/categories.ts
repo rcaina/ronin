@@ -4,22 +4,27 @@ import type { z } from "zod";
 import type { createCategorySchema } from "../api-schemas/categories";
 import { HttpError } from "../errors";
 import { roundToCents } from "../utils";
-import { mergeMonthPlans } from "../utils/budget-month";
+import { mergeHiddenFrom, mergeMonthPlans } from "../utils/budget-month";
 import type {
   GroupedCategories,
   MergeCategoriesRequest,
   UpdateCategoryRequest,
 } from "../types/category";
 
+/** Where clause for an account's live template categories. */
+export const accountTemplates = (accountId: string) => ({
+  accountId,
+  budgetId: null,
+  defaultCategoryId: null,
+  deleted: null,
+});
+
 export async function getCategories(
   tx: PrismaClientTx,
+  accountId: string,
 ): Promise<GroupedCategories> {
   const categories = await tx.category.findMany({
-    where: {
-      deleted: null,
-      budgetId: null, // Only get default/template categories
-      defaultCategoryId: null,
-    },
+    where: accountTemplates(accountId),
     orderBy: {
       name: "asc",
     },
@@ -60,22 +65,39 @@ export async function getCategories(
 export async function createCategory(
   tx: PrismaClientTx,
   data: z.infer<typeof createCategorySchema>,
+  accountId: string,
 ) {
   return await tx.category.create({
     data: {
       name: data.name,
       group: data.group as CategoryType,
-      budgetId: null, // Default categories have no budgetId
+      accountId,
     },
   });
 }
 
-export async function deleteCategory(tx: PrismaClientTx, id: string) {
+const assertAccountTemplate = async (
+  tx: PrismaClientTx,
+  id: string,
+  accountId: string,
+) => {
+  const category = await tx.category.findFirst({
+    where: { id, ...accountTemplates(accountId) },
+    select: { id: true },
+  });
+  if (!category) {
+    throw new HttpError("Category not found", 404);
+  }
+};
+
+export async function deleteCategory(
+  tx: PrismaClientTx,
+  id: string,
+  accountId: string,
+) {
+  await assertAccountTemplate(tx, id, accountId);
   return await tx.category.update({
-    where: {
-      id,
-      deleted: null,
-    },
+    where: { id },
     data: {
       deleted: new Date(),
     },
@@ -86,12 +108,11 @@ export async function updateCategory(
   tx: PrismaClientTx,
   id: string,
   data: UpdateCategoryRequest,
+  accountId: string,
 ) {
+  await assertAccountTemplate(tx, id, accountId);
   return await tx.category.update({
-    where: {
-      id,
-      deleted: null,
-    },
+    where: { id },
     data: {
       name: data.name,
       group: data.group,
@@ -113,13 +134,12 @@ export async function updateCategory(
 export async function mergeCategories(
   tx: PrismaClientTx,
   { sourceIds, targetId }: MergeCategoriesRequest,
+  accountId: string,
 ) {
   const candidates = await tx.category.findMany({
     where: {
       id: { in: [targetId, ...sourceIds] },
-      budgetId: null,
-      defaultCategoryId: null,
-      deleted: null,
+      ...accountTemplates(accountId),
     },
   });
 
@@ -153,11 +173,13 @@ export async function mergeCategories(
   // unchanged.
   const budgetCopies = await tx.category.findMany({
     where: {
-      budgetId: { not: null },
+      budget: { accountId },
       defaultCategoryId: { in: [targetId, ...sourceIds] },
       deleted: null,
     },
-    include: { months: { select: { month: true, assigned: true } } },
+    include: {
+      months: { select: { month: true, assigned: true, hidden: true } },
+    },
     orderBy: { createdAt: "asc" },
   });
 
@@ -200,6 +222,7 @@ export async function mergeCategories(
       where: { id: survivor.id },
       data: {
         rollover: copies.some((copy) => copy.rollover),
+        hiddenFrom: mergeHiddenFrom(copies),
         ...(hasAllocation && {
           allocatedAmount: roundToCents(
             copies.reduce((sum, copy) => sum + (copy.allocatedAmount ?? 0), 0),
@@ -216,7 +239,11 @@ export async function mergeCategories(
 
   // Repoint budget copies that reference the source templates to the survivor.
   await tx.category.updateMany({
-    where: { defaultCategoryId: { in: sourceIds }, deleted: null },
+    where: {
+      defaultCategoryId: { in: sourceIds },
+      deleted: null,
+      budget: { accountId },
+    },
     data: { defaultCategoryId: targetId },
   });
 

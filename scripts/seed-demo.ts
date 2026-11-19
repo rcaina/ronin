@@ -384,6 +384,7 @@ async function teardown(): Promise<void> {
     await prisma.category.deleteMany({
       where: { budgetId: { in: budgetIds } },
     });
+    await prisma.category.deleteMany({ where: { accountId } });
     await prisma.budget.deleteMany({ where: { accountId } });
   }
 
@@ -413,19 +414,13 @@ async function teardown(): Promise<void> {
   }
 }
 
-// Find-or-create a global template category (budgetId null). Templates are
-// shared across all accounts and shown on /categories, so we never delete them.
-async function ensureTemplateCategory(
+async function createTemplateCategory(
+  accountId: string,
   name: string,
   group: CategoryType,
 ): Promise<string> {
-  const existing = await prisma.category.findFirst({
-    where: { name, budgetId: null, defaultCategoryId: null, deleted: null },
-    select: { id: true },
-  });
-  if (existing) return existing.id;
   const created = await prisma.category.create({
-    data: { name, group, budgetId: null, allocatedAmount: null },
+    data: { name, group, accountId },
   });
   return created.id;
 }
@@ -508,12 +503,12 @@ async function main(): Promise<void> {
     },
   });
 
-  // --- template categories (global, shared) ----------------------------------
+  // --- template categories ---------------------------------------------------
   const templateCategoryIdByName = new Map<string, string>();
   for (const cat of CATEGORIES) {
     templateCategoryIdByName.set(
       cat.name,
-      await ensureTemplateCategory(cat.name, cat.group),
+      await createTemplateCategory(account.id, cat.name, cat.group),
     );
   }
 

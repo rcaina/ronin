@@ -72,7 +72,7 @@ export const getGroupColor = (group?: CategoryType) => {
     case CategoryType.NEEDS:
       return "bg-[#5b7a9d]";
     case CategoryType.WANTS:
-      return "bg-secondary";
+      return "bg-accent-500";
     case CategoryType.INVESTMENT:
       return "bg-[#6c9a8b]";
     default:

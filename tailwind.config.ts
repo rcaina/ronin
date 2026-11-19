@@ -37,45 +37,48 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Brand ink — near-black used for the nav shell and dark surfaces.
+        // Brand ink (obsidian) — warm near-black used for the nav shell and dark surfaces.
         primary: {
-          DEFAULT: "#0e0e10",
-          50: "#f6f6f7",
-          100: "#e7e7e9",
-          200: "#d1d1d6",
-          300: "#b0b0b8",
-          400: "#888892",
-          500: "#6d6d76",
-          600: "#5d5d64",
-          700: "#4f4f55",
-          800: "#2a2a2e",
-          900: "#1a1a1d",
-          950: "#0e0e10",
+          DEFAULT: "#17150f",
+          50: "#f7f6f3",
+          100: "#ebe9e3",
+          200: "#d6d2c8",
+          300: "#b6b0a3",
+          400: "#8f887a",
+          500: "#6e685d",
+          600: "#5a554c",
+          700: "#4a463f",
+          800: "#2b2822",
+          900: "#1d1b16",
+          950: "#17150f",
         },
-        // Brand gold — primary action color and accents.
+        // Brand brass — primary action color and accents. CSS-variable backed and
+        // re-ramped in dark mode (gilt fills, light-gold text); see globals.css.
         secondary: {
-          DEFAULT: "#b9a15e",
-          50: "#faf8f2",
-          100: "#f4efe0",
-          200: "#e8ddc0",
-          300: "#d9c697",
-          400: "#c9b075",
-          500: "#b9a15e",
-          600: "#a3894a",
-          700: "#876f3d",
-          800: "#6e5a35",
-          900: "#5a4a2e",
-          950: "#332917",
+          DEFAULT: "rgb(var(--secondary-500) / <alpha-value>)",
+          foreground: "rgb(var(--on-secondary) / <alpha-value>)",
+          50: "rgb(var(--secondary-50) / <alpha-value>)",
+          100: "rgb(var(--secondary-100) / <alpha-value>)",
+          200: "rgb(var(--secondary-200) / <alpha-value>)",
+          300: "rgb(var(--secondary-300) / <alpha-value>)",
+          400: "rgb(var(--secondary-400) / <alpha-value>)",
+          500: "rgb(var(--secondary-500) / <alpha-value>)",
+          600: "rgb(var(--secondary-600) / <alpha-value>)",
+          700: "rgb(var(--secondary-700) / <alpha-value>)",
+          800: "rgb(var(--secondary-800) / <alpha-value>)",
+          900: "rgb(var(--secondary-900) / <alpha-value>)",
+          950: "rgb(var(--secondary-950) / <alpha-value>)",
         },
-        // Light gold — highlights, badges, hover washes.
+        // Champagne/gilt — highlights, badges, and gold on always-dark surfaces
+        // (nav shell, auth pages, hero cards). Fixed in both themes.
         accent: {
-          DEFAULT: "#fce5a0",
-          50: "#fefbf0",
-          100: "#fdf4d6",
-          200: "#fce5a0",
-          300: "#fad573",
-          400: "#f7c14a",
-          500: "#f3ab2a",
+          DEFAULT: "#f2e6c4",
+          50: "#fcf9f0",
+          100: "#f8f0da",
+          200: "#f2e6c4",
+          300: "#e8d49c",
+          400: "#d4b064",
+          500: "#b48a35",
         },
         // Warm page surfaces — softer than plain gray. CSS-variable backed so
         // the whole app flips with the `.dark` class (see src/styles/globals.css).
@@ -113,10 +116,10 @@ const config: Config = {
       },
       boxShadow: {
         // Soft layered shadows — depth without hard edges.
-        soft: "0 1px 2px 0 rgb(14 14 16 / 0.03), 0 1px 3px 0 rgb(14 14 16 / 0.05)",
-        card: "0 1px 2px rgb(14 14 16 / 0.04), 0 4px 16px -4px rgb(14 14 16 / 0.06)",
+        soft: "0 1px 2px 0 rgb(23 21 15 / 0.03), 0 1px 3px 0 rgb(23 21 15 / 0.05)",
+        card: "0 1px 2px rgb(23 21 15 / 0.04), 0 4px 16px -4px rgb(23 21 15 / 0.06)",
         lifted:
-          "0 4px 8px -2px rgb(14 14 16 / 0.06), 0 16px 32px -8px rgb(14 14 16 / 0.10)",
+          "0 4px 8px -2px rgb(23 21 15 / 0.06), 0 16px 32px -8px rgb(23 21 15 / 0.10)",
       },
       keyframes: {
         "fade-in": {

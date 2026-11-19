@@ -73,7 +73,7 @@ function PlanBadge({
 }) {
   const tones = {
     current: "bg-green-50 text-green-700",
-    recommended: "bg-secondary text-primary-950",
+    recommended: "bg-secondary text-secondary-foreground",
     neutral: "bg-surface-muted text-gray-600",
   } as const;
   return (

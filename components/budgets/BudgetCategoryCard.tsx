@@ -17,6 +17,7 @@ import { getCategoryStatus, getTransactionDate } from "@/lib/utils/spending";
 import Button from "@/components/Button";
 import ToggleRow from "@/components/settings/ToggleRow";
 import { formatMonthLabel, type MonthKey } from "@/lib/utils/budget-month";
+import HideCategoryButton from "./HideCategoryButton";
 
 interface BudgetCategoryCardProps {
   budgetCategory: BudgetCategoryWithCategory;
@@ -36,6 +37,7 @@ export default function BudgetCategoryCard({
     null,
   );
   const [editingAmount, setEditingAmount] = useState<string | number>(0);
+  const [amountChanged, setAmountChanged] = useState(false);
   const [editingName, setEditingName] = useState<string>("");
   const [editingRollover, setEditingRollover] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<{
@@ -59,6 +61,7 @@ export default function BudgetCategoryCard({
   const handleStartEditCategory = () => {
     setEditingCategoryId(budgetCategory.id);
     setEditingAmount(budgetCategory.allocatedAmount ?? 0);
+    setAmountChanged(false);
     setEditingName(budgetCategory.name);
     setEditingRollover(budgetCategory.rollover);
   };
@@ -83,7 +86,8 @@ export default function BudgetCategoryCard({
         budgetId: budgetId,
         categoryId: editingCategoryId,
         data: {
-          allocatedAmount: amount,
+          // A hidden month shows 0 planned; only send the amount when edited so a rename keeps the kept plan.
+          ...(amountChanged && { allocatedAmount: amount }),
           name: editingName,
           month,
           ...(month && { rollover: editingRollover }),
@@ -169,6 +173,11 @@ export default function BudgetCategoryCard({
           ) : (
             <h3 className="min-w-0 break-words text-base font-semibold text-gray-900">
               {budgetCategory.name}
+              {budgetCategory.visibility === "shown-hidden" && (
+                <span className="mt-1 block w-fit rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                  Hidden
+                </span>
+              )}
             </h3>
           )}
           <div className="flex items-center space-x-2">
@@ -182,6 +191,13 @@ export default function BudgetCategoryCard({
                 >
                   <Edit className="h-4 w-4" />
                 </button>
+                {month && (
+                  <HideCategoryButton
+                    budgetId={budgetId}
+                    category={budgetCategory}
+                    month={month}
+                  />
+                )}
                 <button
                   onClick={handleDeleteCategory}
                   className="tap-target rounded-lg p-1.5 text-gray-400 transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
@@ -229,6 +245,7 @@ export default function BudgetCategoryCard({
                     // Allow digits and one period for decimals
                     if (value === "" || /^\d*\.?\d*$/.test(value)) {
                       setEditingAmount(value);
+                      setAmountChanged(true);
                     }
                   }}
                   className="w-20 rounded-lg border border-gray-300 px-1 py-0.5 text-right text-sm tabular-nums focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"

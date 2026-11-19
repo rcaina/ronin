@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { X } from "lucide-react";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
-import { useBudgetCards } from "@/lib/data-hooks/budgets/useBudgetCards";
 import { useActiveBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { findContinuousBudgetId } from "@/lib/utils/budget-month";
 import { useCreateCardPayment } from "@/lib/data-hooks/transactions/useTransactions";
@@ -32,7 +31,6 @@ export function CardPaymentModal({
   budgetId,
 }: CardPaymentModalProps) {
   const { data: allCards = [] } = useCards();
-  const budgetCardsQuery = useBudgetCards(budgetId ?? "");
   const { data: budgets = [] } = useActiveBudgets();
   const createCardPaymentMutation = useCreateCardPayment();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,23 +43,23 @@ export function CardPaymentModal({
     toCardId: "",
   });
 
-  // Use budget-specific cards if budgetId is provided, otherwise use all cards
-  const cards = useMemo(() => {
-    if (budgetId && budgetCardsQuery.data && budgetCardsQuery.data.length > 0) {
-      return budgetCardsQuery.data;
-    }
-    return allCards;
-  }, [budgetId, budgetCardsQuery.data, allCards]);
+  // Both cards must be on the payment's budget, or the API refuses them.
+  const cards = useMemo(
+    () => allCards.filter((card) => card.budgetId === formData.budgetId),
+    [allCards, formData.budgetId],
+  );
 
   // Memoize the current card lookup to avoid dependency array issues
   const currentCard = useMemo(() => {
-    return cards.find((card) => card.id === currentCardId);
-  }, [cards, currentCardId]);
+    return allCards.find((card) => card.id === currentCardId);
+  }, [allCards, currentCardId]);
 
   // Memoize the card type to avoid dependency array issues
   const currentCardType = useMemo(() => {
     return currentCard?.cardType;
   }, [currentCard?.cardType]);
+
+  const currentCardBudgetId = currentCard?.budgetId ?? undefined;
 
   // Initialize form data when editing
   useEffect(() => {
@@ -83,12 +81,18 @@ export function CardPaymentModal({
         name: "",
         description: "",
         amount: "",
-        budgetId: budgetId ?? "",
+        budgetId: budgetId ?? currentCardBudgetId ?? "",
         fromCardId: isCredit ? "" : (currentCardId ?? ""),
         toCardId: isCredit ? (currentCardId ?? "") : "",
       });
     }
-  }, [editingTransaction, currentCardId, currentCardType, budgetId]);
+  }, [
+    editingTransaction,
+    currentCardId,
+    currentCardType,
+    currentCardBudgetId,
+    budgetId,
+  ]);
 
   // Set default budget when budgets are loaded and no budgetId is provided
   useEffect(() => {
@@ -220,7 +224,14 @@ export function CardPaymentModal({
 
               <select
                 value={formData.budgetId}
-                onChange={(e) => handleInputChange("budgetId", e.target.value)}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    budgetId: e.target.value,
+                    fromCardId: "",
+                    toCardId: "",
+                  }))
+                }
                 required
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               >

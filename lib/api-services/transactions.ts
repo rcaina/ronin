@@ -254,8 +254,8 @@ export const getImportContext = async (
   };
 };
 
-// Transactions may only be added to, or moved into, one of the account's active budgets.
-const assertWritableBudget = async (
+/** 404 unless the budget is one of the account's live budgets. */
+export const assertOwnedBudget = async (
   tx: PrismaClientTx,
   accountId: string,
   budgetId: string,
@@ -267,6 +267,16 @@ const assertWritableBudget = async (
   if (!budget) {
     throw new HttpError("Budget not found", 404);
   }
+  return budget;
+};
+
+// Transactions may only be added to, or moved into, one of the account's active budgets.
+const assertWritableBudget = async (
+  tx: PrismaClientTx,
+  accountId: string,
+  budgetId: string,
+) => {
+  const budget = await assertOwnedBudget(tx, accountId, budgetId);
   if (budget.status !== "ACTIVE") {
     throw new HttpError(
       "Transactions can only be added to an active budget",
@@ -295,23 +305,28 @@ export const assertOwnedCategory = async (
   }
 };
 
-/** 404 unless the card is in one of the account's budgets or is a general card of an account member. */
+/** 404 unless the card is in one of the account's budgets or is a general card of an account member; with `budgetId`, only a card of that budget. */
 export const assertOwnedCard = async (
   tx: PrismaClientTx,
   accountId: string,
   cardId: string,
+  budgetId?: string,
 ) => {
   const card = await tx.card.findFirst({
     where: {
       id: cardId,
       deleted: null,
-      OR: [
-        { budget: { accountId } },
-        {
-          budgetId: null,
-          user: { accountUsers: { some: { accountId } } },
-        },
-      ],
+      ...(budgetId
+        ? { budgetId, budget: { accountId } }
+        : {
+            OR: [
+              { budget: { accountId } },
+              {
+                budgetId: null,
+                user: { accountUsers: { some: { accountId } } },
+              },
+            ],
+          }),
     },
     select: { id: true },
   });
@@ -355,7 +370,7 @@ const insertTransaction = async (
     );
   }
   if (nonEmpty(data.cardId)) {
-    await assertOwnedCard(tx, user.accountId, data.cardId);
+    await assertOwnedCard(tx, user.accountId, data.cardId, data.budgetId);
   }
 
   // Create the transaction first
@@ -464,8 +479,12 @@ export async function updateTransaction(
       finalBudgetId,
     );
   }
-  if (nonEmpty(data.cardId) && data.cardId !== current.cardId) {
-    await assertOwnedCard(tx, user.accountId, data.cardId);
+  const finalCardId = data.cardId ?? current.cardId;
+  if (
+    nonEmpty(finalCardId) &&
+    (movesBudget || finalCardId !== current.cardId)
+  ) {
+    await assertOwnedCard(tx, user.accountId, finalCardId, finalBudgetId);
   }
 
   if (hasSplits) {
@@ -611,8 +630,8 @@ export async function createCardPayment(
   user: User & { accountId: string },
 ) {
   await assertWritableBudget(tx, user.accountId, data.budgetId);
-  await assertOwnedCard(tx, user.accountId, data.fromCardId);
-  await assertOwnedCard(tx, user.accountId, data.toCardId);
+  await assertOwnedCard(tx, user.accountId, data.fromCardId, data.budgetId);
+  await assertOwnedCard(tx, user.accountId, data.toCardId, data.budgetId);
 
   // Create two linked transactions, both storing the positive payment amount
   // (enforced by createCardPaymentSchema). Card balance math interprets a

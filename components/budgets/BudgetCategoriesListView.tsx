@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, Plus, ArrowRight } from "lucide-react";
 import { toast } from "react-hot-toast";
 import AddBudgetCategoryForm from "./AddBudgetCategoryForm";
+import HideCategoryButton from "./HideCategoryButton";
+import type { MonthKey } from "@/lib/utils/budget-month";
 import DescriptionTooltip from "@/components/DescriptionTooltip";
 import MissingDateWarning from "@/components/transactions/MissingDateWarning";
 import {
@@ -31,6 +33,8 @@ interface BudgetCategoriesListViewProps {
   getGroupColor: GroupColorFunction;
   getGroupLabel: GroupLabelFunction;
   budgetCategories?: BudgetCategoryWithCategory[];
+  /** Set on a continuous budget: hiding applies to this month. */
+  month?: MonthKey;
 }
 
 export default function BudgetCategoriesListView({
@@ -38,9 +42,9 @@ export default function BudgetCategoriesListView({
   getGroupColor,
   getGroupLabel,
   budgetCategories: propBudgetCategories,
+  month,
 }: BudgetCategoriesListViewProps) {
   const router = useRouter();
-  const month = useSearchParams().get("month");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(),
   );
@@ -250,6 +254,12 @@ export default function BudgetCategoriesListView({
                                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:space-x-2">
                                     <p className="break-words font-medium text-gray-900">
                                       {budgetCategory.name}
+                                      {budgetCategory.visibility ===
+                                        "shown-hidden" && (
+                                        <span className="mt-1 block w-fit rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                                          Hidden
+                                        </span>
+                                      )}
                                     </p>
                                     <span className="text-sm text-gray-500">
                                       ({getGroupLabel(group as CategoryType)})
@@ -301,6 +311,14 @@ export default function BudgetCategoriesListView({
                               </div>
                             </div>
                             <div className="ml-2 flex items-center space-x-2 sm:space-x-4">
+                              {month && (
+                                <HideCategoryButton
+                                  budgetId={budgetId}
+                                  category={budgetCategory}
+                                  month={month}
+                                  className="hover:bg-gray-200"
+                                />
+                              )}
                               <div className="text-right">
                                 <p
                                   className={`font-medium ${

@@ -1,9 +1,10 @@
-import { BudgetStatus, CategoryType } from "@prisma/client";
+import { BudgetStatus, CategoryType, TransactionType } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import {
   type MergeCard,
   type MergeCategory,
   planContinuousMerge,
+  planBackfillGapHides,
 } from "@/lib/utils/continuous-merge";
 
 const category = (
@@ -281,5 +282,120 @@ describe("planContinuousMerge cards", () => {
       ["t-visa", ["s-2"]],
       [null, ["s-3"]],
     ]);
+  });
+});
+
+describe("planBackfillGapHides", () => {
+  const row = (month: string, hidden = false, assigned = 100) => ({
+    month: new Date(`${month}-01T00:00:00.000Z`),
+    assigned,
+    hidden,
+  });
+  const zero = (month: string) => row(month, false, 0);
+  const spend = (date: string) => ({
+    transactionType: TransactionType.REGULAR,
+    amount: 10,
+    occurredAt: date,
+    createdAt: date,
+  });
+  const category = (
+    overrides: Partial<Parameters<typeof planBackfillGapHides>[0]> = {},
+  ): Parameters<typeof planBackfillGapHides>[0] => ({
+    createdAt: new Date("2026-02-01T00:00:00.000Z"),
+    hiddenFrom: null,
+    months: [],
+    transactions: [],
+    ...overrides,
+  });
+
+  it("hides the months between monthly budgets it wasn't in", () => {
+    const plan = planBackfillGapHides(
+      category({ months: [row("2026-02"), row("2026-05")] }),
+      "2026-05",
+    );
+    expect(plan).toEqual({
+      hideMonths: ["2026-03", "2026-04"],
+      hiddenFrom: null,
+    });
+  });
+
+  it("keeps a month with transactions but no plan", () => {
+    const plan = planBackfillGapHides(
+      category({
+        months: [row("2026-02"), row("2026-05")],
+        transactions: [spend("2026-03-10T00:00:00.000Z")],
+      }),
+      "2026-05",
+    );
+    expect(plan.hideMonths).toEqual(["2026-04"]);
+  });
+
+  it("hides from the month after its last use when the last monthly budgets left it out", () => {
+    const plan = planBackfillGapHides(
+      category({ months: [row("2026-02"), row("2026-04")] }),
+      "2026-07",
+    );
+    expect(plan).toEqual({ hideMonths: ["2026-03"], hiddenFrom: "2026-05" });
+  });
+
+  it("leaves months after the last monthly budget alone when it was in it", () => {
+    expect(
+      planBackfillGapHides(category({ months: [row("2026-02")] }), "2026-02"),
+    ).toEqual({ hideMonths: [], hiddenFrom: null });
+  });
+
+  it("does nothing to a category already hidden anywhere", () => {
+    expect(
+      planBackfillGapHides(
+        category({ months: [row("2026-02"), row("2026-03", true)] }),
+        "2026-07",
+      ),
+    ).toEqual({ hideMonths: [], hiddenFrom: null });
+    expect(
+      planBackfillGapHides(
+        category({
+          months: [row("2026-02")],
+          hiddenFrom: new Date("2026-06-01T00:00:00.000Z"),
+        }),
+        "2026-07",
+      ),
+    ).toEqual({ hideMonths: [], hiddenFrom: null });
+  });
+
+  it("treats the backfill's $0 months without transactions as unused", () => {
+    expect(
+      planBackfillGapHides(
+        category({
+          months: [
+            row("2026-02"),
+            zero("2026-03"),
+            zero("2026-04"),
+            row("2026-05"),
+          ],
+          transactions: [spend("2026-04-02T00:00:00.000Z")],
+        }),
+        "2026-05",
+      ),
+    ).toEqual({ hideMonths: ["2026-03"], hiddenFrom: null });
+  });
+
+  it("hides from after the last nonzero plan when later budgets planned it at $0", () => {
+    expect(
+      planBackfillGapHides(
+        category({
+          months: [row("2026-02"), zero("2026-03"), zero("2026-04")],
+        }),
+        "2026-04",
+      ),
+    ).toEqual({ hideMonths: [], hiddenFrom: "2026-03" });
+  });
+
+  it("hides a never-used category from its first month", () => {
+    expect(
+      planBackfillGapHides(
+        category({ months: [zero("2026-02"), zero("2026-03")] }),
+        "2026-03",
+      ),
+    ).toEqual({ hideMonths: [], hiddenFrom: "2026-02" });
   });
 });

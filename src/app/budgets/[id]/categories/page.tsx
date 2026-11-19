@@ -7,6 +7,7 @@ import BudgetCategoriesViewToggle, {
   type BudgetCategoriesViewType,
 } from "@/components/budgets/BudgetCategoriesViewToggle";
 import BudgetCategoriesListView from "@/components/budgets/BudgetCategoriesListView";
+import HiddenCategoriesList from "@/components/budgets/HiddenCategoriesList";
 import BudgetCategoriesSearch from "@/components/budgets/BudgetCategoriesSearch";
 import BudgetCategoryFiltersModal, {
   DEFAULT_BUDGET_CATEGORY_FILTERS,
@@ -49,7 +50,10 @@ import {
   CHART_COLORS,
   GROUP_COLORS,
   ChartEmptyState,
+  STATUS_COLORS,
   chartAxisProps,
+  chartCursorFill,
+  chartTrackFill,
   chartTooltipItemStyle,
   chartTooltipLabelStyle,
   chartTooltipStyle,
@@ -89,7 +93,7 @@ function OverlapBarShape(props: {
         y={y}
         width={width}
         height={height}
-        fill="#efeeeb"
+        fill={chartTrackFill}
         rx={4}
         ry={0}
       />
@@ -318,7 +322,7 @@ const BudgetCategoriesPage = () => {
         case CategoryType.INVESTMENT:
           return GROUP_COLORS.INVESTMENT!;
         default:
-          return "#9ca3af";
+          return STATUS_COLORS.neutral;
       }
     };
 
@@ -411,8 +415,18 @@ const BudgetCategoriesPage = () => {
   // Apply client-side filtering + sorting on top of the (already
   // server-searched) category list. Both the grid and list views render
   // whatever comes out of this so filters apply consistently in either view.
+  const hiddenCategories = useMemo(
+    () =>
+      (budgetCategories ?? []).filter(
+        (category) => category.visibility === "hidden",
+      ),
+    [budgetCategories],
+  );
+
   const filteredBudgetCategories = useMemo(() => {
-    const list = budgetCategories ?? [];
+    const list = (budgetCategories ?? []).filter(
+      (category) => category.visibility !== "hidden",
+    );
 
     const filtered = list.filter((category) => {
       if (filters.group !== "all" && category.group !== filters.group) {
@@ -531,7 +545,7 @@ const BudgetCategoriesPage = () => {
       case CategoryType.NEEDS:
         return "bg-[#5b7a9d]";
       case CategoryType.WANTS:
-        return "bg-[#b9a15e]";
+        return "bg-accent-500";
       case CategoryType.INVESTMENT:
         return "bg-[#6c9a8b]";
       default:
@@ -798,7 +812,7 @@ const BudgetCategoriesPage = () => {
                       width={40}
                     />
                     <Tooltip
-                      cursor={{ fill: "rgba(185, 161, 94, 0.08)" }}
+                      cursor={{ fill: chartCursorFill }}
                       content={({ active, payload: tooltipPayload }) => {
                         type PayloadItem = {
                           payload?: {
@@ -850,7 +864,7 @@ const BudgetCategoriesPage = () => {
                             <div
                               className="h-2.5 w-2.5 rounded-full"
                               style={{
-                                backgroundColor: "#efeeeb",
+                                backgroundColor: chartTrackFill,
                               }}
                             />
                             <span className="text-[10px] text-gray-500">
@@ -960,7 +974,7 @@ const BudgetCategoriesPage = () => {
               >
                 <SlidersHorizontal className="h-4 w-4" />
                 {activeFilterCount > 0 && (
-                  <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-semibold text-primary-950">
+                  <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-semibold text-secondary-foreground">
                     {activeFilterCount}
                   </span>
                 )}
@@ -971,46 +985,56 @@ const BudgetCategoriesPage = () => {
             </div>
           </div>
 
-          <div className="lg:min-h-0 lg:flex-1">
-            {/* Only stand in for the views when a search/filter hid everything.
+          <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
+            <div className="lg:min-h-0 lg:flex-1">
+              {/* Only stand in for the views when a search/filter hid everything.
                 A budget with no categories at all still renders the views so
                 their per-group "+" buttons are reachable. */}
-            {filteredBudgetCategories.length === 0 &&
-            (restrictiveFilterCount > 0 || searchQuery.trim() !== "") ? (
-              <div className="card-surface flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
-                  <SlidersHorizontal className="h-7 w-7" strokeWidth={1.5} />
+              {filteredBudgetCategories.length === 0 &&
+              (restrictiveFilterCount > 0 || searchQuery.trim() !== "") ? (
+                <div className="card-surface flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
+                    <SlidersHorizontal className="h-7 w-7" strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <p className="text-base font-semibold text-gray-900">
+                      No categories match
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {restrictiveFilterCount > 0
+                        ? "Try adjusting or clearing your filters."
+                        : "Try a different search, or clear it to see all categories."}
+                    </p>
+                  </div>
+                  {activeFilterCount > 0 && (
+                    <Button variant="outline" onClick={handleClearFilters}>
+                      Clear filters
+                    </Button>
+                  )}
                 </div>
-                <div>
-                  <p className="text-base font-semibold text-gray-900">
-                    No categories match
-                  </p>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {restrictiveFilterCount > 0
-                      ? "Try adjusting or clearing your filters."
-                      : "Try a different search, or clear it to see all categories."}
-                  </p>
-                </div>
-                {activeFilterCount > 0 && (
-                  <Button variant="outline" onClick={handleClearFilters}>
-                    Clear filters
-                  </Button>
-                )}
-              </div>
-            ) : view === "grid" ? (
-              <BudgetCategoriesGridView
+              ) : view === "grid" ? (
+                <BudgetCategoriesGridView
+                  budgetId={budgetId}
+                  month={isContinuous ? month : undefined}
+                  getGroupColor={getGroupColor}
+                  getGroupLabel={getGroupLabel}
+                  budgetCategories={filteredBudgetCategories}
+                />
+              ) : (
+                <BudgetCategoriesListView
+                  budgetId={budgetId}
+                  month={isContinuous ? month : undefined}
+                  getGroupColor={getGroupColor}
+                  getGroupLabel={getGroupLabel}
+                  budgetCategories={filteredBudgetCategories}
+                />
+              )}
+            </div>
+            {isContinuous && (
+              <HiddenCategoriesList
                 budgetId={budgetId}
-                month={isContinuous ? month : undefined}
-                getGroupColor={getGroupColor}
-                getGroupLabel={getGroupLabel}
-                budgetCategories={filteredBudgetCategories}
-              />
-            ) : (
-              <BudgetCategoriesListView
-                budgetId={budgetId}
-                getGroupColor={getGroupColor}
-                getGroupLabel={getGroupLabel}
-                budgetCategories={filteredBudgetCategories}
+                month={month}
+                categories={hiddenCategories}
               />
             )}
           </div>

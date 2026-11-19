@@ -89,14 +89,14 @@ export default function BudgetStepsSidebar({
                   aria-label={`Step ${index + 1}: ${step.label}`}
                   className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
                     isCurrent
-                      ? "bg-secondary text-gray-900"
+                      ? "bg-secondary text-secondary-foreground"
                       : isCompleted
                         ? "bg-black/90 text-white"
                         : "bg-gray-200 text-gray-500"
                   } ${isClickable ? "cursor-pointer" : "cursor-default"}`}
                 >
                   {isCompleted ? (
-                    <Check className="h-4 w-4 text-secondary" />
+                    <Check className="h-4 w-4 text-accent-400" />
                   ) : (
                     index + 1
                   )}
@@ -144,14 +144,14 @@ export default function BudgetStepsSidebar({
               <div
                 className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
                   isCurrent
-                    ? "bg-secondary text-gray-900"
+                    ? "bg-secondary text-secondary-foreground"
                     : isCompleted
                       ? "bg-black/90 text-white"
                       : "bg-gray-200 text-gray-500"
                 }`}
               >
                 {isCompleted ? (
-                  <Check className="h-4 w-4 text-secondary" />
+                  <Check className="h-4 w-4 text-accent-400" />
                 ) : (
                   index + 1
                 )}
