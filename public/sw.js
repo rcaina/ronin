@@ -1,4 +1,4 @@
-const CACHE_NAME = "ronin-static-v1";
+const CACHE_NAME = "ronin-static-v2";
 
 const OFFLINE_HTML = `<!doctype html>
 <html lang="en">
