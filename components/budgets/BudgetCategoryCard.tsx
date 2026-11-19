@@ -37,6 +37,7 @@ export default function BudgetCategoryCard({
     null,
   );
   const [editingAmount, setEditingAmount] = useState<string | number>(0);
+  const [amountChanged, setAmountChanged] = useState(false);
   const [editingName, setEditingName] = useState<string>("");
   const [editingRollover, setEditingRollover] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<{
@@ -60,6 +61,7 @@ export default function BudgetCategoryCard({
   const handleStartEditCategory = () => {
     setEditingCategoryId(budgetCategory.id);
     setEditingAmount(budgetCategory.allocatedAmount ?? 0);
+    setAmountChanged(false);
     setEditingName(budgetCategory.name);
     setEditingRollover(budgetCategory.rollover);
   };
@@ -84,7 +86,8 @@ export default function BudgetCategoryCard({
         budgetId: budgetId,
         categoryId: editingCategoryId,
         data: {
-          allocatedAmount: amount,
+          // A hidden month shows 0 planned; only send the amount when edited so a rename keeps the kept plan.
+          ...(amountChanged && { allocatedAmount: amount }),
           name: editingName,
           month,
           ...(month && { rollover: editingRollover }),
@@ -242,6 +245,7 @@ export default function BudgetCategoryCard({
                     // Allow digits and one period for decimals
                     if (value === "" || /^\d*\.?\d*$/.test(value)) {
                       setEditingAmount(value);
+                      setAmountChanged(true);
                     }
                   }}
                   className="w-20 rounded-lg border border-gray-300 px-1 py-0.5 text-right text-sm tabular-nums focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
