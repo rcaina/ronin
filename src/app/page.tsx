@@ -31,6 +31,7 @@ import {
   STATUS_COLORS,
   ChartEmptyState,
   chartAxisProps,
+  chartCursorFill,
   chartTooltipItemStyle,
   chartTooltipLabelStyle,
   chartTooltipStyle,
@@ -479,7 +480,7 @@ export default function HomePage() {
                         width={42}
                       />
                       <Tooltip
-                        cursor={{ fill: "rgba(185, 161, 94, 0.08)" }}
+                        cursor={{ fill: chartCursorFill }}
                         contentStyle={chartTooltipStyle}
                         labelStyle={chartTooltipLabelStyle}
                         itemStyle={chartTooltipItemStyle}
@@ -533,7 +534,7 @@ export default function HomePage() {
                         width={42}
                       />
                       <Tooltip
-                        cursor={{ fill: "rgba(185, 161, 94, 0.08)" }}
+                        cursor={{ fill: chartCursorFill }}
                         contentStyle={chartTooltipStyle}
                         labelStyle={chartTooltipLabelStyle}
                         itemStyle={chartTooltipItemStyle}
@@ -598,7 +599,7 @@ export default function HomePage() {
                         fontSize={9}
                       />
                       <Tooltip
-                        cursor={{ fill: "rgba(185, 161, 94, 0.08)" }}
+                        cursor={{ fill: chartCursorFill }}
                         contentStyle={chartTooltipStyle}
                         labelStyle={chartTooltipLabelStyle}
                         itemStyle={chartTooltipItemStyle}

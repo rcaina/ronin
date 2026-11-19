@@ -29,6 +29,10 @@ export default function NotificationBell({
     variant === "dark"
       ? "text-primary-300 hover:bg-white/5 hover:text-white"
       : "text-gray-600 hover:bg-gray-100 hover:text-gray-900";
+  const badgeClasses =
+    variant === "dark"
+      ? "bg-accent-400 text-primary-950"
+      : "bg-secondary text-secondary-foreground";
 
   return (
     <>
@@ -44,7 +48,9 @@ export default function NotificationBell({
       >
         <Bell className="h-5 w-5" strokeWidth={1.8} />
         {unreadCount > 0 && (
-          <span className="absolute right-2 top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-semibold leading-none text-primary-950">
+          <span
+            className={`absolute right-2 top-2 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none ${badgeClasses}`}
+          >
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}

@@ -6,7 +6,7 @@ import type { BudgetWithRelations } from "@/lib/types/budget";
 import { formatCurrency, roundToCents } from "@/lib/utils";
 import { calculateCategorySpent } from "@/lib/utils/spending";
 import { calculateReadyToAssign } from "@/lib/utils/budget-month";
-import { GROUP_COLORS } from "@/components/recharts/theme";
+import { GROUP_COLORS, STATUS_COLORS } from "@/components/recharts/theme";
 
 // The 50/30/20 split, in income-share terms. Drives both the targets shown and
 // the per-group adherence math below.
@@ -188,7 +188,7 @@ export default function BudgetStrategyIndicator({
           const allocatedPct = hasIncome ? (allocated / totalIncome) * 100 : 0;
           const deviation = allocatedPct - targetPct;
           const onTarget = Math.abs(deviation) <= ADHERENCE_TOLERANCE_PP;
-          const color = GROUP_COLORS[group] ?? "#9ca3af";
+          const color = GROUP_COLORS[group] ?? STATUS_COLORS.neutral;
 
           return (
             <div key={group}>

@@ -13,19 +13,29 @@ no abrupt transitions.
 ## 1. Color
 
 Brand tokens live in `tailwind.config.ts` (single source of truth; mirrored as CSS
-vars in `src/styles/globals.css`). The scheme is fixed — black ink, gold, cream —
-but use the scale variants freely.
+vars in `src/styles/globals.css`). The scheme is fixed (Obsidian & Brass: warm
+black ink, brass, ivory), but use the scale variants freely.
 
-| Token       | Base      | Use                                                                               |
-| ----------- | --------- | --------------------------------------------------------------------------------- |
-| `primary`   | `#0e0e10` | Nav shell, dark surfaces, headings (`primary-800/900` for softer darks)           |
-| `secondary` | `#b9a15e` | Primary actions, active states, progress, brand accents. Scale `secondary-50…950` |
-| `accent`    | `#fce5a0` | Highlights, hover washes, badges. Scale `accent-50…500`                           |
-| `surface`   | `#f7f7f5` | Page background (`surface`), wells (`surface-muted`), cards (`white`)             |
+| Token       | Base      | Use                                                                                         |
+| ----------- | --------- | ------------------------------------------------------------------------------------------- |
+| `primary`   | `#17150f` | Obsidian. Nav shell, dark surfaces, headings (`primary-800/900` for softer darks)           |
+| `secondary` | `#8c6a1e` | Brass. Primary actions, active states, progress, brand accents. Scale `secondary-50…950`    |
+| `accent`    | `#f2e6c4` | Champagne/gilt. Highlights, badges, and gold on always-dark surfaces. Scale `accent-50…500` |
+| `surface`   | `#fbfaf6` | Ivory page background (`surface`), wells (`surface-muted`), cards (`white`)                 |
 
 Rules:
 
-- Page background is `bg-surface` (warm off-white), never `bg-gray-50`.
+- Page background is `bg-surface` (warm ivory), never `bg-gray-50`. The gray ramp is
+  warm (stone), so neutrals sit with the brass.
+- `secondary` is CSS-variable backed and re-ramped in dark mode (fills turn gilt,
+  `text-secondary-600…900` turn light gold), so the same classes work in both themes.
+- Text on a solid `bg-secondary` fill is always `text-secondary-foreground` (white in
+  light, obsidian in dark). Never `text-primary-950` or `text-white` on brass.
+- Gold on an always-dark surface (`SideNav`, auth pages, `bg-primary` hero cards) uses
+  the fixed gilt `accent-400` (`text-accent-400`, `bg-accent-400/15`), not `secondary`,
+  which would flip to dark brass in light mode.
+- Keep brass off progress bars that show "near limit": it sits close to the amber
+  warning color. Gold progress means in-progress only.
 - Tint washes use alpha variants: `bg-secondary/10`, `hover:bg-secondary/15`.
 - Semantic status only: green = under budget / positive, red = over budget / destructive,
   amber = warning. Use the 600 shades for text (`text-green-600`), 50–100 for chips.
@@ -77,7 +87,7 @@ Rules:
 
 All theme values come from `components/recharts/theme.tsx`:
 
-- Series colors: `CHART_COLORS` (gold-anchored muted palette). Group colors
+- Series colors: `CHART_COLORS` (brass-anchored muted palette). Group colors
   (Needs/Wants/Investment): `GROUP_COLORS`. Status: `STATUS_COLORS`.
 - Axes: spread `chartAxisProps`; grid: `chartGridProps` (horizontal lines only).
 - Tooltips: `contentStyle={chartTooltipStyle}` + `labelStyle={chartTooltipLabelStyle}`
@@ -90,7 +100,7 @@ All theme values come from `components/recharts/theme.tsx`:
 
 ## 7. Components
 
-- **Buttons**: use `components/Button.tsx` variants — `primary` (gold), `secondary`
+- **Buttons**: use `components/Button.tsx` variants — `primary` (brass), `secondary`
   (ink), `outline`, `ghost`, `danger`. Never hand-roll button styles.
 - **Stat tiles**: `components/StatsCard.tsx` — icon chip + label + value.
 - **Page headers**: `components/PageHeader.tsx` — title, description, actions.
@@ -99,7 +109,7 @@ All theme values come from `components/recharts/theme.tsx`:
 - **Badges/chips**: `rounded-full px-2.5 py-0.5 text-xs font-medium` with a 50/100
   tint background + 700 text (e.g. `bg-green-50 text-green-700`).
 - **Progress bars**: track `bg-gray-100 rounded-full h-2`, fill colored by status
-  (gold in-progress, green complete, red over).
+  (brass in-progress, green complete, red over).
 - **Modals**: backdrop `bg-primary-950/40 backdrop-blur-sm`, panel `rounded-2xl
 shadow-lifted animate-scale-in`.
 - **Toggle rows** (on/off preferences, e.g. Settings → Features): a row with
@@ -134,7 +144,7 @@ any future alert/inbox UI rather than inventing another one.
 
 - **Bell button**: `components/notifications/NotificationBell.tsx` — a 44px
   icon button (`Bell` from lucide-react) with an unread-count badge
-  (`bg-secondary`, `text-primary-950`, pill, top-right of the icon, "9+" once
+  (`bg-secondary` + `text-secondary-foreground` on light, `bg-accent-400` + `text-primary-950` on the dark nav; pill, top-right of the icon, "9+" once
   it clips). Lives in the dark `SideNav` header row (`variant="dark"`) and the
   light `MobileHeader` action row (`variant="light"`, default) — both gated on
   the account's `notifications` feature toggle being on.

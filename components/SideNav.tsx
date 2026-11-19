@@ -68,13 +68,13 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
 
   return (
     <div
-      className={`fixed left-0 top-0 z-40 hidden h-screen bg-primary transition-all duration-300 ease-in-out lg:block ${
+      className={`fixed left-0 top-0 z-40 hidden h-screen bg-primary transition-all duration-300 ease-in-out lg:block [&_:focus-visible]:outline-accent-400 ${
         isCollapsed ? "w-16" : "w-64"
       }`}
     >
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className={`fixed top-24 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-primary-800 bg-accent text-primary shadow-card transition-all duration-300 ease-in-out hover:bg-secondary ${
+        className={`fixed top-24 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-primary-800 bg-accent text-primary shadow-card transition-all duration-300 ease-in-out hover:bg-accent-400 ${
           isCollapsed ? "left-[52px]" : "left-[244px]"
         }`}
         title={isCollapsed ? "Expand navigation" : "Collapse navigation"}
@@ -102,14 +102,14 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
                 alt="Ronin Logo"
                 width={isCollapsed ? 48 : 64}
                 height={isCollapsed ? 48 : 64}
-                className="h-full w-full rounded-full ring-2 ring-secondary/40"
+                className="h-full w-full rounded-full ring-2 ring-accent-400/40"
                 priority
               />
             </div>
             <div
               className={`transition-all duration-300 ease-in-out ${isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}
             >
-              <h2 className="whitespace-nowrap text-lg font-bold tracking-[0.2em] text-secondary">
+              <h2 className="whitespace-nowrap text-lg font-bold tracking-[0.2em] text-accent-400">
                 RONIN
               </h2>
             </div>
@@ -136,12 +136,12 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
                   isCollapsed ? "justify-center px-0" : "gap-3 px-3"
                 } ${
                   isActive
-                    ? "bg-secondary/15 font-medium text-accent"
+                    ? "bg-accent-400/15 font-medium text-accent"
                     : "text-primary-300 hover:bg-white/5 hover:text-white"
                 }`}
               >
                 <Icon
-                  className={`h-5 w-5 flex-shrink-0 ${isActive ? "text-secondary" : ""}`}
+                  className={`h-5 w-5 flex-shrink-0 ${isActive ? "text-accent-400" : ""}`}
                   strokeWidth={isActive ? 2.2 : 1.8}
                 />
                 <span
@@ -161,7 +161,7 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
               onClick={() => setShowProfilePopup(!showProfilePopup)}
               className={`flex w-full items-center rounded-xl px-3 py-2.5 text-sm text-primary-200 transition-colors duration-200 hover:bg-white/5 hover:text-white ${isCollapsed ? "justify-center" : "gap-3"}`}
             >
-              <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-secondary/20 text-secondary">
+              <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-accent-400/20 text-accent-400">
                 <User className="h-4 w-4" />
               </div>
               <div

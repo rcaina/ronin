@@ -85,7 +85,7 @@ function FilterChip({
       aria-pressed={isActive}
       className={`tap-target rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors duration-200 ${
         isActive
-          ? "bg-secondary text-primary-950"
+          ? "bg-secondary text-secondary-foreground"
           : "bg-surface-muted text-gray-600 hover:bg-gray-200"
       }`}
     >

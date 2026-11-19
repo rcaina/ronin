@@ -50,7 +50,10 @@ import {
   CHART_COLORS,
   GROUP_COLORS,
   ChartEmptyState,
+  STATUS_COLORS,
   chartAxisProps,
+  chartCursorFill,
+  chartTrackFill,
   chartTooltipItemStyle,
   chartTooltipLabelStyle,
   chartTooltipStyle,
@@ -90,7 +93,7 @@ function OverlapBarShape(props: {
         y={y}
         width={width}
         height={height}
-        fill="#efeeeb"
+        fill={chartTrackFill}
         rx={4}
         ry={0}
       />
@@ -319,7 +322,7 @@ const BudgetCategoriesPage = () => {
         case CategoryType.INVESTMENT:
           return GROUP_COLORS.INVESTMENT!;
         default:
-          return "#9ca3af";
+          return STATUS_COLORS.neutral;
       }
     };
 
@@ -542,7 +545,7 @@ const BudgetCategoriesPage = () => {
       case CategoryType.NEEDS:
         return "bg-[#5b7a9d]";
       case CategoryType.WANTS:
-        return "bg-[#b9a15e]";
+        return "bg-accent-500";
       case CategoryType.INVESTMENT:
         return "bg-[#6c9a8b]";
       default:
@@ -809,7 +812,7 @@ const BudgetCategoriesPage = () => {
                       width={40}
                     />
                     <Tooltip
-                      cursor={{ fill: "rgba(185, 161, 94, 0.08)" }}
+                      cursor={{ fill: chartCursorFill }}
                       content={({ active, payload: tooltipPayload }) => {
                         type PayloadItem = {
                           payload?: {
@@ -861,7 +864,7 @@ const BudgetCategoriesPage = () => {
                             <div
                               className="h-2.5 w-2.5 rounded-full"
                               style={{
-                                backgroundColor: "#efeeeb",
+                                backgroundColor: chartTrackFill,
                               }}
                             />
                             <span className="text-[10px] text-gray-500">
@@ -971,7 +974,7 @@ const BudgetCategoriesPage = () => {
               >
                 <SlidersHorizontal className="h-4 w-4" />
                 {activeFilterCount > 0 && (
-                  <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-semibold text-primary-950">
+                  <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-semibold text-secondary-foreground">
                     {activeFilterCount}
                   </span>
                 )}

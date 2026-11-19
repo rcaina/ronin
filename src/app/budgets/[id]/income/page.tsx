@@ -214,8 +214,8 @@ export default function IncomePage() {
           {/* Total Income Hero */}
           <div className="animate-fade-in-up rounded-4xl bg-primary p-6 shadow-card sm:p-8">
             <div className="flex items-center gap-4 sm:gap-5">
-              <div className="rounded-full bg-secondary/20 p-3 sm:p-4">
-                <DollarSign className="h-6 w-6 text-secondary sm:h-8 sm:w-8" />
+              <div className="rounded-full bg-accent-400/20 p-3 sm:p-4">
+                <DollarSign className="h-6 w-6 text-accent-400 sm:h-8 sm:w-8" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-white/70 sm:text-sm">
