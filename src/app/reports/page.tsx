@@ -1,15 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  BarChart3,
-  DollarSign,
-  Lock,
-  PiggyBank,
-  Receipt,
-  TrendingDown,
-  Wallet,
-} from "lucide-react";
+import { BarChart3, Lock, Receipt, Wallet } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -23,7 +15,8 @@ import {
 } from "recharts";
 import PageHeader from "@/components/PageHeader";
 import Tabs from "@/components/Tabs";
-import StatsCard from "@/components/StatsCard";
+import { Metric, MetricStrip } from "@/components/MetricStrip";
+import { HeadlineAmount, SummaryHeadline } from "@/components/SummaryHeadline";
 import UpgradeModal from "@/components/UpgradeModal";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
@@ -226,55 +219,56 @@ export default function ReportsPage() {
               </div>
             )}
 
-            {/* Stat row */}
-            <div
-              aria-busy={isPlaceholderData}
-              className={cn(
-                "mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4",
-                rangeLoadingClass,
+            <SummaryHeadline className={rangeLoadingClass}>
+              {summary.income <= 0 && summary.spending <= 0 ? (
+                <>Nothing recorded in this range yet.</>
+              ) : summary.net >= 0 ? (
+                <>
+                  You kept{" "}
+                  <HeadlineAmount>{formatCurrency(summary.net)}</HeadlineAmount>{" "}
+                  of your income.
+                </>
+              ) : (
+                <>
+                  You spent{" "}
+                  <HeadlineAmount tone="negative">
+                    {formatCurrency(Math.abs(summary.net))}
+                  </HeadlineAmount>{" "}
+                  more than you earned.
+                </>
               )}
+            </SummaryHeadline>
+
+            {/* Stat row */}
+            <MetricStrip
+              aria-busy={isPlaceholderData}
+              className={cn("mb-4", rangeLoadingClass)}
             >
-              <StatsCard
-                title="Income"
+              <Metric
+                label="Income"
                 value={formatCurrency(summary.income)}
-                subtitle={
+                hint={
                   incomeChangePct != null
                     ? `${formatPercent(incomeChangePct)} vs ${priorLabel}`
                     : "This period"
                 }
-                icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
-                iconColor="text-green-600"
-                valueColor="text-green-600"
+                valueClassName="text-green-600"
               />
-              <StatsCard
-                title="Spending"
+              <Metric
+                label="Spending"
                 value={formatCurrency(summary.spending)}
-                subtitle={
+                hint={
                   spendingChangePct != null
                     ? `${formatPercent(spendingChangePct)} vs ${priorLabel}`
                     : "This period"
                 }
-                icon={<TrendingDown className="h-4 w-4 sm:h-5 sm:w-5" />}
-                iconColor="text-secondary-600"
               />
-              <StatsCard
-                title="Net"
-                value={formatCurrency(summary.net)}
-                subtitle={summary.net >= 0 ? "Saved" : "Overspent"}
-                icon={<Wallet className="h-4 w-4 sm:h-5 sm:w-5" />}
-                iconColor={
-                  summary.net >= 0 ? "text-secondary-600" : "text-red-500"
-                }
-                valueColor={summary.net >= 0 ? "text-gray-900" : "text-red-600"}
-              />
-              <StatsCard
-                title="Savings rate"
+              <Metric
+                label="Savings rate"
                 value={`${summary.savingsRate.toFixed(1)}%`}
-                subtitle="Of income kept"
-                icon={<PiggyBank className="h-4 w-4 sm:h-5 sm:w-5" />}
-                iconColor="text-secondary-600"
+                hint="Of income kept"
               />
-            </div>
+            </MetricStrip>
 
             {/* Charts */}
             <div

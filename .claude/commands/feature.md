@@ -219,7 +219,7 @@ whether the task works without it.
 
 **Reuse before you write.** Check `lib/types/`, `lib/utils/`,
 `lib/api-services/`, `lib/data-hooks/` and the shared primitives (`Button`,
-`StatsCard`, `PageHeader`, `DeleteConfirmationModal`, `Modal`) first. Money
+`MetricStrip`, `Tabs`, `PageHeader`, `DeleteConfirmationModal`, `Modal`) first. Money
 math goes through `roundToCents`/`formatCurrency` and spending math through
 `lib/utils/spending.ts`; never re-derive spent/remaining inline. Chart colors
 come from `components/recharts/theme.tsx`.

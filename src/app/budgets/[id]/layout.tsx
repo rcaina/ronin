@@ -158,9 +158,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           )}
 
           <BudgetPageNavigation trailing={monthSwitcher} />
-          {monthSwitcher && (
-            <div className="px-4 py-2 sm:px-6 lg:hidden">{monthSwitcher}</div>
-          )}
         </>
       )}
 

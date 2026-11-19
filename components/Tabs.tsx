@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +37,16 @@ export function tabClassName(selected: boolean, compact = false) {
   );
 }
 
+/** Scroll a horizontal strip so its selected item is centred, without moving the page. */
+export function centerSelected(strip: HTMLElement) {
+  const selected = strip.querySelector<HTMLElement>("[data-selected]");
+  if (!selected) return;
+  strip.scrollLeft =
+    selected.offsetLeft -
+    strip.offsetLeft -
+    (strip.clientWidth - selected.offsetWidth) / 2;
+}
+
 export default function Tabs<T extends string>({
   items,
   value,
@@ -46,9 +57,15 @@ export default function Tabs<T extends string>({
   className,
 }: TabsProps<T>) {
   const compact = size === "compact";
+  const stripRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scroll && stripRef.current) centerSelected(stripRef.current);
+  }, [scroll, value]);
 
   return (
     <div
+      ref={stripRef}
       role="group"
       aria-label={ariaLabel}
       className={cn(
@@ -67,6 +84,7 @@ export default function Tabs<T extends string>({
             key={item.id}
             type="button"
             aria-pressed={selected}
+            data-selected={selected || undefined}
             onClick={() => onChange(item.id)}
             className={tabClassName(selected, compact)}
           >

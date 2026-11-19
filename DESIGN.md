@@ -63,7 +63,9 @@ Rules:
 - Font: Geist (already wired in root layout).
 - Page titles: `text-xl sm:text-2xl font-semibold tracking-tight text-gray-900`.
 - Section titles: `text-sm font-semibold text-gray-900`.
-- Metric values: `font-bold tracking-tight tabular-nums`.
+- Metric values: `font-semibold tracking-tight tabular-nums`.
+- Summary headline: `text-2xl sm:text-[28px]` regular, with the one amount that
+  matters in `font-semibold` brass (red when it is a shortfall).
 - Labels/captions: `text-xs font-medium text-gray-500`.
 - Currency and numbers always get `tabular-nums` so columns don't jitter.
 
@@ -95,9 +97,11 @@ Rules:
   `lg:group-hover:opacity-100` reveal with `lg:group-focus-within:opacity-100`.
   A clickable `div` gets `pressable(onPress)` from `lib/utils` (role, tabIndex, Enter/Space).
 - Spacing rhythm: page gutter `px-4 sm:px-6 lg:px-8`; grid gaps `gap-3 sm:gap-4 lg:gap-6`.
-- Stat grids: `grid-cols-2 lg:grid-cols-4`. Chart grids: `grid-cols-1 sm:grid-cols-2 xl:grid-cols-4`.
+- Figures: `MetricStrip` (2 columns on phones, one row from `lg`). Chart grids: `grid-cols-1 sm:grid-cols-2 xl:grid-cols-4`.
 - Horizontal scroll with `scrollbar-hide` is acceptable for filter tab rows on
-  mobile (`<Tabs scroll>`), never for tabs that are the only route to a view.
+  mobile (`<Tabs scroll>`). Section tabs that are the only route to a view
+  scroll only when they cannot fit, with the selected tab centred (see Section
+  tabs below).
 
 ## 6. Charts (Recharts)
 
@@ -128,16 +132,45 @@ All theme values come from `components/recharts/theme.tsx`:
   counts in a small `tabular-nums` span. `size="compact"` is the chart range
   strip (12px labels, 1px rule sitting on the strip's own gray-200 hairline
   divider). Strips wrap unless `scroll` is set. Route tab rows that render `Link`s
-  (the desktop Budget, Savings, Transactions and Settings rows) use the exported
-  `tabClassName` with `aria-current="page"`. Never put `Tabs` on a
+  (Budget, Savings, Transactions and Recurring) use the exported
+  `tabClassName` with `aria-current="page"`; Settings uses `Tabs` itself. Never put `Tabs` on a
   `bg-surface-muted` well: inactive `gray-500` text falls below AA there.
-- **Section docks**: on mobile, Budget, Savings, Transactions and Settings swap
-  their tab row for a floating pill dock above the bottom tab bar. It scrolls
-  sideways and is the only mobile route to those sections; it is the one
-  sanctioned exception to the underline tabs and to the no-scroll rule, and keeps
-  its `scrollIntoView` on the active item.
-- **Stat tiles**: `components/StatsCard.tsx` — icon chip + label + value.
-- **Page headers**: `components/PageHeader.tsx` — title, description, actions.
+- **Section tabs**: a page's sections (a budget's Overview to Cards, a savings
+  account's Overview and Allocations, Transactions and Recurring, the Settings
+  sections) are an in-page underline tab row under the page header at every
+  width, never a floating dock. A budget's month switcher sits above its tabs on
+  phones. A row with more sections than fit at 375px (budget, settings) scrolls
+  sideways with the selected tab centred (`centerSelected` from `Tabs.tsx`, which
+  sets `scrollLeft` so the page never jumps). The budget row drops its icons on
+  phones; Settings keeps them.
+- **Floating add button**: below `lg`, `PageHeader` shows the page's primary
+  action as a 56px brass `+` circle (`rounded-full`, `shadow-lifted`: it floats
+  over content, a layer change) at the bottom right, on the page gutter and 16px
+  above the bottom
+  tab bar, with the action's label as its `aria-label`; from `lg` it is the
+  header button. Every primary action is an "Add …" / "New …", so `+` always
+  fits; one that isn't needs its own icon first. The shell's `pb-16` plus the
+  page's `pb-28` already keep it clear of the last row.
+- **No stat-card grids.** Page figures go in `components/MetricStrip.tsx`:
+  `<MetricStrip>` of `<Metric label value hint valueClassName />` cells split by
+  hairlines, on the page ground, edge to edge on phones (`-mx-4`) and a rounded
+  hairline band from `sm`. No icon chips. An odd last metric spans both phone
+  columns.
+- **Summary headline**: `components/SummaryHeadline.tsx` answers the page's main
+  question in one sentence above its `MetricStrip` (Reports: what you kept). Wrap the amount in `HeadlineAmount`. One per page,
+  only where the page has a single answer; don't repeat that figure in the strip.
+- **Action rows**: `components/ActionRow.tsx` for the shortcuts a page exists to
+  offer (Home: add transaction, new event, current budget). 64px `rounded-2xl`
+  `bg-surface-muted` row, `text-base font-semibold` title over a one-line
+  description, 40px brass disc with the icon. On phones they sit above the
+  page's lists (`order-first lg:order-none`). Navigation, so they are `Link`s.
+- **Lists inside a card**: hairline rows (`divide-y divide-gray-200/70` on the
+  list, `py-3` rows), never bordered or tinted boxes per row. An inline edit
+  form may keep its highlighted box.
+- **Page headers**: `components/PageHeader.tsx`: title, description, actions.
+  The primary action (`action`, or the first `actions` entry with
+  `variant: "primary"`) is never hidden in a menu: a header button from `lg`,
+  the floating add button below it. The rest collapse into the mobile menu.
 - **Empty states**: icon in a soft circle (`bg-surface-muted`), one-line headline,
   short helper text, single primary action.
 - **Badges/chips**: `rounded-full px-2.5 py-0.5 text-xs font-medium` with a 50/100

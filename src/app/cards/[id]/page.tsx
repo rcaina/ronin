@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  CreditCard,
-  DollarSign,
-  Calendar,
-  User,
-  Edit,
-  Trash2,
-  Plus,
-} from "lucide-react";
+import { CreditCard, Calendar, User, Edit, Trash2, Plus } from "lucide-react";
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -37,7 +29,7 @@ import { getCardTransactionDisplay } from "@/lib/utils/transactions";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import Button from "@/components/Button";
 import { CardType, TransactionType } from "@prisma/client";
-import StatsCard from "@/components/StatsCard";
+import { Metric, MetricStrip } from "@/components/MetricStrip";
 
 interface User {
   id: string;
@@ -215,6 +207,7 @@ const CardDetailsPage = () => {
                   label: "Add transaction",
                   onClick: () => setShowAddTransactionModal(true),
                   icon: <Plus className="h-4 w-4" />,
+                  variant: "primary" as const,
                 },
               ]),
           ...(!isGeneralCard &&
@@ -232,7 +225,7 @@ const CardDetailsPage = () => {
       />
 
       <div className="pt-4 lg:flex-1 lg:overflow-auto lg:pt-0">
-        <div className="mx-auto px-2 py-4 pb-28 sm:px-4 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8">
+        <div className="mx-auto px-4 py-4 pb-28 sm:px-6 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8">
           {/* Card Details Section */}
           <div className="mb-6">
             <div className="mb-4 flex items-center justify-between">
@@ -277,51 +270,35 @@ const CardDetailsPage = () => {
           </div>
 
           {/* Card Stats */}
-          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-            <StatsCard
-              title="Total spent"
+          <MetricStrip className="mb-6">
+            <Metric
+              label="Total spent"
               value={formatCurrency(totalSpent)}
-              subtitle="All time"
-              icon={
-                <DollarSign className="h-4 w-4 text-green-600 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-green-600"
+              hint="All time"
             />
 
-            {spendingLimit && (
+            {spendingLimit ? (
               <>
-                <StatsCard
-                  title={isCreditCard ? "Available credit" : "Available funds"}
+                <Metric
+                  label={isCreditCard ? "Available credit" : "Available funds"}
                   value={formatCurrency(availableAmount)}
-                  subtitle={`${utilizationRate.toFixed(1)}% utilized`}
-                  icon={
-                    <CreditCard className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
-                  }
-                  iconColor="text-secondary-600"
+                  hint={`${utilizationRate.toFixed(1)}% utilized`}
                 />
 
-                <StatsCard
-                  title={isCreditCard ? "Credit limit" : "Total income"}
+                <Metric
+                  label={isCreditCard ? "Credit limit" : "Total income"}
                   value={formatCurrency(spendingLimit)}
-                  subtitle={isCreditCard ? "Total limit" : "Deposited on card"}
-                  icon={
-                    <CreditCard className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
-                  }
-                  iconColor="text-secondary-600"
+                  hint={isCreditCard ? "Total limit" : "Deposited on card"}
                 />
               </>
-            )}
+            ) : null}
 
-            <StatsCard
-              title="Transactions"
+            <Metric
+              label="Transactions"
               value={transactions.length}
-              subtitle="Total transactions"
-              icon={
-                <Calendar className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
-              }
-              iconColor="text-secondary-600"
+              hint="Total transactions"
             />
-          </div>
+          </MetricStrip>
 
           {/* Card Info */}
           <div className="card-surface mb-6 p-4 sm:p-5">

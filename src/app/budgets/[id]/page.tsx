@@ -976,7 +976,7 @@ const BudgetDetailsPage = () => {
                 </button>
               </div>
 
-              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
+              <div className="min-h-0 flex-1 divide-y divide-gray-200/70 overflow-y-auto">
                 {(() => {
                   // Collect all transactions from all categories
                   const categoryTransactions = (
@@ -1083,16 +1083,15 @@ const BudgetDetailsPage = () => {
 
                     if (isEditing) {
                       return (
-                        <div
-                          key={transaction.id}
-                          className="overflow-hidden rounded-xl border border-secondary-200"
-                        >
-                          <InlineTransactionEdit
-                            transaction={transaction}
-                            onCancel={() => setEditingTransactionId(null)}
-                            onSuccess={() => setEditingTransactionId(null)}
-                            getGroupColor={getGroupColor}
-                          />
+                        <div key={transaction.id} className="py-3">
+                          <div className="overflow-hidden rounded-xl border border-secondary-200">
+                            <InlineTransactionEdit
+                              transaction={transaction}
+                              onCancel={() => setEditingTransactionId(null)}
+                              onSuccess={() => setEditingTransactionId(null)}
+                              getGroupColor={getGroupColor}
+                            />
+                          </div>
                         </div>
                       );
                     }
@@ -1101,7 +1100,6 @@ const BudgetDetailsPage = () => {
                       <SwipeableRow
                         key={transaction.id}
                         disabled={isEditing}
-                        className="rounded-xl"
                         actions={[
                           {
                             icon: <Pencil className="h-4 w-4" />,
@@ -1116,7 +1114,7 @@ const BudgetDetailsPage = () => {
                           },
                         ]}
                       >
-                        <div className="group/row relative flex items-center justify-between rounded-xl border border-gray-100 bg-surface p-3">
+                        <div className="group/row relative flex items-center justify-between py-3">
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                               <span className="min-w-0 break-words text-sm font-medium text-gray-900">
@@ -1174,7 +1172,7 @@ const BudgetDetailsPage = () => {
                           <div className="flex items-center space-x-2 sm:space-x-3">
                             {/* Action icons overlay the amount on desktop hover so they take
                             no row width; mobile exposes these via swipe (SwipeableRow). */}
-                            <div className="pointer-events-none absolute inset-y-0 right-3 hidden items-center space-x-1 bg-surface opacity-0 transition-opacity lg:flex lg:focus-within:pointer-events-auto lg:focus-within:opacity-100 lg:group-hover/row:pointer-events-auto lg:group-hover/row:opacity-100">
+                            <div className="pointer-events-none absolute inset-y-0 right-3 hidden items-center space-x-1 bg-surface-card opacity-0 transition-opacity lg:flex lg:focus-within:pointer-events-auto lg:focus-within:opacity-100 lg:group-hover/row:pointer-events-auto lg:group-hover/row:opacity-100">
                               <button
                                 onClick={() =>
                                   handleEditTransaction(transaction)

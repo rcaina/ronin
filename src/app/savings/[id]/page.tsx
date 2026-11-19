@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useSavingsAccount } from "@/lib/data-hooks/savings/useSavings";
 import { useCreatePocket } from "@/lib/data-hooks/savings/usePockets";
 import { usePageLoading } from "@/components/ConditionalLayout";
-import StatsCard from "@/components/StatsCard";
+import { Metric, MetricStrip } from "@/components/MetricStrip";
 import PocketCard from "@/components/savings/PocketCard";
 import AddPocketModal from "@/components/savings/AddPocketModal";
 import Button from "@/components/Button";
@@ -13,7 +13,7 @@ import UpgradeModal from "@/components/UpgradeModal";
 import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
 import { toast } from "react-hot-toast";
 import type { CreatePocketSchema } from "@/lib/api-schemas/savings";
-import { AlertCircle, PiggyBank, Target, DollarSign, Plus } from "lucide-react";
+import { AlertCircle, PiggyBank, Plus } from "lucide-react";
 import { formatCurrency, roundToCents } from "@/lib/utils";
 import { getGoalProgress } from "@/lib/utils/savings";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
@@ -137,47 +137,39 @@ const SavingsCategoriesPage = () => {
     <div className="bg-surface lg:h-full lg:overflow-y-auto">
       <div className="mx-auto w-full px-4 py-4 pb-28 sm:px-6 sm:py-6 lg:px-8 lg:py-4 lg:pb-8">
         {/* Stats Cards */}
-        <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-          <StatsCard
-            title="Total saved"
+        <MetricStrip className="mb-4 sm:mb-6">
+          <Metric
+            label="Total saved"
             value={formatCurrency(totalSaved)}
-            subtitle="Across all pockets"
-            icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
-            iconColor="text-green-600"
-            valueColor="text-green-600"
+            hint="Across all pockets"
+            valueClassName="text-green-600"
           />
 
-          <StatsCard
-            title="Total pockets"
+          <Metric
+            label="Total pockets"
             value={totalPockets}
-            subtitle="Categories created"
-            icon={<PiggyBank className="h-4 w-4 sm:h-5 sm:w-5" />}
-            iconColor="text-secondary-600"
+            hint="Categories created"
           />
 
           {goals && (
-            <StatsCard
-              title="Goal progress"
+            <Metric
+              label="Goal progress"
               value={`${Math.floor(goals.percentage)}%`}
-              subtitle={`${goals.reached}/${goals.goals} goals reached`}
-              icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
-              iconColor="text-secondary-600"
-              valueColor={
+              hint={`${goals.reached}/${goals.goals} goals reached`}
+              valueClassName={
                 goals.percentage >= 100 ? "text-green-600" : "text-gray-900"
               }
             />
           )}
 
           {goals && (
-            <StatsCard
-              title="Total goal"
+            <Metric
+              label="Total goal"
               value={formatCurrency(goals.goal)}
-              subtitle="Combined goal amount"
-              icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
-              iconColor="text-gray-500"
+              hint="Combined goal amount"
             />
           )}
-        </div>
+        </MetricStrip>
 
         {/* Charts — swipeable row on mobile, grid on larger screens */}
         <div className="scrollbar-hide flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:pb-0 lg:gap-6">

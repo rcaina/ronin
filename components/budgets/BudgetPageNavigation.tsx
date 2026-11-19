@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { tabClassName } from "@/components/Tabs";
+import { centerSelected, tabClassName } from "@/components/Tabs";
 import { usePathname, useParams, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 import {
@@ -21,7 +21,7 @@ interface BudgetNavItem {
 export default function BudgetPageNavigation({
   trailing,
 }: {
-  /** Shown at the right end of the desktop tab row. */
+  /** The month switcher: at the right end of the desktop row, above the tabs on mobile. */
   trailing?: React.ReactNode;
 }) {
   const params = useParams();
@@ -29,7 +29,7 @@ export default function BudgetPageNavigation({
   const pathname = usePathname();
   const month = useSearchParams().get("month");
   const query = month ? `?month=${encodeURIComponent(month)}` : "";
-  const activeRef = useRef<HTMLAnchorElement>(null);
+  const mobileTabsRef = useRef<HTMLElement>(null);
 
   const budgetNavItems: BudgetNavItem[] = [
     {
@@ -59,10 +59,9 @@ export default function BudgetPageNavigation({
     },
   ];
 
-  // Keep the active tab in view when the floating row scrolls horizontally on
-  // mobile (5 tabs overflow a 375px screen).
+  // Keep the active tab in view when the mobile row scrolls horizontally.
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ inline: "center", block: "nearest" });
+    if (mobileTabsRef.current) centerSelected(mobileTabsRef.current);
   }, [pathname]);
 
   return (
@@ -90,28 +89,26 @@ export default function BudgetPageNavigation({
         {trailing}
       </div>
 
-      {/* Mobile: floating pill bar docked just above the bottom tab bar so the
-          budget's sections are always reachable while scrolling. */}
-      <div
-        className="fixed inset-x-0 z-50 flex justify-center px-3 lg:hidden"
-        style={{ bottom: "calc(56px + env(safe-area-inset-bottom) + 0.5rem)" }}
-      >
-        <nav className="scrollbar-hide flex max-w-full gap-1 overflow-x-auto rounded-full border border-gray-400/60 bg-surface-muted/95 p-1 shadow-lifted backdrop-blur-md">
+      {/* Mobile: the month switcher, then the section tabs in the page flow. Five
+          sections overflow 375px, so this row scrolls with the active tab kept in view. */}
+      <div className="lg:hidden">
+        {trailing && <div className="px-4 py-2 sm:px-6">{trailing}</div>}
+        <nav
+          ref={mobileTabsRef}
+          aria-label="Budget sections"
+          className="scrollbar-hide flex overflow-x-auto px-4 sm:px-6"
+        >
           {budgetNavItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
                 key={item.href}
-                ref={isActive ? activeRef : undefined}
+                data-selected={isActive || undefined}
                 href={`${item.href}${query}`}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-all duration-200 ease-out ${
-                  isActive
-                    ? "bg-secondary/15 text-gray-900"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
+                aria-current={isActive ? "page" : undefined}
+                className={tabClassName(isActive)}
               >
-                {item.icon}
-                <span>{item.label}</span>
+                {item.label}
               </Link>
             );
           })}
