@@ -94,12 +94,12 @@ export default function MobileBottomNav() {
                   onClick={() => setIsMoreOpen(false)}
                   className={`flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors duration-200 ${
                     isActive
-                      ? "bg-secondary/15 text-secondary-700"
+                      ? "bg-gray-100 text-gray-900"
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <Icon
-                    className={`h-5 w-5 ${isActive ? "text-secondary-600" : "text-gray-500"}`}
+                    className={`h-5 w-5 ${isActive ? "text-gray-900" : "text-gray-500"}`}
                     strokeWidth={isActive ? 2.2 : 1.8}
                   />
                   <span className="font-medium">{link.label}</span>
@@ -119,7 +119,7 @@ export default function MobileBottomNav() {
       )}
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200/70 bg-surface-card/90 backdrop-blur-md lg:hidden"
+        className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-surface-card lg:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div
@@ -135,27 +135,11 @@ export default function MobileBottomNav() {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className="flex min-h-[56px] flex-col items-center justify-center gap-0.5 py-1.5"
+                aria-current={isActive ? "page" : undefined}
+                className="relative flex min-h-[56px] flex-col items-center justify-center gap-1 py-1.5"
               >
-                <span
-                  className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors duration-200 ${
-                    isActive ? "bg-secondary/15" : ""
-                  }`}
-                >
-                  <Icon
-                    className={`h-5 w-5 transition-colors duration-200 ${
-                      isActive ? "text-secondary-600" : "text-gray-400"
-                    }`}
-                    strokeWidth={isActive ? 2.2 : 1.8}
-                  />
-                </span>
-                <span
-                  className={`text-[10px] font-medium transition-colors duration-200 ${
-                    isActive ? "text-secondary-700" : "text-gray-400"
-                  }`}
-                >
-                  {tab.label}
-                </span>
+                <TabIndicator active={isActive} />
+                <TabGlyph icon={Icon} label={tab.label} active={isActive} />
               </Link>
             );
           })}
@@ -163,32 +147,58 @@ export default function MobileBottomNav() {
           {/* More tab — opens the popup above */}
           <button
             onClick={() => setIsMoreOpen((open) => !open)}
-            className="flex min-h-[56px] flex-col items-center justify-center gap-0.5 py-1.5"
+            className="relative flex min-h-[56px] flex-col items-center justify-center gap-1 py-1.5"
             aria-label="More options"
             aria-expanded={isMoreOpen}
           >
-            <span
-              className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors duration-200 ${
-                isMoreActive ? "bg-secondary/15" : ""
-              }`}
-            >
-              <MoreHorizontal
-                className={`h-5 w-5 transition-colors duration-200 ${
-                  isMoreActive ? "text-secondary-600" : "text-gray-400"
-                }`}
-                strokeWidth={isMoreActive ? 2.2 : 1.8}
-              />
-            </span>
-            <span
-              className={`text-[10px] font-medium transition-colors duration-200 ${
-                isMoreActive ? "text-secondary-700" : "text-gray-400"
-              }`}
-            >
-              More
-            </span>
+            <TabIndicator active={isMoreActive} />
+            <TabGlyph
+              icon={MoreHorizontal}
+              label="More"
+              active={isMoreActive}
+            />
           </button>
         </div>
       </nav>
+    </>
+  );
+}
+
+function TabIndicator({ active }: { active: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={`absolute inset-x-4 top-0 h-0.5 rounded-full bg-gray-900 transition-opacity duration-150 ease-brand ${
+        active ? "opacity-100" : "opacity-0"
+      }`}
+    />
+  );
+}
+
+function TabGlyph({
+  icon: Icon,
+  label,
+  active,
+}: {
+  icon: LucideIcon;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <>
+      <Icon
+        className={`h-5 w-5 transition-colors duration-150 ease-brand ${
+          active ? "text-gray-900" : "text-gray-500"
+        }`}
+        strokeWidth={active ? 2.2 : 1.8}
+      />
+      <span
+        className={`text-[11px] transition-colors duration-150 ease-brand ${
+          active ? "font-semibold text-gray-900" : "font-medium text-gray-600"
+        }`}
+      >
+        {label}
+      </span>
     </>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { centerSelected, tabClassName } from "@/components/Tabs";
 import { usePathname, useParams, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 import {
@@ -20,7 +21,7 @@ interface BudgetNavItem {
 export default function BudgetPageNavigation({
   trailing,
 }: {
-  /** Shown at the right end of the desktop tab row. */
+  /** The month switcher: at the right end of the desktop row, above the tabs on mobile. */
   trailing?: React.ReactNode;
 }) {
   const params = useParams();
@@ -28,7 +29,7 @@ export default function BudgetPageNavigation({
   const pathname = usePathname();
   const month = useSearchParams().get("month");
   const query = month ? `?month=${encodeURIComponent(month)}` : "";
-  const activeRef = useRef<HTMLAnchorElement>(null);
+  const mobileTabsRef = useRef<HTMLElement>(null);
 
   const budgetNavItems: BudgetNavItem[] = [
     {
@@ -58,29 +59,25 @@ export default function BudgetPageNavigation({
     },
   ];
 
-  // Keep the active tab in view when the floating row scrolls horizontally on
-  // mobile (5 tabs overflow a 375px screen).
+  // Keep the active tab in view when the mobile row scrolls horizontally.
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ inline: "center", block: "nearest" });
+    if (mobileTabsRef.current) centerSelected(mobileTabsRef.current);
   }, [pathname]);
 
   return (
     <>
-      {/* Desktop: in-flow pill row under the page header */}
+      {/* Desktop: in-flow underline tab row under the page header */}
       <div className="mx-auto hidden w-full items-center justify-between gap-4 bg-surface px-4 py-2 sm:px-6 lg:flex lg:px-8">
         <nav className="scrollbar-hide min-w-0 overflow-x-auto">
-          <div className="inline-flex rounded-full bg-surface-muted p-1">
+          <div className="flex">
             {budgetNavItems.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.href}
                   href={`${item.href}${query}`}
-                  className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
-                    isActive
-                      ? "bg-surface-card text-gray-900 shadow-soft"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
+                  aria-current={isActive ? "page" : undefined}
+                  className={tabClassName(isActive)}
                 >
                   {item.icon}
                   <span>{item.label}</span>
@@ -92,33 +89,32 @@ export default function BudgetPageNavigation({
         {trailing}
       </div>
 
-      {/* Mobile: floating pill bar docked just above the bottom tab bar so the
-          budget's sections are always reachable while scrolling. */}
-      <div
-        className="fixed inset-x-0 z-50 flex justify-center px-3 lg:hidden"
-        style={{ bottom: "calc(56px + env(safe-area-inset-bottom) + 0.5rem)" }}
+      {/* Mobile: the month switcher, then the section tabs, which stick under the
+          header. Five sections overflow 375px, so the row scrolls with the active
+          tab kept in view. */}
+      {trailing && (
+        <div className="px-4 py-2 sm:px-6 lg:hidden">{trailing}</div>
+      )}
+      <nav
+        ref={mobileTabsRef}
+        aria-label="Budget sections"
+        className="scrollbar-hide sticky top-0 z-20 flex overflow-x-auto border-b border-gray-200/70 bg-surface/90 px-4 backdrop-blur-md sm:px-6 lg:hidden"
       >
-        <nav className="scrollbar-hide flex max-w-full gap-1 overflow-x-auto rounded-full border border-gray-400/60 bg-surface-muted/95 p-1 shadow-lifted backdrop-blur-md">
-          {budgetNavItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                ref={isActive ? activeRef : undefined}
-                href={`${item.href}${query}`}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-all duration-200 ease-out ${
-                  isActive
-                    ? "bg-secondary/15 text-gray-900"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
+        {budgetNavItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              data-selected={isActive || undefined}
+              href={`${item.href}${query}`}
+              aria-current={isActive ? "page" : undefined}
+              className={tabClassName(isActive)}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
     </>
   );
 }

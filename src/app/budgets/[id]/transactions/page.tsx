@@ -20,8 +20,6 @@ import {
   Trash2,
   SlidersHorizontal,
   Target,
-  Receipt,
-  TrendingDown,
   Plus,
   ScanLine,
   ChevronDown,
@@ -41,7 +39,7 @@ import TransactionFiltersModal, {
   type TransactionSortBy,
   type TransactionSortOrder,
 } from "@/components/transactions/TransactionFiltersModal";
-import StatsCard from "@/components/StatsCard";
+import { Metric, MetricStrip } from "@/components/MetricStrip";
 
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
@@ -715,29 +713,26 @@ const BudgetTransactionsPageContent = () => {
   return (
     <>
       <div className="bg-surface lg:h-full lg:overflow-y-auto">
-        <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:px-8 lg:py-4 lg:pb-8">
+        <div className="mx-auto w-full px-4 py-4 pb-28 sm:px-6 sm:py-6 lg:px-8 lg:py-4 lg:pb-8">
           {/* Stats Cards */}
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-            <StatsCard
-              title="Transactions"
+          <MetricStrip className="mb-4 sm:mb-6">
+            <Metric
+              label="Transactions"
               value={filteredAndSortedTransactions.length}
-              subtitle={
+              hint={
                 hasActiveFilters ? "Filtered results" : "Total transactions"
               }
-              icon={<Receipt className="h-4 w-4" />}
             />
-            <StatsCard
-              title="Total spent"
+            <Metric
+              label="Total spent"
               value={formatCurrency(totalSpent)}
-              subtitle={
+              hint={
                 hasActiveFilters
                   ? "From filtered transactions"
                   : "All transactions"
               }
-              icon={<TrendingDown className="h-4 w-4" />}
-              iconColor="text-green-600"
             />
-          </div>
+          </MetricStrip>
           {/* Filters and Search — search + filter icon on one row at every
               breakpoint; full filters live in TransactionFiltersModal. */}
           <div className="card-surface mb-4 p-3 sm:mb-6 sm:p-4 lg:p-6">

@@ -14,7 +14,7 @@ Process:
 
 Check specifically for:
 - **Mobile first**: every screen must work at 375 px width with the bottom tab bar (`MobileBottomNav`). Flag fixed widths, overflow risks, hover-only interactions, and touch targets under 44 px.
-- **Shared primitives**: `Button`, `StatsCard`, `PageHeader`, `DeleteConfirmationModal` must be extended, not duplicated with one-off styles.
+- **Shared primitives**: `Button`, `MetricStrip`, `Tabs`, `PageHeader`, `DeleteConfirmationModal` must be extended, not duplicated with one-off styles.
 - **Charts**: colors and tooltips must come from `components/recharts/theme.tsx` — flag any hardcoded hex values in pages or chart configs.
 - **Spending math**: spent/remaining calculations must use helpers from `lib/utils/spending.ts` and money must go through `roundToCents` / `formatCurrency` — flag inline re-derivations.
 - **Transaction semantics**: RETURN reduces spending; INCOME and CARD_PAYMENT are money movement, not category spending.

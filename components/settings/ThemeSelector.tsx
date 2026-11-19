@@ -72,7 +72,7 @@ export default function ThemeSelector() {
             className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-all duration-200 ease-out ${
               isActive
                 ? "border-secondary bg-secondary/10 shadow-soft"
-                : "border-gray-200/70 bg-surface-card hover:-translate-y-0.5 hover:border-gray-300/80 hover:shadow-card"
+                : "border-gray-200/70 bg-surface-card hover:border-gray-300"
             }`}
           >
             <span

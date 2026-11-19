@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, CreditCard, DollarSign, Wallet, Merge, X } from "lucide-react";
+import { Plus, CreditCard, Merge, X } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -27,9 +27,10 @@ import type { Card as ApiCard } from "@/lib/types/card";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import type { CardType } from "@prisma/client";
 import Button from "@/components/Button";
+import Tabs from "@/components/Tabs";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import { formatCurrency, roundToCents } from "@/lib/utils";
-import StatsCard from "@/components/StatsCard";
+import { Metric, MetricStrip } from "@/components/MetricStrip";
 
 interface User {
   id: string;
@@ -486,55 +487,39 @@ const CardsPage = () => {
       <div className="pt-4 lg:flex-1 lg:overflow-hidden lg:pt-0">
         <div className="lg:h-full lg:overflow-y-auto">
           <div
-            className={`mx-auto w-full px-2 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8 ${
+            className={`mx-auto w-full px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 ${
               isSelectingForMerge
                 ? "pb-40 sm:pb-40 lg:pb-24"
                 : "pb-28 sm:pb-28 lg:pb-8"
             }`}
           >
             {/* Overview Stats */}
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-              <StatsCard
-                title="Total spent"
+            <MetricStrip className="mb-4 sm:mb-6">
+              <Metric
+                label="Total spent"
                 value={formatCurrency(totalSpent)}
-                subtitle="Across all cards"
-                icon={
-                  <DollarSign className="h-4 w-4 text-green-600 sm:h-5 sm:w-5" />
-                }
-                iconColor="text-green-600"
+                hint="Across all cards"
               />
 
-              <StatsCard
-                title="Credit limit"
+              <Metric
+                label="Credit limit"
                 value={formatCurrency(totalLimit)}
-                subtitle="Across credit cards"
-                icon={
-                  <CreditCard className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
-                }
-                iconColor="text-secondary-600"
+                hint="Across credit cards"
               />
 
-              <StatsCard
-                title="Available"
+              <Metric
+                label="Available"
                 value={formatCurrency(available)}
-                subtitle="Left on cards with a limit"
-                valueColor={available < 0 ? "text-red-600" : undefined}
-                icon={
-                  <Wallet className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
-                }
-                iconColor="text-secondary-600"
+                hint="Left on cards with a limit"
+                valueClassName={available < 0 ? "text-red-600" : undefined}
               />
 
-              <StatsCard
-                title="Credit cards"
+              <Metric
+                label="Credit cards"
                 value={creditCards}
-                subtitle={`${cards.length - creditCards} debit & cash cards`}
-                icon={
-                  <CreditCard className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
-                }
-                iconColor="text-secondary-600"
+                hint={`${cards.length - creditCards} debit & cash cards`}
               />
-            </div>
+            </MetricStrip>
 
             {/* Cards Grid */}
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -542,34 +527,15 @@ const CardsPage = () => {
                 Account cards
               </h2>
 
-              {/* Owner tabs — segmented control (only when >1 person owns cards) */}
+              {/* Owner tabs, only when more than one person owns cards */}
               {ownerTabs.length > 1 && (
-                <div className="scrollbar-hide -mx-2 overflow-x-auto px-2 sm:mx-0 sm:overflow-visible sm:px-0">
-                  <div className="inline-flex rounded-full bg-surface-muted p-1">
-                    {ownerTabs.map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveOwner(tab.id)}
-                        className={`tap-target flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
-                          effectiveOwner === tab.id
-                            ? "bg-surface-card text-gray-900 shadow-soft"
-                            : "text-gray-500 hover:text-gray-700"
-                        }`}
-                      >
-                        {tab.label}
-                        <span
-                          className={`rounded-full px-1.5 py-0.5 text-xs font-semibold tabular-nums ${
-                            effectiveOwner === tab.id
-                              ? "bg-secondary/15 text-secondary-700"
-                              : "bg-gray-200/70 text-gray-500"
-                          }`}
-                        >
-                          {tab.count}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <Tabs
+                  ariaLabel="Filter cards by owner"
+                  items={ownerTabs}
+                  value={effectiveOwner}
+                  onChange={setActiveOwner}
+                  scroll
+                />
               )}
             </div>
 

@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/PageHeader";
 import SettingsPageNavigation from "@/components/settings/SettingsPageNavigation";
+import { tabPanelProps } from "@/components/Tabs";
 import CreateUserModal from "@/components/CreateUserModal";
 import DeleteAccountModal from "@/components/DeleteAccountModal";
 import LeaveAccountModal from "@/components/DeactivateAccountModal";
@@ -289,10 +290,14 @@ const SettingsPageContent = () => {
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        panelId="settings-panel"
       />
 
       <div className="pt-4 lg:flex-1 lg:overflow-auto lg:pt-0">
-        <div className="mx-auto w-full px-4 py-4 pb-28 sm:px-6 lg:px-8 lg:py-8 lg:pb-8">
+        <div
+          {...tabPanelProps("settings-panel", activeTab)}
+          className="mx-auto w-full px-4 py-4 pb-28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-secondary sm:px-6 lg:px-8 lg:py-8 lg:pb-8"
+        >
           {/* Profile Tab */}
           {activeTab === "profile" && (
             <div className="space-y-4 sm:space-y-6">

@@ -9,12 +9,10 @@ import {
 } from "@/lib/data-hooks/savings/usePocket";
 import { useDeleteAllocation } from "@/lib/data-hooks/savings/usePockets";
 import { usePageLoading } from "@/components/ConditionalLayout";
-import StatsCard from "@/components/StatsCard";
+import { Metric, MetricStrip } from "@/components/MetricStrip";
 import {
   AlertCircle,
   PiggyBank,
-  Target,
-  DollarSign,
   Plus,
   Edit,
   Pencil,
@@ -297,49 +295,41 @@ const PocketDetailPage = () => {
     <div className="flex flex-col bg-surface lg:h-full lg:overflow-hidden">
       <div className="mx-auto w-full flex-shrink-0 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-4">
         {/* Stats Cards */}
-        <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-          <StatsCard
-            title="Total saved"
+        <MetricStrip className="mb-6">
+          <Metric
+            label="Total saved"
             value={formatCurrency(totalAllocated)}
-            subtitle="Current balance"
-            icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
-            iconColor="text-green-600"
-            valueColor="text-green-600"
+            hint="Current balance"
+            valueClassName="text-green-600"
           />
 
-          <StatsCard
-            title="Total allocations"
+          <Metric
+            label="Total allocations"
             value={totalAllocations}
-            subtitle="Allocations made"
-            icon={<PiggyBank className="h-4 w-4 sm:h-5 sm:w-5" />}
-            iconColor="text-secondary-600"
+            hint="Allocations made"
           />
 
           {goalAmount > 0 && (
             <>
-              <StatsCard
-                title="Goal progress"
+              <Metric
+                label="Goal progress"
                 value={`${goalProgressPercentage.toFixed(0)}%`}
-                subtitle={`${formatCurrency(totalAllocated)} / ${formatCurrency(goalAmount)}`}
-                icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
-                iconColor="text-secondary-600"
-                valueColor={
+                hint={`${formatCurrency(totalAllocated)} / ${formatCurrency(goalAmount)}`}
+                valueClassName={
                   goalProgressPercentage >= 100
                     ? "text-green-600"
                     : "text-gray-900"
                 }
               />
 
-              <StatsCard
-                title="Goal amount"
+              <Metric
+                label="Goal amount"
                 value={formatCurrency(goalAmount)}
-                subtitle="Target amount"
-                icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
-                iconColor="text-gray-500"
+                hint="Target amount"
               />
             </>
           )}
-        </div>
+        </MetricStrip>
 
         {/* Progress Bar */}
         {goalAmount > 0 && (
@@ -377,7 +367,7 @@ const PocketDetailPage = () => {
             </div>
 
             {/* Allocations List */}
-            <div className="space-y-2 pb-4">
+            <div className="divide-y divide-gray-200/70 pb-4">
               {pocket.allocations && pocket.allocations.length > 0 ? (
                 pocket.allocations.map((allocation) => {
                   const isEditingAllocation =
@@ -385,76 +375,77 @@ const PocketDetailPage = () => {
 
                   if (isEditingAllocation) {
                     return (
-                      <div
-                        key={allocation.id}
-                        className="rounded-xl border border-secondary-200 bg-secondary-50 p-3 transition-colors duration-200"
-                      >
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <p className="text-xs text-gray-500">
-                                {allocation.occurredAt
-                                  ? formatDateUTC(String(allocation.occurredAt))
-                                  : formatDateUTC(allocation.createdAt)}
-                              </p>
-                            </div>
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-xs font-medium text-gray-500">
-                              Note
-                            </label>
-                            <textarea
-                              value={editingNote}
-                              onChange={(e) => setEditingNote(e.target.value)}
-                              placeholder="Add a note about this allocation..."
-                              rows={2}
-                              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                            />
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="mb-1 block text-xs font-medium text-gray-500">
-                                Amount
-                              </label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                min="0.01"
-                                value={editingAmount}
-                                onChange={(e) =>
-                                  setEditingAmount(e.target.value)
-                                }
-                                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm tabular-nums focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                                placeholder="Amount"
-                              />
+                      <div key={allocation.id} className="py-3">
+                        <div className="rounded-xl border border-secondary-200 bg-secondary-50 p-3 transition-colors duration-200">
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <p className="text-xs text-gray-500">
+                                  {allocation.occurredAt
+                                    ? formatDateUTC(
+                                        String(allocation.occurredAt),
+                                      )
+                                    : formatDateUTC(allocation.createdAt)}
+                                </p>
+                              </div>
                             </div>
                             <div>
                               <label className="mb-1 block text-xs font-medium text-gray-500">
-                                Occurred at (optional)
+                                Note
                               </label>
-                              <DateInput
-                                value={editingOccurredAt}
-                                onChange={(e) =>
-                                  setEditingOccurredAt(e.target.value)
-                                }
-                                className="rounded-xl"
+                              <textarea
+                                value={editingNote}
+                                onChange={(e) => setEditingNote(e.target.value)}
+                                placeholder="Add a note about this allocation..."
+                                rows={2}
+                                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                               />
                             </div>
-                          </div>
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              onClick={handleCancelEditAllocation}
-                              disabled={updateAllocationMutation.isPending}
-                              variant="secondary"
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              onClick={() => handleSaveAllocation(allocation)}
-                              disabled={updateAllocationMutation.isPending}
-                            >
-                              Save
-                            </Button>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="mb-1 block text-xs font-medium text-gray-500">
+                                  Amount
+                                </label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0.01"
+                                  value={editingAmount}
+                                  onChange={(e) =>
+                                    setEditingAmount(e.target.value)
+                                  }
+                                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm tabular-nums focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                                  placeholder="Amount"
+                                />
+                              </div>
+                              <div>
+                                <label className="mb-1 block text-xs font-medium text-gray-500">
+                                  Occurred at (optional)
+                                </label>
+                                <DateInput
+                                  value={editingOccurredAt}
+                                  onChange={(e) =>
+                                    setEditingOccurredAt(e.target.value)
+                                  }
+                                  className="rounded-xl"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                onClick={handleCancelEditAllocation}
+                                disabled={updateAllocationMutation.isPending}
+                                variant="secondary"
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                onClick={() => handleSaveAllocation(allocation)}
+                                disabled={updateAllocationMutation.isPending}
+                              >
+                                Save
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -462,7 +453,7 @@ const PocketDetailPage = () => {
                   }
 
                   const allocationRow = (
-                    <div className="rounded-xl border border-gray-200/70 bg-surface p-3 transition-colors duration-200">
+                    <div className="py-3">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <p className="text-sm font-medium text-gray-900">
@@ -511,7 +502,6 @@ const PocketDetailPage = () => {
                     <SwipeableRow
                       key={allocation.id}
                       disabled={isEditingAllocation}
-                      className="rounded-xl"
                       actions={[
                         {
                           icon: <Pencil className="h-4 w-4" />,

@@ -4,8 +4,8 @@ The visual contract for the app. Every page, component, and future feature follo
 these rules so the product stays coherent. When in doubt, copy an existing pattern
 from `components/` rather than inventing a new one.
 
-**Direction:** modern, fresh, clean, smooth. Soft corners, quiet borders, layered
-shadows, gentle motion. Never edgy: no harsh borders, no saturated rainbow palettes,
+**Direction:** modern, fresh, clean, smooth. Soft corners, quiet borders, flat
+surfaces with soft layer shadows, gentle motion. Never edgy: no harsh borders, no saturated rainbow palettes,
 no abrupt transitions.
 
 ---
@@ -19,7 +19,7 @@ black ink, brass, ivory), but use the scale variants freely.
 | Token       | Base      | Use                                                                                         |
 | ----------- | --------- | ------------------------------------------------------------------------------------------- |
 | `primary`   | `#17150f` | Obsidian. Nav shell, dark surfaces, headings (`primary-800/900` for softer darks)           |
-| `secondary` | `#8c6a1e` | Brass. Primary actions, active states, progress, brand accents. Scale `secondary-50…950`    |
+| `secondary` | `#8c6a1e` | Brass. Primary actions, toggles, focus, progress, brand accents. Scale `secondary-50…950`   |
 | `accent`    | `#f2e6c4` | Champagne/gilt. Highlights, badges, and gold on always-dark surfaces. Scale `accent-50…500` |
 | `surface`   | `#fbfaf6` | Ivory page background (`surface`), wells (`surface-muted`), cards (`white`)                 |
 
@@ -36,6 +36,8 @@ Rules:
   which would flip to dark brass in light mode.
 - Keep brass off progress bars that show "near limit": it sits close to the amber
   warning color. Gold progress means in-progress only.
+- Selected navigation (tabs, the bottom tab bar, its More sheet) is ink
+  (`gray-900`), not brass: brass means "you can act here", ink means "you are here".
 - Tint washes use alpha variants: `bg-secondary/10`, `hover:bg-secondary/15`.
 - Semantic status only: green = under budget / positive, red = over budget / destructive,
   amber = warning. Use the 600 shades for text (`text-green-600`), 50–100 for chips.
@@ -45,9 +47,14 @@ Rules:
 ## 2. Surfaces & elevation
 
 - Cards: `card-surface` class (rounded-2xl, `border-gray-200/70`, `shadow-card`).
-- Clickable cards: `card-interactive` (adds hover lift `-translate-y-0.5` + `shadow-lifted`).
-- Shadows are layered and soft (`shadow-soft` / `shadow-card` / `shadow-lifted`),
-  never `shadow-xl` hard drops.
+- Clickable cards: `card-interactive`. No hover elevation: hover only firms the
+  border. Cards never lift, scale or gain shadow on hover.
+- **Flat by default.** Shadow marks a layer change (page → card → popover → modal),
+  never emphasis. Shadows are layered and soft (`shadow-soft` / `shadow-card` /
+  `shadow-lifted`), never `shadow-xl` hard drops.
+- **No nested cards.** One card layer on the page ground; inside a card, separate
+  groups with `divide-y divide-gray-200/70` hairlines or a `bg-surface-muted` well.
+- No gradient text, no colored left/right accent stripes on cards.
 - Radii: cards `rounded-2xl`, buttons/inputs `rounded-xl`, chips `rounded-full`,
   hero/featured surfaces `rounded-4xl`. Nothing below `rounded-lg`.
 
@@ -56,15 +63,20 @@ Rules:
 - Font: Geist (already wired in root layout).
 - Page titles: `text-xl sm:text-2xl font-semibold tracking-tight text-gray-900`.
 - Section titles: `text-sm font-semibold text-gray-900`.
-- Metric values: `font-bold tracking-tight tabular-nums`.
+- Metric values: `font-semibold tracking-tight tabular-nums`.
+- Summary headline: `text-2xl sm:text-[28px]` regular, with the one amount that
+  matters in `font-semibold` brass (red when it is a shortfall).
 - Labels/captions: `text-xs font-medium text-gray-500`.
 - Currency and numbers always get `tabular-nums` so columns don't jitter.
 
 ## 4. Motion
 
-- Standard: `transition-all duration-200 ease-out`. Page/list entrances:
-  `animate-fade-in-up` (sparingly — hero card or list container, not every item).
-- Hover: lift cards (`-translate-y-0.5`), brighten buttons; press: `active:scale-[0.98]`.
+- Standard: `transition-colors duration-150 ease-brand` (`ease-brand` is the one
+  brand curve, in `tailwind.config.ts`). Animate color, opacity and transform only.
+  Page/list entrances: `animate-fade-in-up` (sparingly, hero card or list
+  container, not every item).
+- Hover and press change color only: no lift, no `active:scale-*`. The one
+  exception to color/opacity/transform is progress-bar width, below.
 - Progress bars animate width with `transition-all duration-500 ease-out`.
 - Honor `prefers-reduced-motion` (handled globally in `globals.css`).
 
@@ -72,16 +84,24 @@ Rules:
 
 - Mobile is the primary target. Design every view at 375 px first, then enhance.
 - Desktop: fixed `SideNav`. Mobile: slim top header (logo + menu) **plus**
-  `MobileBottomNav` tab bar — the primary mobile navigation. Content needs
+  `MobileBottomNav` tab bar, the primary mobile navigation. Content needs
   bottom padding (`pb-24 lg:pb-8`) so it clears the tab bar.
+- Mobile chrome: the top header is frosted glass (`bg-surface-card/75
+  backdrop-blur-[18px] backdrop-saturate-[1.8]`) so content dissolves under it.
+  The bottom tab bar is flat `bg-surface-card` with a `border-t`; the active tab
+  gets a 2px `bg-gray-900` top indicator, a semibold `text-gray-900` label and
+  `aria-current="page"`; inactive tabs have a `gray-500` icon and a `gray-600` label.
 - Touch targets ≥ 44 px on mobile. Action icons that appear on hover on desktop must
   be always-visible (or reachable) on mobile — hover does not exist on touch.
   Add `tap-target` to icon buttons and pills (44 px minimum below `lg`); pair a
   `lg:group-hover:opacity-100` reveal with `lg:group-focus-within:opacity-100`.
   A clickable `div` gets `pressable(onPress)` from `lib/utils` (role, tabIndex, Enter/Space).
 - Spacing rhythm: page gutter `px-4 sm:px-6 lg:px-8`; grid gaps `gap-3 sm:gap-4 lg:gap-6`.
-- Stat grids: `grid-cols-2 lg:grid-cols-4`. Chart grids: `grid-cols-1 sm:grid-cols-2 xl:grid-cols-4`.
-- Horizontal scroll with `scrollbar-hide` is acceptable for tab rows on mobile.
+- Figures: `MetricStrip` (2 columns on phones, one row from `lg`). Chart grids: `grid-cols-1 sm:grid-cols-2 xl:grid-cols-4`.
+- Horizontal scroll with `scrollbar-hide` is acceptable for filter tab rows on
+  mobile (`<Tabs scroll>`). Section tabs that are the only route to a view
+  scroll only when they cannot fit, with the selected tab centred (see Section
+  tabs below).
 
 ## 6. Charts (Recharts)
 
@@ -100,10 +120,59 @@ All theme values come from `components/recharts/theme.tsx`:
 
 ## 7. Components
 
-- **Buttons**: use `components/Button.tsx` variants — `primary` (brass), `secondary`
-  (ink), `outline`, `ghost`, `danger`. Never hand-roll button styles.
-- **Stat tiles**: `components/StatsCard.tsx` — icon chip + label + value.
-- **Page headers**: `components/PageHeader.tsx` — title, description, actions.
+- **Buttons**: use `components/Button.tsx` variants: `primary` (brass), `secondary`
+  (ink), `outline`, `ghost`, `danger`. Never hand-roll button styles. Flat fills:
+  default, hover and pressed are each their own color (`enabled:hover:` /
+  `enabled:active:`), no shadow or press scale, and disabled is a grey block
+  (`bg-gray-200 text-gray-500`), not a faded fill. Sizes: `md` 44px (default),
+  `lg` 48px, `sm` 44px on mobile and 32px from `lg`.
+- **Tabs**: `components/Tabs.tsx` for every tab, filter and range strip. Underline
+  tabs: bare `text-base font-medium` labels with no track, inactive
+  `text-gray-500`, active `text-gray-900` over a 2px `border-gray-900` rule,
+  counts in a small `tabular-nums` span. `size="compact"` is the chart range
+  strip (12px labels, 1px rule sitting on the strip's own gray-200 hairline
+  divider). Strips wrap unless `scroll` is set. Route tab rows that render `Link`s
+  (Budget, Savings, Transactions and Recurring) use the exported
+  `tabClassName` with `aria-current="page"`; Settings uses `Tabs` itself. Never put `Tabs` on a
+  `bg-surface-muted` well: inactive `gray-500` text falls below AA there.
+- **Section tabs**: a page's sections (a budget's Overview to Cards, a savings
+  account's Overview and Allocations, Transactions and Recurring, the Settings
+  sections) are an in-page underline tab row under the page header at every
+  width, never a floating dock. Below `lg` the row sticks under the header
+  (`sticky top-0`: the scroller's `pt-32` already clears the fixed headers; frosted `bg-surface/90 backdrop-blur-md` with a hairline), so
+  sections stay one tap away on long lists. A budget's month switcher sits above its tabs on
+  phones. A row with more sections than fit at 375px (budget, settings) scrolls
+  sideways with the selected tab centred (`centerSelected` from `Tabs.tsx`, which
+  sets `scrollLeft` so the page never jumps). The budget row drops its icons on
+  phones; Settings keeps them.
+- **Floating add button**: below `lg`, `PageHeader` shows the page's primary
+  action as a 56px brass `+` circle (`rounded-full`, `shadow-lifted`: it floats
+  over content, a layer change) at the bottom right, on the page gutter and 16px
+  above the bottom
+  tab bar, with the action's label as its `aria-label`; from `lg` it is the
+  header button. Every primary action is an "Add …" / "New …", so `+` always
+  fits; one that isn't needs its own icon first. The shell's `pb-16` plus the
+  page's `pb-28` already keep it clear of the last row.
+- **No stat-card grids.** Page figures go in `components/MetricStrip.tsx`:
+  `<MetricStrip>` of `<Metric label value hint valueClassName />` cells split by
+  hairlines, on the page ground, edge to edge on phones (`-mx-4`) and a rounded
+  hairline band from `sm`. No icon chips. An odd last metric spans both phone
+  columns.
+- **Summary headline**: `components/SummaryHeadline.tsx` answers the page's main
+  question in one sentence above its `MetricStrip` (Reports: what you kept). Wrap the amount in `HeadlineAmount`. One per page,
+  only where the page has a single answer; don't repeat that figure in the strip.
+- **Action rows**: `components/ActionRow.tsx` for the shortcuts a page exists to
+  offer (Home: add transaction, new event, current budget). 64px `rounded-2xl`
+  `bg-surface-muted` row, `text-base font-semibold` title over a one-line
+  description, 40px brass disc with the icon. On phones they sit above the
+  page's lists (`order-first lg:order-none`). Navigation, so they are `Link`s.
+- **Lists inside a card**: hairline rows (`divide-y divide-gray-200/70` on the
+  list, `py-3` rows), never bordered or tinted boxes per row. An inline edit
+  form may keep its highlighted box.
+- **Page headers**: `components/PageHeader.tsx`: title, description, actions.
+  The primary action (`action`, or the first `actions` entry with
+  `variant: "primary"`) is never hidden in a menu: a header button from `lg`,
+  the floating add button below it. The rest collapse into the mobile menu.
 - **Empty states**: icon in a soft circle (`bg-surface-muted`), one-line headline,
   short helper text, single primary action.
 - **Badges/chips**: `rounded-full px-2.5 py-0.5 text-xs font-medium` with a 50/100

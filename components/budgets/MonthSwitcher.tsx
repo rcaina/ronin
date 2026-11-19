@@ -40,7 +40,7 @@ export default function MonthSwitcher({
           onClick={() => onChange(shiftMonth(month, -1))}
           disabled={month <= minMonth}
           aria-label="Previous month"
-          className="flex h-11 w-11 items-center justify-center rounded-xl text-gray-600 transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:active:scale-100"
+          className="flex h-11 w-11 items-center justify-center rounded-xl text-gray-600 transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
@@ -54,7 +54,7 @@ export default function MonthSwitcher({
           type="button"
           onClick={() => onChange(shiftMonth(month, 1))}
           aria-label="Next month"
-          className="flex h-11 w-11 items-center justify-center rounded-xl text-gray-600 transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98]"
+          className="flex h-11 w-11 items-center justify-center rounded-xl text-gray-600 transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-900"
         >
           <ChevronRight className="h-5 w-5" />
         </button>

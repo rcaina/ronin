@@ -4,16 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSavingsAccount } from "@/lib/data-hooks/savings/useSavings";
 import { usePageLoading } from "@/components/ConditionalLayout";
-import StatsCard from "@/components/StatsCard";
+import { Metric, MetricStrip } from "@/components/MetricStrip";
 import Pagination from "@/components/Pagination";
-import {
-  AlertCircle,
-  PiggyBank,
-  ArrowRight,
-  DollarSign,
-  TrendingDown,
-  TrendingUp,
-} from "lucide-react";
+import { AlertCircle, PiggyBank, ArrowRight } from "lucide-react";
 import { formatCurrency, formatDateUTC } from "@/lib/utils";
 import { flattenAllocations } from "@/lib/utils/savings";
 
@@ -110,42 +103,34 @@ const AllocationsPage = () => {
     <div className="flex flex-col bg-surface lg:h-full lg:overflow-hidden">
       <div className="mx-auto w-full flex-shrink-0 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-4">
         {/* Stats Cards */}
-        <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-          <StatsCard
-            title="Total allocations"
+        <MetricStrip className="mb-4 sm:mb-6">
+          <Metric
+            label="Total allocations"
             value={totalAllocations}
-            subtitle="Across all pockets"
-            icon={<PiggyBank className="h-4 w-4 sm:h-5 sm:w-5" />}
-            iconColor="text-secondary-600"
+            hint="Across all pockets"
           />
 
-          <StatsCard
-            title="Total deposits"
+          <Metric
+            label="Total deposits"
             value={formatCurrency(totalDeposits)}
-            subtitle="Money in"
-            icon={<TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />}
-            iconColor="text-green-600"
-            valueColor="text-green-600"
+            hint="Money in"
+            valueClassName="text-green-600"
           />
 
-          <StatsCard
-            title="Total withdrawals"
+          <Metric
+            label="Total withdrawals"
             value={formatCurrency(totalWithdrawals)}
-            subtitle="Money out"
-            icon={<TrendingDown className="h-4 w-4 sm:h-5 sm:w-5" />}
-            iconColor="text-red-500"
-            valueColor="text-red-600"
+            hint="Money out"
+            valueClassName="text-red-600"
           />
 
-          <StatsCard
-            title="Net amount"
+          <Metric
+            label="Net amount"
             value={formatCurrency(netAmount)}
-            subtitle="Deposits minus withdrawals"
-            icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
-            iconColor={netAmount >= 0 ? "text-green-600" : "text-red-500"}
-            valueColor={netAmount >= 0 ? "text-green-600" : "text-red-600"}
+            hint="Deposits minus withdrawals"
+            valueClassName={netAmount >= 0 ? "text-green-600" : "text-red-600"}
           />
-        </div>
+        </MetricStrip>
       </div>
 
       {/* Allocations List - Scrollable */}
@@ -158,12 +143,12 @@ const AllocationsPage = () => {
               </h3>
             </div>
 
-            <div className="space-y-2 pb-2">
+            <div className="divide-y divide-gray-200/70 pb-2">
               {visibleAllocations.length > 0 ? (
                 visibleAllocations.map((allocation) => (
                   <div
                     key={allocation.id}
-                    className="group flex items-center justify-between rounded-xl border border-gray-200/70 bg-surface p-3 transition-colors duration-200 hover:bg-surface-muted"
+                    className="group flex items-center justify-between py-3"
                   >
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2">

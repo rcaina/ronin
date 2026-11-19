@@ -161,9 +161,9 @@
     @apply rounded-2xl border border-gray-200/70 bg-surface-card shadow-card;
   }
 
-  /* Interactive variant — adds smooth hover lift. */
+  /* Clickable card: stays flat (shadow marks a layer, not emphasis); hover only firms the border. */
   .card-interactive {
-    @apply card-surface transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-gray-300/80 hover:shadow-lifted;
+    @apply card-surface transition-colors duration-150 ease-brand hover:border-gray-300;
   }
 
   /* 44px touch target below lg for icon buttons and pills; desktop keeps its own size. */

@@ -17,7 +17,7 @@ export default function MobileHeader() {
   const settings = featureSettings ?? DEFAULT_FEATURE_SETTINGS;
 
   return (
-    <div className="fixed left-0 right-0 top-0 z-[60] border-b border-gray-200/70 bg-surface-card/90 backdrop-blur-md lg:hidden">
+    <div className="fixed left-0 right-0 top-0 z-[60] border-b border-gray-200/70 bg-surface-card/75 backdrop-blur-[18px] backdrop-saturate-[1.8] lg:hidden">
       <div className="flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <div className="flex items-center gap-2">
@@ -44,7 +44,7 @@ export default function MobileHeader() {
               onClick={action.onClick}
               aria-label={action.label}
               title={action.label}
-              className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-gray-600 transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 active:scale-[0.98]"
+              className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-gray-600 transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
             >
               {action.icon}
             </button>
