@@ -21,6 +21,7 @@ import {
   toMonthKey,
 } from "@/lib/utils/budget-month";
 import { planBackfillGapHides } from "@/lib/utils/continuous-merge";
+import { lockBudgetCategories } from "@/lib/api-services/budgets";
 
 const prisma = new PrismaClient();
 
@@ -46,6 +47,16 @@ const spendingSelect = {
   createdAt: true,
 } as const;
 
+const matchSelect = {
+  name: true,
+  group: true,
+  defaultCategoryId: true,
+  createdAt: true,
+} as const;
+
+const matchKey = (category: { name: string; group: string }) =>
+  `${category.name.trim().toLowerCase()}|${category.group}`;
+
 async function hideAccountGaps(
   tx: Prisma.TransactionClient,
   budgetId: string,
@@ -60,7 +71,7 @@ async function hideAccountGaps(
       createdAt: { lt: cutoff },
       deleted: { gte: cutoff },
     },
-    select: { startAt: true, deleted: true },
+    select: { id: true, startAt: true, deleted: true },
   });
   if (merged.length === 0) return [];
 
@@ -68,21 +79,22 @@ async function hideAccountGaps(
     .map((b) => toMonthKey(b.startAt))
     .sort()
     .at(-1)!;
-  const mergedAt = new Date(
-    Math.max(...merged.map((b) => b.deleted!.getTime())),
-  );
 
-  const categories = await tx.category.findMany({
+  // The merge soft-deleted each legacy category with its budget's timestamp.
+  const legacyCategories = await tx.category.findMany({
     where: {
-      budgetId,
-      deleted: null,
-      // The merge stamps `deleted` before writing month rows, so filter on the category: ones it created keep their old createdAt.
-      createdAt: { lte: mergedAt },
+      budgetId: { in: merged.map((b) => b.id) },
+      deleted: { in: merged.map((b) => b.deleted!) },
     },
+    select: matchSelect,
+  });
+
+  await lockBudgetCategories(tx, budgetId);
+  const allCategories = await tx.category.findMany({
+    where: { budgetId, deleted: null },
     select: {
+      ...matchSelect,
       id: true,
-      name: true,
-      createdAt: true,
       allocatedAmount: true,
       hiddenFrom: true,
       months: { select: { month: true, assigned: true, hidden: true } },
@@ -93,6 +105,17 @@ async function hideAccountGaps(
       },
     },
   });
+
+  // Merge-created categories copy their first legacy row's createdAt; ones added in the app don't.
+  const categories = allCategories.filter((category) =>
+    legacyCategories.some(
+      (legacy) =>
+        legacy.createdAt.getTime() === category.createdAt.getTime() &&
+        ((category.defaultCategoryId !== null &&
+          category.defaultCategoryId === legacy.defaultCategoryId) ||
+          matchKey(category) === matchKey(legacy)),
+    ),
+  );
 
   const changes: CategoryChange[] = [];
   for (const category of categories) {

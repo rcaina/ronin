@@ -1204,6 +1204,16 @@ export const importBudgetCards = async (
   return { created, skipped };
 };
 
+/** Row-locks the budget's categories (or just `categoryId`) so month-plan writes and scripts/hide-backfill-gap-months.ts don't interleave. */
+export const lockBudgetCategories = (
+  tx: PrismaClientTx,
+  budgetId: string,
+  categoryId?: string,
+) =>
+  tx.$queryRaw`SELECT id FROM category WHERE "budgetId" = ${budgetId}
+    ${categoryId ? Prisma.sql`AND id = ${categoryId}` : Prisma.empty}
+    ORDER BY id FOR NO KEY UPDATE`;
+
 export const updateBudgetCategory = async (
   tx: PrismaClientTx,
   budgetId: string,
@@ -1224,6 +1234,7 @@ export const updateBudgetCategory = async (
     throw new HttpError("Budget not found", 404);
   }
 
+  await lockBudgetCategories(tx, budgetId, categoryId);
   // Verify the category exists and belongs to this budget
   const category = await tx.category.findFirst({
     where: {
@@ -1447,6 +1458,7 @@ export const fillBudgetMonth = async (
   monthParam: string,
   source: QuickFillSource,
 ): Promise<{ filled: number }> => {
+  await lockBudgetCategories(tx, budgetId);
   const { month, categories } = await loadQuickFillCategories(
     tx,
     budgetId,

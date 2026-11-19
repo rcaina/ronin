@@ -2,6 +2,7 @@ import {
   type User,
   type Card,
   type CardType,
+  Prisma,
   TransactionType,
 } from "@prisma/client";
 import type { PrismaClientTx } from "../prisma";
@@ -262,8 +263,10 @@ export async function resolveBudgetCard(
       : card.defaultCardId
         ? await tx.card.findUniqueOrThrow({ where: { id: card.defaultCardId } })
         : await resolveDefaultCard(tx, card);
-  // Never revive a card the user deleted or merged away.
-  if (general.deleted) return { cardId: null, created: false };
+  // Never revive a card the user deleted or merged away. The share lock holds off a concurrent delete or merge until the copy is made.
+  const [locked] = await tx.$queryRaw<{ deleted: Date | null }[]>`
+    SELECT deleted FROM card WHERE id = ${general.id} FOR SHARE`;
+  if (locked?.deleted) return { cardId: null, created: false };
 
   // Serializes concurrent posts so they can't each create a copy for this budget.
   await tx.$queryRaw`SELECT id FROM budgets WHERE id = ${budgetId} FOR NO KEY UPDATE`;
@@ -490,6 +493,9 @@ export async function mergeCards(
   { sourceIds, targetId }: z.infer<typeof mergeCardsSchema>,
   user: User & { accountId: string },
 ): Promise<Card> {
+  // Locked before the reads below so resolveBudgetCard can't copy a source mid-merge.
+  await tx.$queryRaw`SELECT id FROM card WHERE id IN (${Prisma.join([...sourceIds, targetId])})
+    ORDER BY id FOR NO KEY UPDATE`;
   const candidates = await tx.card.findMany({
     where: { id: { in: [...sourceIds, targetId] } },
   });
