@@ -248,7 +248,11 @@ export async function resolveDefaultCard(
   return generalCard;
 }
 
-/** The card to use on `budgetId` for `cardId`: itself, the budget's copy of its general card, a new copy, or null when it (on this budget) or its general card was deleted. */
+/** Takes the account row lock that card merges and recurring posting both take before any card lock, so the two can't deadlock on card lock order. */
+export const lockAccountCards = (tx: PrismaClientTx, accountId: string) =>
+  tx.$queryRaw`SELECT id FROM accounts WHERE id = ${accountId} FOR NO KEY UPDATE`;
+
+/** The card to use on `budgetId` for `cardId`: itself, the budget's copy of its general card, a new copy, or null when it (on this budget) or its general card was deleted. Callers must hold lockAccountCards. */
 export async function resolveBudgetCard(
   tx: PrismaClientTx,
   cardId: string,
@@ -264,10 +268,21 @@ export async function resolveBudgetCard(
       : card.defaultCardId
         ? await tx.card.findUniqueOrThrow({ where: { id: card.defaultCardId } })
         : await resolveDefaultCard(tx, card);
-  // Never revive a card the user deleted or merged away. The share lock holds off a concurrent delete or merge until the copy is made.
-  const [locked] = await tx.$queryRaw<{ deleted: Date | null }[]>`
-    SELECT deleted FROM card WHERE id = ${general.id} FOR SHARE`;
-  if (locked?.deleted) return { cardId: null, created: false };
+  // Never revive a card the user deleted or merged away, and copy the identity as of the lock. The share lock holds off a concurrent edit, delete or merge until the copy is made.
+  const [locked] = await tx.$queryRaw<
+    Pick<
+      Card,
+      | "deleted"
+      | "name"
+      | "lastFourDigits"
+      | "cardType"
+      | "spendingLimit"
+      | "userId"
+    >[]
+  >`
+    SELECT deleted, name, "lastFourDigits", "cardType", "spendingLimit", "userId"
+    FROM card WHERE id = ${general.id} FOR SHARE`;
+  if (!locked || locked.deleted) return { cardId: null, created: false };
 
   // Serializes concurrent posts so they can't each create a copy for this budget.
   await tx.$queryRaw`SELECT id FROM budgets WHERE id = ${budgetId} FOR NO KEY UPDATE`;
@@ -282,11 +297,11 @@ export async function resolveBudgetCard(
     data: {
       budgetId,
       defaultCardId: general.id,
-      name: general.name,
-      lastFourDigits: general.lastFourDigits,
-      cardType: general.cardType,
-      spendingLimit: general.spendingLimit,
-      userId: general.userId,
+      name: locked.name,
+      lastFourDigits: locked.lastFourDigits,
+      cardType: locked.cardType,
+      spendingLimit: locked.spendingLimit,
+      userId: locked.userId,
       amountSpent: 0,
     },
     select: { id: true },
@@ -494,6 +509,7 @@ export async function mergeCards(
   { sourceIds, targetId }: z.infer<typeof mergeCardsSchema>,
   user: User & { accountId: string },
 ): Promise<Card> {
+  await lockAccountCards(tx, user.accountId);
   // Locked before the reads below so resolveBudgetCard can't copy a source mid-merge.
   await tx.$queryRaw`SELECT id FROM card WHERE id IN (${Prisma.join([...sourceIds, targetId])})
     ORDER BY id FOR NO KEY UPDATE`;
