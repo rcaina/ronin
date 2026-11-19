@@ -16,7 +16,7 @@ import {
 import { evaluateRecurringPosted } from "../utils/notifications";
 import { notifyRecurringPosted } from "./notifications";
 import { assertOwnedCard, assertOwnedCategory } from "./transactions";
-import { resolveBudgetCard } from "./cards";
+import { lockAccountCards, resolveBudgetCard } from "./cards";
 
 const recurringInclude = {
   category: {
@@ -313,6 +313,7 @@ export const postDueRecurringTransactionsForAccount = async (
 ): Promise<RecurringPostingSummary[]> => {
   const account = await getAccountEntitlements(tx, accountId);
   if (!isPremium(account)) return [];
+  await lockAccountCards(tx, accountId);
 
   const templates = await tx.recurringTransaction.findMany({
     where: {
