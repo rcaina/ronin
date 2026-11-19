@@ -134,8 +134,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       {/*
         Hide this section's chrome (header + sub-nav tabs) while the page is
         loading so the single shell spinner is all that shows — matching the
-        dashboard's loading look. The chrome's fixed/sticky mobile nav (z-50)
-        would otherwise float above the content overlay.
+        dashboard's loading look; the header's + button and menu would otherwise
+        stay usable over a page that isn't ready.
       */}
       {!pageLoading && (
         <>
@@ -149,6 +149,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   ? { onClick: handleBack }
                   : undefined
               }
+              actionsDisabled={showMonthSwitcher && monthLoading}
               actions={
                 budget?.status === "ACTIVE"
                   ? dynamicActions

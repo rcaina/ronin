@@ -138,7 +138,9 @@ All theme values come from `components/recharts/theme.tsx`:
 - **Section tabs**: a page's sections (a budget's Overview to Cards, a savings
   account's Overview and Allocations, Transactions and Recurring, the Settings
   sections) are an in-page underline tab row under the page header at every
-  width, never a floating dock. A budget's month switcher sits above its tabs on
+  width, never a floating dock. Below `lg` the row sticks under the header
+  (`sticky top-0`: the scroller's `pt-32` already clears the fixed headers; frosted `bg-surface/90 backdrop-blur-md` with a hairline), so
+  sections stay one tap away on long lists. A budget's month switcher sits above its tabs on
   phones. A row with more sections than fit at 375px (budget, settings) scrolls
   sideways with the selected tab centred (`centerSelected` from `Tabs.tsx`, which
   sets `scrollLeft` so the page never jumps). The budget row drops its icons on

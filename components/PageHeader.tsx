@@ -22,6 +22,8 @@ interface PageHeaderProps {
     icon?: ReactNode;
     variant?: "primary" | "secondary" | "danger" | "outline" | "ghost";
   }>;
+  /** Disable every header action while the page behind them is busy. */
+  actionsDisabled?: boolean;
 }
 
 const PageHeader = ({
@@ -31,6 +33,7 @@ const PageHeader = ({
   backButton,
   action,
   actions,
+  actionsDisabled = false,
 }: PageHeaderProps) => {
   // The primary action is never hidden in a menu: a header button from lg, a +
   // button over the bottom tab bar below it. Secondary actions collapse into a
@@ -79,6 +82,7 @@ const PageHeader = ({
               {primaryAction && (
                 <Button
                   onClick={primaryAction.onClick}
+                  disabled={actionsDisabled}
                   variant="primary"
                   className="hidden lg:inline-flex"
                 >
@@ -93,7 +97,10 @@ const PageHeader = ({
               {secondaryActions.length > 0 && (
                 <>
                   <div className="sm:hidden">
-                    <HeaderActionMenu actions={secondaryActions} />
+                    <HeaderActionMenu
+                      actions={secondaryActions}
+                      disabled={actionsDisabled}
+                    />
                   </div>
                   <div className="hidden items-center gap-2 sm:flex sm:gap-3">
                     {secondaryActions.map((actionItem, index) => (
@@ -101,6 +108,7 @@ const PageHeader = ({
                         key={index}
                         onClick={actionItem.onClick}
                         variant={actionItem.variant ?? "secondary"}
+                        disabled={actionsDisabled}
                       >
                         {actionItem.icon && (
                           <span className={actionItem.label ? "mr-2" : ""}>
@@ -122,8 +130,9 @@ const PageHeader = ({
         <button
           type="button"
           onClick={primaryAction.onClick}
+          disabled={actionsDisabled}
           aria-label={primaryAction.label}
-          className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow-lifted transition-colors duration-150 ease-brand hover:bg-secondary-600 active:bg-secondary-700 sm:right-6 lg:hidden"
+          className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow-lifted transition-colors duration-150 ease-brand enabled:hover:bg-secondary-600 enabled:active:bg-secondary-700 disabled:bg-gray-200 disabled:text-gray-500 sm:right-6 lg:hidden"
           style={{ bottom: "calc(56px + env(safe-area-inset-bottom) + 1rem)" }}
         >
           <Plus className="h-6 w-6" />

@@ -89,31 +89,32 @@ export default function BudgetPageNavigation({
         {trailing}
       </div>
 
-      {/* Mobile: the month switcher, then the section tabs in the page flow. Five
-          sections overflow 375px, so this row scrolls with the active tab kept in view. */}
-      <div className="lg:hidden">
-        {trailing && <div className="px-4 py-2 sm:px-6">{trailing}</div>}
-        <nav
-          ref={mobileTabsRef}
-          aria-label="Budget sections"
-          className="scrollbar-hide flex overflow-x-auto px-4 sm:px-6"
-        >
-          {budgetNavItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                data-selected={isActive || undefined}
-                href={`${item.href}${query}`}
-                aria-current={isActive ? "page" : undefined}
-                className={tabClassName(isActive)}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
+      {/* Mobile: the month switcher, then the section tabs, which stick under the
+          header. Five sections overflow 375px, so the row scrolls with the active
+          tab kept in view. */}
+      {trailing && (
+        <div className="px-4 py-2 sm:px-6 lg:hidden">{trailing}</div>
+      )}
+      <nav
+        ref={mobileTabsRef}
+        aria-label="Budget sections"
+        className="scrollbar-hide sticky top-0 z-20 flex overflow-x-auto border-b border-gray-200/70 bg-surface/90 px-4 backdrop-blur-md sm:px-6 lg:hidden"
+      >
+        {budgetNavItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              data-selected={isActive || undefined}
+              href={`${item.href}${query}`}
+              aria-current={isActive ? "page" : undefined}
+              className={tabClassName(isActive)}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
     </>
   );
 }

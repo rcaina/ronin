@@ -49,8 +49,8 @@ export default function TransactionsPageNavigation() {
 
   return (
     <>
-      {/* In-flow underline tab row under the page header, at every width */}
-      <div className="bg-surface px-4 pt-3 sm:px-6 lg:px-8">
+      {/* Underline tab row under the page header; sticks under it on mobile */}
+      <div className="sticky top-0 z-20 border-b border-gray-200/70 bg-surface/90 px-4 pt-3 backdrop-blur-md sm:px-6 lg:static lg:z-auto lg:border-b-0 lg:bg-surface lg:px-8 lg:backdrop-blur-none">
         <nav className="flex flex-wrap">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
