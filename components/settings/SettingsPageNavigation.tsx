@@ -13,12 +13,14 @@ interface SettingsPageNavigationProps {
   tabs: SettingsNavItem[];
   activeTab: string;
   onTabChange: (id: string) => void;
+  panelId: string;
 }
 
 export default function SettingsPageNavigation({
   tabs,
   activeTab,
   onTabChange,
+  panelId,
 }: SettingsPageNavigationProps) {
   return (
     <>
@@ -30,6 +32,7 @@ export default function SettingsPageNavigation({
             items={tabs}
             value={activeTab}
             onChange={onTabChange}
+            panelId={panelId}
             scroll
           />
         </nav>

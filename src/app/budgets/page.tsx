@@ -34,7 +34,7 @@ import UpgradeModal from "@/components/UpgradeModal";
 import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
 import { CategoryType } from "@prisma/client";
 import Button from "@/components/Button";
-import Tabs from "@/components/Tabs";
+import Tabs, { tabPanelProps } from "@/components/Tabs";
 import { formatCurrency, pressable, roundToCents } from "@/lib/utils";
 import {
   calculateBudgetSpent,
@@ -395,12 +395,16 @@ const BudgetsPageContent = () => {
               items={tabs}
               value={activeTab}
               onChange={setActiveTab}
+              panelId="budget-status-panel"
             />
           </div>
         </div>
 
         {/* Budgets List */}
-        <div>
+        <div
+          {...tabPanelProps("budget-status-panel", activeTab)}
+          className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-secondary"
+        >
           <div className="mx-auto w-full px-4 py-3 pb-28 sm:px-6 lg:px-8 lg:pb-8">
             <div className="grid gap-4 xl:grid-cols-2">
               {currentBudgets.length === 0 ? (

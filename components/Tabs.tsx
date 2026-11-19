@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { type KeyboardEvent, useEffect, useRef } from "react";
 import { type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +20,21 @@ interface TabsProps<T extends string> {
   size?: "default" | "compact";
   /** Scroll sideways instead of wrapping. Only for strips that aren't the sole route to a view. */
   scroll?: boolean;
+  /** Id of the panel these tabs switch. Set it to get ARIA tablist semantics; leave it off for filters. */
+  panelId?: string;
   className?: string;
+}
+
+const tabId = (panelId: string, id: string) => `${panelId}-tab-${id}`;
+
+/** Props for the panel a `panelId` tab strip controls. */
+export function tabPanelProps(panelId: string, value: string) {
+  return {
+    id: panelId,
+    role: "tabpanel",
+    "aria-labelledby": tabId(panelId, value),
+    tabIndex: 0,
+  } as const;
 }
 
 /** Underline-tab styling, shared with route tab rows that render `Link`s. */
@@ -54,6 +68,7 @@ export default function Tabs<T extends string>({
   ariaLabel,
   size = "default",
   scroll = false,
+  panelId,
   className,
 }: TabsProps<T>) {
   const compact = size === "compact";
@@ -63,11 +78,46 @@ export default function Tabs<T extends string>({
     if (scroll && stripRef.current) centerSelected(stripRef.current);
   }, [scroll, value]);
 
+  // Roving tabindex: fall back to the first tab so the strip stays reachable when `value` isn't listed.
+  const index = Math.max(
+    0,
+    items.findIndex((item) => item.id === value),
+  );
+
+  // Arrow keys move between tabs and select the one focused.
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    const last = items.length - 1;
+    let next: number;
+    switch (event.key) {
+      case "ArrowRight":
+        next = index === last ? 0 : index + 1;
+        break;
+      case "ArrowLeft":
+        next = index === 0 ? last : index - 1;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = last;
+        break;
+      default:
+        return;
+    }
+    const target = items[next];
+    if (!target || !panelId) return;
+    event.preventDefault();
+    onChange(target.id);
+    document.getElementById(tabId(panelId, target.id))?.focus();
+  };
+
   return (
     <div
       ref={stripRef}
-      role="group"
+      role={panelId ? "tablist" : "group"}
       aria-label={ariaLabel}
+      onKeyDown={panelId ? handleKeyDown : undefined}
       className={cn(
         "flex",
         scroll ? "scrollbar-hide overflow-x-auto" : "flex-wrap",
@@ -76,14 +126,22 @@ export default function Tabs<T extends string>({
         className,
       )}
     >
-      {items.map((item) => {
+      {items.map((item, i) => {
         const selected = item.id === value;
         const Icon = item.icon;
         return (
           <button
             key={item.id}
             type="button"
-            aria-pressed={selected}
+            {...(panelId
+              ? {
+                  id: tabId(panelId, item.id),
+                  role: "tab",
+                  "aria-selected": selected,
+                  "aria-controls": panelId,
+                  tabIndex: i === index ? 0 : -1,
+                }
+              : { "aria-pressed": selected })}
             data-selected={selected || undefined}
             onClick={() => onChange(item.id)}
             className={tabClassName(selected, compact)}

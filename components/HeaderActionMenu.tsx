@@ -28,6 +28,10 @@ const HeaderActionMenu = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (disabled) setIsOpen(false);
+  }, [disabled]);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -80,6 +84,7 @@ const HeaderActionMenu = ({
                 key={index}
                 type="button"
                 role="menuitem"
+                disabled={disabled}
                 onClick={() => {
                   setIsOpen(false);
                   item.onClick();
