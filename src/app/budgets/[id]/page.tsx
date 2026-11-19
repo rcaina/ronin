@@ -60,7 +60,10 @@ import {
   CHART_COLORS,
   GROUP_COLORS,
   ChartEmptyState,
+  STATUS_COLORS,
   chartAxisProps,
+  chartCursorFill,
+  chartTrackFill,
   chartGridProps,
   chartTooltipItemStyle,
   chartTooltipLabelStyle,
@@ -97,7 +100,7 @@ const getGroupChipClasses = (group?: string) => {
 };
 
 const getGroupDotColor = (group?: string) =>
-  GROUP_COLORS[String(group ?? "").toUpperCase()] ?? "#9ca3af";
+  GROUP_COLORS[String(group ?? "").toUpperCase()] ?? STATUS_COLORS.neutral;
 
 const BudgetDetailsPage = () => {
   const { id } = useParams();
@@ -405,7 +408,7 @@ const BudgetDetailsPage = () => {
                         cy="60"
                         r="50"
                         fill="none"
-                        stroke="#f3f4f6"
+                        stroke={chartTrackFill}
                         strokeWidth="8"
                       />
                       {/* Progress circle */}
@@ -641,7 +644,7 @@ const BudgetDetailsPage = () => {
                       width={38}
                     />
                     <Tooltip
-                      cursor={{ fill: "rgba(185, 161, 94, 0.08)" }}
+                      cursor={{ fill: chartCursorFill }}
                       contentStyle={chartTooltipStyle}
                       labelStyle={chartTooltipLabelStyle}
                       itemStyle={chartTooltipItemStyle}
@@ -667,7 +670,7 @@ const BudgetDetailsPage = () => {
                     <Bar
                       dataKey="remaining"
                       stackId="a"
-                      fill="#efeeeb"
+                      fill={chartTrackFill}
                       radius={[0, 0, 0, 0]}
                     />
                     <Bar

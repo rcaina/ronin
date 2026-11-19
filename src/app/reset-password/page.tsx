@@ -149,7 +149,7 @@ function ResetPasswordForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="flex w-full justify-center rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-primary-950 shadow-soft transition-all duration-200 ease-out hover:bg-secondary-600 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full justify-center rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-secondary-foreground shadow-soft transition-all duration-200 ease-out hover:bg-secondary-600 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoading ? "Resetting..." : "Reset password"}
         </button>
@@ -178,11 +178,11 @@ export default function ResetPassword() {
               alt="Ronin Logo"
               width={128}
               height={128}
-              className="h-full w-full rounded-full ring-2 ring-secondary/40"
+              className="h-full w-full rounded-full ring-2 ring-accent-400/40"
               priority
             />
           </div>
-          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.3em] text-secondary">
+          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.3em] text-accent-400">
             Ronin
           </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">

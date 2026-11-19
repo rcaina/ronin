@@ -13,13 +13,13 @@ const OFFLINE_HTML = `<!doctype html>
         align-items: center;
         justify-content: center;
         min-height: 100vh;
-        background: #f7f7f5;
-        color: #0e0e10;
+        background: #fbfaf6;
+        color: #17150f;
         font-family: system-ui, sans-serif;
         text-align: center;
       }
       h1 { font-size: 1.25rem; margin: 0 0 0.5rem; }
-      p { color: #6b7280; margin: 0; }
+      p { color: #78716c; margin: 0; }
     </style>
   </head>
   <body>

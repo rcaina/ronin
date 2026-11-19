@@ -111,7 +111,7 @@ const CardComponent = ({
                 isSelectDisabled
                   ? "border-white/30 bg-white/10"
                   : selected
-                    ? "border-secondary bg-secondary text-primary-950"
+                    ? "border-secondary bg-secondary text-secondary-foreground"
                     : "border-white/60 bg-white/10"
               }`}
             >
@@ -175,8 +175,8 @@ const CardComponent = ({
 
         {/* Chip */}
         <div className="relative mb-5">
-          <div className="h-7 w-9 rounded-md bg-gradient-to-br from-accent-100 to-secondary-400 shadow-soft">
-            <div className="mx-auto mt-2 h-3 w-6 rounded-sm border border-secondary-700/40" />
+          <div className="h-7 w-9 rounded-md bg-gradient-to-br from-accent-100 to-accent-500 shadow-soft">
+            <div className="mx-auto mt-2 h-3 w-6 rounded-sm border border-primary-950/30" />
           </div>
         </div>
 
