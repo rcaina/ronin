@@ -27,6 +27,7 @@ import type { Card as ApiCard } from "@/lib/types/card";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import type { CardType } from "@prisma/client";
 import Button from "@/components/Button";
+import Tabs from "@/components/Tabs";
 import { mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import { formatCurrency, roundToCents } from "@/lib/utils";
 import StatsCard from "@/components/StatsCard";
@@ -542,34 +543,15 @@ const CardsPage = () => {
                 Account cards
               </h2>
 
-              {/* Owner tabs — segmented control (only when >1 person owns cards) */}
+              {/* Owner tabs, only when more than one person owns cards */}
               {ownerTabs.length > 1 && (
-                <div className="scrollbar-hide -mx-2 overflow-x-auto px-2 sm:mx-0 sm:overflow-visible sm:px-0">
-                  <div className="inline-flex rounded-full bg-surface-muted p-1">
-                    {ownerTabs.map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveOwner(tab.id)}
-                        className={`tap-target flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
-                          effectiveOwner === tab.id
-                            ? "bg-surface-card text-gray-900 shadow-soft"
-                            : "text-gray-500 hover:text-gray-700"
-                        }`}
-                      >
-                        {tab.label}
-                        <span
-                          className={`rounded-full px-1.5 py-0.5 text-xs font-semibold tabular-nums ${
-                            effectiveOwner === tab.id
-                              ? "bg-secondary/15 text-secondary-700"
-                              : "bg-gray-200/70 text-gray-500"
-                          }`}
-                        >
-                          {tab.count}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <Tabs
+                  ariaLabel="Filter cards by owner"
+                  items={ownerTabs}
+                  value={effectiveOwner}
+                  onChange={setActiveOwner}
+                  scroll
+                />
               )}
             </div>
 

@@ -146,7 +146,7 @@ export default function CategoryCard({
             }`
           : isEditing
             ? "border-secondary-200 bg-secondary-50"
-            : "hover:shadow-lifted"
+            : "hover:border-gray-300"
       }`}
     >
       <div className="mb-4 flex items-center justify-between">

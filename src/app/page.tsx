@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
+import Tabs from "@/components/Tabs";
 import MissingDateWarning from "@/components/transactions/MissingDateWarning";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import StatsCard from "@/components/StatsCard";
@@ -316,31 +317,18 @@ export default function HomePage() {
                 Showing{" "}
                 <span className="text-gray-900">{selectedTimeframe.label}</span>
               </p>
-              <div
-                role="tablist"
-                aria-label="Select time frame"
-                className="scrollbar-hide inline-flex shrink-0 items-center gap-1 overflow-x-auto rounded-full bg-surface-muted p-1"
-              >
-                {TIMEFRAMES.map((tf) => {
-                  const isActive = tf.value === timeframe;
-                  return (
-                    <button
-                      key={tf.value}
-                      role="tab"
-                      aria-selected={isActive}
-                      onClick={() => setTimeframe(tf.value)}
-                      className={cn(
-                        "tap-target rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ease-out active:scale-[0.97]",
-                        isActive
-                          ? "bg-surface-card text-gray-900 shadow-soft"
-                          : "text-gray-500 hover:text-gray-700",
-                      )}
-                    >
-                      {tf.shortLabel}
-                    </button>
-                  );
-                })}
-              </div>
+              <Tabs
+                size="compact"
+                scroll
+                className="shrink-0"
+                ariaLabel="Select time frame"
+                items={TIMEFRAMES.map((tf) => ({
+                  id: tf.value,
+                  label: tf.shortLabel,
+                }))}
+                value={timeframe}
+                onChange={setTimeframe}
+              />
             </div>
 
             {/* At-a-glance stats */}
@@ -748,7 +736,7 @@ export default function HomePage() {
                         onClick={() =>
                           router.push(`/budgets/${currentBudget.id}`)
                         }
-                        className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10 active:scale-[0.98]"
+                        className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10"
                       >
                         <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10">
                           <Target className="h-3.5 w-3.5 text-secondary-600" />
@@ -766,7 +754,7 @@ export default function HomePage() {
 
                     <button
                       onClick={() => router.push("/budgets?new=event")}
-                      className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10 active:scale-[0.98]"
+                      className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10"
                     >
                       <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10">
                         <Plus className="h-3.5 w-3.5 text-secondary-600" />
@@ -785,7 +773,7 @@ export default function HomePage() {
                       onClick={() =>
                         router.push("/transactions?new=transaction")
                       }
-                      className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10 active:scale-[0.98]"
+                      className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10"
                     >
                       <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10">
                         <Receipt className="h-3.5 w-3.5 text-secondary-600" />

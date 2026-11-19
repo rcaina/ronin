@@ -113,7 +113,7 @@ const Pagination = ({
               <button
                 key={pageNumber}
                 onClick={() => onPageChange(pageNumber)}
-                className={`tap-target rounded-full px-3 py-2 text-sm font-medium tabular-nums transition-all duration-200 ease-out active:scale-[0.98] ${
+                className={`tap-target rounded-full px-3 py-2 text-sm font-medium tabular-nums transition-all duration-200 ease-out ${
                   isCurrentPage
                     ? "bg-secondary text-secondary-foreground shadow-soft"
                     : "text-gray-600 hover:bg-surface-muted hover:text-gray-900"

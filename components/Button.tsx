@@ -22,26 +22,32 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref,
   ) => {
+    // Flat fills: each state is its own color, no shadow or press scale, and
+    // disabled is a grey block rather than a faded fill.
     const baseStyles =
-      "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100";
+      "inline-flex items-center justify-center rounded-xl font-medium transition-colors duration-150 ease-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed";
+
+    // A loading button keeps its fill so a pending action doesn't read as unavailable.
+    const solidDisabled = isLoading
+      ? ""
+      : "disabled:bg-gray-200 disabled:text-gray-500";
+    const outlineDisabled = isLoading
+      ? ""
+      : "disabled:border-gray-200 disabled:text-gray-400";
 
     const variants = {
-      primary:
-        "bg-secondary text-secondary-foreground shadow-soft hover:bg-secondary-600 hover:shadow-card focus-visible:ring-secondary",
-      secondary:
-        "bg-primary-950 text-white shadow-soft hover:bg-primary-800 focus-visible:ring-primary-800",
-      danger:
-        "bg-red-600 text-white shadow-soft hover:bg-red-700 focus-visible:ring-red-500",
-      outline:
-        "border border-gray-300 bg-surface-card text-gray-800 shadow-soft hover:border-gray-400 hover:bg-gray-50 focus-visible:ring-gray-400",
-      ghost:
-        "text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-gray-400",
+      primary: `bg-secondary text-secondary-foreground enabled:hover:bg-secondary-600 enabled:active:bg-secondary-700 focus-visible:ring-secondary ${solidDisabled}`,
+      secondary: `bg-primary-950 text-white enabled:hover:bg-primary-800 enabled:active:bg-primary-700 focus-visible:ring-primary-800 ${solidDisabled}`,
+      danger: `bg-red-600 text-white enabled:hover:bg-red-700 enabled:active:bg-red-800 focus-visible:ring-red-500 ${solidDisabled}`,
+      outline: `border border-gray-300 bg-surface-card text-gray-800 enabled:hover:border-gray-400 enabled:hover:bg-gray-50 enabled:active:bg-gray-100 focus-visible:ring-gray-400 ${outlineDisabled}`,
+      ghost: `text-gray-600 enabled:hover:bg-gray-100 enabled:hover:text-gray-900 enabled:active:bg-gray-200 focus-visible:ring-gray-400 ${isLoading ? "" : "disabled:text-gray-400"}`,
     };
 
+    // 44px by default; sm drops to 32px only on desktop, where there is no touch.
     const sizes = {
-      sm: "px-3 py-1.5 text-sm",
-      md: "px-4 py-2 text-sm",
-      lg: "px-6 py-3 text-base",
+      sm: "min-h-11 px-3 py-1.5 text-sm lg:min-h-8",
+      md: "min-h-11 px-4 py-2 text-sm",
+      lg: "min-h-12 px-6 py-3 text-base",
     };
 
     const combinedClassName =
@@ -52,6 +58,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={combinedClassName}
         ref={ref}
         disabled={disabled ?? isLoading}
+        aria-busy={isLoading || undefined}
         {...props}
       >
         {isLoading ? (

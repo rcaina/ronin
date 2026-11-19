@@ -43,7 +43,7 @@ const HeaderActionMenu = ({ actions }: HeaderActionMenuProps) => {
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-gray-600 transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98]"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-gray-600 transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-900"
         aria-label="Open actions menu"
         aria-haspopup="menu"
         aria-expanded={isOpen}
@@ -72,7 +72,7 @@ const HeaderActionMenu = ({ actions }: HeaderActionMenuProps) => {
                     setIsOpen(false);
                     item.onClick();
                   }}
-                  className={`flex min-h-[44px] w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium transition-all duration-200 ease-out active:scale-[0.98] ${
+                  className={`flex min-h-[44px] w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium transition-all duration-200 ease-out ${
                     isDanger
                       ? "text-red-600 hover:bg-red-50"
                       : "text-gray-700 hover:bg-gray-100"

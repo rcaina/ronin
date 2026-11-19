@@ -22,6 +22,7 @@ import {
   YAxis,
 } from "recharts";
 import PageHeader from "@/components/PageHeader";
+import Tabs from "@/components/Tabs";
 import StatsCard from "@/components/StatsCard";
 import UpgradeModal from "@/components/UpgradeModal";
 import { usePageLoading } from "@/components/ConditionalLayout";
@@ -171,33 +172,22 @@ export default function ReportsPage() {
           <div className="mx-auto w-full px-4 py-4 pb-28 sm:px-6 lg:px-8 lg:pb-8">
             {/* Range picker + comparison toggle */}
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div
-                role="tablist"
-                aria-label="Select report range"
-                className="scrollbar-hide inline-flex max-w-full shrink-0 items-center gap-1 overflow-x-auto rounded-full bg-surface-muted p-1"
-              >
-                {RANGE_OPTIONS.map((option) => {
-                  const isActive = option.value === range;
-                  const isLocked = option.premium && !isPremium;
-                  return (
-                    <button
-                      key={option.value}
-                      role="tab"
-                      aria-selected={isActive}
-                      onClick={() => handleSelectRange(option)}
-                      className={cn(
-                        "tap-target flex items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ease-out active:scale-[0.97]",
-                        isActive
-                          ? "bg-surface-card text-gray-900 shadow-soft"
-                          : "text-gray-500 hover:text-gray-700",
-                      )}
-                    >
-                      {isLocked && <Lock className="h-3 w-3" />}
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <Tabs
+                size="compact"
+                scroll
+                className="max-w-full shrink-0"
+                ariaLabel="Select report range"
+                items={RANGE_OPTIONS.map((option) => ({
+                  id: option.value,
+                  label: option.label,
+                  icon: option.premium && !isPremium ? Lock : undefined,
+                }))}
+                value={range}
+                onChange={(value) => {
+                  const option = RANGE_OPTIONS.find((o) => o.value === value);
+                  if (option) handleSelectRange(option);
+                }}
+              />
 
               <button
                 onClick={handleToggleCompare}
@@ -205,7 +195,7 @@ export default function ReportsPage() {
                 aria-checked={effectiveCompare}
                 aria-label="Compare to previous period"
                 className={cn(
-                  "flex min-h-[36px] items-center gap-2 rounded-full border border-gray-200/70 px-3 py-1.5 text-xs font-medium transition-all duration-200 ease-out active:scale-[0.97]",
+                  "flex min-h-11 items-center gap-2 rounded-full border border-gray-200/70 px-3 py-1.5 text-xs font-medium transition-all duration-200 ease-out",
                   effectiveCompare
                     ? "border-secondary/40 bg-secondary/10 text-secondary-700"
                     : "text-gray-500 hover:text-gray-700",

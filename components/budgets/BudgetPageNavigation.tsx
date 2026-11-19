@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { tabClassName } from "@/components/Tabs";
 import { usePathname, useParams, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 import {
@@ -66,21 +67,18 @@ export default function BudgetPageNavigation({
 
   return (
     <>
-      {/* Desktop: in-flow pill row under the page header */}
+      {/* Desktop: in-flow underline tab row under the page header */}
       <div className="mx-auto hidden w-full items-center justify-between gap-4 bg-surface px-4 py-2 sm:px-6 lg:flex lg:px-8">
         <nav className="scrollbar-hide min-w-0 overflow-x-auto">
-          <div className="inline-flex rounded-full bg-surface-muted p-1">
+          <div className="flex">
             {budgetNavItems.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.href}
                   href={`${item.href}${query}`}
-                  className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
-                    isActive
-                      ? "bg-surface-card text-gray-900 shadow-soft"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
+                  aria-current={isActive ? "page" : undefined}
+                  className={tabClassName(isActive)}
                 >
                   {item.icon}
                   <span>{item.label}</span>

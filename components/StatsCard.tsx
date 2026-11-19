@@ -40,7 +40,7 @@ const StatsCard = ({
   const baseClasses = "card-surface p-4 sm:p-5";
   const hoverClasses =
     hover || onClick
-      ? "transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lifted"
+      ? "transition-colors duration-150 ease-brand hover:border-gray-300"
       : "";
   const clickableClasses = onClick ? "cursor-pointer" : "";
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { type LucideIcon } from "lucide-react";
+import Tabs from "@/components/Tabs";
 
 export interface SettingsNavItem {
   id: string;
@@ -30,29 +31,15 @@ export default function SettingsPageNavigation({
 
   return (
     <>
-      {/* Desktop: in-flow pill row under the page header */}
+      {/* Desktop: in-flow underline tab row under the page header */}
       <div className="hidden bg-surface lg:block">
         <nav className="scrollbar-hide mx-auto w-full overflow-x-auto px-4 py-2 sm:px-6 lg:px-8">
-          <div className="inline-flex rounded-full bg-surface-muted p-1">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => onTabChange(tab.id)}
-                  className={`tap-target flex shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
-                    isActive
-                      ? "bg-surface-card text-gray-900 shadow-soft"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          <Tabs
+            ariaLabel="Settings sections"
+            items={tabs}
+            value={activeTab}
+            onChange={onTabChange}
+          />
         </nav>
       </div>
 
