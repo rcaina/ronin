@@ -7,24 +7,23 @@ import {
 } from "@/lib/utils/budget-month";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useAllTransactions } from "@/lib/data-hooks/transactions/useTransactions";
 import {
   Target,
   Plus,
   ArrowRight,
+  ChevronRight,
   Receipt,
   Sparkles,
-  DollarSign,
-  TrendingDown,
-  Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
+import ActionRow from "@/components/ActionRow";
+import { Metric, MetricStrip } from "@/components/MetricStrip";
+import Tabs from "@/components/Tabs";
 import MissingDateWarning from "@/components/transactions/MissingDateWarning";
 import { usePageLoading } from "@/components/ConditionalLayout";
-import StatsCard from "@/components/StatsCard";
 import { ChartContainer } from "@/components/recharts/ChartWrapper";
 import {
   CHART_COLORS,
@@ -80,7 +79,6 @@ const TIMEFRAMES: {
 
 export default function HomePage() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const { data: budgets = [], isLoading: budgetsLoading } = useBudgets(
     undefined,
     true,
@@ -311,77 +309,49 @@ export default function HomePage() {
         <div className="lg:h-full lg:overflow-y-auto">
           <div className="mx-auto w-full px-4 py-4 pb-28 sm:px-6 lg:px-8 lg:pb-8">
             {/* Time-frame selector */}
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <p className="text-xs font-medium text-gray-500">
-                Showing{" "}
-                <span className="text-gray-900">{selectedTimeframe.label}</span>
-              </p>
-              <div
-                role="tablist"
-                aria-label="Select time frame"
-                className="scrollbar-hide inline-flex shrink-0 items-center gap-1 overflow-x-auto rounded-full bg-surface-muted p-1"
-              >
-                {TIMEFRAMES.map((tf) => {
-                  const isActive = tf.value === timeframe;
-                  return (
-                    <button
-                      key={tf.value}
-                      role="tab"
-                      aria-selected={isActive}
-                      onClick={() => setTimeframe(tf.value)}
-                      className={cn(
-                        "tap-target rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ease-out active:scale-[0.97]",
-                        isActive
-                          ? "bg-surface-card text-gray-900 shadow-soft"
-                          : "text-gray-500 hover:text-gray-700",
-                      )}
-                    >
-                      {tf.shortLabel}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="mb-4 flex items-center">
+              <Tabs
+                size="compact"
+                scroll
+                className="shrink-0"
+                ariaLabel="Select time frame"
+                items={TIMEFRAMES.map((tf) => ({
+                  id: tf.value,
+                  label: tf.shortLabel,
+                }))}
+                value={timeframe}
+                onChange={setTimeframe}
+              />
             </div>
 
-            {/* At-a-glance stats */}
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-              <StatsCard
-                title="Total income"
+            <MetricStrip className="mb-4">
+              <Metric
+                label="Total income"
                 value={formatCurrency(totalIncome)}
-                subtitle={`Across ${activeBudgets.length} budget${activeBudgets.length !== 1 ? "s" : ""}`}
-                icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
-                iconColor="text-green-600"
-                valueColor="text-green-600"
+                hint={`Across ${activeBudgets.length} budget${activeBudgets.length !== 1 ? "s" : ""}`}
+                valueClassName="text-green-600"
               />
-              <StatsCard
-                title="Total spent"
+              <Metric
+                label="Total spent"
                 value={formatCurrency(totalSpent)}
-                subtitle={`${spendingPercentage.toFixed(1)}% of income`}
-                icon={<TrendingDown className="h-4 w-4 sm:h-5 sm:w-5" />}
-                iconColor="text-secondary-600"
+                hint={`${spendingPercentage.toFixed(1)}% of income`}
               />
-              <StatsCard
-                title="Remaining"
+              <Metric
+                label="Remaining"
                 value={formatCurrency(Math.abs(totalRemaining))}
-                subtitle={
+                hint={
                   totalRemaining >= 0 ? "Available to spend" : "Over budget"
                 }
-                icon={<Wallet className="h-4 w-4 sm:h-5 sm:w-5" />}
-                iconColor={
-                  totalRemaining >= 0 ? "text-secondary-600" : "text-red-500"
-                }
-                valueColor={
-                  totalRemaining >= 0 ? "text-gray-900" : "text-red-600"
+                valueClassName={
+                  totalRemaining >= 0 ? undefined : "text-red-600"
                 }
               />
-              <StatsCard
-                title="Active budgets"
+              <Metric
+                label="Active budgets"
                 value={inProgressBudgets.length}
-                subtitle="In progress"
-                icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
-                iconColor="text-secondary-600"
+                hint="In progress"
               />
-            </div>
+            </MetricStrip>
 
             {/* Financial Overview Charts — swipeable row on mobile, grid on larger screens */}
             <div className="scrollbar-hide mb-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 xl:grid-cols-4">
@@ -655,11 +625,11 @@ export default function HomePage() {
                   </div>
 
                   {recentTransactions.length > 0 ? (
-                    <div className="space-y-2">
+                    <div className="divide-y divide-gray-200/70">
                       {recentTransactions.map((transaction) => (
                         <div
                           key={transaction.id}
-                          className="flex items-center justify-between rounded-xl bg-surface p-2 sm:p-2.5"
+                          className="flex items-center justify-between py-3"
                         >
                           <div className="flex items-center gap-2">
                             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10">
@@ -735,71 +705,30 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Quick Actions & Insights */}
-              <div className="space-y-3 sm:space-y-4">
-                {/* Quick Actions */}
-                <div className="card-surface p-4 sm:p-5">
-                  <h2 className="mb-3 text-sm font-semibold text-gray-900">
-                    Quick actions
-                  </h2>
-                  <div className="space-y-2">
-                    {currentBudget && (
-                      <button
-                        onClick={() =>
-                          router.push(`/budgets/${currentBudget.id}`)
-                        }
-                        className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10 active:scale-[0.98]"
-                      >
-                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10">
-                          <Target className="h-3.5 w-3.5 text-secondary-600" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-gray-900 sm:text-sm">
-                            Current budget
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {currentBudget.name}
-                          </p>
-                        </div>
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => router.push("/budgets?new=event")}
-                      className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10 active:scale-[0.98]"
-                    >
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10">
-                        <Plus className="h-3.5 w-3.5 text-secondary-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-900 sm:text-sm">
-                          New event
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Budget a trip or one-off expense
-                        </p>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        router.push("/transactions?new=transaction")
-                      }
-                      className="flex w-full items-center gap-2 rounded-xl border border-gray-200/70 p-2 text-left transition-all duration-200 ease-out hover:bg-secondary/10 active:scale-[0.98]"
-                    >
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10">
-                        <Receipt className="h-3.5 w-3.5 text-secondary-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-900 sm:text-sm">
-                          Add transaction
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Record a new expense
-                        </p>
-                      </div>
-                    </button>
-                  </div>
+              {/* Quick actions & tip: above recent activity on phones */}
+              <div className="order-first space-y-3 sm:space-y-4 lg:order-none">
+                <div className="space-y-2">
+                  <h2 className="sr-only">Quick actions</h2>
+                  <ActionRow
+                    href="/transactions?new=transaction"
+                    icon={Plus}
+                    title="Add transaction"
+                    description="Record a new expense"
+                  />
+                  <ActionRow
+                    href="/budgets?new=event"
+                    icon={Plus}
+                    title="New event"
+                    description="Budget a trip or one-off expense"
+                  />
+                  {currentBudget && (
+                    <ActionRow
+                      href={`/budgets/${currentBudget.id}`}
+                      icon={ChevronRight}
+                      title="Current budget"
+                      description={currentBudget.name}
+                    />
+                  )}
                 </div>
 
                 {/* Financial Tips */}

@@ -42,7 +42,7 @@ Package manager is **pnpm**.
 
 ## Gotchas
 
-- `Button`, `StatsCard`, `PageHeader`, `DeleteConfirmationModal` are the shared
+- `Button`, `MetricStrip`, `Tabs`, `PageHeader`, `DeleteConfirmationModal` are the shared
   primitives — extend them rather than duplicating styles.
 - Chart colors/tooltips come from `components/recharts/theme.tsx`; pages must not
   hardcode hex values.

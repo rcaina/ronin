@@ -121,6 +121,9 @@ const config: Config = {
         lifted:
           "0 4px 8px -2px rgb(23 21 15 / 0.06), 0 16px 32px -8px rgb(23 21 15 / 0.10)",
       },
+      transitionTimingFunction: {
+        brand: "cubic-bezier(0.22, 0.61, 0.36, 1)",
+      },
       keyframes: {
         "fade-in": {
           from: { opacity: "0" },

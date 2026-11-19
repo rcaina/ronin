@@ -34,6 +34,7 @@ import UpgradeModal from "@/components/UpgradeModal";
 import { UpgradeRequiredError } from "@/lib/data-hooks/services/http";
 import { CategoryType } from "@prisma/client";
 import Button from "@/components/Button";
+import Tabs, { tabPanelProps } from "@/components/Tabs";
 import { formatCurrency, pressable, roundToCents } from "@/lib/utils";
 import {
   calculateBudgetSpent,
@@ -389,35 +390,21 @@ const BudgetsPageContent = () => {
             Events
           </h2>
           <div className="mb-1 flex-shrink-0">
-            <div className="inline-flex rounded-full bg-surface-muted p-1">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`tap-target flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out ${
-                    activeTab === tab.id
-                      ? "bg-surface-card text-gray-900 shadow-soft"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  {tab.label}
-                  <span
-                    className={`rounded-full px-1.5 py-0.5 text-xs font-semibold tabular-nums ${
-                      activeTab === tab.id
-                        ? "bg-secondary/15 text-secondary-700"
-                        : "bg-gray-200/70 text-gray-500"
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <Tabs
+              ariaLabel="Budget status"
+              items={tabs}
+              value={activeTab}
+              onChange={setActiveTab}
+              panelId="budget-status-panel"
+            />
           </div>
         </div>
 
         {/* Budgets List */}
-        <div>
+        <div
+          {...tabPanelProps("budget-status-panel", activeTab)}
+          className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-secondary"
+        >
           <div className="mx-auto w-full px-4 py-3 pb-28 sm:px-6 lg:px-8 lg:pb-8">
             <div className="grid gap-4 xl:grid-cols-2">
               {currentBudgets.length === 0 ? (

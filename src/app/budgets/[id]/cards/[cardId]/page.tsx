@@ -2,7 +2,6 @@
 
 import {
   CreditCard,
-  DollarSign,
   Calendar,
   User,
   Edit,
@@ -41,7 +40,7 @@ import { isDebitCard, mapApiCardToCard, type Card } from "@/lib/utils/cards";
 import { usePageLoading } from "@/components/ConditionalLayout";
 import Button from "@/components/Button";
 import { CardType, TransactionType } from "@prisma/client";
-import StatsCard from "@/components/StatsCard";
+import { Metric, MetricStrip } from "@/components/MetricStrip";
 import {
   useBudgetHeader,
   type HeaderAction,
@@ -601,35 +600,27 @@ const CardDetailsPage = () => {
     <>
       <div className="lg:h-full lg:flex-1 lg:overflow-y-auto">
         <div>
-          <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 lg:px-8 lg:py-4 lg:pb-8">
+          <div className="mx-auto w-full px-4 py-4 pb-28 sm:px-6 sm:py-6 lg:px-8 lg:py-4 lg:pb-8">
             {/* Card Stats */}
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-              <StatsCard
-                title="Total spent"
+            <MetricStrip className="mb-4 sm:mb-6">
+              <Metric
+                label="Total spent"
                 value={formatCurrency(totalSpent)}
-                subtitle={periodLabel ?? "All time"}
-                icon={
-                  <DollarSign className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
-                }
-                iconColor="text-green-500"
+                hint={periodLabel ?? "All time"}
               />
 
-              {mappedCard.spendingLimit && (
+              {mappedCard.spendingLimit ? (
                 <>
-                  <StatsCard
-                    title={isDebit ? "Available funds" : "Available credit"}
+                  <Metric
+                    label={isDebit ? "Available funds" : "Available credit"}
                     value={formatCurrency(available)}
-                    subtitle={`${utilizationRate.toFixed(1)}% utilized`}
-                    icon={
-                      <CreditCard className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
-                    }
-                    iconColor="text-blue-500"
+                    hint={`${utilizationRate.toFixed(1)}% utilized`}
                   />
 
-                  <StatsCard
-                    title={isDebit ? "Total income" : "Credit limit"}
+                  <Metric
+                    label={isDebit ? "Total income" : "Credit limit"}
                     value={formatCurrency(mappedCard.spendingLimit)}
-                    subtitle={
+                    hint={
                       isDebit
                         ? periodLabel
                           ? `Deposited in ${periodLabel}`
@@ -638,24 +629,16 @@ const CardDetailsPage = () => {
                           ? "Monthly limit"
                           : "Total limit"
                     }
-                    icon={
-                      <CreditCard className="h-4 w-4 text-indigo-500 sm:h-5 sm:w-5" />
-                    }
-                    iconColor="text-indigo-500"
                   />
                 </>
-              )}
+              ) : null}
 
-              <StatsCard
-                title="Transactions"
+              <Metric
+                label="Transactions"
                 value={transactions.length}
-                subtitle={periodLabel ?? "Total transactions"}
-                icon={
-                  <Calendar className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
-                }
-                iconColor="text-purple-500"
+                hint={periodLabel ?? "Total transactions"}
               />
-            </div>
+            </MetricStrip>
 
             {/* Card Info */}
             <div className="mb-6 rounded-xl border bg-surface-card p-4 shadow-sm">

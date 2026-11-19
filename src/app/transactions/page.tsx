@@ -21,10 +21,7 @@ import { useBudgets } from "@/lib/data-hooks/budgets/useBudgets";
 import { useCards } from "@/lib/data-hooks/cards/useCards";
 import { useCategories } from "@/lib/data-hooks/categories/useCategories";
 import {
-  TrendingUp,
-  TrendingDown,
   DollarSign,
-  Calendar,
   Search,
   AlertCircle,
   Copy,
@@ -59,7 +56,7 @@ import TransactionFiltersModal, {
 
 import type { TransactionWithRelations } from "@/lib/types/transaction";
 import Button from "@/components/Button";
-import StatsCard from "@/components/StatsCard";
+import { Metric, MetricStrip } from "@/components/MetricStrip";
 import { useBillingStatus } from "@/lib/data-hooks/billing/useBilling";
 import { exportTransactionsCsv } from "@/lib/data-hooks/services/transactions";
 import {
@@ -697,49 +694,33 @@ const TransactionsPageContent = () => {
 
       <div className="pt-4 lg:flex-1 lg:overflow-hidden lg:pt-0">
         <div className="lg:h-full lg:overflow-y-auto">
-          <div className="mx-auto w-full px-2 py-4 pb-28 sm:px-4 sm:py-6 sm:pb-28 lg:px-8 lg:py-4 lg:pb-8">
+          <div className="mx-auto w-full px-4 py-4 pb-28 sm:px-6 sm:py-6 sm:pb-28 lg:px-8 lg:py-4 lg:pb-8">
             {/* Overview Stats */}
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-              <StatsCard
-                title="Total transactions"
+            <MetricStrip className="mb-4 sm:mb-6">
+              <Metric
+                label="Total transactions"
                 value={stats.totalTransactions}
-                subtitle={hasActiveFilters ? "Matching filters" : "All time"}
-                icon={
-                  <DollarSign className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
-                }
-                iconColor="text-secondary-600"
+                hint={hasActiveFilters ? "Matching filters" : "All time"}
               />
 
-              <StatsCard
-                title="Total spent"
+              <Metric
+                label="Total spent"
                 value={formatCurrency(stats.totalAmount)}
-                subtitle={hasActiveFilters ? "Matching filters" : "All time"}
-                icon={
-                  <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
-                }
-                iconColor="text-red-500"
+                hint={hasActiveFilters ? "Matching filters" : "All time"}
               />
 
-              <StatsCard
-                title="Average purchase"
+              <Metric
+                label="Average purchase"
                 value={formatCurrency(stats.averageAmount)}
-                subtitle="Net of returns"
-                icon={
-                  <TrendingUp className="h-4 w-4 text-green-600 sm:h-5 sm:w-5" />
-                }
-                iconColor="text-green-600"
+                hint="Net of returns"
               />
 
-              <StatsCard
-                title="Spent this month"
+              <Metric
+                label="Spent this month"
                 value={formatCurrency(stats.thisMonthAmount)}
-                subtitle={`${stats.thisMonthTransactions} transactions`}
-                icon={
-                  <Calendar className="h-4 w-4 text-secondary-600 sm:h-5 sm:w-5" />
-                }
-                iconColor="text-secondary-600"
+                hint={`${stats.thisMonthTransactions} transactions`}
               />
-            </div>
+            </MetricStrip>
 
             {/* Filters and Search — search + filter icon on one row at every
                 breakpoint; full filters live in TransactionFiltersModal. */}

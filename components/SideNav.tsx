@@ -95,7 +95,7 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
             className={`flex items-center overflow-hidden ${isCollapsed ? "justify-center" : "gap-3"}`}
           >
             <div
-              className={`flex-shrink-0 ${isCollapsed ? "h-10 w-10" : "h-12 w-12"}`}
+              className={`flex-shrink-0 p-0.5 ${isCollapsed ? "h-10 w-10" : "h-12 w-12"}`}
             >
               <Image
                 src="/ronin_logo.jpg"

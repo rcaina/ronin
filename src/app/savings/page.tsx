@@ -7,8 +7,8 @@ import FeatureDisabledState from "@/components/FeatureDisabledState";
 import { useIsFeatureEnabled } from "@/lib/data-hooks/accounts/useFeatureSettings";
 import { useSavings } from "@/lib/data-hooks/savings/useSavings";
 import { usePageLoading } from "@/components/ConditionalLayout";
-import StatsCard from "@/components/StatsCard";
-import { DollarSign, PiggyBank, Plus, Target, Wallet } from "lucide-react";
+import { Metric, MetricStrip } from "@/components/MetricStrip";
+import { PiggyBank, Plus } from "lucide-react";
 import CreateSavingsModal from "@/components/savings/CreateSavingsModal";
 import Button from "@/components/Button";
 import { formatCurrency, roundToCents } from "@/lib/utils";
@@ -55,44 +55,36 @@ export default function SavingsPage() {
       <div className="lg:flex-1 lg:overflow-y-auto">
         <div className="mx-auto w-full px-4 py-4 pb-28 sm:px-6 sm:py-6 lg:px-8 lg:py-4 lg:pb-8">
           {savings.length > 0 && (
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">
-              <StatsCard
-                title="Total saved"
+            <MetricStrip className="mb-4">
+              <Metric
+                label="Total saved"
                 value={formatCurrency(totalSaved)}
-                subtitle="Across all accounts"
-                icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
-                iconColor="text-green-600"
-                valueColor="text-green-600"
+                hint="Across all accounts"
+                valueClassName="text-green-600"
               />
-              <StatsCard
-                title="Accounts"
+              <Metric
+                label="Accounts"
                 value={savings.length}
-                subtitle="Savings accounts"
-                icon={<PiggyBank className="h-4 w-4 sm:h-5 sm:w-5" />}
-                iconColor="text-secondary-600"
+                hint="Savings accounts"
               />
-              <StatsCard
-                title="Pockets"
+              <Metric
+                label="Pockets"
                 value={totalPockets}
-                subtitle="Across all accounts"
-                icon={<Wallet className="h-4 w-4 sm:h-5 sm:w-5" />}
-                iconColor="text-secondary-600"
+                hint="Across all accounts"
               />
               {allGoals && (
-                <StatsCard
-                  title="Goals reached"
+                <Metric
+                  label="Goals reached"
                   value={`${allGoals.reached}/${allGoals.goals}`}
-                  subtitle="Pockets at their goal"
-                  icon={<Target className="h-4 w-4 sm:h-5 sm:w-5" />}
-                  iconColor="text-secondary-600"
-                  valueColor={
+                  hint="Pockets at their goal"
+                  valueClassName={
                     allGoals.reached === allGoals.goals
                       ? "text-green-600"
                       : "text-gray-900"
                   }
                 />
               )}
-            </div>
+            </MetricStrip>
           )}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-6">

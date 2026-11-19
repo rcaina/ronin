@@ -44,7 +44,7 @@ export default function NotificationBell({
             ? `Notifications, ${unreadCount} unread`
             : "Notifications"
         }
-        className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 active:scale-[0.98] ${colorClasses} ${className}`}
+        className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 ${colorClasses} ${className}`}
       >
         <Bell className="h-5 w-5" strokeWidth={1.8} />
         {unreadCount > 0 && (
