@@ -248,14 +248,15 @@ export async function resolveDefaultCard(
   return generalCard;
 }
 
-/** The card to use on `budgetId` for `cardId`: itself, the budget's copy of its general card, a new copy, or null when its general card was deleted. */
+/** The card to use on `budgetId` for `cardId`: itself, the budget's copy of its general card, a new copy, or null when it (on this budget) or its general card was deleted. */
 export async function resolveBudgetCard(
   tx: PrismaClientTx,
   cardId: string,
   budgetId: string,
 ): Promise<{ cardId: string | null; created: boolean }> {
   const card = await tx.card.findUniqueOrThrow({ where: { id: cardId } });
-  if (card.budgetId === budgetId) return { cardId, created: false };
+  if (card.budgetId === budgetId)
+    return { cardId: card.deleted ? null : cardId, created: false };
 
   const general =
     card.budgetId === null
