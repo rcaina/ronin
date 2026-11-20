@@ -182,7 +182,7 @@ export default function ConditionalLayout({
 
               {/* Main Content Area */}
               <div
-                className={`relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden transition-all duration-300 lg:overflow-hidden ${
+                className={`relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden transition-[margin] duration-200 ease-out motion-reduce:transition-none lg:overflow-hidden ${
                   isCollapsed ? "lg:ml-16" : "lg:ml-64"
                 } pb-16 ${isHeaderlessOnMobile(pathname) ? "pt-16" : "pt-32"} lg:pb-0 lg:pt-0`}
               >
@@ -192,13 +192,15 @@ export default function ConditionalLayout({
                   loading via `usePageLoading` and render null while loading; the
                   page stays mounted (so its data hooks keep running). This overlay
                   sits above any in-page chrome (e.g. a route layout's PageHeader,
-                  z-30) but below the fixed app nav, so the nav stays visible while
-                  a single spinner covers the content until all data is ready.
+                  z-30 and its mobile add button, z-40) but below the fixed app
+                  nav (on desktop, under SideNav z-40 so its overhanging collapse
+                  toggle stays visible), so a single spinner covers the content
+                  until all data is ready.
                 */}
                 {pageLoading && (
                   <LoadingSpinner
                     message={pageLoadingMessage}
-                    className="absolute inset-0 z-[45]"
+                    className="absolute inset-0 z-[45] lg:z-[35]"
                   />
                 )}
               </div>

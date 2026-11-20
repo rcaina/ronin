@@ -228,9 +228,11 @@ any future alert/inbox UI rather than inventing another one.
 - **Bell button**: `components/notifications/NotificationBell.tsx` — a 44px
   icon button (`Bell` from lucide-react) with an unread-count badge
   (`bg-secondary` + `text-secondary-foreground` on light, `bg-accent-400` + `text-primary-950` on the dark nav; pill, top-right of the icon, "9+" once
-  it clips). Lives in the dark `SideNav` header row (`variant="dark"`) and the
-  light `MobileHeader` action row (`variant="light"`, default) — both gated on
-  the account's `notifications` feature toggle being on.
+  it clips). On desktop it's a labeled row (`navRow`) in the dark `SideNav`'s
+  bottom section above the profile, so collapsing the nav doesn't reflow the
+  logo area; on mobile it's the light `MobileHeader` action row
+  (`variant="light"`, default). Both are gated on the account's
+  `notifications` feature toggle being on.
 - **Panel**: `components/notifications/NotificationPanel.tsx` — the standard
   `Modal` in `sheet` variant (bottom sheet on mobile, centered dialog at
   `sm:` and up), titled "Notifications", with a "Mark all as read" button in

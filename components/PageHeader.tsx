@@ -97,9 +97,9 @@ const PageHeader = ({
         className={`fixed left-0 right-0 top-16 z-[30] border-b border-gray-200/70 bg-surface-card/90 backdrop-blur-md lg:sticky lg:top-0 ${headerless ? "hidden lg:block" : ""}`}
       >
         {/* Fixed height while the header is position:fixed (below lg) so it never
-          grows past its content clearance; natural height once it's sticky on
-          desktop, where the description can show. */}
-        <div className="mx-auto flex h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:h-auto lg:px-8 lg:py-4">
+          grows past its content clearance. Fixed on desktop too: SideNav's
+          collapse toggle is centered on this header's bottom border. */}
+        <div className="mx-auto flex h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:h-24 lg:px-8">
           <div className="flex min-w-0 flex-1 items-center">
             {backButton && (
               <button
