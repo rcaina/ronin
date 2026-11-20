@@ -355,26 +355,39 @@ const CardsPage = () => {
     );
   }, [selectedCardIds]);
 
-  // Memoize filtered card arrays
-  const creditCardsArray = useMemo(() => {
-    return ownerFilteredCards.filter(
-      (card) => card.type === "credit" || card.type === "business_credit",
-    );
-  }, [ownerFilteredCards]);
-
-  const debitCardsArray = useMemo(() => {
-    return ownerFilteredCards.filter(
-      (card) => card.type === "debit" || card.type === "business_debit",
-    );
-  }, [ownerFilteredCards]);
-
-  const cashCardsArray = useMemo(() => {
-    return ownerFilteredCards.filter((card) => card.type === "cash");
+  // One rail per owner, credit then debit then cash within each.
+  const ownerGroups = useMemo(() => {
+    const typeOrder = (card: Card) =>
+      card.type === "credit" || card.type === "business_credit"
+        ? 0
+        : card.type === "cash"
+          ? 2
+          : 1;
+    const groups = new Map<
+      string,
+      { id: string; label: string; cards: Card[] }
+    >();
+    for (const card of ownerFilteredCards) {
+      const group = groups.get(card.userId);
+      if (group) {
+        group.cards.push(card);
+      } else {
+        groups.set(card.userId, {
+          id: card.userId,
+          label: card.user,
+          cards: [card],
+        });
+      }
+    }
+    const result = Array.from(groups.values());
+    for (const group of result) {
+      group.cards.sort((a, b) => typeOrder(a) - typeOrder(b));
+    }
+    return result;
   }, [ownerFilteredCards]);
 
   // Renders either the inline edit form (when this card is the one being
-  // edited) or the card tile itself. Shared by the credit/debit/cash
-  // sections below so the markup is written once instead of three times.
+  // edited) or the card tile itself, for every owner rail below.
   const renderCardTile = (card: Card) => {
     const isEditing = cardToEdit?.id === card.id;
 
@@ -521,7 +534,6 @@ const CardsPage = () => {
               />
             </MetricStrip>
 
-            {/* Cards Grid */}
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-xl font-semibold tracking-tight text-gray-900">
                 Account cards
@@ -539,16 +551,39 @@ const CardsPage = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {/* Credit, debit, and cash cards, each rendered through the same
-                  card-or-inline-edit-form helper below. */}
-              {creditCardsArray.map(renderCardTile)}
-              {debitCardsArray.map(renderCardTile)}
-              {cashCardsArray.map(renderCardTile)}
+            <div className="flex flex-col gap-6 sm:gap-8">
+              {ownerGroups.map((group) => (
+                <section key={group.id} aria-label={`${group.label}'s cards`}>
+                  {ownerGroups.length > 1 && (
+                    <h3 className="mb-3 flex items-baseline gap-2 text-sm font-semibold text-gray-900">
+                      {group.label}
+                      <span className="font-normal tabular-nums text-gray-500">
+                        {group.cards.length}
+                      </span>
+                    </h3>
+                  )}
+                  {/* Swipeable rail bleeding into the gutter below lg; py-1
+                      keeps the merge selection ring from being clipped. */}
+                  <div className="scrollbar-hide -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 py-1 sm:-mx-6 sm:scroll-px-6 sm:gap-4 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-6 lg:overflow-visible lg:px-0 lg:py-0">
+                    {group.cards.map((card) => (
+                      <div
+                        key={card.id}
+                        className={`shrink-0 snap-start lg:w-auto lg:max-w-none ${
+                          cardToEdit?.id === card.id
+                            ? "w-full sm:w-96"
+                            : "w-[85%] max-w-sm sm:w-80"
+                        }`}
+                      >
+                        {renderCardTile(card)}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ))}
 
               {/* Empty State - only show if no cards */}
               {cards.length === 0 && (
-                <div className="col-span-full text-center">
+                <div className="text-center">
                   <div className="card-surface flex flex-col items-center justify-center gap-3 p-10">
                     <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-gray-400">
                       <CreditCard className="h-7 w-7" strokeWidth={1.5} />
