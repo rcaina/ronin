@@ -64,7 +64,7 @@ const HeaderActionMenu = ({
         type="button"
         onClick={() => setIsOpen((open) => !open)}
         disabled={disabled}
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-gray-600 transition-all duration-200 ease-out enabled:hover:bg-gray-100 enabled:hover:text-gray-900 disabled:cursor-not-allowed disabled:text-gray-300"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-gray-600 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 enabled:hover:bg-gray-100 enabled:hover:text-gray-900 disabled:cursor-not-allowed disabled:text-gray-300"
         aria-label="Open actions menu"
         aria-haspopup="menu"
         aria-expanded={isOpen}

@@ -137,9 +137,9 @@ All theme values come from `components/recharts/theme.tsx`:
   `bg-surface-muted` well: inactive `gray-500` text falls below AA there.
 - **Section tabs**: a page's sections (a budget's Overview to Cards, a savings
   account's Overview and Allocations, Transactions and Recurring, the Settings
-  sections) are an in-page underline tab row under the page header at every
+  sections) are an in-page underline tab row under the page header (under `MobileHeader` on pages that drop it below `lg`) at every
   width, never a floating dock. Below `lg` the row sticks under the header
-  (`sticky top-0`: the scroller's `pt-32` already clears the fixed headers; frosted `bg-surface/90 backdrop-blur-md` with a hairline), so
+  (`sticky top-0`: the scroller's top padding already clears the fixed headers; frosted `bg-surface/90 backdrop-blur-md` with a hairline), so
   sections stay one tap away on long lists. A budget's month switcher sits above its tabs on
   phones. A row with more sections than fit at 375px (budget, settings) scrolls
   sideways with the selected tab centred (`centerSelected` from `Tabs.tsx`, which
@@ -173,6 +173,20 @@ All theme values come from `components/recharts/theme.tsx`:
   The primary action (`action`, or the first `actions` entry with
   `variant: "primary"`) is never hidden in a menu: a header button from `lg`,
   the floating add button below it. The rest collapse into the mobile menu.
+  Below `lg` the header bar is dropped on every page in the Budgets,
+  Transactions and Savings tabs (the roots and the budget and savings account
+  pages under their section tabs), since the tab bar or section tabs already
+  say where you are. The title stays as a screen-reader-only `<h1>`; a page with
+  a back button puts the back button, eyebrow and title in `MobileHeader` in
+  place of the logo (back button matches the other `MobileHeader` icon buttons:
+  44px, `gray-600`, 20px icon; eyebrow `text-xs gray-500` over a
+  `text-base font-semibold` title, a `<p>`, both truncating); the
+  secondary-actions menu
+  moves into `MobileHeader` (minus any action already shown there as its
+  one-tap icon); and the shell's top padding drops from `pt-32` to `pt-16`.
+  `isHeaderlessOnMobile` (`lib/utils/mobile-nav.ts`) drives all of it.
+  Overview and the More pages keep their bar (Overview so its greeting stays
+  visible).
 - **Empty states**: icon in a soft circle (`bg-surface-muted`), one-line headline,
   short helper text, single primary action.
 - **Badges/chips**: `rounded-full px-2.5 py-0.5 text-xs font-medium` with a 50/100

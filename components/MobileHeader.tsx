@@ -12,15 +12,16 @@ import NotificationBell from "@/components/notifications/NotificationBell";
 // this keeps the brand mark up top plus an optional page-registered action
 // (e.g. scan receipt) and the notifications bell on the right.
 export default function MobileHeader() {
-  const { action } = useMobileHeaderAction();
+  const { action, setMenuSlot, setLeadSlot } = useMobileHeaderAction();
   const { data: featureSettings } = useFeatureSettings();
   const settings = featureSettings ?? DEFAULT_FEATURE_SETTINGS;
 
   return (
     <div className="fixed left-0 right-0 top-0 z-[60] border-b border-gray-200/70 bg-surface-card/75 backdrop-blur-[18px] backdrop-saturate-[1.8] lg:hidden">
-      <div className="flex h-16 items-center justify-between px-4">
-        {/* Logo */}
-        <div className="flex items-center gap-2">
+      <div className="group/bar flex h-16 items-center justify-between gap-2 px-4">
+        <div ref={setLeadSlot} className="contents" />
+        {/* Logo, replaced by a page's back button and title when it portals one in */}
+        <div className="flex items-center gap-2 group-has-[[data-mobile-back-bar]]/bar:hidden">
           <div className="h-9 w-9 flex-shrink-0">
             <Image
               src={roninLogo}
@@ -31,9 +32,9 @@ export default function MobileHeader() {
               priority
             />
           </div>
-          <h1 className="text-sm font-bold tracking-[0.2em] text-secondary-700">
+          <p className="text-sm font-bold tracking-[0.2em] text-secondary-700">
             RONIN
-          </h1>
+          </p>
         </div>
 
         <div className="flex items-center gap-1">
@@ -51,6 +52,8 @@ export default function MobileHeader() {
           )}
 
           {isFeatureEnabled(settings, "notifications") && <NotificationBell />}
+
+          <div ref={setMenuSlot} className="contents" />
         </div>
       </div>
     </div>

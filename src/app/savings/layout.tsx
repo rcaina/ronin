@@ -71,11 +71,7 @@ function PocketDetailLayoutContent({ children }: { children: ReactNode }) {
         />
       )}
 
-      <div
-        className={`lg:flex-1 lg:overflow-hidden ${pageHeaderConfig ? "pt-4 lg:pt-0" : ""}`}
-      >
-        {children}
-      </div>
+      <div className="lg:flex-1 lg:overflow-hidden">{children}</div>
     </div>
   );
 }

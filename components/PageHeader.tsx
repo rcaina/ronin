@@ -1,7 +1,13 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { usePathname } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
 import Button from "./Button";
 import HeaderActionMenu from "./HeaderActionMenu";
+import { useMobileHeaderSlots } from "./MobileHeaderActionContext";
+import { isHeaderlessOnMobile } from "@/lib/utils/mobile-nav";
 
 interface PageHeaderProps {
   title: string;
@@ -43,10 +49,53 @@ const PageHeader = ({
   const secondaryActions = (actions ?? []).filter(
     (item) => item !== primaryAction,
   );
+  const headerless = isHeaderlessOnMobile(usePathname());
+  const { menuSlot, leadSlot, shortcutLabel } = useMobileHeaderSlots();
+  // The top bar already shows its one-tap shortcut (e.g. Scan receipt) as an icon.
+  const menuActions = secondaryActions.filter(
+    (item) => item.label !== shortcutLabel,
+  );
 
   return (
     <>
-      <div className="fixed left-0 right-0 top-16 z-[30] border-b border-gray-200/70 bg-surface-card/90 backdrop-blur-md lg:sticky lg:top-0">
+      {headerless && <h1 className="sr-only lg:hidden">{title}</h1>}
+      {headerless &&
+        leadSlot &&
+        backButton &&
+        createPortal(
+          // The page keeps its sr-only <h1>, so the bar's title is a <p>.
+          <div data-mobile-back-bar className="flex min-w-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={backButton.onClick}
+              className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-gray-600 transition-colors duration-150 ease-brand hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
+              aria-label="Go back"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div className="min-w-0">
+              {eyebrow && (
+                <p className="truncate text-xs font-medium text-gray-500">
+                  {eyebrow}
+                </p>
+              )}
+              <p className="truncate text-base font-semibold tracking-tight text-gray-900">
+                {title}
+              </p>
+            </div>
+          </div>,
+          leadSlot,
+        )}
+      {headerless &&
+        menuSlot &&
+        menuActions.length > 0 &&
+        createPortal(
+          <HeaderActionMenu actions={menuActions} disabled={actionsDisabled} />,
+          menuSlot,
+        )}
+      <div
+        className={`fixed left-0 right-0 top-16 z-[30] border-b border-gray-200/70 bg-surface-card/90 backdrop-blur-md lg:sticky lg:top-0 ${headerless ? "hidden lg:block" : ""}`}
+      >
         {/* Fixed height while the header is position:fixed (below lg) so it never
           grows past its content clearance; natural height once it's sticky on
           desktop, where the description can show. */}

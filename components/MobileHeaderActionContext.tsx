@@ -17,6 +17,12 @@ export interface MobileHeaderAction {
 interface MobileHeaderActionContextType {
   action: MobileHeaderAction | null;
   setMobileHeaderAction: (action: MobileHeaderAction | null) => void;
+  /** Where a headerless page portals its secondary-actions menu. */
+  menuSlot: HTMLElement | null;
+  setMenuSlot: (slot: HTMLElement | null) => void;
+  /** Where a headerless page portals its back button and title, over the logo. */
+  leadSlot: HTMLElement | null;
+  setLeadSlot: (slot: HTMLElement | null) => void;
 }
 
 const MobileHeaderActionContext = createContext<
@@ -29,10 +35,19 @@ export function MobileHeaderActionProvider({
   children: ReactNode;
 }) {
   const [action, setAction] = useState<MobileHeaderAction | null>(null);
+  const [menuSlot, setMenuSlot] = useState<HTMLElement | null>(null);
+  const [leadSlot, setLeadSlot] = useState<HTMLElement | null>(null);
 
   const value = useMemo(
-    () => ({ action, setMobileHeaderAction: setAction }),
-    [action],
+    () => ({
+      action,
+      setMobileHeaderAction: setAction,
+      menuSlot,
+      setMenuSlot,
+      leadSlot,
+      setLeadSlot,
+    }),
+    [action, menuSlot, leadSlot],
   );
 
   return (
@@ -40,6 +55,16 @@ export function MobileHeaderActionProvider({
       {children}
     </MobileHeaderActionContext.Provider>
   );
+}
+
+/** Nulls outside the provider, so `PageHeader` still renders on shell-less routes. */
+export function useMobileHeaderSlots() {
+  const context = useContext(MobileHeaderActionContext);
+  return {
+    menuSlot: context?.menuSlot ?? null,
+    leadSlot: context?.leadSlot ?? null,
+    shortcutLabel: context?.action?.label ?? null,
+  };
 }
 
 export function useMobileHeaderAction() {
