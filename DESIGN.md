@@ -36,7 +36,7 @@ Rules:
   which would flip to dark brass in light mode.
 - Keep brass off progress bars that show "near limit": it sits close to the amber
   warning color. Gold progress means in-progress only.
-- Selected navigation (tabs, the bottom tab bar, its More sheet) is ink
+- Selected navigation (tabs, the bottom tab bar, the menu drawer) is ink
   (`gray-900`), not brass: brass means "you can act here", ink means "you are here".
 - Tint washes use alpha variants: `bg-secondary/10`, `hover:bg-secondary/15`.
 - Semantic status only: green = under budget / positive, red = over budget / destructive,
@@ -83,9 +83,21 @@ Rules:
 ## 5. Layout & responsive (mobile first)
 
 - Mobile is the primary target. Design every view at 375 px first, then enhance.
-- Desktop: fixed `SideNav`. Mobile: slim top header (logo + menu) **plus**
-  `MobileBottomNav` tab bar, the primary mobile navigation. Content needs
+- Desktop: fixed `SideNav`. Mobile: slim top header (`MobileHeader`) **plus**
+  `MobileBottomNav` tab bar, the primary mobile navigation (Overview, Budgets,
+  Activity, and Savings when its feature is on; no More tab). Content needs
   bottom padding (`pb-24 lg:pb-8`) so it clears the tab bar.
+- Mobile top header: on tab roots (`isMobileTabRoot` in
+  `lib/utils/mobile-nav.ts`: the four tabs plus Recurring, a sibling tab of
+  Transactions) it shows the logo, the page's one-tap shortcut (e.g. Scan
+  receipt) and the bell. Every other page shows a back button and a centered
+  title (eyebrow `text-xs gray-500` over a `text-base font-semibold` `<p>`,
+  both truncating); its shortcut stays in the `⋮` menu so the title has room
+  to center. Every page ends with its `⋮` actions menu and a `☰` button that
+  opens `MobileNavDrawer`, the pages that aren't tabs (Categories, Cards,
+  Reports, Settings) and Sign out. Icon buttons are 44px, `gray-600`, 20px
+  icons, `transition-colors duration-150 ease-brand`; the outer two pull 8px
+  into the gutter (`-ml-2` / `-mr-2`) so both sides match.
 - Mobile chrome: the top header is frosted glass (`bg-surface-card/75
   backdrop-blur-[18px] backdrop-saturate-[1.8]`) so content dissolves under it.
   The bottom tab bar is flat `bg-surface-card` with a `border-t`; the active tab
@@ -173,20 +185,15 @@ All theme values come from `components/recharts/theme.tsx`:
   The primary action (`action`, or the first `actions` entry with
   `variant: "primary"`) is never hidden in a menu: a header button from `lg`,
   the floating add button below it. The rest collapse into the mobile menu.
-  Below `lg` the header bar is dropped on every page in the Budgets,
-  Transactions and Savings tabs (the roots and the budget and savings account
-  pages under their section tabs), since the tab bar or section tabs already
-  say where you are. The title stays as a screen-reader-only `<h1>`; a page with
-  a back button puts the back button, eyebrow and title in `MobileHeader` in
-  place of the logo (back button matches the other `MobileHeader` icon buttons:
-  44px, `gray-600`, 20px icon; eyebrow `text-xs gray-500` over a
-  `text-base font-semibold` title, a `<p>`, both truncating); the
-  secondary-actions menu
-  moves into `MobileHeader` (minus any action already shown there as its
-  one-tap icon); and the shell's top padding drops from `pt-32` to `pt-16`.
-  `isHeaderlessOnMobile` (`lib/utils/mobile-nav.ts`) drives all of it.
-  Overview and the More pages keep their bar (Overview so its greeting stays
-  visible).
+  Below `lg` every page but Overview drops the header bar (Overview keeps it
+  for its greeting): the tab bar, section tabs or the top header's title
+  already say where you are. The title stays as a screen-reader-only `<h1>`,
+  the title and back button move into `MobileHeader` (back returns to the
+  previous in-app page, or Overview when there is none; `MobileHeader` shows
+  its own back button by path until the page's `PageHeader` mounts), the
+  secondary-actions menu moves there too (on tab roots, minus the action
+  already shown as the one-tap icon), and the shell's top padding drops from `pt-32` to `pt-16`. `isHeaderlessOnMobile`
+  drives the padding and the hiding.
 - **Empty states**: icon in a soft circle (`bg-surface-muted`), one-line headline,
   short helper text, single primary action.
 - **Badges/chips**: `rounded-full px-2.5 py-0.5 text-xs font-medium` with a 50/100
@@ -194,7 +201,9 @@ All theme values come from `components/recharts/theme.tsx`:
 - **Progress bars**: track `bg-gray-100 rounded-full h-2`, fill colored by status
   (brass in-progress, green complete, red over).
 - **Modals**: backdrop `bg-primary-950/40 backdrop-blur-sm`, panel `rounded-2xl
-shadow-lifted animate-scale-in`.
+shadow-lifted animate-scale-in`. `variant="drawer"` is a full-height left panel
+  (`w-[min(20rem,85vw)] rounded-r-2xl`, safe-area padding top and bottom,
+  `animate-slide-in-left` on the brand curve, none under reduced motion).
 - **Toggle rows** (on/off preferences, e.g. Settings → Features): a row with
   label + one-line description on the left, a pill switch on the right —
   `role="switch"` `aria-checked`, track `h-7 w-12 rounded-full`, `bg-secondary`

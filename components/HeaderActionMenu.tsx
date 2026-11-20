@@ -18,8 +18,8 @@ interface HeaderActionMenuProps {
 // Mobile-only overflow menu for page header actions. Renders a single kebab
 // trigger that opens a dropdown listing every action with its icon AND
 // label, so actions aren't reduced to unlabeled icon buttons on small
-// screens. Styling mirrors the "More" popup in MobileBottomNav and the
-// rounded-2xl/shadow-lifted panel pattern used by modals across the app.
+// screens. Rows mirror MobileNavDrawer's; the panel follows the
+// rounded-2xl/shadow-lifted pattern used by modals across the app.
 const HeaderActionMenu = ({
   actions,
   disabled = false,

@@ -20,9 +20,12 @@ interface MobileHeaderActionContextType {
   /** Where a headerless page portals its secondary-actions menu. */
   menuSlot: HTMLElement | null;
   setMenuSlot: (slot: HTMLElement | null) => void;
-  /** Where a headerless page portals its back button and title, over the logo. */
+  /** Where a non-tab page portals its back button, over the logo. */
   leadSlot: HTMLElement | null;
   setLeadSlot: (slot: HTMLElement | null) => void;
+  /** Where a non-tab page portals its centered title. */
+  titleSlot: HTMLElement | null;
+  setTitleSlot: (slot: HTMLElement | null) => void;
 }
 
 const MobileHeaderActionContext = createContext<
@@ -37,6 +40,7 @@ export function MobileHeaderActionProvider({
   const [action, setAction] = useState<MobileHeaderAction | null>(null);
   const [menuSlot, setMenuSlot] = useState<HTMLElement | null>(null);
   const [leadSlot, setLeadSlot] = useState<HTMLElement | null>(null);
+  const [titleSlot, setTitleSlot] = useState<HTMLElement | null>(null);
 
   const value = useMemo(
     () => ({
@@ -46,8 +50,10 @@ export function MobileHeaderActionProvider({
       setMenuSlot,
       leadSlot,
       setLeadSlot,
+      titleSlot,
+      setTitleSlot,
     }),
-    [action, menuSlot, leadSlot],
+    [action, menuSlot, leadSlot, titleSlot],
   );
 
   return (
@@ -63,6 +69,7 @@ export function useMobileHeaderSlots() {
   return {
     menuSlot: context?.menuSlot ?? null,
     leadSlot: context?.leadSlot ?? null,
+    titleSlot: context?.titleSlot ?? null,
     shortcutLabel: context?.action?.label ?? null,
   };
 }

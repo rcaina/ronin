@@ -27,9 +27,9 @@ interface ModalProps {
   /**
    * `dialog` is the canonical centered modal. `sheet` is a bottom sheet on
    * mobile (below `sm`) that becomes an identical centered dialog at `sm`
-   * and up.
+   * and up. `drawer` is a full-height panel that slides in from the left.
    */
-  variant?: "dialog" | "sheet";
+  variant?: "dialog" | "sheet" | "drawer";
   /** Applied at the dialog breakpoint (always for `dialog`, `sm:` and up for `sheet`). */
   maxWidth?: string;
   /** Rendered pinned below the scrollable body, e.g. a Clear/Save button row. */
@@ -139,10 +139,14 @@ export default function Modal({
     }
   };
 
-  const backdropClasses =
-    variant === "sheet"
-      ? "fixed inset-0 z-[70] flex items-end justify-center bg-primary-950/40 backdrop-blur-sm sm:items-center sm:p-4"
-      : "fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm";
+  const backdropClasses = {
+    sheet:
+      "fixed inset-0 z-[70] flex items-end justify-center bg-primary-950/40 backdrop-blur-sm sm:items-center sm:p-4",
+    dialog:
+      "fixed inset-0 z-[70] flex items-center justify-center bg-primary-950/40 p-4 backdrop-blur-sm",
+    drawer:
+      "fixed inset-0 z-[70] flex justify-start bg-primary-950/40 backdrop-blur-sm",
+  }[variant];
 
   // The `sm:max-w-md` combo below must stay a literal string (rather than
   // `` `sm:${maxWidth}` ``) so Tailwind's static content scan can see it —
@@ -154,15 +158,18 @@ export default function Modal({
   // globals.css already applies to `.animate-scale-in` (see the
   // `prefers-reduced-motion` block there) so `slide-up` gets the same
   // treatment without needing a matching entry in that global stylesheet.
-  const panelShapeClasses =
-    variant === "sheet"
-      ? `w-full animate-slide-up rounded-t-2xl motion-reduce:animate-none sm:animate-scale-in sm:rounded-2xl ${sheetDesktopMaxWidthClass}`
-      : `w-full animate-scale-in rounded-2xl motion-reduce:animate-none ${maxWidth}`;
+  const panelShapeClasses = {
+    sheet: `w-full animate-slide-up rounded-t-2xl motion-reduce:animate-none sm:animate-scale-in sm:rounded-2xl ${sheetDesktopMaxWidthClass}`,
+    dialog: `w-full animate-scale-in rounded-2xl motion-reduce:animate-none ${maxWidth}`,
+    drawer:
+      "w-[min(20rem,85vw)] animate-slide-in-left rounded-r-2xl border-l-0 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] motion-reduce:animate-none",
+  }[variant];
 
-  const panelHeightClasses =
-    variant === "sheet"
-      ? "max-h-[85dvh] sm:max-h-[calc(100dvh-2rem)]"
-      : "max-h-[calc(100dvh-2rem)]";
+  const panelHeightClasses = {
+    sheet: "max-h-[85dvh] sm:max-h-[calc(100dvh-2rem)]",
+    dialog: "max-h-[calc(100dvh-2rem)]",
+    drawer: "h-dvh",
+  }[variant];
 
   const hasChrome = Boolean(title) || Boolean(footer);
 
