@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ArrowLeft, Menu } from "lucide-react";
@@ -30,9 +30,20 @@ export default function MobileHeader() {
   const pathname = usePathname();
   const onTabRoot = isMobileTabRoot(pathname);
   const fallbackBack = useBackNavigation("/");
-  // Keyed on the path it opened on, so any navigation (back gesture included) closes it.
+  // Keyed on the path it opened on, and cleared on leaving it so Forward can't reopen it.
   const [drawerPath, setDrawerPath] = useState<string | null>(null);
+  if (drawerPath !== null && drawerPath !== pathname) setDrawerPath(null);
   const isDrawerOpen = drawerPath === pathname;
+
+  // The drawer portals outside this lg:hidden bar, so close it (backdrop and scroll lock) at lg.
+  useEffect(() => {
+    if (!isDrawerOpen) return;
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = () => desktop.matches && setDrawerPath(null);
+    closeOnDesktop();
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, [isDrawerOpen]);
 
   return (
     <div className="fixed left-0 right-0 top-0 z-[60] border-b border-gray-200/70 bg-surface-card/75 backdrop-blur-[18px] backdrop-saturate-[1.8] lg:hidden">
