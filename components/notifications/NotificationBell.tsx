@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Bell } from "lucide-react";
 import { useNotifications } from "@/lib/data-hooks/notifications/useNotifications";
 import NotificationPanel from "./NotificationPanel";
@@ -10,6 +10,12 @@ interface NotificationBellProps {
    * light surfaces. Defaults to `light`. */
   variant?: "dark" | "light";
   className?: string;
+  /** Render as a labeled SideNav row, styled by SideNav's icon slot and label classes. */
+  navRow?: {
+    leadClassName: string;
+    labelClassName: string;
+    tooltip?: ReactNode;
+  };
 }
 
 /**
@@ -20,10 +26,42 @@ interface NotificationBellProps {
 export default function NotificationBell({
   variant = "light",
   className = "",
+  navRow,
 }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { data } = useNotifications();
   const unreadCount = data?.unreadCount ?? 0;
+  const ariaLabel =
+    unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications";
+  const badgeText = unreadCount > 9 ? "9+" : unreadCount;
+
+  if (navRow) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          aria-label={ariaLabel}
+          className={`group relative flex w-full items-center rounded-xl py-2.5 text-sm text-primary-300 transition-colors duration-200 ease-out hover:bg-white/5 hover:text-white ${className}`}
+        >
+          <span className={navRow.leadClassName}>
+            <span className="relative">
+              <Bell className="h-5 w-5" strokeWidth={1.8} />
+              {unreadCount > 0 && (
+                <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-400 px-1 text-[10px] font-semibold leading-none text-primary-950">
+                  {badgeText}
+                </span>
+              )}
+            </span>
+          </span>
+          <span className={navRow.labelClassName}>Notifications</span>
+          {navRow.tooltip}
+        </button>
+
+        <NotificationPanel isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      </>
+    );
+  }
 
   const colorClasses =
     variant === "dark"
@@ -39,11 +77,7 @@ export default function NotificationBell({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        aria-label={
-          unreadCount > 0
-            ? `Notifications, ${unreadCount} unread`
-            : "Notifications"
-        }
+        aria-label={ariaLabel}
         className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 ${colorClasses} ${className}`}
       >
         <Bell className="h-5 w-5" strokeWidth={1.8} />
@@ -51,7 +85,7 @@ export default function NotificationBell({
           <span
             className={`absolute right-2 top-2 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none ${badgeClasses}`}
           >
-            {unreadCount > 9 ? "9+" : unreadCount}
+            {badgeText}
           </span>
         )}
       </button>

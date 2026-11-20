@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  PanelLeftClose,
-  PanelLeftOpen,
+  ChevronsLeft,
+  ChevronsRight,
   LogOut,
   User,
   LayoutDashboard,
@@ -49,6 +49,23 @@ const navItems: NavItem[] = [
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
+// Leading icon slot as wide as the collapsed rail's content column (w-16 minus
+// p-3 each side), so icons never move and only the labels fade on collapse.
+const NAV_LEAD = "grid w-10 shrink-0 place-items-center";
+
+// Label beside an icon on the collapsed rail; the row needs `group relative`.
+// aria-hidden because the faded row label already gives the accessible name.
+function NavTooltip({ children }: { children: ReactNode }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-lg bg-primary-950 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lifted transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+    >
+      {children}
+    </span>
+  );
+}
+
 export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const { data: session } = useSession();
@@ -66,57 +83,52 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
     });
   };
 
+  const labelFade = `min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left transition-opacity duration-200 ease-out motion-reduce:transition-none ${
+    isCollapsed ? "opacity-0" : "opacity-100"
+  }`;
+
   return (
     <div
-      className={`fixed left-0 top-0 z-40 hidden h-screen bg-primary transition-all duration-300 ease-in-out lg:block [&_:focus-visible]:outline-accent-400 ${
+      className={`fixed left-0 top-0 z-40 hidden h-screen bg-primary transition-[width] duration-200 ease-out motion-reduce:transition-none lg:block [&_:focus-visible]:outline-accent-400 ${
         isCollapsed ? "w-16" : "w-64"
       }`}
     >
+      {/* Pinned to the rail's right edge so it rides the width transition. */}
       <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className={`fixed top-24 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-primary-800 bg-accent text-primary shadow-card transition-all duration-300 ease-in-out hover:bg-accent-400 ${
-          isCollapsed ? "left-[52px]" : "left-[244px]"
-        }`}
+        onClick={() => {
+          setShowProfilePopup(false);
+          setIsCollapsed(!isCollapsed);
+        }}
+        aria-label={isCollapsed ? "Expand navigation" : "Collapse navigation"}
+        aria-expanded={!isCollapsed}
+        className="absolute right-0 top-[84px] z-50 flex h-6 w-6 translate-x-1/2 items-center justify-center rounded-full border border-primary-800 bg-accent text-primary shadow-card transition-colors hover:bg-accent-400"
         title={isCollapsed ? "Expand navigation" : "Collapse navigation"}
       >
-        {isCollapsed ? (
-          <PanelLeftOpen size={14} />
-        ) : (
-          <PanelLeftClose size={14} />
-        )}
+        {isCollapsed ? <ChevronsRight size={14} /> : <ChevronsLeft size={14} />}
       </button>
 
       <div className="flex h-full flex-col p-3">
-        {/**logo*/}
-        <div
-          className={`mb-8 mt-2 flex items-center overflow-hidden ${isCollapsed ? "flex-col gap-2" : "justify-between gap-3 px-2"}`}
-        >
-          <div
-            className={`flex items-center overflow-hidden ${isCollapsed ? "justify-center" : "gap-3"}`}
-          >
-            <div
-              className={`flex-shrink-0 p-0.5 ${isCollapsed ? "h-10 w-10" : "h-12 w-12"}`}
-            >
+        <div className="mb-8 mt-2 flex h-12 shrink-0 items-center overflow-hidden">
+          <span className={NAV_LEAD}>
+            <span className="block h-10 w-10 p-0.5">
               <Image
                 src="/ronin_logo.jpg"
                 alt="Ronin Logo"
-                width={isCollapsed ? 48 : 64}
-                height={isCollapsed ? 48 : 64}
+                width={64}
+                height={64}
                 className="h-full w-full rounded-full ring-2 ring-accent-400/40"
                 priority
               />
-            </div>
-            <div
-              className={`transition-all duration-300 ease-in-out ${isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}
-            >
-              <h2 className="whitespace-nowrap text-lg font-bold tracking-[0.2em] text-accent-400">
-                RONIN
-              </h2>
-            </div>
-          </div>
-          {isFeatureEnabled(settings, "notifications") && (
-            <NotificationBell variant="dark" />
-          )}
+            </span>
+          </span>
+          <h2
+            aria-hidden={isCollapsed}
+            className={`ml-2 whitespace-nowrap text-lg font-bold tracking-[0.2em] text-accent-400 transition-opacity duration-200 ease-out motion-reduce:transition-none ${
+              isCollapsed ? "opacity-0" : "opacity-100"
+            }`}
+          >
+            RONIN
+          </h2>
         </div>
 
         <nav className="flex flex-col gap-1">
@@ -131,24 +143,20 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
               <Link
                 key={item.href}
                 href={item.href}
-                title={isCollapsed ? item.label : undefined}
-                className={`flex items-center rounded-xl py-2.5 text-sm transition-all duration-200 ease-out ${
-                  isCollapsed ? "justify-center px-0" : "gap-3 px-3"
-                } ${
+                className={`group relative flex items-center rounded-xl py-2.5 text-sm transition-colors duration-200 ease-out ${
                   isActive
                     ? "bg-accent-400/15 font-medium text-accent"
                     : "text-primary-300 hover:bg-white/5 hover:text-white"
                 }`}
               >
-                <Icon
-                  className={`h-5 w-5 flex-shrink-0 ${isActive ? "text-accent-400" : ""}`}
-                  strokeWidth={isActive ? 2.2 : 1.8}
-                />
-                <span
-                  className={`whitespace-nowrap transition-all duration-300 ease-in-out ${isCollapsed ? "w-0 overflow-hidden opacity-0" : "w-auto opacity-100"}`}
-                >
-                  {item.label}
+                <span className={NAV_LEAD}>
+                  <Icon
+                    className={`h-5 w-5 ${isActive ? "text-accent-400" : ""}`}
+                    strokeWidth={isActive ? 2.2 : 1.8}
+                  />
                 </span>
+                <span className={labelFade}>{item.label}</span>
+                {isCollapsed && <NavTooltip>{item.label}</NavTooltip>}
               </Link>
             );
           })}
@@ -156,23 +164,35 @@ export default function SideNav({ isCollapsed, setIsCollapsed }: SideNavProps) {
 
         {/* Profile section at the bottom */}
         <div className="mt-auto border-t border-white/10 pt-3">
+          {isFeatureEnabled(settings, "notifications") && (
+            <NotificationBell
+              variant="dark"
+              navRow={{
+                leadClassName: NAV_LEAD,
+                labelClassName: labelFade,
+                tooltip: isCollapsed ? (
+                  <NavTooltip>Notifications</NavTooltip>
+                ) : undefined,
+              }}
+              className="mb-1"
+            />
+          )}
           <div className="relative">
             <button
               onClick={() => setShowProfilePopup(!showProfilePopup)}
-              className={`flex w-full items-center rounded-xl px-3 py-2.5 text-sm text-primary-200 transition-colors duration-200 hover:bg-white/5 hover:text-white ${isCollapsed ? "justify-center" : "gap-3"}`}
+              className="group relative flex w-full items-center rounded-xl py-2.5 text-sm text-primary-200 transition-colors duration-200 hover:bg-white/5 hover:text-white"
             >
-              <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-accent-400/20 text-accent-400">
-                <User className="h-4 w-4" />
-              </div>
-              <div
-                className={`transition-all duration-300 ease-in-out ${isCollapsed ? "w-0 overflow-hidden opacity-0" : "w-auto opacity-100"}`}
-              >
-                <div className="flex flex-1 items-center justify-between">
-                  <span className="truncate whitespace-nowrap">
-                    {session?.user?.name ?? "Profile"}
-                  </span>
-                </div>
-              </div>
+              <span className={NAV_LEAD}>
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent-400/20 text-accent-400">
+                  <User className="h-4 w-4" />
+                </span>
+              </span>
+              <span className={labelFade}>
+                {session?.user?.name ?? "Profile"}
+              </span>
+              {isCollapsed && (
+                <NavTooltip>{session?.user?.name ?? "Profile"}</NavTooltip>
+              )}
             </button>
 
             {/* Profile popup */}
