@@ -160,7 +160,7 @@ export default function ReportsPage() {
         description="See where your money goes, over time"
       />
 
-      <div className="pt-2 lg:flex-1 lg:overflow-hidden lg:pt-0">
+      <div className="lg:flex-1 lg:overflow-hidden">
         <div className="lg:h-full lg:overflow-y-auto">
           <div className="mx-auto w-full px-4 py-4 pb-28 sm:px-6 lg:px-8 lg:pb-8">
             {/* Range picker + comparison toggle */}

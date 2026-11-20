@@ -1,11 +1,4 @@
-import {
-  CreditCard,
-  DollarSign,
-  Edit,
-  Trash2,
-  CopyIcon,
-  Check,
-} from "lucide-react";
+import { Edit, Trash2, CopyIcon, Check } from "lucide-react";
 import type { Card } from "@/lib/utils/cards";
 import { formatCurrency, roundToCents } from "@/lib/utils";
 import { getSelectableTileProps } from "@/lib/utils/selection";
@@ -28,14 +21,6 @@ interface CardProps {
   selected?: boolean;
   onToggleSelect?: (card: Card) => void;
 }
-
-const getCardTypeIcon = (type: string) => {
-  return type === "credit" ? (
-    <CreditCard className="h-4 w-4" />
-  ) : (
-    <DollarSign className="h-4 w-4" />
-  );
-};
 
 const getUtilizationPercentage = (
   amountSpent: number,
@@ -79,7 +64,7 @@ const CardComponent = ({
   return (
     <div
       {...selectionProps}
-      className={`card-interactive group relative overflow-hidden ${
+      className={`card-interactive group relative flex h-full flex-col overflow-hidden ${
         selectable ? "" : "cursor-pointer"
       } ${!card.isActive && !selectable ? "opacity-60" : ""} ${
         selectable && selected ? "ring-2 ring-secondary" : ""
@@ -98,10 +83,9 @@ const CardComponent = ({
         <div className="pointer-events-none absolute -bottom-20 -left-8 h-36 w-36 rounded-full bg-black/10" />
 
         <div className="relative mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {getCardTypeIcon(card.type)}
-            <span className="text-xs font-semibold uppercase tracking-widest text-white/90">
-              {card.type}
+          <div className="flex min-w-0 items-center">
+            <span className="truncate text-xs font-semibold uppercase tracking-widest text-white/90">
+              {card.type.replace("_", " ")}
             </span>
           </div>
           {selectable ? (
@@ -173,19 +157,19 @@ const CardComponent = ({
           )}
         </div>
 
-        {/* Chip */}
-        <div className="relative mb-5">
-          <div className="h-7 w-9 rounded-md bg-gradient-to-br from-accent-100 to-accent-500 shadow-soft">
+        <div className="relative mb-5 flex items-center gap-3">
+          {/* Chip */}
+          <div className="h-7 w-9 shrink-0 rounded-md bg-gradient-to-br from-accent-100 to-accent-500 shadow-soft">
             <div className="mx-auto mt-2 h-3 w-6 rounded-sm border border-primary-950/30" />
           </div>
-        </div>
 
-        {/* Card number */}
-        {card.lastFourDigits && (
-          <div className="relative mb-5 font-mono text-sm tracking-widest text-white/90">
-            •••• •••• •••• {card.lastFourDigits}
-          </div>
-        )}
+          {/* Right-aligned so a narrow tile clips the leading dots, never the digits */}
+          {card.lastFourDigits && (
+            <div className="flex min-w-0 flex-1 justify-end overflow-hidden whitespace-nowrap font-mono text-sm tracking-widest text-white/90">
+              •••• •••• •••• {card.lastFourDigits}
+            </div>
+          )}
+        </div>
 
         {/* Card holder */}
         <div className="relative flex items-end justify-between">
@@ -201,7 +185,7 @@ const CardComponent = ({
       </div>
 
       {/* Card Info */}
-      <div className="p-5">
+      <div className="flex-1 p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-semibold tracking-tight text-gray-900">
             {card.name}

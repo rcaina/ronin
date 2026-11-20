@@ -1,7 +1,14 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { usePathname } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
 import Button from "./Button";
 import HeaderActionMenu from "./HeaderActionMenu";
+import { useMobileHeaderSlots } from "./MobileHeaderActionContext";
+import { isHeaderlessOnMobile, isMobileTabRoot } from "@/lib/utils/mobile-nav";
+import { useBackNavigation } from "@/lib/utils/navigation-history";
 
 interface PageHeaderProps {
   title: string;
@@ -43,14 +50,65 @@ const PageHeader = ({
   const secondaryActions = (actions ?? []).filter(
     (item) => item !== primaryAction,
   );
+  const pathname = usePathname();
+  const headerless = isHeaderlessOnMobile(pathname);
+  // Below lg a non-tab page puts back + title in MobileHeader, even without a backButton.
+  const inTopBar = headerless && !isMobileTabRoot(pathname);
+  const defaultBack = useBackNavigation("/");
+  const { menuSlot, leadSlot, titleSlot, shortcutLabel } =
+    useMobileHeaderSlots();
+  // On tab roots the top bar already shows its one-tap shortcut (e.g. Scan receipt) as an icon.
+  const menuActions = inTopBar
+    ? secondaryActions
+    : secondaryActions.filter((item) => item.label !== shortcutLabel);
 
   return (
     <>
-      <div className="fixed left-0 right-0 top-16 z-[30] border-b border-gray-200/70 bg-surface-card/90 backdrop-blur-md lg:sticky lg:top-0">
+      {headerless && <h1 className="sr-only lg:hidden">{title}</h1>}
+      {inTopBar &&
+        leadSlot &&
+        createPortal(
+          <button
+            type="button"
+            data-mobile-back
+            onClick={backButton?.onClick ?? defaultBack}
+            className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-gray-600 transition-colors duration-150 ease-brand hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>,
+          leadSlot,
+        )}
+      {inTopBar &&
+        titleSlot &&
+        createPortal(
+          // The page keeps its sr-only <h1>, so the bar's title is a <p>.
+          <div className="min-w-0 text-center">
+            {eyebrow && (
+              <p className="truncate text-xs font-medium text-gray-500">
+                {eyebrow}
+              </p>
+            )}
+            <p className="truncate text-base font-semibold tracking-tight text-gray-900">
+              {title}
+            </p>
+          </div>,
+          titleSlot,
+        )}
+      {headerless &&
+        menuSlot &&
+        menuActions.length > 0 &&
+        createPortal(
+          <HeaderActionMenu actions={menuActions} disabled={actionsDisabled} />,
+          menuSlot,
+        )}
+      <div
+        className={`fixed left-0 right-0 top-16 z-[30] border-b border-gray-200/70 bg-surface-card/90 backdrop-blur-md lg:sticky lg:top-0 ${headerless ? "hidden lg:block" : ""}`}
+      >
         {/* Fixed height while the header is position:fixed (below lg) so it never
-          grows past its content clearance; natural height once it's sticky on
-          desktop, where the description can show. */}
-        <div className="mx-auto flex h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:h-auto lg:px-8 lg:py-4">
+          grows past its content clearance. Fixed on desktop too: SideNav's
+          collapse toggle is centered on this header's bottom border. */}
+        <div className="mx-auto flex h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:h-24 lg:px-8">
           <div className="flex min-w-0 flex-1 items-center">
             {backButton && (
               <button
