@@ -499,6 +499,52 @@ export async function updateCard(
   return updatedCard;
 }
 
+/**
+ * Folds every budget's extra live copies of each general card into its oldest
+ * copy (the one resolveBudgetCard picks), moving their transactions and
+ * recurring templates over. Returns how many copies were folded away.
+ */
+export async function collapseBudgetCopies(
+  tx: PrismaClientTx,
+  generalIds: string[],
+): Promise<number> {
+  const copies = await tx.card.findMany({
+    where: {
+      defaultCardId: { in: generalIds },
+      budgetId: { not: null },
+      deleted: null,
+    },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: { id: true, budgetId: true, defaultCardId: true },
+  });
+
+  const groups = new Map<string, string[]>();
+  for (const copy of copies) {
+    const key = `${copy.budgetId}|${copy.defaultCardId}`;
+    groups.set(key, [...(groups.get(key) ?? []), copy.id]);
+  }
+
+  let folded = 0;
+  for (const [keepId, ...extraIds] of groups.values()) {
+    if (extraIds.length === 0) continue;
+    const fromExtras = { cardId: { in: extraIds } };
+    await tx.transaction.updateMany({
+      where: fromExtras,
+      data: { cardId: keepId },
+    });
+    await tx.recurringTransaction.updateMany({
+      where: fromExtras,
+      data: { cardId: keepId },
+    });
+    await tx.card.updateMany({
+      where: { id: { in: extraIds } },
+      data: { deleted: new Date() },
+    });
+    folded += extraIds.length;
+  }
+  return folded;
+}
+
 // Merge two or more of the requesting user's own general (template) cards
 // into one they explicitly choose as the survivor. Any budget cards or
 // transactions linked to the sources are repointed at the survivor (mirroring
@@ -550,8 +596,12 @@ export async function mergeCards(
     },
   });
 
-  // Repoint transactions attached directly to the source general cards.
+  // Repoint transactions and recurring templates attached directly to the source general cards.
   await tx.transaction.updateMany({
+    where: { cardId: { in: sourceIds } },
+    data: { cardId: targetId },
+  });
+  await tx.recurringTransaction.updateMany({
     where: { cardId: { in: sourceIds } },
     data: { cardId: targetId },
   });
@@ -561,6 +611,8 @@ export async function mergeCards(
     where: { id: { in: sourceIds } },
     data: { deleted: new Date() },
   });
+
+  await collapseBudgetCopies(tx, [targetId]);
 
   // Return the survivor in the same shape as the other card endpoints — the
   // client-side Card type includes the owning user.
