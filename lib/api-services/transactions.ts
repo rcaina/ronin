@@ -8,6 +8,7 @@ import type {
 } from "@/lib/api-schemas/transactions";
 import type { PrismaClientTx } from "../prisma";
 import { HttpError } from "../errors";
+import { lockAccountCards } from "./cards";
 import { roundToCents } from "../utils";
 import { toIsoDateString } from "../utils/csv";
 import {
@@ -352,6 +353,8 @@ const insertTransaction = async (
   data: CreateTransactionSchema,
   user: User & { accountId: string },
 ) => {
+  // Held to commit so a card merge can't fold the card away between the check and the insert.
+  await lockAccountCards(tx, user.accountId);
   const hasSplits = !!data.splits && data.splits.length > 0;
 
   if (hasSplits) {
@@ -432,6 +435,8 @@ export async function updateTransaction(
   data: UpdateTransactionSchema,
   user: User & { accountId: string },
 ) {
+  // Before the read: an unchanged cardId is written back without a check, so a fold in between would be undone.
+  await lockAccountCards(tx, user.accountId);
   const current = await tx.transaction.findFirst({
     where: { id, accountId: user.accountId, deleted: null },
     select: {
@@ -629,6 +634,7 @@ export async function createCardPayment(
   data: CreateCardPaymentSchema,
   user: User & { accountId: string },
 ) {
+  await lockAccountCards(tx, user.accountId);
   await assertWritableBudget(tx, user.accountId, data.budgetId);
   await assertOwnedCard(tx, user.accountId, data.fromCardId, data.budgetId);
   await assertOwnedCard(tx, user.accountId, data.toCardId, data.budgetId);

@@ -2,8 +2,8 @@
  * Repairs duplicate cards, including duplicates a user already deleted by hand:
  *
  * 1. A deleted general card with a live twin (same owner, type, name and last
- *    four): its live budget copies, recurring templates and transactions move
- *    to the twin.
+ *    four): its budget copies are relinked to the twin, and its recurring
+ *    templates and transactions move to it.
  * 2. A budget holding several live copies of one general card: the oldest copy
  *    is kept and the others are folded into it.
  * 3. A deleted budget card whose budget still holds a live copy of the same
@@ -36,7 +36,7 @@ const sameCard = (a: string, b: string) =>
 async function main() {
   const dryRun = process.argv.includes("--dry-run");
   const summary = {
-    generalsRelinked: 0,
+    copiesRelinked: 0,
     copiesFolded: 0,
     deletedCopiesRehomed: 0,
     strandedTransactionsMoved: 0,
@@ -68,14 +68,15 @@ async function main() {
           JOIN card live ON live."budgetId" IS NULL AND live.deleted IS NULL
             AND live.id <> g.id AND ${sameCard("g", "live")}
           WHERE g."budgetId" IS NULL AND g.deleted IS NOT NULL
-            AND (EXISTS (SELECT 1 FROM card c WHERE c."defaultCardId" = g.id AND c.deleted IS NULL)
+            AND (EXISTS (SELECT 1 FROM card c WHERE c."defaultCardId" = g.id)
               OR EXISTS (SELECT 1 FROM recurring_transactions r WHERE r."cardId" = g.id AND r.deleted IS NULL)
               OR EXISTS (SELECT 1 FROM transactions t WHERE t."cardId" = g.id AND t.deleted IS NULL))
           ORDER BY g.id, live."createdAt", live.id`;
+        // Deleted copies too, so pass 3 still pairs them with their live copy by general card when the names have drifted.
         for (const { fromId, toId } of deletedGenerals) {
-          summary.generalsRelinked += (
+          summary.copiesRelinked += (
             await tx.card.updateMany({
-              where: { defaultCardId: fromId, deleted: null },
+              where: { defaultCardId: fromId },
               data: { defaultCardId: toId },
             })
           ).count;
